@@ -1,0 +1,46 @@
+{
+    "name": "cyrildewit/laravel-page-visits-counter",
+    "type": "laravel-package",
+    "description": "Simple package for storing page visits of visitable models into the database.",
+    "keywords": [
+        "cyrildewit",
+        "laravel",
+        "model",
+        "pageviews",
+        "visits"
+    ],
+    "homepage": "https://github.com/cyrildewit/laravel-page-visits-counter",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cyril de Wit",
+            "email": "info@cyrildewit.nl",
+            "homepage": "https://cyrildewit.nl",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "nesbot/carbon": "^1.22"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.2",
+        "orchestra/testbench": "^3.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cyrildewit\\PageVisitsCounter\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cyrildewit\\PageVisitsCounter\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    }
+}

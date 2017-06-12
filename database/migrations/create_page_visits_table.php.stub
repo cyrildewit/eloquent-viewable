@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class CreatePageVisitsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $tableNames = config('page-visits-counter.table_names');
+
+        Schema::create($tableNames['page-visits'], function (Blueprint $table) {
+            $table->increments('id')->unsigned();
+
+            $table->bigInteger('visitable_id')->unsigned();
+            $table->string('visitable_type');
+
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $tableNames = config('model-visits.table_names');
+
+        Schema::dropIfExists($tableNames['page-visits']);
+    }
+}

@@ -1,3 +1,11 @@
+build/
+composer.lock
+docs/
+vendor/
+test/temp/
+node_modules/
+tests/reports
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
