@@ -110,7 +110,7 @@ trait HasPageVisitsCounter
     }
 
     /**
-     * Retrieve the counted visits
+     * Retrieve the counted visits.
      *
      * @param \Carbon\Carbon $start_date
      * @param \Carbon\Carbon $end_date
