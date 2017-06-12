@@ -18,7 +18,7 @@ return [
          * This table is used by creating the migrations
          * files and default model.
          */
-        'page-visits' => 'page-visits'
+        'page-visits' => 'page-visits',
 
     ],
 

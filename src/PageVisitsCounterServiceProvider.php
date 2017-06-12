@@ -38,7 +38,7 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
             $timestamp = date('Y_m_d_His', time());
 
             $this->publishes([
-                __DIR__.'/../database/migrations/create_page_visits_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_page_visits_table.php")
+                __DIR__.'/../database/migrations/create_page_visits_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_page_visits_table.php"),
             ], 'migrations');
         }
 
@@ -47,7 +47,7 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register Model Bindings
+     * Register Model Bindings.
      *
      * @return void
      */
