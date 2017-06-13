@@ -16,7 +16,7 @@ $article->total_visits_count
 $article->last_24h_visits_count
 
 // Store new visit in the databae
-$article->newVisit();
+$article->addVisit();
 ```
 
 This package isn't built for tracking every page visit. It actually made more for providing a simple counter for Model items like a `Task`, `Article`, `Post` or `Course`. But of course you can use this package as want.
@@ -84,6 +84,23 @@ $article->total_visits_count
 $article->last_24h_visits_count // Only in past 24 hours
 $article->last_7d_visits_count // Only in past 7 days
 $article->last_14d_visits_count // Only in past 14 days
+
+// Retrieve visits from past 2 weeks
+$article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
+
+object retrievePageVisitsCountFrom( Carbon $from_date )
+
+// Retrieve visits from past 2 weeks
+$article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
+
+object retrievePageVisitsCountBetween( Carbon $from_date, Carbon $end_date )
+```
+
+### Adding a new visit
+
+```php
+// Add one visit
+$article->addVisit()
 ```
 
 ### Configuring the formatted number format

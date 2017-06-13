@@ -70,7 +70,7 @@ trait HasPageVisitsCounter
      */
     public function getLast24hVisitsCountAttribute()
     {
-        return $this->retrievePageVisitsFrom(Carbon::now()->subHours(24));
+        return $this->retrievePageVisitsCountFrom(Carbon::now()->subHours(24));
     }
 
     /**
@@ -80,7 +80,7 @@ trait HasPageVisitsCounter
      */
     public function getLast7dVisitsCountAttribute()
     {
-        return $this->retrievePageVisitsFrom(Carbon::now()->subDays(7));
+        return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(7));
     }
 
     /**
@@ -90,7 +90,7 @@ trait HasPageVisitsCounter
      */
     public function getLast14dVisitsCountAttribute()
     {
-        return $this->retrievePageVisitsFrom(Carbon::now()->subDays(14));
+        return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(14));
     }
 
     /**
@@ -99,7 +99,7 @@ trait HasPageVisitsCounter
      * @param \Carbon\Carbon $start_date
      * @return int
      */
-    protected function retrievePageVisitsFrom(Carbon $from_date)
+    public function retrievePageVisitsCountFrom(Carbon $from_date)
     {
         $countResult = $this
             ->visits()
@@ -116,7 +116,7 @@ trait HasPageVisitsCounter
      * @param \Carbon\Carbon $end_date
      * @return int
      */
-    protected function retrievePageVisitsBetween(Carbon $from_date, Carbon $end_date)
+    public function retrievePageVisitsCountBetween(Carbon $from_date, Carbon $end_date)
     {
         $countResult = $this
             ->visits()
@@ -160,17 +160,21 @@ trait HasPageVisitsCounter
      * Convert the visits count based upon the config settings.
      *
      * @param int $number
-     * @return int|string
+     * @return \stdClass
      */
     protected function convertNumber($number)
     {
+        $output = new \stdClass();
+        $output->number = $number;
+
         if ($this->configSettings['output-settings']['formatted-output-enabled']) {
             $options = $this->configSettings['output-settings']['format-options'];
 
-            return $this->formatIntegerHumanReadable($number, $options);
+            $output->number = $number;
+            $output->formatted = $this->formatIntegerHumanReadable($number, $options);
         }
 
-        return $number;
+        return $output;
     }
 
     /**
