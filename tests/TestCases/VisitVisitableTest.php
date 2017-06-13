@@ -2,7 +2,6 @@
 
 namespace Cyrildewit\PageVisitsCounter\Test\TestCases;
 
-use Cyrildewit\PageVisitsCounter\Models\PageVisit;
 use Cyrildewit\PageVisitsCounter\Test\TestCase;
 
 class VisitVisitableTest extends TestCase
