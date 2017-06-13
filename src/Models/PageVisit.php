@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageVisitsCounter\Models;
+namespace Cyrildewit\PageVisitsCounter\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Cyrildewit\PageVisitsCounter\Contracts\PageVisit as PageVisitContract;

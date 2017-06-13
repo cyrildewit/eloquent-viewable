@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageVisitsCounter\Traits;
+namespace Cyrildewit\PageVisitsCounter\Traits;
 
 use Carbon\Carbon;
 
@@ -16,7 +16,7 @@ trait HasPageVisitsCounter
      */
     public function __construct()
     {
-        $this->configSettings = config('page-visits-counter');
+        $this->configSettings = config('page-visits-counter.php');
 
         return parent::__construct();
     }

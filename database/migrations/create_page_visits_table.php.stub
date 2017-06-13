@@ -32,7 +32,7 @@ class CreatePageVisitsTable extends Migration
      */
     public function down()
     {
-        $tableNames = config('model-visits.table_names');
+        $tableNames = config('page-visits-counter.table_names');
 
         Schema::dropIfExists($tableNames['page-visits']);
     }

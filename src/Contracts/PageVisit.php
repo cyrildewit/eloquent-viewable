@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageVisitsCounter\Contracts;
+namespace Cyrildewit\PageVisitsCounter\Contracts;
 
 interface PageVisit
 {
