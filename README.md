@@ -1,7 +1,6 @@
 # Laravel Page Visit Counter
 
-[![Build Status](https://img.shields.io/travis/cyrildewit/laravel-page-visits-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
-[![StyleCI](https://styleci.io/repos/93885575/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 
 This package allows you to store page visits of different models into the database.
