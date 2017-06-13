@@ -4,9 +4,8 @@ namespace Cyrildewit\PageVisitsCounter\Test;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
-use Cyrildewit\PageVisitsCounter\Test\Models\Task;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Carbon\Carbon;
+use Cyrildewit\PageVisitsCounter\Test\Models\Task;
 use Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
