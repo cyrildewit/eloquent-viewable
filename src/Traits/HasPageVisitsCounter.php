@@ -3,7 +3,16 @@
 namespace Cyrildewit\PageVisitsCounter\Traits;
 
 use Carbon\Carbon;
+use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
 
+/**
+ * Trait for Laravel Models
+ *
+ * @package    cyrildewit/page-visits-counter
+ * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
+ * @author     Cyril de Wit (info@cyrildewit.nl)
+ * @license    https://opensource.org/licenses/MIT    MIT License
+ */
 trait HasPageVisitsCounter
 {
     /** @var array */
@@ -128,9 +137,9 @@ trait HasPageVisitsCounter
     }
 
     /**
-     * Adds a visit to the given model.
+     * Adds a visit to the given model and return instance of the visit.
      *
-     * @return ture|false
+     * @return \Illuminate\Database\Eloquent\Model
      */
     public function addVisit()
     {
@@ -141,7 +150,7 @@ trait HasPageVisitsCounter
         $visit->visitable_type = get_class($this);
         $this->visits()->save($visit);
 
-        return true;
+        return $visit;
     }
 
     /**
@@ -150,6 +159,31 @@ trait HasPageVisitsCounter
      * @return int
      */
     public function addVisitAndCountAll()
+    {
+        $this->addVisit();
+
+        return $this->getTotalVisitsCountAttribute();
+    }
+
+    /**
+     * Adds a visit tot the given model and store it into the session with an expiry date.
+     *
+     * @param \Carbon\Carbon $expires_at
+     * @return ture|false
+     */
+    public function addVisitThatExpiresAt(Carbon $expires_at)
+    {
+        if ((new SessionHistory())->addToSession($this, $expires_at)) {
+            $this->addVisit();
+        }
+    }
+
+    /**
+     * Save new visit with expiry date return the current number of visits.
+     *
+     * @return int
+     */
+    public function addVisitThatExpiresAtAndCountAll()
     {
         $this->addVisit();
 

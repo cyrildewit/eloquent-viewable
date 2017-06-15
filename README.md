@@ -16,11 +16,12 @@ $article->last_24h_visits_count
 
 // Store new visit in the databae
 $article->addVisit();
+
+// Store new visit in the databae with expiry date
+$article->addVisitThatExpiresAt(Carbon:now()->addHours(3));
 ```
 
-This package isn't built for tracking every page visit. It actually made more for providing a simple counter for Model items like a `Task`, `Article`, `Post` or `Course`. But of course you can use this package as want.
-
-**Tip:** Create a Laravel Event called `Store{ModelName}View` to handle a visit for example a blog `Post`. Evertime you think it is worth to store the visit into the databse, you can fire this Event inside your Controller. In this Event you can write some code to check in the session if the current user has already viewed it. Maybe with some throttling checks.
+This package is not built with the intent to collect analyticial data. It is made to simply save the visits of an Laravel model item. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course you can use this package as you want.
 
 ## Installation
 
@@ -60,7 +61,7 @@ php artisan vendor:publish --provider="Cyrildewit\PageVisitsCounter\PageVisitsCo
 
 ## Usage
 
-First add the `Cyrildewit\PageVisitsCounter\Traits\HasModelVisits` trait to your vieweble model(s).
+First add the `Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter` trait to your visitable model(s).
 
 ```php
 use Illuminate\Database\Eloquent\Model;
@@ -68,7 +69,7 @@ use Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter;
 
 class Article extends Model
 {
-    use PageVisitsCounter;
+    use HasPageVisitsCounter;
 
     // ...
 }
@@ -81,18 +82,14 @@ class Article extends Model
 $article->total_visits_count
 
 $article->last_24h_visits_count // Only in past 24 hours
-$article->last_7d_visits_count // Only in past 7 days
+$article->last_7d_visits_count  // Only in past 7 days
 $article->last_14d_visits_count // Only in past 14 days
 
-// Retrieve visits from past 2 weeks
+// Retrieve visits from date (past 2 weeks)
 $article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
 
-object retrievePageVisitsCountFrom( Carbon $from_date )
-
-// Retrieve visits from past 2 weeks
+// Retrieve visits between two dates
 $article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
-
-object retrievePageVisitsCountBetween( Carbon $from_date, Carbon $end_date )
 ```
 
 ### Adding a new visit
@@ -100,6 +97,9 @@ object retrievePageVisitsCountBetween( Carbon $from_date, Carbon $end_date )
 ```php
 // Add one visit
 $article->addVisit()
+
+// Add one with expriy date
+$article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
 ### Configuring the formatted number format

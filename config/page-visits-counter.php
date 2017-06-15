@@ -22,6 +22,12 @@ return [
 
     ],
 
+    'sessions' => [
+
+        'primary-session-key' => 'page-visits-counter.history',
+
+    ],
+
     'output-settings' => [
 
         /*
