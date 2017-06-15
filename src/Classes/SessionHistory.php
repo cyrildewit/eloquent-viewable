@@ -7,9 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Laravel wrapper for SessionHistory
+ * Laravel wrapper for SessionHistory.
  *
- * @package    cyrildewit/page-visits-counter
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)
  * @license    https://opensource.org/licenses/MIT    MIT License
@@ -17,7 +16,7 @@ use Illuminate\Support\Facades\Session;
 class SessionHistory
 {
     /**
-     * @var string $primarySessionKey Session key where to store and retrieve the history from.
+     * @var string Session key where to store and retrieve the history from.
      */
     protected $primarySessionKey;
 
@@ -107,7 +106,8 @@ class SessionHistory
      * @param string $value
      * @return int The converted string.
      */
-    protected function fromCamelCaseToDashes(string $value) {
+    protected function fromCamelCaseToDashes(string $value)
+    {
         preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
 
         $ret = $matches[0];

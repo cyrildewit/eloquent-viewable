@@ -6,9 +6,8 @@ use Carbon\Carbon;
 use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
 
 /**
- * Trait for Laravel Models
+ * Trait for Laravel Models.
  *
- * @package    cyrildewit/page-visits-counter
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)
  * @license    https://opensource.org/licenses/MIT    MIT License
