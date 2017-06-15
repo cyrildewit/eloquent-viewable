@@ -137,7 +137,7 @@ trait HasPageVisitsCounter
     }
 
     /**
-     * Adds a visit to the given model and terun instance of the visit.
+     * Adds a visit to the given model and return instance of the visit.
      *
      * @return \Illuminate\Database\Eloquent\Model
      */
