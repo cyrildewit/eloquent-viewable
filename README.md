@@ -18,7 +18,7 @@ $article->last_24h_visits_count
 $article->addVisit();
 
 // Store new visit in the databae with expiry date
-$article->addVisitThatExpiresAt(Carbon:now()->addHours(3));
+$article->addVisitThatExpiresAt(Carbon::now()->addHours(3));
 ```
 
 This package is not built with the intent to collect analyticial data. It is made to simply save the visits of an Laravel model item. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course you can use this package as you want.
