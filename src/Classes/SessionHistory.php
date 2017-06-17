@@ -106,7 +106,7 @@ class SessionHistory
      * @param string $value
      * @return int The converted string.
      */
-    protected function fromCamelCaseToDashes(string $value)
+    public function fromCamelCaseToDashes(string $value)
     {
         preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
 

@@ -17,7 +17,7 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
         // Merge the config file
         $this->mergeConfigFrom(
             __DIR__.'/../config/page-visits-counter.php',
-            'page-visits-counter.php'
+            'page-visits-counter'
         );
     }
 
