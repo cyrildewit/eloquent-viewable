@@ -135,8 +135,7 @@ $article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::no
 $article->addVisit()
 
 // Store a new visit into the database with expiry date.
-// When storing it, it will it's not already viewed by the current user.
-// The visits will be stored into the session
+// When storing it, it will first checks if it's not already have been viewed by the current user.
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
