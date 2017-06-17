@@ -2,10 +2,9 @@
 
 namespace Cyrildewit\PageVisitsCounter\Test\TestCases;
 
+use Carbon\Carbon;
 use Cyrildewit\PageVisitsCounter\Test\TestCase;
 use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Session;
 
 class VisitVisitableTest extends TestCase
 {
