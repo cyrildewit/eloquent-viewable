@@ -47,11 +47,11 @@ In this documention you will find some helpful information about the use of this
 
 1. [Getting Started](#getting-started)
 2. [Usage](#usage)
-  * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
-  * [Retrieving page visits count](#retrieving-page-visits-count)
-  * [Storing new visits](#storing-new-visits)
+    * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
+    * [Retrieving page visits count](#retrieving-page-visits-count)
+    * [Storing new visits](#storing-new-visits)
 3. [Configuration](#configuration)
-  * [Configuring the formatted number format](#configuring-the-formatted-number-format)
+    * [Configuring the formatted number format](#configuring-the-formatted-number-format)
 
 ## Getting Started
 
@@ -135,8 +135,7 @@ $article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::no
 $article->addVisit()
 
 // Store a new visit into the database with expiry date.
-// When storing it, it will it's not already viewed by the current user.
-// The visits will be stored into the session
+// When storing it, it will first checks if it's not already have been viewed by the current user.
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
