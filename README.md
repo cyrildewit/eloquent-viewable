@@ -1,6 +1,8 @@
 # Laravel Page Visit Counter
 
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![Build Status](https://travis-ci.org/cyrildewit/laravel-page-visits-counter.svg?branch=master)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 
 This package allows you to store page visits of different models into the database.
@@ -9,10 +11,10 @@ Once installed you can do stuff like this:
 
 ```php
 // Return total visits of the article
-$article->total_visits_count
+$article->total_visits_count->formatted
 
 // Return total visits of last 24 hours
-$article->last_24h_visits_count
+$article->last_24h_visits_count->formatted
 
 // Store new visit in the databae
 $article->addVisit();
@@ -23,9 +25,37 @@ $article->addVisitThatExpiresAt(Carbon::now()->addHours(3));
 
 This package is not built with the intent to collect analyticial data. It is made to simply save the visits of an Laravel model item. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course you can use this package as you want.
 
-## Installation
+## Overview
 
-This package can be used in Laravel 5.4 or higher.
+Laravel Page Visits Counter is a powerful, flexible and lightweight Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple visits counter we provide out of the box some great functionalities.
+
+### Features
+
+Here are some of the main features of Laravel Page Visits Counter:
+
+* Add a new visit.
+* Add a new visit with expiry date (history is stored in the session).
+* Get the total visits.
+* Get the total visits from the past: 24 hours, 7 days or 14 days.
+* Retrieve the visits count formatted like 120.000 instead of 120000 (great for blade views)
+
+## Documentation
+
+In this documention you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security related issues, then feel free to get in touch with me at: info(at)cyrildewit.nl.
+
+**In this documention:**
+
+1. [Getting Started](#getting-started)
+2. [Usage](#usage)
+  * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
+  * [Retrieving page visits count](#retrieving-page-visits-count)
+  * [Storing new visits](#storing-new-visits)
+3. [Configuration](#configuration)
+  * [Configuring the formatted number format](#configuring-the-formatted-number-format)
+
+## Getting Started
+
+Before you can use this package you have to install it with composer ;).
 
 You can install the package via composer:
 ```winbatch
@@ -61,7 +91,13 @@ php artisan vendor:publish --provider="Cyrildewit\PageVisitsCounter\PageVisitsCo
 
 ## Usage
 
-First add the `Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter` trait to your visitable model(s).
+In the following sections you will find information about the usage of this package.
+
+### Making a Elqouent model visitable
+
+First add the `Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter` trait to your visitable Eloquent model(s).
+
+Here's an example of a an Eloquent model:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
@@ -75,15 +111,15 @@ class Article extends Model
 }
 ```
 
-### Retrieving Page Visits Count
+### Retrieving page visits count
+
+Our attributes always return an object. This object contains two properties: `number` & `formatted`. As the names maybe suggests `total_visits_count->number` will return the whole number and `total_visits_count->formatted` will return a formatted string (120000 -> 120.000).
 
 ```php
-// Return total number of visits of the article.
-$article->total_visits_count
-
-$article->last_24h_visits_count // Only in past 24 hours
-$article->last_7d_visits_count  // Only in past 7 days
-$article->last_14d_visits_count // Only in past 14 days
+$article->total_visits_count    // Retrieve all counted visits
+$article->last_24h_visits_count // Retrieve all counted visits from the past 24 hours
+$article->last_7d_visits_count  // Retrieve all counted visits from the past 7 days
+$article->last_14d_visits_count // Retrieve all counted visits from the past 14 days
 
 // Retrieve visits from date (past 2 weeks)
 $article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
@@ -92,19 +128,23 @@ $article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
 $article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
 ```
 
-### Adding a new visit
+### Storing new visits
 
 ```php
-// Add one visit
+// Stores a new visit into the database
 $article->addVisit()
 
-// Add one with expriy date
+// Store a new visit into the database with expiry date.
+// When storing it, it will it's not already viewed by the current user.
+// The visits will be stored into the session
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
+## Configuration
+
 ### Configuring the formatted number format
 
-It is very easy to change the format of the converted numbers. Simply change the three parameters of the official function [`number_format()`](http://php.net/manual/en/function.number-format.php).
+It is very easy to change the format of the converted numbers. Simply change the three parameters of the official PHP function [`number_format()`](http://php.net/manual/en/function.number-format.php).
 
 In `config/page-visit-counter.php` you will find the following code:
 
@@ -143,8 +183,6 @@ return [
 
 - [Cyril de Wit](https://github.com/cyrildewit)
 - [All Contributors](../../contributors)
-
-Special thanks to [Freek Van der Herten](https://github.com/freekmurze) who inspired me to create opensource Laravel packages. Before creating this package I didn't had any experience with creating a Laravel Package and how to use create composer.json files. Because he created a lot of opensource packages I could learn how to do it. Make sure you take a look at [his open source packages](https://spatie.be/nl/opensource/laravel) as well!
 
 ## License
 
