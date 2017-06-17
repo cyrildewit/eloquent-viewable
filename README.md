@@ -47,11 +47,11 @@ In this documention you will find some helpful information about the use of this
 
 1. [Getting Started](#getting-started)
 2. [Usage](#usage)
-  * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
-  * [Retrieving page visits count](#retrieving-page-visits-count)
-  * [Storing new visits](#storing-new-visits)
+    * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
+    * [Retrieving page visits count](#retrieving-page-visits-count)
+    * [Storing new visits](#storing-new-visits)
 3. [Configuration](#configuration)
-  * [Configuring the formatted number format](#configuring-the-formatted-number-format)
+    * [Configuring the formatted number format](#configuring-the-formatted-number-format)
 
 ## Getting Started
 
