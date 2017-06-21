@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Laravel wrapper for SessionHistory.
+ * Class SessionHistory.
  *
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)

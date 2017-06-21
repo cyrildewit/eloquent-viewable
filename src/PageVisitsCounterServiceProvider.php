@@ -5,30 +5,22 @@ namespace Cyrildewit\PageVisitsCounter;
 use Illuminate\Support\ServiceProvider;
 use Cyrildewit\PageVisitsCounter\Contracts\PageVisit as PageVisitContract;
 
+/**
+ * Class PageVisitsCounterServiceProvider.
+ *
+ * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
+ * @author     Cyril de Wit (info@cyrildewit.nl)
+ * @license    https://opensource.org/licenses/MIT    MIT License
+ */
 class PageVisitsCounterServiceProvider extends ServiceProvider
 {
     /**
-     * Register bindings in the container.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        // Merge the config file
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/page-visits-counter.php',
-            'page-visits-counter'
-        );
-    }
-
-    /**
-     * Bootstrap PageVisitsCounter application services.
+     * Bootstrap the application services.
      *
      * @return void
      */
     public function boot()
     {
-        // Publish config file
         $this->publishes([
             __DIR__.'/../config/page-visits-counter.php' => $this->app->configPath('page-visits-counter.php'),
         ], 'config');
@@ -44,6 +36,20 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
 
         // Register Model Bindings
         $this->registerModelBindings();
+    }
+
+    /**
+     * Regiser the application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        // Merge the config file
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/page-visits-counter.php',
+            'page-visits-counter'
+        );
     }
 
     /**

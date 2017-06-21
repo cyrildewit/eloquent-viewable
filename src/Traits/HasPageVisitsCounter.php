@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
 
 /**
- * Trait for Laravel Models.
+ * Trait HasPageVisitsCounter for Eloquent models.
  *
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)

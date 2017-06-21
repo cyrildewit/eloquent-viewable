@@ -6,6 +6,7 @@ All notable changes to `laravel-page-visits-counter` will be documented in this 
 ### Changed
 - Improved `README.md`.
 - Updated the `CHANGELOG.md` file.
+- Improved the comments inside the following files: `PageVisitsCounterServiceProvider.php`, `HasPageVisitsCounter.php` and `SessionHistory.php`.
 
 ## [0.1.4] - 17-6-2017
 ### Added
