@@ -1,9 +1,10 @@
 # Laravel Page Visit Counter
 
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-visits-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
-[![Build Status](https://travis-ci.org/cyrildewit/laravel-page-visits-counter.svg?branch=master)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
-[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![license](https://img.shields.io/github/license/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-visits-counter/blob/master/LICENSE.md)
 
 This package allows you to store page visits of different models into the database.
 
