@@ -117,10 +117,12 @@ class Article extends Model
 Our attributes always return an object. This object contains two properties: `number` & `formatted`. As the names maybe suggests `total_visits_count->number` will return the whole number and `total_visits_count->formatted` will return a formatted string (120000 -> 120.000).
 
 ```php
-$article->total_visits_count    // Retrieve all counted visits
-$article->last_24h_visits_count // Retrieve all counted visits from the past 24 hours
-$article->last_7d_visits_count  // Retrieve all counted visits from the past 7 days
-$article->last_14d_visits_count // Retrieve all counted visits from the past 14 days
+$article->total_visits_count->formatted    // Retrieve all counted visits formatted
+$article->total_visits_count->number       // Retrieve all counted visits as a normal integer
+
+$article->last_24h_visits_count->formatted // Retrieve all counted visits from the past 24 hours (number is also available)
+$article->last_7d_visits_count->formatted  // Retrieve all counted visits from the past 7 days (number is also available)
+$article->last_14d_visits_count->formatted    // Retrieve all counted visits from the past 14 days (number is also available)
 
 // Retrieve visits from date (past 2 weeks)
 $article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
