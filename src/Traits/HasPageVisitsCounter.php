@@ -195,7 +195,7 @@ trait HasPageVisitsCounter
      * @param int $number
      * @return \stdClass
      */
-    protected function convertNumber(int $number)
+    protected function convertNumber($number)
     {
         $output = new \stdClass();
         $output->number = $number;
@@ -217,7 +217,7 @@ trait HasPageVisitsCounter
      * @param array $options
      * @return string
      */
-    protected function formatIntegerHumanReadable(int $number, array $options = [])
+    protected function formatIntegerHumanReadable($number, array $options = [])
     {
         return number_format(
             $number,
