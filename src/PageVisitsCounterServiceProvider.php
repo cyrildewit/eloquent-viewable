@@ -25,7 +25,7 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
             __DIR__.'/../config/page-visits-counter.php' => $this->app->configPath('page-visits-counter.php'),
         ], 'config');
 
-        // Publish migration file only if it doesn't exist
+        // Publish migration file only if it doesn't exists
         if (! class_exists('CreatePageVisitsTable')) {
             $timestamp = date('Y_m_d_His', time());
 
@@ -34,7 +34,6 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
             ], 'migrations');
         }
 
-        // Register Model Bindings
         $this->registerModelBindings();
     }
 
@@ -59,8 +58,8 @@ class PageVisitsCounterServiceProvider extends ServiceProvider
      */
     protected function registerModelBindings()
     {
-        $config = $this->app->config['page-visits-counter.models'];
+        $config = $this->app->config['page-visits-counter'];
 
-        $this->app->bind(PageVisitContract::class, $config['page-visit']);
+        $this->app->bind(PageVisitContract::class, $config['page_visit_model']);
     }
 }

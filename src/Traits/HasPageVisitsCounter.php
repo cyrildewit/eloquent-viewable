@@ -54,7 +54,7 @@ trait HasPageVisitsCounter
     public function visits()
     {
         return $this->morphMany(
-            $this->configSettings['models']['page-visit'],
+            $this->configSettings['page_visit_model'],
             'visitable'
         );
     }
@@ -142,7 +142,7 @@ trait HasPageVisitsCounter
      */
     public function addVisit()
     {
-        $visitClass = $this->configSettings['models']['page-visit'];
+        $visitClass = $this->configSettings['page_visit_model'];
 
         $visit = new $visitClass();
         $visit->visitable_id = $this->id;
