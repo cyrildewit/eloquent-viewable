@@ -64,7 +64,7 @@ class SessionHistory
      * @param int $visitable_id
      * @return true|false
      */
-    public function isItemVisited(string $uniqueKey, int $visitable_id)
+    public function isItemVisited($uniqueKey, $visitable_id)
     {
         $sessionItems = Session::get($this->primarySessionKey.'.'.$uniqueKey, []);
 
@@ -83,7 +83,7 @@ class SessionHistory
      * @param string $uniqueKey
      * @return void
      */
-    public function removeExpiredVisitsFromSession(string $uniqueKey)
+    public function removeExpiredVisitsFromSession($uniqueKey)
     {
         $currentTime = Carbon::now();
         $sessionItems = Session::get($this->primarySessionKey.'.'.$uniqueKey, []);
@@ -103,7 +103,7 @@ class SessionHistory
      * @param string $value
      * @return int The converted string.
      */
-    public function fromCamelCaseToDashes(string $value)
+    public function fromCamelCaseToDashes($value)
     {
         preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
 

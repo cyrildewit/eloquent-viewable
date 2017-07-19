@@ -32,15 +32,20 @@ trait HasPageVisitsCounter
     /**
      * Adding attributes for retrieving the pagevies of the model.
      *
-     * @var array
+     * @var arrayls
+
      */
     protected function getArrayableAppends()
     {
         $this->appends = array_unique(array_merge($this->appends, [
-            'total_visits_count',
-            'last_24h_visits_count',
-            'last_7d_visits_count',
-            'last_14d_visits_count',
+            'page_visits',
+            'page_visits_24h',
+            'page_visits_7d',
+            'page_visits_14d',
+            'page_visits_formatted',
+            'page_visits_24h_formatted',
+            'page_visits_7d_formatted',
+            'page_visits_14d_formatted',
         ]));
 
         return parent::getArrayableAppends();
@@ -64,41 +69,79 @@ trait HasPageVisitsCounter
      *
      * @return int
      */
-    public function getTotalVisitsCountAttribute()
+    public function getPageVisitsAttribute()
     {
-        $totalNumber = $this->visits()->count();
-
-        return $this->convertNumber($totalNumber);
+        return $this->visits()->count();
     }
 
     /**
-     * Count all page visits together of the model from the past 24 hours.
+     * Count all page visits together of the model and format it.
      *
      * @return int
      */
-    public function getLast24hVisitsCountAttribute()
+    public function getPageVisitsFormattedAttribute()
+    {
+        return $this->formatIntegerHumanReadable($this->getPageVisitsAttribute());
+    }
+
+    /**
+     * Count all page visits from the last 24 hours.
+     *
+     * @return int
+     */
+    public function getPageVisits24hAttribute()
     {
         return $this->retrievePageVisitsCountFrom(Carbon::now()->subHours(24));
     }
 
     /**
-     * Count all page visits together of the model from the past 7 days.
+     * Count all page visits from the last 24 hours and format it.
      *
      * @return int
      */
-    public function getLast7dVisitsCountAttribute()
+    public function getPageVisits24hFormattedAttribute()
+    {
+        return $this->formatIntegerHumanReadable($this->getPageVisits24hAttribute());
+    }
+
+    /**
+     * Count all page visits from the last 7 weeks.
+     *
+     * @return int
+     */
+    public function getPageVisits7dAttribute()
     {
         return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(7));
     }
 
     /**
-     * Count all page visits together of the model from the past 14 days.
+     * Count all page visits from the last 7 weeks and format it.
      *
      * @return int
      */
-    public function getLast14dVisitsCountAttribute()
+    public function getPageVisits7dFormattedAttribute()
+    {
+        return $this->formatIntegerHumanReadable($this->getPageVisits7dAttribute());
+    }
+
+    /**
+     * Count all page visits from the last 14 days.
+     *
+     * @return int
+     */
+    public function getPageVisits14dAttribute()
     {
         return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(14));
+    }
+
+    /**
+     * Count all page visits from the last 14 days and format it.
+     *
+     * @return int
+     */
+    public function getPageVisits14dFormattedAttribute()
+    {
+        return $this->formatIntegerHumanReadable($this->getPageVisits14dAttribute());
     }
 
     /**
@@ -109,12 +152,10 @@ trait HasPageVisitsCounter
      */
     public function retrievePageVisitsCountFrom(Carbon $from_date)
     {
-        $countResult = $this
+        return $this
             ->visits()
             ->where('created_at', '>=', $from_date)
             ->count();
-
-        return $this->convertNumber($countResult);
     }
 
     /**
@@ -190,35 +231,16 @@ trait HasPageVisitsCounter
     }
 
     /**
-     * Convert the visits count based upon the config settings.
-     *
-     * @param int $number
-     * @return \stdClass
-     */
-    protected function convertNumber(int $number)
-    {
-        $output = new \stdClass();
-        $output->number = $number;
-
-        if ($this->configSettings['output-settings']['formatted-output-enabled']) {
-            $options = $this->configSettings['output-settings']['format-options'];
-
-            $output->number = $number;
-            $output->formatted = $this->formatIntegerHumanReadable($number, $options);
-        }
-
-        return $output;
-    }
-
-    /**
      * Format an integer to a human readable version.
      *
      * @param int $number
      * @param array $options
      * @return string
      */
-    protected function formatIntegerHumanReadable(int $number, array $options = [])
+    protected function formatIntegerHumanReadable($number)
     {
+        $options = $this->configSettings['output-settings']['format-options'];
+
         return number_format(
             $number,
             $options['decimals'],

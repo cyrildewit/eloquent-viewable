@@ -18,11 +18,19 @@ class VisitVisitableTest extends TestCase
     {
         // Store new visit
         $this->testTaskModel->addVisit();
-        $hasFirstVisit = ($this->testTaskModel->total_visits_count->number === 1 ? true : false);
+        $hasFirstVisit = ($this->testTaskModel->page_visits === 1 ? true : false);
 
         // Store new visit
         $this->testTaskModel->addVisit();
-        $hasSecondVisit = ($this->testTaskModel->total_visits_count->number === 2 ? true : false);
+        $hasSecondVisit = ($this->testTaskModel->page_visits === 2 ? true : false);
+
+        // Store new visit
+        $this->testTaskModel->addVisit();
+        $hasFirstVisit = ($this->testTaskModel->page_visits_formatted === "3" ? true : false);
+
+        // Store new visit
+        $this->testTaskModel->addVisit();
+        $hasSecondVisit = ($this->testTaskModel->page_visits_formatted === "4" ? true : false);
 
         // Check first and second visits
         $this->assertTrue($hasFirstVisit);
@@ -38,7 +46,10 @@ class VisitVisitableTest extends TestCase
         // Store new visit
         $this->testTaskModel->addVisitThatExpiresAt(Carbon::now()->addSeconds(40));
 
-        $hasNewVisit = ($this->testTaskModel->total_visits_count->number === 1 ? true : false);
+        $hasNewVisit = ($this->testTaskModel->page_visits === 1 ? true : false);
+        $this->assertTrue($hasNewVisit);
+
+        $hasNewVisit = ($this->testTaskModel->page_visits_formatted === "1" ? true : false);
         $this->assertTrue($hasNewVisit);
 
         $hasNewVisitInSession = (new SessionHistory())->isItemVisited($uniqueKey, $visitable_id);

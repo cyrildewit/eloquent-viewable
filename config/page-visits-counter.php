@@ -25,11 +25,6 @@ return [
     'output-settings' => [
 
         /*
-         * Set true for formatted number output.
-         */
-        'formatted-output-enabled' => true,
-
-        /*
          * The configured option values will be used
          * inside the official php `number_format()` function.
          *
