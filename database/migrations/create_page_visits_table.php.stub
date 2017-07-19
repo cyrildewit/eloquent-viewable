@@ -13,9 +13,9 @@ class CreatePageVisitsTable extends Migration
      */
     public function up()
     {
-        $tableNames = config('page-visits-counter.table_names');
+        $pageVisitsTableName = config('page-visits-counter.page_visits_table_name', 'page-visits');
 
-        Schema::create($tableNames['page-visits'], function (Blueprint $table) {
+        Schema::create($pageVisitsTableName, function (Blueprint $table) {
             $table->increments('id')->unsigned();
 
             $table->bigInteger('visitable_id')->unsigned();
@@ -32,8 +32,8 @@ class CreatePageVisitsTable extends Migration
      */
     public function down()
     {
-        $tableNames = config('page-visits-counter.table_names');
+        $pageVisitsTableName = config('page-visits-counter.page_visits_table_name', 'page-visits');
 
-        Schema::dropIfExists($tableNames['page-visits']);
+        Schema::dropIfExists(pageVisitsTableName);
     }
 }

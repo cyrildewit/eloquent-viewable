@@ -42,5 +42,12 @@
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cyrildewit\\PageVisitsCounter\\PageVisitsCounterServiceProvider"
+            ]
+        }
     }
 }

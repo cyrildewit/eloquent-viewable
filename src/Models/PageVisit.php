@@ -24,6 +24,6 @@ class PageVisit extends Model implements PageVisitContract
     {
         parent::__construct($attributes);
 
-        $this->setTable(config('page-visits-counter.table_names.page-visits', 'page-visits'));
+        $this->setTable(config('page-visits-counter.page_visits_table_name', 'page-visits'));
     }
 }

@@ -1,9 +1,10 @@
 # Laravel Page Visit Counter
 
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-visits-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
-[![Build Status](https://travis-ci.org/cyrildewit/laravel-page-visits-counter.svg?branch=master)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
-[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
+[![license](https://img.shields.io/github/license/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-visits-counter/blob/master/LICENSE.md)
 
 This package allows you to store page visits of different models into the database.
 
@@ -11,10 +12,11 @@ Once installed you can do stuff like this:
 
 ```php
 // Return total visits of the article
-$article->total_visits_count->formatted
+$article->page_visits
+$article->page_visits_formatted
 
 // Return total visits of last 24 hours
-$article->last_24h_visits_count->formatted
+$article->page_visits_24h
 
 // Store new visit in the databae
 $article->addVisit();
@@ -50,6 +52,7 @@ In this documention you will find some helpful information about the use of this
     * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
     * [Retrieving page visits count](#retrieving-page-visits-count)
     * [Storing new visits](#storing-new-visits)
+    * [Sorting Model items by visit count](#sorting-model-items-by-visits-count)
 3. [Configuration](#configuration)
     * [Configuring the formatted number format](#configuring-the-formatted-number-format)
 
@@ -113,13 +116,18 @@ class Article extends Model
 
 ### Retrieving page visits count
 
-Our attributes always return an object. This object contains two properties: `number` & `formatted`. As the names maybe suggests `total_visits_count->number` will return the whole number and `total_visits_count->formatted` will return a formatted string (120000 -> 120.000).
-
 ```php
-$article->total_visits_count    // Retrieve all counted visits
-$article->last_24h_visits_count // Retrieve all counted visits from the past 24 hours
-$article->last_7d_visits_count  // Retrieve all counted visits from the past 7 days
-$article->last_14d_visits_count // Retrieve all counted visits from the past 14 days
+$article->page_visits
+$article->page_visits_formatte
+
+$article->page_visits_24h
+$article->page_visits_24h_formatted
+
+$article->page_visits_7d
+$article->page_visits_7d_formatted
+
+$article->page_visits_14d
+$article->page_visits_14d_formatted
 
 // Retrieve visits from date (past 2 weeks)
 $article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
@@ -139,6 +147,15 @@ $article->addVisit()
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
+### Sorting Model items by visit count
+
+```php
+// Example 1
+$articles = Article::all()->sortBy('page_visits_14d');
+$articles = Article::with('relatedModel')->get()->sortBy('page_visits_7d');
+$articles = Article::where('status', 'published')->get()->sortBy('page_visits_24h');
+```
+
 ## Configuration
 
 ### Configuring the formatted number format
@@ -152,16 +169,15 @@ return [
 
     // ...
 
+    /*
+     * Number format output settings.
+     */
     'output-settings' => [
 
         /*
-         * Set true for aut number output.
-         */
-        'formatted-output-enabled' => true,
-
-        /*
-         * The following optiosn will be used inside the
-         * `number_format`function.
+         * The configured option values will be used
+         * inside the official php `number_format()` function.
+         *
          * Example: 120000    ==> 120.000
          * Example: 500206000 ==> 502.006.000
          */

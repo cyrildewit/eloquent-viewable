@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Laravel wrapper for SessionHistory.
+ * Class SessionHistory.
  *
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)
@@ -27,7 +27,6 @@ class SessionHistory
      */
     public function __construct()
     {
-        // Set primary Session Key
         $this->primarySessionKey = config('page-visits-counter.sessions.primary-session-key', 'page-visits-counter.history');
     }
 
@@ -43,12 +42,10 @@ class SessionHistory
         // Make unique key from the inserted model
         $uniqueKey = $this->fromCamelCaseToDashes(class_basename($model));
 
-        // Remove expired visits froms session
         $this->removeExpiredVisitsFromSession($uniqueKey);
 
         // Check if the item is visited, if not add to session
         if (! $this->isItemVisited($uniqueKey, $model->id)) {
-            // Push it to the session
             Session::push($this->primarySessionKey.'.'.$uniqueKey, [
                 'visitable_id' => $model->id,
                 'expires_at' => $expires_at,

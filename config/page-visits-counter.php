@@ -2,42 +2,32 @@
 
 return [
 
-    'models' => [
+    /*
+     * The class name of the page visit Eloquent model to be used.
+     */
+    'page_visit_model' => Cyrildewit\PageVisitsCounter\Models\PageVisit::class,
 
-        /*
-         * This model is used by default to store
-         * the page visits into the database.
-         */
-         'page-visit' => Cyrildewit\PageVisitsCounter\Models\PageVisit::class,
+    /*
+     * The table name of the page visits database table.
+     * It is used by creating the migrations files and default Eloquent model.
+     */
+    'page_visits_table_name' => 'page-visits',
 
-    ],
+    /*
+     * The key thas used to store page visits into the session. This is used by
+     * the SessionHistory class that handles the visits with expiry dates.
+     */
+    'page_visits_history_session_key' => 'page-visits-counter.history',
 
-    'table_names' => [
-
-        /*
-         * This table is used by creating the migrations
-         * files and default model.
-         */
-        'page-visits' => 'page-visits',
-
-    ],
-
-    'sessions' => [
-
-        'primary-session-key' => 'page-visits-counter.history',
-
-    ],
-
+    /*
+     * Number format output settings.
+     */
     'output-settings' => [
 
         /*
-         * Set true for formatted number output.
-         */
-        'formatted-output-enabled' => true,
-
-        /*
-         * The following optiosn will be used inside the
-         * `number_format`function.
+         * The configured option values will be used
+         * inside the official php `number_format()` function.
+         *
          * Example: 120000    ==> 120.000
          * Example: 500206000 ==> 502.006.000
          */
