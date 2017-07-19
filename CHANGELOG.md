@@ -3,10 +3,15 @@
 All notable changes to `laravel-page-visits-counter` will be documented in this file.
 
 ## [Unreleased]
+
+## [0.1.5] - 14-7-2017
 ### Changed
 - Improved `README.md`.
 - Updated the `CHANGELOG.md` file.
 - Improved the comments inside the following files: `PageVisitsCounterServiceProvider.php`, `HasPageVisitsCounter.php` and `SessionHistory.php`.
+
+## Removed
+- Removing `string` and `int` type hints from the code.
 
 ## [0.1.4] - 17-6-2017
 ### Added
@@ -66,7 +71,8 @@ Initial release of the Laravel Page Visits Counter package.
 - A default Eloquent model (`PageVisit`) for storing the page visits into the database.
 - A contract for the `PageVisit` Eloquent model because it can be changed within the configuration file. It uses Laravels Service Container to updates this automatically.
 
-[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/0.1.1...v0.1.2
