@@ -18,10 +18,10 @@ $article->page_visits_formatted
 // Return total visits of last 24 hours
 $article->page_visits_24h
 
-// Store new visit in the databae
+// Store a new visit into the database
 $article->addVisit();
 
-// Store new visit in the databae with expiry date
+// Store a new visit into the database with an expiry date
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(3));
 ```
 
@@ -29,17 +29,17 @@ This package is not built with the intent to collect analyticial data. It is mad
 
 ## Overview
 
-Laravel Page Visits Counter is a powerful, flexible and lightweight Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple visits counter we provide out of the box some great functionalities.
+Laravel Page Visit Counter is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple visits counter we provide out of the box some great functionalities.
 
 ### Features
 
-Here are some of the main features of Laravel Page Visits Counter:
+Here are some of the main features of the Laravel Page Visit Counter package:
 
-* Add a new visit.
-* Add a new visit with expiry date (history is stored in the session).
-* Get the total visits.
-* Get the total visits from the past: 24 hours, 7 days or 14 days.
-* Retrieve the visits count formatted like 120.000 instead of 120000 (great for blade views)
+* Store visits
+* Store visits with expiry dates (history is stored in the users session)
+* Get the total page visits
+* Get the total page visits of the last 24 hours, 7 days and 14 days
+* Get the total page visits formatted (120.000 instead of 120000)
 
 ## Documentation
 
@@ -118,7 +118,7 @@ class Article extends Model
 
 ```php
 $article->page_visits
-$article->page_visits_formatte
+$article->page_visits_formatted
 
 $article->page_visits_24h
 $article->page_visits_24h_formatted
