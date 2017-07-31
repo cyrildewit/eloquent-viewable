@@ -2,8 +2,12 @@
 All notable changes to `laravel-page-visits-counter` will be documented in this file.
 
 ## [Unreleased]
+## Added
+- Added a code of conduct file.
+
 ## Changed
 - Updated the `CHANGELOG.md` file.
+- Updated the e-mailaddress inside the `README.md` file.
 
 ## [0.1.6] - 19-7-2017
 ## Added
