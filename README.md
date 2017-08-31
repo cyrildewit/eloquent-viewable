@@ -1,10 +1,10 @@
 # Laravel Page Visit Counter
 
-[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-visits-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-visits-counter)
-[![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
-[![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-visits-counter)
-[![license](https://img.shields.io/github/license/cyrildewit/laravel-page-visits-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-visits-counter/blob/master/LICENSE.md)
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-view-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-view-counter)
+[![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
+[![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
+[![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
 
 This package allows you to store page visits of different models into the database.
 
@@ -43,7 +43,7 @@ Here are some of the main features of the Laravel Page Visit Counter package:
 
 ## Documentation
 
-In this documention you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security related issues, then feel free to get in touch with me at: info(at)cyrildewit.nl.
+In this documention you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security related issues, then feel free to get in touch with me at: github@cyrildewit.nl.
 
 **In this documention:**
 
