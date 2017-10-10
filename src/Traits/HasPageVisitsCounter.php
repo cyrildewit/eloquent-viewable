@@ -25,7 +25,7 @@ trait HasPageVisitsCounter
     public function __construct(array $attributes = [])
     {
         $this->configSettings = config('page-visits-counter');
-        return parent::__construct($attributes);//Fix to attributes
+        return parent::__construct($attributes);
     }
 
     /**
