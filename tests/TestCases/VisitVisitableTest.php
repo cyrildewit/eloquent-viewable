@@ -1,10 +1,10 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Test\TestCases;
+namespace CyrildeWit\PageVisitsCounter\Test\TestCases;
 
 use Carbon\Carbon;
-use Cyrildewit\PageVisitsCounter\Test\TestCase;
-use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
+use CyrildeWit\PageViewCounter\Tests\TestCase;
+use CyrildeWit\PageViewCounter\SessionHistory;
 
 class VisitVisitableTest extends TestCase
 {
