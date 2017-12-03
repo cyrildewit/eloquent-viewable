@@ -5,7 +5,7 @@ return [
     /*
      * The class name of the page visit Eloquent model to be used.
      */
-    'page_view_model' => Cyrildewit\PageViewCounter\Models\PageView::class,
+    'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
      * The table name of the page visits database table.
