@@ -81,7 +81,7 @@ abstract class TestCase extends Orchestra
         });
 
         // Including the package migration file
-        include_once __DIR__.'/../database/migrations/create_page_visits_table.php.stub';
+        include_once __DIR__.'/../database/migrations/create_page_visit_table.php.stub';
 
         // Running the migration file
         (new \CreatePageVisitsTable())->up();

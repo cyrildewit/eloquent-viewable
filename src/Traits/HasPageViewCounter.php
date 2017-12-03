@@ -1,9 +1,10 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Traits;
+namespace Cyrildewit\PageViewCounter\Traits;
 
 use Carbon\Carbon;
-use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
+use Cyrildewit\PageViewCounter\Classes\SessionHistory;
+use Illuminate\Http\Request;
 
 /**
  * Trait HasPageVisitsCounter for Eloquent models.
@@ -12,44 +13,43 @@ use Cyrildewit\PageVisitsCounter\Classes\SessionHistory;
  * @author     Cyril de Wit (info@cyrildewit.nl)
  * @license    https://opensource.org/licenses/MIT    MIT License
  */
-trait HasPageVisitsCounter
+trait HasPageViewCounter
 {
     /** @var array */
     protected $configSettings;
 
+    protected $viewAttributes;
+
     /**
-     * HasPageVisitsCounter constructor function.
+     * HasPageViewCounter constructor function.
      *
      * @return void
      */
     public function __construct()
     {
-        $this->configSettings = config('page-visits-counter');
+        $this->configSettings = config('page-view-counter');
+        $this->viewAttributes = $viewAttributes;
+
+        runkit_method_add();
 
         return parent::__construct();
     }
 
-    /**
-     * Adding attributes for retrieving the pagevies of the model.
-     *
-     * @var arrayls
-
-     */
-    protected function getArrayableAppends()
+    public function getViewAttributes()
     {
-        $this->appends = array_unique(array_merge($this->appends, [
-            'page_visits',
-            'page_visits_24h',
-            'page_visits_7d',
-            'page_visits_14d',
-            'page_visits_formatted',
-            'page_visits_24h_formatted',
-            'page_visits_7d_formatted',
-            'page_visits_14d_formatted',
-        ]));
-
         return parent::getArrayableAppends();
     }
+
+    // in model: $viewAttributes = [
+    //    'page_visits',
+    //    'page_visits_24h'
+    // ];
+
+    // :: page_visits
+    // :: unique_page_visits
+    //
+    // page_visits
+    //
 
     /**
      * Get the page visits associated with the given model.
@@ -59,89 +59,9 @@ trait HasPageVisitsCounter
     public function visits()
     {
         return $this->morphMany(
-            $this->configSettings['page_visit_model'],
+            $this->configSettings['page_view_model'],
             'visitable'
         );
-    }
-
-    /**
-     * Count all page visits together of the model.
-     *
-     * @return int
-     */
-    public function getPageVisitsAttribute()
-    {
-        return $this->visits()->count();
-    }
-
-    /**
-     * Count all page visits together of the model and format it.
-     *
-     * @return int
-     */
-    public function getPageVisitsFormattedAttribute()
-    {
-        return $this->formatIntegerHumanReadable($this->getPageVisitsAttribute());
-    }
-
-    /**
-     * Count all page visits from the last 24 hours.
-     *
-     * @return int
-     */
-    public function getPageVisits24hAttribute()
-    {
-        return $this->retrievePageVisitsCountFrom(Carbon::now()->subHours(24));
-    }
-
-    /**
-     * Count all page visits from the last 24 hours and format it.
-     *
-     * @return int
-     */
-    public function getPageVisits24hFormattedAttribute()
-    {
-        return $this->formatIntegerHumanReadable($this->getPageVisits24hAttribute());
-    }
-
-    /**
-     * Count all page visits from the last 7 weeks.
-     *
-     * @return int
-     */
-    public function getPageVisits7dAttribute()
-    {
-        return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(7));
-    }
-
-    /**
-     * Count all page visits from the last 7 weeks and format it.
-     *
-     * @return int
-     */
-    public function getPageVisits7dFormattedAttribute()
-    {
-        return $this->formatIntegerHumanReadable($this->getPageVisits7dAttribute());
-    }
-
-    /**
-     * Count all page visits from the last 14 days.
-     *
-     * @return int
-     */
-    public function getPageVisits14dAttribute()
-    {
-        return $this->retrievePageVisitsCountFrom(Carbon::now()->subDays(14));
-    }
-
-    /**
-     * Count all page visits from the last 14 days and format it.
-     *
-     * @return int
-     */
-    public function getPageVisits14dFormattedAttribute()
-    {
-        return $this->formatIntegerHumanReadable($this->getPageVisits14dAttribute());
     }
 
     /**
@@ -159,6 +79,22 @@ trait HasPageVisitsCounter
     }
 
     /**
+     * Count all page visits of a certain time together.
+     *
+     * @param \Carbon\Carbon $start_date
+     * @return int
+     */
+    public function retrieveUniquePageVisitsCountFrom(Carbon $from_date)
+    {
+        return $this
+            ->visits()
+            ->where('created_at', '>=', $from_date)
+            ->get()
+            ->unique('ip_address')
+            ->count();
+    }
+
+    /**
      * Retrieve the counted visits.
      *
      * @param \Carbon\Carbon $start_date
@@ -167,13 +103,11 @@ trait HasPageVisitsCounter
      */
     public function retrievePageVisitsCountBetween(Carbon $from_date, Carbon $end_date)
     {
-        $countResult = $this
+        return $this
             ->visits()
             ->where('created_at', '>=', $from_date)
             ->where('created_at', '=<', $end_date)
             ->count();
-
-        return $this->convertNumber($countResult);
     }
 
     /**
@@ -183,11 +117,12 @@ trait HasPageVisitsCounter
      */
     public function addVisit()
     {
-        $visitClass = $this->configSettings['page_visit_model'];
+        $visitClass = $this->configSettings['page_view_model'];
 
         $visit = new $visitClass();
         $visit->visitable_id = $this->id;
         $visit->visitable_type = get_class($this);
+        $visit->ip_address = \Request::ip();
         $this->visits()->save($visit);
 
         return $visit;
