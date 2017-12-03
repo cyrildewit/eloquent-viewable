@@ -1,6 +1,6 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter\Classes;
+namespace CyrildeWit\PageViewCounter\Classes;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;

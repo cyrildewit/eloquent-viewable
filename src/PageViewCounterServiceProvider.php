@@ -1,9 +1,9 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter;
+namespace CyrildeWit\PageViewCounter;
 
 use Illuminate\Support\ServiceProvider;
-use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
+use CyrildeWit\PageViewCounter\Contracts\PageView as PageViewContract;
 
 /**
  * Class PageViewCounterServiceProvider.

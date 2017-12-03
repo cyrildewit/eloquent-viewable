@@ -1,9 +1,9 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter\Traits;
+namespace CyrildeWit\PageViewCounter\Traits;
 
 use Carbon\Carbon;
-use Cyrildewit\PageViewCounter\Classes\SessionHistory;
+use CyrildeWit\PageViewCounter\Classes\SessionHistory;
 use Illuminate\Http\Request;
 
 /**
