@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageVisitsCounter\Tests\TestCases;
+namespace CyrildeWit\PageViewCounter\Tests\TestCases;
 
 use Carbon\Carbon;
 use CyrildeWit\PageViewCounter\Tests\TestCase;
