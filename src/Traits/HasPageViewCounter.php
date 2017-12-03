@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 trait HasPageViewCounter
 {
     protected $dateTransformers;
+    protected $sessionHistoryInstance;
 
     /**
      * Create a new Eloquent model instance.
@@ -26,6 +27,7 @@ trait HasPageViewCounter
     public function __construct(array $attributes = [])
     {
         // $this->dateTransformers = parent::
+        $this->sessionHistoryInstance = new SessionHistory();
 
         return parent::__construct($attributes);
     }
@@ -43,34 +45,68 @@ trait HasPageViewCounter
         );
     }
 
-    // addView()
-    // addViewThatExpiresAt()
+    /**
+     * Retrieve page views based upon the given requirement.
+     *
+     * @param  \Carbon\Carbon|null  $sinceDate
+     * @param  \Carbon\Carbon|null  $uptoDate
+     * @param  boolean  $unique  Should the page views be unique.
+     * @param  boolean  $shouldFormatted Should the output be formatted.
+     * @return integer|string  Page views as integer or formatted string.
+     */
+    public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false, bool $shouldFormatted = false)
+    {
+        $query = $this->views();
 
+        if ($sinceDate) {
+            $query->where('created_at', '>=', $sinceDate);
+        }
+
+        if ($uptoDate) {
+            $query->where('created_at', '=<', $sinceDate);
+        }
+
+        if ($unique) {
+            $query->distinct('ip_address');
+        }
+
+        $pageViews = $query->count();
+
+        if ($shouldFormatted) {
+            $options = config('page-view-counter.output-settings.format-options');
+
+            return number_format(
+                $pageViews,
+                $options['decimals'],
+                $options['dec_point'],
+                $options['thousands_sep']
+            );
+        }
+
+        return $pageViews;
+    }
 
     /**
      * Get the total number of page views.
      *
-     * @return int
+     * @return integer
      */
     public function getPageViews()
     {
-        return $this->views()->count();
+        return $this->retrievePageViews();
     }
 
     /**
      * Get the total number of page views starting from the given date.
      *
      * @param  \Carbon\Carbon  $sinceDate
-     * @return int
+     * @return integer|string  Page views as integer or formatted string.
      */
     public function getPageViewsFrom(Carbon $sinceDate)
     {
         $sinceDate = $this->transformDate($sinceDate);
 
-        return $this
-            ->views()
-            ->where('created_at', '>=', $sinceDate)
-            ->count();
+        return $this->retrievePageViews($sinceDate);
     }
 
     /**
@@ -85,11 +121,7 @@ trait HasPageViewCounter
         $sinceDate = $this->transformDate($sinceDate);
         $uptoDate = $this->transformDate($uptoDate);
 
-        return $this
-            ->views()
-            ->where('created_at', '>=', $sinceDate)
-            ->where('created_at', '=<', $uptoDate)
-            ->count();
+        return $this->retrievePageViews($sinceDate, $uptoDate);
     }
 
     /**
@@ -99,7 +131,7 @@ trait HasPageViewCounter
      */
     public function getUniquePageViews()
     {
-        return $this->views()->distinct('ip_address')->count();
+        return $this->retrievePageViews(null, null, true);
     }
 
     /**
@@ -112,11 +144,7 @@ trait HasPageViewCounter
     {
         $sinceDate = $this->transformDate($sinceDate);
 
-        return $this
-            ->views()
-            ->distinct('ip_address')
-            ->where('created_at', '>=', $sinceDate)
-            ->count();
+        return $this->retrievePageViews($sinceDate, null, true);
     }
 
     /**
@@ -131,35 +159,7 @@ trait HasPageViewCounter
         $sinceDate = $this->transformDate($sinceDate);
         $uptoDate = $this->transformDate($uptoDate);
 
-        return $this
-            ->views()
-            ->distinct('ip_address')
-            ->where('created_at', '>=', $sinceDate)
-            ->where('created_at', '=<', $uptoDate)
-            ->count();
-    }
-
-    /**
-     * Transform the given value to a date based on defined transformers.
-     *
-     * @param  [type] $date
-     * @return \Carbon\Carbon
-     */
-    public function transformDate($date)
-    {
-        $transformers = [
-            '24h' => Carbon::now()->subDays(1),
-            '7d' => Carbon::now()->subWeeks(1),
-            '14d' => Carbon::now()->subWeeks(2),
-        ];
-
-        foreach($transformers as $key => $transformer) {
-            if ($key === $date) {
-                return $transformer;
-            }
-        }
-
-        return $date;
+        return $this->retrievePageViews($sinceDate, $uptoDate, true);
     }
 
     /**
@@ -178,45 +178,43 @@ trait HasPageViewCounter
         return $newView;
     }
 
-
-    public function addViewThatExpiresAt()
-    {
-        if ((new SessionHistory())->addToSession($this, $expires_at)) {
-            $this->addVisit();
-        }
-    }
-
-
-
     /**
-     * Adds a visit tot the given model and store it into the session with an expiry date.
+     * Add a new page view and store it into the session with an expiry date.
      *
-     * @param \Carbon\Carbon $expires_at
-     * @return ture|false
+     * @param  \Carbon\Carbon $expiryDate [description]
+     * @return boolean
      */
-    public function addVisitThatExpiresAt(Carbon $expires_at)
+    public function addViewThatExpiresAt(Carbon $expiryDate)
     {
-        if ((new SessionHistory())->addToSession($this, $expires_at)) {
-            $this->addVisit();
+        if ($this->sessionHistoryInstance->addToSession($this, $expiryDate)) {
+            $this->addView();
+
+            return true;
         }
+
+        return fales;
     }
 
     /**
-     * Format an integer to a human readable version.
+     * Transform the given value to a date based on defined transformers.
      *
-     * @param int $number
-     * @param array $options
-     * @return string
+     * @param  [type] $date
+     * @return \Carbon\Carbon
      */
-    protected function formatIntegerHumanReadable($number)
+    protected function transformDate($date)
     {
-        $options = config('page-view-counter.output-settings.format-options');
+        $transformers = [
+            '24h' => Carbon::now()->subDays(1),
+            '7d' => Carbon::now()->subWeeks(1),
+            '14d' => Carbon::now()->subWeeks(2),
+        ];
 
-        return number_format(
-            $number,
-            $options['decimals'],
-            $options['dec_point'],
-            $options['thousands_sep']
-        );
+        foreach($transformers as $key => $transformer) {
+            if ($key === $date) {
+                return $transformer;
+            }
+        }
+
+        return $date;
     }
 }
