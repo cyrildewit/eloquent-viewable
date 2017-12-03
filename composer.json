@@ -1,5 +1,5 @@
 {
-    "name": "cyrildewit/laravel-page-visits-counter",
+    "name": "cyrildewit/laravel-page-view-counter",
     "type": "laravel-package",
     "description": "Simple package for storing page visits of visitable models into the database.",
     "keywords": [
@@ -9,7 +9,7 @@
         "pageviews",
         "visits"
     ],
-    "homepage": "https://github.com/cyrildewit/laravel-page-visits-counter",
+    "homepage": "https://github.com/cyrildewit/laravel-page-view-counter",
     "license": "MIT",
     "authors": [
         {
@@ -28,12 +28,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Cyrildewit\\PageVisitsCounter\\": "src"
+            "Cyrildewit\\PageViewCounter\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Cyrildewit\\PageVisitsCounter\\Test\\": "tests"
+            "Cyrildewit\\PageViewCounter\\Test\\": "tests"
         }
     },
     "scripts": {
@@ -46,7 +46,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Cyrildewit\\PageVisitsCounter\\PageVisitsCounterServiceProvider"
+                "Cyrildewit\\PageViewCounter\\PageViewCounterServiceProvider"
             ]
         }
     }
