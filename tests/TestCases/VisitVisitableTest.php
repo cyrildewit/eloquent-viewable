@@ -14,17 +14,17 @@ class VisitVisitableTest extends TestCase
     }
 
     /** @test */
-    public function it_can() {
-        runkit_method_add(
-            'VisitVisitableTest',
-            'add',
-            '$num1, $num2',
-            'return $num1 + $num2;',
-            RUNKIT_ACC_PUBLIC
-        );
-
-        return $this->add(1, 5);
-    }
+    // public function it_can() {
+    //     runkit_method_add(
+    //         'VisitVisitableTest',
+    //         'add',
+    //         '$num1, $num2',
+    //         'return $num1 + $num2;',
+    //         RUNKIT_ACC_PUBLIC
+    //     );
+    //
+    //     return $this->add(1, 5);
+    // }
 
     // /** @test */
     // public function it_can_store_new_visits_into_the_database()
