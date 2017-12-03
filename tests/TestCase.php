@@ -1,16 +1,16 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Test;
+namespace CyrildeWit\PageViewCounter\Tests;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Cyrildewit\PageVisitsCounter\Test\Models\Task;
-use Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider;
+use CyrildeWit\PageViewCounter\Test\Models\Task;
+use CyrildeWit\PageViewCounter\PageViewCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
-    /** @var \Cyrildewit\PageVisitsCounter\Test\Models\Task */
+    /** @var \CyrildeWit\PageViewCounter\Test\Models\Task */
     protected $testTaskModel;
 
     public function setUp()
@@ -31,13 +31,12 @@ abstract class TestCase extends Orchestra
 
     /**
      * @param \Illuminate\Foundation\Application $app
-     *
      * @return array
      */
     protected function getPackageProviders($app)
     {
         return [
-            PageVisitsCounterServiceProvider::class,
+            PageViewCounterServiceProvider::class,
         ];
     }
 
