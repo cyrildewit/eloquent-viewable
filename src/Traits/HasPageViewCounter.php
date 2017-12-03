@@ -7,7 +7,7 @@ use CyrildeWit\PageViewCounter\Classes\SessionHistory;
 use Illuminate\Http\Request;
 
 /**
- * Trait HasPageVisitsCounter for Eloquent models.
+ * Trait HasPageViewCounter for Eloquent models.
  *
  * @copyright  Copyright (c) 2017 Cyril de Wit (http://www.cyrildewit.nl)
  * @author     Cyril de Wit (info@cyrildewit.nl)
@@ -15,7 +15,18 @@ use Illuminate\Http\Request;
  */
 trait HasPageViewCounter
 {
+    /**
+     * Date transformers.
+     *
+     * @var array
+     */
     protected $dateTransformers;
+
+    /**
+     * Instance of SessionHistory.
+     *
+     * @var \CyrildeWit\PageViewCounter\SessionHistory
+     */
     protected $sessionHistoryInstance;
 
     /**
@@ -26,10 +37,10 @@ trait HasPageViewCounter
      */
     public function __construct(array $attributes = [])
     {
-        // $this->dateTransformers = parent::
+        $this->dateTransformers = parent::$dateTransformers;
         $this->sessionHistoryInstance = new SessionHistory();
 
-        return parent::__construct($attributes);
+        parent::__construct($attributes);
     }
 
     /**
