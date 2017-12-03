@@ -15,130 +15,178 @@ use Illuminate\Http\Request;
  */
 trait HasPageViewCounter
 {
-    /** @var array */
-    protected $configSettings;
-
-    protected $viewAttributes;
+    protected $dateTransformers;
 
     /**
-     * HasPageViewCounter constructor function.
+     * Create a new Eloquent model instance.
      *
+     * @param  array  $attributes
      * @return void
      */
-    public function __construct()
+    public function __construct(array $attributes = [])
     {
-        $this->configSettings = config('page-view-counter');
-        $this->viewAttributes = $viewAttributes;
+        // $this->dateTransformers = parent::
 
-        runkit_method_add();
-
-        return parent::__construct();
+        return parent::__construct($attributes);
     }
-
-    public function getViewAttributes()
-    {
-        return parent::getArrayableAppends();
-    }
-
-    // in model: $viewAttributes = [
-    //    'page_visits',
-    //    'page_visits_24h'
-    // ];
-
-    // :: page_visits
-    // :: unique_page_visits
-    //
-    // page_visits
-    //
 
     /**
      * Get the page visits associated with the given model.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function visits()
+    public function views()
     {
         return $this->morphMany(
-            $this->configSettings['page_view_model'],
+            config('page-view-counter.page_view_model'),
             'visitable'
         );
     }
 
+    // addView()
+    // addViewThatExpiresAt()
+
+
     /**
-     * Count all page visits of a certain time together.
+     * Get the total number of page views.
      *
-     * @param \Carbon\Carbon $start_date
      * @return int
      */
-    public function retrievePageVisitsCountFrom(Carbon $from_date)
+    public function getPageViews()
     {
+        return $this->views()->count();
+    }
+
+    /**
+     * Get the total number of page views starting from the given date.
+     *
+     * @param  \Carbon\Carbon  $sinceDate
+     * @return int
+     */
+    public function getPageViewsFrom(Carbon $sinceDate)
+    {
+        $sinceDate = $this->transformDate($sinceDate);
+
         return $this
-            ->visits()
-            ->where('created_at', '>=', $from_date)
+            ->views()
+            ->where('created_at', '>=', $sinceDate)
             ->count();
     }
 
     /**
-     * Count all page visits of a certain time together.
+     * Get the total number of page views between two dates.
      *
-     * @param \Carbon\Carbon $start_date
-     * @return int
+     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon  $uptoDate
+     * @return integer
      */
-    public function retrieveUniquePageVisitsCountFrom(Carbon $from_date)
+    public function getPageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
     {
+        $sinceDate = $this->transformDate($sinceDate);
+        $uptoDate = $this->transformDate($uptoDate);
+
         return $this
-            ->visits()
-            ->where('created_at', '>=', $from_date)
-            ->get()
-            ->unique('ip_address')
+            ->views()
+            ->where('created_at', '>=', $sinceDate)
+            ->where('created_at', '=<', $uptoDate)
             ->count();
     }
 
     /**
-     * Retrieve the counted visits.
+     * Get the total number of page views.
      *
-     * @param \Carbon\Carbon $start_date
-     * @param \Carbon\Carbon $end_date
      * @return int
      */
-    public function retrievePageVisitsCountBetween(Carbon $from_date, Carbon $end_date)
+    public function getUniquePageViews()
     {
+        return $this->views()->distinct('ip_address')->count();
+    }
+
+    /**
+     * Get the total number of page views starting from the given date.
+     *
+     * @param  \Carbon\Carbon  $sinceDate
+     * @return int
+     */
+    public function getUniquePageViewsFrom(Carbon $sinceDate)
+    {
+        $sinceDate = $this->transformDate($sinceDate);
+
         return $this
-            ->visits()
-            ->where('created_at', '>=', $from_date)
-            ->where('created_at', '=<', $end_date)
+            ->views()
+            ->distinct('ip_address')
+            ->where('created_at', '>=', $sinceDate)
             ->count();
     }
 
     /**
-     * Adds a visit to the given model and return instance of the visit.
+     * Get the total number of page views between two dates.
      *
-     * @return \Illuminate\Database\Eloquent\Model
+     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon  $uptoDate
+     * @return int
      */
-    public function addVisit()
+    public function getUniquePageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
     {
-        $visitClass = $this->configSettings['page_view_model'];
+        $sinceDate = $this->transformDate($sinceDate);
+        $uptoDate = $this->transformDate($uptoDate);
 
-        $visit = new $visitClass();
-        $visit->visitable_id = $this->id;
-        $visit->visitable_type = get_class($this);
-        $visit->ip_address = \Request::ip();
-        $this->visits()->save($visit);
-
-        return $visit;
+        return $this
+            ->views()
+            ->distinct('ip_address')
+            ->where('created_at', '>=', $sinceDate)
+            ->where('created_at', '=<', $uptoDate)
+            ->count();
     }
 
     /**
-     * Save new visit into the database and return the current number of visits.
+     * Transform the given value to a date based on defined transformers.
      *
-     * @return int
+     * @param  [type] $date
+     * @return \Carbon\Carbon
      */
-    public function addVisitAndCountAll()
+    public function transformDate($date)
     {
-        $this->addVisit();
+        $transformers = [
+            '24h' => Carbon::now()->subDays(1),
+            '7d' => Carbon::now()->subWeeks(1),
+            '14d' => Carbon::now()->subWeeks(2),
+        ];
 
-        return $this->getTotalVisitsCountAttribute();
+        foreach($transformers as $key => $transformer) {
+            if ($key === $date) {
+                return $transformer;
+            }
+        }
+
+        return $date;
     }
+
+    /**
+     * Add a new page view and return an instance of the page view.
+     */
+    public function addView()
+    {
+        $viewClass = config('page-view-counter.page_view_model');
+
+        $newView = new $viewClass();
+        $newView->visitable_id = $this->id;
+        $newView->visitable_type = get_class($this);
+        $newView->ip_address = \Request::ip();
+        $this->views()->save($newView);
+
+        return $newView;
+    }
+
+
+    public function addViewThatExpiresAt()
+    {
+        if ((new SessionHistory())->addToSession($this, $expires_at)) {
+            $this->addVisit();
+        }
+    }
+
+
 
     /**
      * Adds a visit tot the given model and store it into the session with an expiry date.
@@ -154,18 +202,6 @@ trait HasPageViewCounter
     }
 
     /**
-     * Save new visit with expiry date return the current number of visits.
-     *
-     * @return int
-     */
-    public function addVisitThatExpiresAtAndCountAll()
-    {
-        $this->addVisit();
-
-        return $this->getTotalVisitsCountAttribute();
-    }
-
-    /**
      * Format an integer to a human readable version.
      *
      * @param int $number
@@ -174,7 +210,7 @@ trait HasPageViewCounter
      */
     protected function formatIntegerHumanReadable($number)
     {
-        $options = $this->configSettings['output-settings']['format-options'];
+        $options = config('page-view-counter.output-settings.format-options');
 
         return number_format(
             $number,
