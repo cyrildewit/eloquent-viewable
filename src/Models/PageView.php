@@ -12,7 +12,7 @@ class PageView extends Model implements PageViewContract
      *
      * @var array
      */
-    protected $guarded = ['id'];
+    protected $guarded = [];
 
     /**
      * Constructor function of the PageVisit model.
