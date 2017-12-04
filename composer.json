@@ -1,7 +1,7 @@
 {
     "name": "cyrildewit/laravel-page-view-counter",
     "type": "laravel-package",
-    "description": "Simple package for storing page visits of visitable models into the database.",
+    "description": "Simple package for storing page views of Eloquent models into the database",
     "keywords": [
         "cyrildewit",
         "laravel",
