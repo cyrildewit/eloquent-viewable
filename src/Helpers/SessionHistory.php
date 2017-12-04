@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageViewCounter;
+namespace CyrildeWit\PageViewCounter\Helpers;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +27,7 @@ class SessionHistory
      */
     public function __construct()
     {
-        $this->primarySessionKey = config('page-view-counter.sessions.primary-session-key', 'page-visit-counter.history');
+        $this->primarySessionKey = config('page-view-counter.sessions.primary-session-key', 'page-view-counter.history');
     }
 
     /**
