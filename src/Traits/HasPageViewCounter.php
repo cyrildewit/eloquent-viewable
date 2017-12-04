@@ -1,10 +1,10 @@
 <?php
 
-namespace CyrildeWit\PageViewCounter\Traits;
+namespace Cyrildewit\PageViewCounter\Traits;
 
 use Carbon\Carbon;
-use CyrildeWit\PageViewCounter\Classes\SessionHistory;
 use Illuminate\Http\Request;
+use Cyrildewit\PageViewCounter\Helpers\SessionHistory;
 
 /**
  * Trait HasPageViewCounter for Eloquent models.
