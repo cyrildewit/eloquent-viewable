@@ -1,16 +1,16 @@
 <?php
 
-namespace CyrildeWit\PageViewCounter\Tests;
+namespace Cyrildewit\PageViewCounter\Tests;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
-use CyrildeWit\PageViewCounter\Test\Models\Task;
-use CyrildeWit\PageViewCounter\PageViewCounterServiceProvider;
+use Cyrildewit\PageViewCounter\Test\Models\Task;
+use Cyrildewit\PageViewCounter\PageViewCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
-    /** @var \CyrildeWit\PageViewCounter\Test\Models\Task */
+    /** @var \Cyrildewit\PageViewCounter\Test\Models\Task */
     protected $testTaskModel;
 
     public function setUp()

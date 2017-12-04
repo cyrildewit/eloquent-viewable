@@ -1,9 +1,9 @@
 <?php
 
-namespace CyrildeWit\PageViewCounter\Models;
+namespace Cyrildewit\PageViewCounter\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\PageViewCounter\Contracts\PageView as PageViewContract;
+use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
 
 class PageView extends Model implements PageViewContract
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace CyrildeWit\PageViewCounter\Contracts;
+namespace Cyrildewit\PageViewCounter\Contracts;
 
 interface PageView
 {
