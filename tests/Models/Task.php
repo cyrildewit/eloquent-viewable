@@ -1,13 +1,13 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Test\Models;
+namespace Cyrildewit\PageViewCounter\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter;
+use Cyrildewit\PageViewCounter\Traits\HasPageViewCounter;
 
 class Task extends Model
 {
-    use HasPageVisitsCounter;
+    use HasPageViewCounter;
 
     /**
      * The table associated with the model.

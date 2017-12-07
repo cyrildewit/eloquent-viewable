@@ -5,19 +5,19 @@ return [
     /*
      * The class name of the page visit Eloquent model to be used.
      */
-    'page_visit_model' => Cyrildewit\PageVisitsCounter\Models\PageVisit::class,
+    'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
      * The table name of the page visits database table.
      * It is used by creating the migrations files and default Eloquent model.
      */
-    'page_visits_table_name' => 'page-visits',
+    'page_views_table_name' => 'page-views',
 
     /*
      * The key thas used to store page visits into the session. This is used by
      * the SessionHistory class that handles the visits with expiry dates.
      */
-    'page_visits_history_session_key' => 'page-visits-counter.history',
+    'page_view_history_session_key' => 'page-view-counter.history',
 
     /*
      * Number format output settings.

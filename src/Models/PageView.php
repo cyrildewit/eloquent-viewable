@@ -1,18 +1,18 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Models;
+namespace Cyrildewit\PageViewCounter\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Cyrildewit\PageVisitsCounter\Contracts\PageVisit as PageVisitContract;
+use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
 
-class PageVisit extends Model implements PageVisitContract
+class PageView extends Model implements PageViewContract
 {
     /**
      * The attributes that aren't mass assignable.
      *
      * @var array
      */
-    protected $guarded = ['id'];
+    protected $guarded = [];
 
     /**
      * Constructor function of the PageVisit model.
@@ -24,6 +24,6 @@ class PageVisit extends Model implements PageVisitContract
     {
         parent::__construct($attributes);
 
-        $this->setTable(config('page-visits-counter.page_visits_table_name', 'page-visits'));
+        $this->setTable(config('page-view-counter.page_views_table_name', 'page-views'));
     }
 }
