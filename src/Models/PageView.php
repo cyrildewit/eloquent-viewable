@@ -1,9 +1,9 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter\Models;
+namespace CyrildeWit\PageViewCounter\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
+use CyrildeWit\PageViewCounter\Contracts\PageView as PageViewContract;
 
 class PageView extends Model implements PageViewContract
 {
@@ -24,6 +24,6 @@ class PageView extends Model implements PageViewContract
     {
         parent::__construct($attributes);
 
-        $this->setTable(config('page-view-counter.page_views_table_name', 'page-views'));
+        $this->setTable(config('page-view-counter.page_views_table_name'));
     }
 }
