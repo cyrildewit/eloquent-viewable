@@ -1,9 +1,8 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter;
+namespace CyrildeWit\PageViewCounter;
 
 use Illuminate\Support\ServiceProvider;
-use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
 
 /**
  * Class PageViewCounterServiceProvider.
@@ -15,17 +14,18 @@ use Cyrildewit\PageViewCounter\Contracts\PageView as PageViewContract;
 class PageViewCounterServiceProvider extends ServiceProvider
 {
     /**
-     * Bootstrap the application services.
+     * Perform post-registration booting of services.
      *
      * @return void
      */
     public function boot()
     {
+        // Publish config files
         $this->publishes([
             __DIR__.'/../config/page-view-counter.php' => $this->app->configPath('page-view-counter.php'),
         ], 'config');
 
-        // Publish migration file only if it doesn't exists
+        // Publish the migration file only if it doesn't exists
         if (! class_exists('CreatePageViewsTable')) {
             $timestamp = date('Y_m_d_His', time());
 
@@ -33,33 +33,19 @@ class PageViewCounterServiceProvider extends ServiceProvider
                 __DIR__.'/../database/migrations/create_page_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_page_views_table.php"),
             ], 'migrations');
         }
-
-        $this->registerModelBindings();
     }
 
     /**
-     * Regiser the application services.
+     * Register bindings in the container.
      *
      * @return void
      */
     public function register()
     {
-        // Merge the config file
+        // Merge the main config file
         $this->mergeConfigFrom(
             __DIR__.'/../config/page-view-counter.php',
             'page-view-counter'
         );
-    }
-
-    /**
-     * Register Model Bindings.
-     *
-     * @return void
-     */
-    protected function registerModelBindings()
-    {
-        $config = $this->app->config['page-view-counter'];
-
-        $this->app->bind(PageVisitContract::class, $config['page_view_model']);
     }
 }
