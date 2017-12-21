@@ -167,7 +167,7 @@ trait HasPageViewCounter
      */
     protected function transformDate($date)
     {
-        $transformers = config('page-view-counter.date_transformers');
+        $transformers = config('page-view-counter.date-transformers');
         
 
         foreach($transformers as $key => $transformer) {
