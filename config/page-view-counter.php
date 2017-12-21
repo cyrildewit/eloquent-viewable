@@ -1,9 +1,11 @@
 <?php
 
+use Carbon\Carbon;
+
 return [
 
     /*
-     * The class name of the page visit Eloquent model to be used.
+     * The class name of the page view Eloquent model to be used.
      */
     'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
@@ -19,26 +21,20 @@ return [
      */
     'page_view_history_session_key' => 'page-view-counter.history',
 
-    /*
-     * Number format output settings.
+    /**
+     * Configure here your custom recognisable dates. When the package sees one
+     * of the keys, it will use the value instead.
+     * 
+     * Keep it empty, if you don't want any date transformers!
+     * 
+     * Example:
+     * - $article->getPageViewsFrom('24h'); // Get the total page views of the last 24 hours
+     * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days
      */
-    'output-settings' => [
-
-        /*
-         * The configured option values will be used
-         * inside the official php `number_format()` function.
-         *
-         * Example: 120000    ==> 120.000
-         * Example: 500206000 ==> 502.006.000
-         */
-        'format-options' => [
-
-            'decimals' => 0,
-            'dec_point' => ',',
-            'thousands_sep' => '.',
-
-        ],
-
+    'date-transformers' => [
+        '24h' => Carbon::now()->subDays(1),
+        '7d' => Carbon::now()->subWeeks(1),
+        '14d' => Carbon::now()->subWeeks(2),
     ],
 
 ];
