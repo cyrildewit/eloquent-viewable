@@ -1,10 +1,9 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter\Traits;
+namespace CyrildeWit\PageViewCounter\Traits;
 
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Cyrildewit\PageViewCounter\Helpers\SessionHistory;
+use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 
 /**
  * Trait HasPageViewCounter for Eloquent models.
@@ -16,16 +15,9 @@ use Cyrildewit\PageViewCounter\Helpers\SessionHistory;
 trait HasPageViewCounter
 {
     /**
-     * Date transformers.
-     *
-     * @var array
-     */
-    protected $dateTransformers;
-
-    /**
      * Instance of SessionHistory.
      *
-     * @var \CyrildeWit\PageViewCounter\SessionHistory
+     * @var \CyrildeWit\PageViewCounter\Helpers\SessionHistory
      */
     protected $sessionHistoryInstance;
 
@@ -37,7 +29,6 @@ trait HasPageViewCounter
      */
     public function __construct(array $attributes = [])
     {
-        $this->dateTransformers = parent::$dateTransformers;
         $this->sessionHistoryInstance = new SessionHistory();
 
         parent::__construct($attributes);
@@ -110,10 +101,10 @@ trait HasPageViewCounter
     /**
      * Get the total number of page views starting from the given date.
      *
-     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon|string  $sinceDate
      * @return integer|string  Page views as integer or formatted string.
      */
-    public function getPageViewsFrom(Carbon $sinceDate)
+    public function getPageViewsFrom($sinceDate)
     {
         $sinceDate = $this->transformDate($sinceDate);
 
@@ -123,11 +114,11 @@ trait HasPageViewCounter
     /**
      * Get the total number of page views between two dates.
      *
-     * @param  \Carbon\Carbon  $sinceDate
-     * @param  \Carbon\Carbon  $uptoDate
+     * @param  \Carbon\Carbon|string  $sinceDate
+     * @param  \Carbon\Carbon|string  $uptoDate
      * @return integer
      */
-    public function getPageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
+    public function getPageViewsBetween($sinceDate, $uptoDate)
     {
         $sinceDate = $this->transformDate($sinceDate);
         $uptoDate = $this->transformDate($uptoDate);
@@ -136,47 +127,9 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views.
-     *
-     * @return int
-     */
-    public function getUniquePageViews()
-    {
-        return $this->retrievePageViews(null, null, true);
-    }
-
-    /**
-     * Get the total number of page views starting from the given date.
-     *
-     * @param  \Carbon\Carbon  $sinceDate
-     * @return int
-     */
-    public function getUniquePageViewsFrom(Carbon $sinceDate)
-    {
-        $sinceDate = $this->transformDate($sinceDate);
-
-        return $this->retrievePageViews($sinceDate, null, true);
-    }
-
-    /**
-     * Get the total number of page views between two dates.
-     *
-     * @param  \Carbon\Carbon  $sinceDate
-     * @param  \Carbon\Carbon  $uptoDate
-     * @return int
-     */
-    public function getUniquePageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
-    {
-        $sinceDate = $this->transformDate($sinceDate);
-        $uptoDate = $this->transformDate($uptoDate);
-
-        return $this->retrievePageViews($sinceDate, $uptoDate, true);
-    }
-
-    /**
      * Add a new page view and return an instance of the page view.
      */
-    public function addView()
+    public function addPageView()
     {
         $viewClass = config('page-view-counter.page_view_model');
 
@@ -195,15 +148,15 @@ trait HasPageViewCounter
      * @param  \Carbon\Carbon $expiryDate [description]
      * @return boolean
      */
-    public function addViewThatExpiresAt(Carbon $expiryDate)
+    public function addPageViewThatExpiresAt(Carbon $expiryDate)
     {
         if ($this->sessionHistoryInstance->addToSession($this, $expiryDate)) {
-            $this->addView();
+            $this->addPageView();
 
             return true;
         }
 
-        return fales;
+        return false;
     }
 
     /**
@@ -214,11 +167,8 @@ trait HasPageViewCounter
      */
     protected function transformDate($date)
     {
-        $transformers = [
-            '24h' => Carbon::now()->subDays(1),
-            '7d' => Carbon::now()->subWeeks(1),
-            '14d' => Carbon::now()->subWeeks(2),
-        ];
+        $transformers = config('page-view-counter.date_transformers');
+        
 
         foreach($transformers as $key => $transformer) {
             if ($key === $date) {
