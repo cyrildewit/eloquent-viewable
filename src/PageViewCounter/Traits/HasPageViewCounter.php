@@ -2,6 +2,8 @@
 
 namespace CyrildeWit\PageViewCounter\Traits;
 
+// use DB;
+use Request;
 use Carbon\Carbon;
 use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 
@@ -35,7 +37,7 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the page visits associated with the given model.
+     * Get the page views associated with the given model.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
@@ -48,15 +50,14 @@ trait HasPageViewCounter
     }
 
     /**
-     * Retrieve page views based upon the given requirement.
+     * Retrieve page views based upon the given options.
      *
      * @param  \Carbon\Carbon|null  $sinceDate
      * @param  \Carbon\Carbon|null  $uptoDate
      * @param  boolean  $unique  Should the page views be unique.
-     * @param  boolean  $shouldFormatted Should the output be formatted.
-     * @return integer|string  Page views as integer or formatted string.
+     * @return int|string  Page views as integer or formatted string.
      */
-    public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false, bool $shouldFormatted = false)
+    public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false)
     {
         $query = $this->views();
 
@@ -69,23 +70,20 @@ trait HasPageViewCounter
         }
 
         if ($unique) {
-            $query->distinct('ip_address');
+            $query
+                ->select('ip_address') // , DB::raw('count(*) as total')
+                ->groupBy('ip_address');
         }
 
-        $pageViews = $query->count();
-
-        if ($shouldFormatted) {
-            $options = config('page-view-counter.output-settings.format-options');
-
-            return number_format(
-                $pageViews,
-                $options['decimals'],
-                $options['dec_point'],
-                $options['thousands_sep']
-            );
+        // If the unique option is false then just use the SQL count method,
+        // otherwise get the results and count them
+        if (! $unique) {
+            $countedPageViews = $query->count();
+        } else {
+            $countedPageViews = $query->get()->count();
         }
 
-        return $pageViews;
+        return $countedPageViews;
     }
 
     /**
@@ -102,7 +100,7 @@ trait HasPageViewCounter
      * Get the total number of page views starting from the given date.
      *
      * @param  \Carbon\Carbon|string  $sinceDate
-     * @return integer|string  Page views as integer or formatted string.
+     * @return integer
      */
     public function getPageViewsFrom($sinceDate)
     {
@@ -127,6 +125,44 @@ trait HasPageViewCounter
     }
 
     /**
+     * Get the total number of page views.
+     *
+     * @return int
+     */
+    public function getUniquePageViews()
+    {
+        return $this->retrievePageViews(null, null, true);
+    }
+
+    /**
+     * Get the total number of page views starting from the given date.
+     *
+     * @param  \Carbon\Carbon  $sinceDate
+     * @return int
+     */
+    public function getUniquePageViewsFrom(Carbon $sinceDate)
+    {
+        $sinceDate = $this->transformDate($sinceDate);
+
+        return $this->retrievePageViews($sinceDate, null, true);
+    }
+
+    /**
+     * Get the total number of page views between two dates.
+     *
+     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon  $uptoDate
+     * @return int
+     */
+    public function getUniquePageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
+    {
+        $sinceDate = $this->transformDate($sinceDate);
+        $uptoDate = $this->transformDate($uptoDate);
+
+        return $this->retrievePageViews($sinceDate, $uptoDate, true);
+    }
+
+    /**
      * Add a new page view and return an instance of the page view.
      */
     public function addPageView()
@@ -136,7 +172,7 @@ trait HasPageViewCounter
         $newView = new $viewClass();
         $newView->visitable_id = $this->id;
         $newView->visitable_type = get_class($this);
-        $newView->ip_address = \Request::ip();
+        $newView->ip_address = Request::ip();
         $this->views()->save($newView);
 
         return $newView;
