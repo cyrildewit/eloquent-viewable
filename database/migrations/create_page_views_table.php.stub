@@ -17,11 +17,9 @@ class CreatePageViewsTable extends Migration
 
         Schema::create($pageViewTableName, function (Blueprint $table) {
             $table->increments('id');
-
             $table->bigInteger('visitable_id')->unsigned();
             $table->string('visitable_type');
-            $table->string('ip_address')->nullable(); // temporany
-
+            $table->string('ip_address')->nullable();
             $table->timestamps();
         });
     }
