@@ -54,7 +54,7 @@ trait HasPageViewCounter
      *
      * @param  \Carbon\Carbon|null  $sinceDate
      * @param  \Carbon\Carbon|null  $uptoDate
-     * @param  boolean  $unique  Should the page views be unique.
+     * @param  bool  $unique  Should the page views be unique.
      * @return int|string
      */
     public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false)
@@ -180,7 +180,7 @@ trait HasPageViewCounter
      * Add a new page view and store it into the session with an expiry date.
      *
      * @param  \Carbon\Carbon $expiryDate [description]
-     * @return boolean
+     * @return bool
      */
     public function addPageViewThatExpiresAt(Carbon $expiryDate)
     {
@@ -203,7 +203,7 @@ trait HasPageViewCounter
     {
         $transformers = config('page-view-counter.date-transformers');
 
-        foreach($transformers as $key => $transformer) {
+        foreach ($transformers as $key => $transformer) {
             if ($key === $date) {
                 return $transformer;
             }
