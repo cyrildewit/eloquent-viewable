@@ -1,16 +1,16 @@
 <?php
 
-namespace Cyrildewit\PageVisitsCounter\Test;
+namespace CyrildeWit\PageViewCounter\Tests;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Cyrildewit\PageVisitsCounter\Test\Models\Task;
-use Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider;
+use CyrildeWit\PageViewCounter\Tests\Models\Task;
+use CyrildeWit\PageViewCounter\PageViewCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
-    /** @var \Cyrildewit\PageVisitsCounter\Test\Models\Task */
+    /** @var \CyrildeWit\PageViewCounter\Test\Models\Task */
     protected $testTaskModel;
 
     public function setUp()
@@ -30,14 +30,13 @@ abstract class TestCase extends Orchestra
     }
 
     /**
-     * @param \Illuminate\Foundation\Application $app
-     *
+     * @param \Illuminate\Foundation\Application  $app
      * @return array
      */
     protected function getPackageProviders($app)
     {
         return [
-            PageVisitsCounterServiceProvider::class,
+            PageViewCounterServiceProvider::class,
         ];
     }
 
@@ -59,7 +58,7 @@ abstract class TestCase extends Orchestra
     /**
      * Set up the database.
      *
-     * @param \Illuminate\Foundation\Application $app
+     * @param \Illuminate\Foundation\Application  $app
      */
     public function setUpDatabase($app)
     {
@@ -81,7 +80,7 @@ abstract class TestCase extends Orchestra
         });
 
         // Including the package migration file
-        include_once __DIR__.'/../database/migrations/create_page_visits_table.php.stub';
+        include_once __DIR__.'/../database/migrations/create_page_visit_table.php.stub';
 
         // Running the migration file
         (new \CreatePageVisitsTable())->up();

@@ -1,21 +1,21 @@
 {
-    "name": "cyrildewit/laravel-page-visits-counter",
-    "type": "laravel-package",
-    "description": "Simple package for storing page visits of visitable models into the database.",
+    "name": "cyrildewit/laravel-page-view-counter",
+    "description": "Simple package for storing page views of Eloquent models into the database",
+    "homepage": "https://github.com/cyrildewit/laravel-page-view-counter",
     "keywords": [
         "cyrildewit",
         "laravel",
-        "model",
         "pageviews",
-        "visits"
+        "visits",
+        "hits",
+        "model"
     ],
-    "homepage": "https://github.com/cyrildewit/laravel-page-visits-counter",
     "license": "MIT",
     "authors": [
         {
             "name": "Cyril de Wit",
             "email": "info@cyrildewit.nl",
-            "homepage": "https://cyrildewit.nl",
+            "homepage": "http://cyrildewit.nl",
             "role": "Developer"
         }
     ],
@@ -28,26 +28,29 @@
     },
     "autoload": {
         "psr-4": {
-            "Cyrildewit\\PageVisitsCounter\\": "src"
+            "CyrildeWit\\PageViewCounter\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Cyrildewit\\PageVisitsCounter\\Test\\": "tests"
+            "CyrildeWit\\PageViewCounter\\Tests\\": "tests/"
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "vendor/bin/phpunit"
     },
     "config": {
         "sort-packages": true,
+        "preferred-install": "dist",
         "optimize-autoloader": true
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Cyrildewit\\PageVisitsCounter\\PageVisitsCounterServiceProvider"
+                "CyrildeWit\\PageViewCounter\\PageViewCounterServiceProvider"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
