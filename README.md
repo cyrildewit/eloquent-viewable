@@ -1,4 +1,6 @@
-# Laravel Page Visit Counter
+# Laravel Page View Counter
+
+**README.md:: Currently under progress!**
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-view-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-view-counter)
@@ -15,10 +17,10 @@ Once installed you can do stuff like this:
 $article->getPageViews();
 
 // Get the total page from a specific date
-$article->getPageViewsFrom();
+$article->getPageViewsFrom(Carbon::now()->subDays(2));
 
 // Get the total page between a specific date range
-$article->getPageViewsBetween();
+$article->getPageViewsBetween(Carbon::now()->parse('01-04-2017'), Carbon::now()->parse('01-06-2017'));
 
 // Store a new page view into the database
 $article->addPageView();
