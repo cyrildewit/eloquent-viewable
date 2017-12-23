@@ -1,9 +1,9 @@
 <?php
 
-namespace Cyrildewit\PageViewCounter\Tests\Models;
+namespace CyrildeWit\PageViewCounter\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Cyrildewit\PageViewCounter\Traits\HasPageViewCounter;
+use CyrildeWit\PageViewCounter\Traits\HasPageViewCounter;
 
 class Task extends Model
 {

@@ -5,7 +5,7 @@ namespace CyrildeWit\PageViewCounter\Tests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
-use CyrildeWit\PageViewCounter\Test\Models\Task;
+use CyrildeWit\PageViewCounter\Tests\Models\Task;
 use CyrildeWit\PageViewCounter\PageViewCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
