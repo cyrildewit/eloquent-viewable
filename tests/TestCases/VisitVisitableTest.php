@@ -4,7 +4,7 @@ namespace CyrildeWit\PageViewCounter\Tests\TestCases;
 
 use Carbon\Carbon;
 use CyrildeWit\PageViewCounter\SessionHistory;
-use Cyrildewit\PageViewCounter\Tests\TestCase;
+use CyrildeWit\PageViewCounter\Tests\TestCase;
 
 class VisitVisitableTest extends TestCase
 {
