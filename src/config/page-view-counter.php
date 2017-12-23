@@ -10,14 +10,14 @@ return [
     'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
-     * The table name of the page visits database table.
+     * The table name of the page views database table.
      * It is used by creating the migrations files and default Eloquent model.
      */
     'page_views_table_name' => 'page-views',
 
     /*
-     * The key thas used to store page visits into the session. This is used by
-     * the SessionHistory class that handles the visits with expiry dates.
+     * The key thas used to store page views into the session. This is used by
+     * the SessionHistory class that handles the page views with expiry dates.
      */
     'page_view_history_session_key' => 'page-view-counter.history',
 
