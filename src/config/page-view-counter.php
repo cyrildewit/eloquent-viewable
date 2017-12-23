@@ -32,9 +32,9 @@ return [
      * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days
      */
     'date-transformers' => [
-        '24h' => Carbon::now()->subDays(1),
-        '7d' => Carbon::now()->subWeeks(1),
-        '14d' => Carbon::now()->subWeeks(2),
+        // '24h' => Carbon::now()->subDays(1),
+        // '7d' => Carbon::now()->subWeeks(1),
+        // '14d' => Carbon::now()->subWeeks(2),
     ],
 
 ];
