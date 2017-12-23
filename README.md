@@ -55,7 +55,7 @@ In this documentation, you will find some helpful information about the use of t
 2. [Usage](#usage)
     * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
     * [Storing new page views](#storing-new-page-views)
-    * [Retrieving page views](#retrieving-page-visits)
+    * [Retrieving page views](#retrieving-page-views)
     * [Sorting model items by page views](#sorting-model-items-by-page-views)
 3. [Configuration](#configuration)
 
@@ -214,48 +214,49 @@ $articles = Article::where('status', 'published')->get()->sortBy('page_views');
 
 ## Configuration
 
+When published, the `config/page-view-counter.php` config file contains:
+
 ```php
+use Carbon\Carbon;
+
 return [
 
-    // ...
+    /*
+     * The class name of the page view Eloquent model to be used.
+     */
+    'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
-     * Number format output settings.
+     * The table name of the page views database table.
+     * It is used by creating the migrations files and default Eloquent model.
      */
-    'output-settings' => [
+    'page_views_table_name' => 'page-views',
 
-        /*
-         * The configured option values will be used
-         * inside the official php `number_format()` function.
-         *
-         * Example: 120000    ==> 120.000
-         * Example: 500206000 ==> 502.006.000
-         */
-        'format-options' => [
+    /*
+     * The key thas used to store page views into the session. This is used by
+     * the SessionHistory class that handles the page views with expiry dates.
+     */
+    'page_view_history_session_key' => 'page-view-counter.history',
 
-            'decimals' => 0,
-            'dec_point' => ',',
-            'thousands_sep' => '.',
-
-        ],
-
+    /*
+     * Configure here your custom recognisable dates. When the package sees one
+     * of the keys, it will use the value instead.
+     *
+     * Keep it empty, if you don't want any date transformers!
+     *
+     * Example:
+     * - $article->getPageViewsFrom('24h'); // Get the total page views of the last 24 hours
+     * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days
+     */
+    'date-transformers' => [
+        // '24h' => Carbon::now()->subDays(1),
+        // '7d' => Carbon::now()->subWeeks(1),
+        // '14d' => Carbon::now()->subWeeks(2),
     ],
 
-]
+];
+
 ```
-
-### Extending the PageView model
-
-If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
-
-* Your `PageView` model needs to implement the `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
-* You can publish the configuration file with this command:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
-```
-
-And update the `page_view_model` value.
 
 ### Defining date transformers
 
@@ -290,6 +291,19 @@ We can now retrieve the page views like this in our blade views:
 ```php
 <p>Page views in past three days {{ $article->$article->getPageViewsFrom('past3days') }}</p>
 ```
+
+### Extending the PageView model
+
+If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
+
+* Your `PageView` model needs to implement the `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
+* You can publish the configuration file with this command:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
+```
+
+And update the `page_view_model` value.
 
 ## Credits
 
