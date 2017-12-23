@@ -3,6 +3,7 @@
 namespace CyrildeWit\PageViewCounter;
 
 use Illuminate\Support\ServiceProvider;
+use CyrildeWit\PageViewCounter\Contracts\PageView as PageViewContract;
 
 /**
  * Class PageViewCounterServiceProvider.
@@ -33,6 +34,9 @@ class PageViewCounterServiceProvider extends ServiceProvider
                 __DIR__.'/../database/migrations/create_page_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_page_views_table.php"),
             ], 'migrations');
         }
+
+        // Register the required model bindings
+        $this->registerModelBindings();
     }
 
     /**
@@ -47,5 +51,17 @@ class PageViewCounterServiceProvider extends ServiceProvider
             __DIR__.'/../config/page-view-counter.php',
             'page-view-counter'
         );
+    }
+
+    /**
+     * Register the model bindings.
+     *
+     * @return void
+     */
+    protected function registerModelBindings()
+    {
+        $config = $this->app->config['page-view-counter'];
+
+        $this->app->bind(PageViewContract::class, $config['page_view_model']);
     }
 }

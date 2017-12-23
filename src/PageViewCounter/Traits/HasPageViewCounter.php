@@ -95,7 +95,7 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views starting from the given date.
+     * Get the total number of page views that are stored after the given date.
      *
      * @param  \Carbon\Carbon|string  $sinceDate
      * @return int
