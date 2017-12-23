@@ -21,12 +21,12 @@ return [
      */
     'page_view_history_session_key' => 'page-view-counter.history',
 
-    /**
+    /*
      * Configure here your custom recognisable dates. When the package sees one
      * of the keys, it will use the value instead.
-     * 
+     *
      * Keep it empty, if you don't want any date transformers!
-     * 
+     *
      * Example:
      * - $article->getPageViewsFrom('24h'); // Get the total page views of the last 24 hours
      * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days

@@ -3,8 +3,8 @@
 namespace Cyrildewit\PageViewCounter\Tests\TestCases;
 
 use Carbon\Carbon;
-use Cyrildewit\PageViewCounter\Tests\TestCase;
 use Cyrildewit\PageViewCounter\SessionHistory;
+use Cyrildewit\PageViewCounter\Tests\TestCase;
 
 class VisitVisitableTest extends TestCase
 {
@@ -13,7 +13,7 @@ class VisitVisitableTest extends TestCase
         parent::setUp();
     }
 
-    /** @test */
+    /* @test */
     // public function it_can() {
     //     runkit_method_add(
     //         'VisitVisitableTest',
