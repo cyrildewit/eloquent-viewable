@@ -1,14 +1,12 @@
 # Laravel Page View Counter
 
-**README.md:: Currently under progress!**
-
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-view-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-view-counter)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
 
-This package allows you to store page views of different models into the database.
+This Laravel package allows you to store page views of different models into the database.
 
 Once installed you can do stuff like this:
 
@@ -19,7 +17,7 @@ $article->getPageViews();
 // Get the total page from a specific date
 $article->getPageViewsFrom(Carbon::now()->subDays(2));
 
-// Get the total page between a specific date range
+// Get the total page of a specific date range
 $article->getPageViewsBetween(Carbon::now()->parse('01-04-2017'), Carbon::now()->parse('01-06-2017'));
 
 // Store a new page view into the database
@@ -29,11 +27,11 @@ $article->addPageView();
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(3));
 ```
 
-This package is not built with the intent to collect analyticial data. It is made to simply save the page views of an Laravel Eloquent model. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course you can use this package as you want.
+This package is not built with the intent to collect analytical data. It is made to simply save the page views of a Laravel Eloquent model. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course, you can use this package as you want.
 
 ## Overview
 
-Laravel Page View Counter is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple page view counter we provide out of the box some great functionalities.
+Laravel Page View Counter is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple page view counter, we provide out of the box some great functionalities.
 
 ### Features
 
@@ -44,45 +42,51 @@ Here are some of the main features:
 * Get the total page views
 * Get the total page views from a specific date
 * Get the total page views between a specific date range
-* Configure date transformers to replace big lines like `$article->getPageViewsFrom(Carbon::now()->subDays(1))` to $article->getPageViewsFrom('24h') ('24h', '7d' etc. is completely configurable).
+* Get the total unique page views (by ip address)
+* Configure date transformers to replace big lines like `$article->getPageViewsFrom(Carbon::now()->subDays(1))` to `$article->getPageViewsFrom('24h')` ('24h', '7d' etc. is completely configurable).
 
 ## Documentation
 
-In this documention you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security related issues, then feel free to get in touch with me at: github@cyrildewit.nl.
+In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at github@cyrildewit.nl.
 
-**In this documention:**
+**In this documentation:**
 
 1. [Getting Started](#getting-started)
 2. [Usage](#usage)
-    * [Making a Elqouent model visitable](#making-a-eloquent-model-visitable)
-    * [Retrieving page visits count](#retrieving-page-visits-count)
-    * [Storing new visits](#storing-new-visits)
-    * [Sorting Model items by visit count](#sorting-model-items-by-visits-count)
+    * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
+    * [Storing new page views](#storing-new-page-views)
+    * [Retrieving page views](#retrieving-page-visits)
+    * [Sorting model items by page views](#sorting-model-items-by-page-views)
 3. [Configuration](#configuration)
-    * [Configuring the formatted number format](#configuring-the-formatted-number-format)
+
+    * [Defining date transformers](#defining-date-transformers)
+    * [Extending the PageView model](#extending-the-pageview-model)
+4. [Under the hood](#under-the-hood)
+    * [List of properties/methods that the trait adds](#list-of-properties/methods-that-the-trait-adds)
 
 ## Getting Started
 
-Before you can use this package you have to install it with composer ;).
+Before you can use this package you have to install it with composer.
 
 You can install the package via composer:
+
 ```winbatch
-composer require cyrildewit/laravel-page-visits-counter
+composer require cyrildewit/laravel-page-view-counter
 ```
 
-Now add the service provider in `config/app.php` file:
+Now add the service provider in `config/app.php` file, or if you're using Laravel >=5.5, this can be done via the automatic package discovery:
 
 ```php
 'providers' => [
     // ...
-    Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider::class,
+    CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class,
 ];
 ```
 
 You can publish the migration with:
 
 ```winbatch
-php artisan vendor:publish --provider="Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider" --tag="migrations"
+php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="migrations"
 ```
 
 After publishing the migration file you can create the `page visits` table by running the migrations:
@@ -94,80 +98,121 @@ php artisan migrate
 You can publish the config file with:
 
 ```winbatch
-php artisan vendor:publish --provider="Cyrildewit\PageVisitsCounter\PageVisitsCounterServiceProvider" --tag="config"
+php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
 ```
 
 ## Usage
 
-In the following sections you will find information about the usage of this package.
+In the following sections, you will find information about the usage of this package.
 
-### Making a Elqouent model visitable
+### Making an Eloquent model viewable
 
-First add the `Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter` trait to your visitable Eloquent model(s).
+First add the `CyrildeWit\PageViewCounter\Traits\HasPageViewCounter` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them.
 
 Here's an example of a an Eloquent model:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use Cyrildewit\PageVisitsCounter\Traits\HasPageVisitsCounter;
+use CyrildeWit\PageViewCounter\Traits\HasPageViewCounter;
 
 class Article extends Model
 {
-    use HasPageVisitsCounter;
+    use HasPageViewCounter;
 
     // ...
 }
 ```
 
-### Retrieving page visits count
+**Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#TODO)!
+
+### Storing new page views
+
+After adding the trait to your model, some methods will be available. `addPageView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is in your controller. If you're following the CRUD standard, it would be the show method.
+
+Let's assume where are handling the page views of an article in the following sections. `$article` contains an instance of our Eloquent model `Article`.
 
 ```php
-$article->page_visits
-$article->page_visits_formatted
-
-$article->page_visits_24h
-$article->page_visits_24h_formatted
-
-$article->page_visits_7d
-$article->page_visits_7d_formatted
-
-$article->page_visits_14d
-$article->page_visits_14d_formatted
-
-// Retrieve visits from date (past 2 weeks)
-$article->retrievePageVisitsFrom(Carbon::now()->subWeeks(2));
-
-// Retrieve visits between two dates
-$article->retrievePageVisitsCountBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
+// Stores a new page view in the database
+$article->addPageVisit()
 ```
 
-### Storing new visits
+"But what if users are refreshing the page multiple times?" Well, then you could use the `addPageViewThatExpiresAt()` method. It accepts an expiry date. Only the page view after that expiry date will be stored. The expiry date will be stored in the user's session.
 
 ```php
-// Stores a new visit into the database
-$article->addVisit()
-
-// Store a new visit into the database with expiry date.
-// When storing it, it will first checks if it's not already have been viewed by the current user.
+// Store a new page view in the database with an expiry date.
+// When storing it, it will first check if it hasn't been already viewed by the current user.
 $article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
 ```
 
-### Sorting Model items by visit count
+### Retrieving page views
+
+**Note:** Unique page views are getting retrieved differently than the total page views. When calculating the total page views, we are using the aggregate functions of SQL. But the calculation of the unique page views is done by retrieving all the items and count them. If you're a SQL expert and would like to solve this, thanks!
 
 ```php
-// Example 1
-$articles = Article::all()->sortBy('page_visits_14d');
-$articles = Article::with('relatedModel')->get()->sortBy('page_visits_7d');
-$articles = Article::where('status', 'published')->get()->sortBy('page_visits_24h');
+// Retrieve the total page views
+$article->getPageViews();
+$article->getUniquePageViews();
+
+// Retrieve page views that are stored after the given date
+$article->getPageViewsFrom(Carbon::now()->subWeeks(2)); // since two weeks ago
+$article->getUniquePageViewsFrom(Carbon::now()->subWeeks(2)); // based upon ip address
+
+// Retrieve page views that are stored before the given date
+$article->getPageViewsBefore(Carbon::now()->subWeeks(2)); // upto two weeks ago
+$article->getPageViewsBefore(Carbon::now()->subWeeks(2)); // based upon ip address
+
+// Retrieve page views that are stored between the given two dates
+$article->getPageViewsBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
+$article->getUniquePageViewsBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1)); // based upon ip address
+```
+
+### Sorting model items by page views
+
+```php
+$articles = Article::all(); // Laravel Collection instance
+
+// Articles sorted on page views (most page views is on top)
+$sortedArticles = $articles->sortByDesc(function ($article) {
+    return $article->getPageViews();
+});
+```
+
+If you're interested in a more cleaner way, you could create an attribute in your model and append it.
+
+```php
+class Article extends Model
+{
+    use HasPageViewCounter;
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['page_views'];
+
+    /**
+     * Get the total page views of the article.
+     *
+     * @return int
+     */
+    public function getPageViewsAttribute()
+    {
+        return $this->getPageViews();
+    }
+}
+```
+
+You can access the total page views now by `$article->page_views`. This makes the following available:
+
+```php
+// Different examples
+$articles = Article::all()->sortBy('page_views');
+$articles = Article::with('relatedModel')->get()->sortBy('page_views');
+$articles = Article::where('status', 'published')->get()->sortBy('page_views');
 ```
 
 ## Configuration
-
-### Configuring the formatted number format
-
-It is very easy to change the format of the converted numbers. Simply change the three parameters of the official PHP function [`number_format()`](http://php.net/manual/en/function.number-format.php).
-
-In `config/page-visit-counter.php` you will find the following code:
 
 ```php
 return [
@@ -199,10 +244,57 @@ return [
 ]
 ```
 
+### Extending the PageView model
+
+If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
+
+* Your `PageView` model needs to implement the `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
+* You can publish the configuration file with this command:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
+```
+
+And update the `page_view_model` value.
+
+### Defining date transformers
+
+Because we all love having to repeat less, this package allows you to define date transformers. Let's say we are using the following code a lot in our blade views: `$article->getPageViewsFrom(Carbon::now()->subDays(3))`. It can get a little bit annoying and unreadable. Let's solve that!
+
+If you've published the configuration file, you will see something like this:
+
+```php
+// ..
+'date-transformers' => [
+    // '24h' => Carbon::now()->subDays(1),
+    // '7d' => Carbon::now()->subWeeks(1),
+    // '14d' => Carbon::now()->subWeeks(2),
+],
+// ...
+```
+
+They are all commented out as default. To make them available, simply uncomment them. The provided ones are serving as an example. You can remove them or add your own ones.
+
+For our example, we could do the following:
+
+```php
+// ..
+'date-transformers' => [
+    'past3days' => Carbon::now()->subDays(3),
+],
+// ...
+```
+
+We can now retrieve the page views like this in our blade views:
+
+```php
+<p>Page views in past three days {{ $article->$article->getPageViewsFrom('past3days') }}</p>
+```
+
 ## Credits
 
-- [Cyril de Wit](https://github.com/cyrildewit)
-- [All Contributors](../../contributors)
+* [Cyril de Wit](https://github.com/cyrildewit)
+* [All Contributors](../../contributors)
 
 ## License
 
