@@ -55,33 +55,31 @@ trait HasPageViewCounter
      * @param  \Carbon\Carbon|null  $sinceDate
      * @param  \Carbon\Carbon|null  $uptoDate
      * @param  boolean  $unique  Should the page views be unique.
-     * @return int|string  Page views as integer or formatted string.
+     * @return int|string
      */
     public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false)
     {
+        // Create new Query Builder instance of views relationship
         $query = $this->views();
 
+        // Apply the following if the since date is given
         if ($sinceDate) {
             $query->where('created_at', '>=', $sinceDate);
         }
 
+        // Apply the following if the upto date is given
         if ($uptoDate) {
             $query->where('created_at', '=<', $sinceDate);
         }
 
+        // Apply the following if page views should be unique
         if ($unique) {
-            $query
-                ->select('ip_address') // , DB::raw('count(*) as total')
-                ->groupBy('ip_address');
+            $query->select('ip_address')->groupBy('ip_address');
         }
 
         // If the unique option is false then just use the SQL count method,
         // otherwise get the results and count them
-        if (! $unique) {
-            $countedPageViews = $query->count();
-        } else {
-            $countedPageViews = $query->get()->count();
-        }
+        $countedPageViews = ! $unique ? $query->count() : $query->get()->count();
 
         return $countedPageViews;
     }
@@ -89,7 +87,7 @@ trait HasPageViewCounter
     /**
      * Get the total number of page views.
      *
-     * @return integer
+     * @return int
      */
     public function getPageViews()
     {
@@ -100,7 +98,7 @@ trait HasPageViewCounter
      * Get the total number of page views starting from the given date.
      *
      * @param  \Carbon\Carbon|string  $sinceDate
-     * @return integer
+     * @return int
      */
     public function getPageViewsFrom($sinceDate)
     {
@@ -114,7 +112,7 @@ trait HasPageViewCounter
      *
      * @param  \Carbon\Carbon|string  $sinceDate
      * @param  \Carbon\Carbon|string  $uptoDate
-     * @return integer
+     * @return int
      */
     public function getPageViewsBetween($sinceDate, $uptoDate)
     {
