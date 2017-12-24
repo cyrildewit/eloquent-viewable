@@ -40,7 +40,7 @@ class SessionHistory
     public function addToSession(Model $model, Carbon $expires_at)
     {
         // Make unique key from the inserted model
-        $uniqueKey = $this->fromCamelCaseToDashes(class_basename($model));
+        $uniqueKey = snake_case(class_basename($model));
 
         $this->removeExpiredVisitsFromSession($uniqueKey);
 
@@ -95,23 +95,5 @@ class SessionHistory
                 Session::pull($this->primarySessionKey.'.'.$uniqueKey.'.'.$key);
             }
         }
-    }
-
-    /**
-     * Convert camel case strings to lowercase dashes.
-     *
-     * @param string $value
-     * @return int The converted string.
-     */
-    public function fromCamelCaseToDashes($value)
-    {
-        preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
-
-        $ret = $matches[0];
-        foreach ($ret as &$match) {
-            $match = $match == strtoupper($match) ? strtolower($match) : lcfirst($match);
-        }
-
-        return implode('_', $ret);
     }
 }
