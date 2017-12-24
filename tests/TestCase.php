@@ -6,11 +6,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
 use CyrildeWit\PageViewCounter\Tests\Models\Task;
-use CyrildeWit\PageViewCounter\PageViewCounterServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
-    /** @var \CyrildeWit\PageViewCounter\Test\Models\Task */
+    /** @var \CyrildeWit\PageViewCounter\Tests\Models\Task */
     protected $testTaskModel;
 
     public function setUp()
@@ -36,17 +35,19 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            PageViewCounterServiceProvider::class,
+            \CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class,
         ];
     }
 
     /**
-     * Set up the environment.
+     * Define environment setup.
      *
-     * @param \Illuminate\Foundation\Application $app
+     * @param  \Illuminate\Foundation\Application  $app
+     * @return void
      */
     protected function getEnvironmentSetUp($app)
     {
+        // Setup default database to use sqlite :memory:
         $app['config']->set('database.default', 'sqlite');
         $app['config']->set('database.connections.sqlite', [
             'driver'   => 'sqlite',
@@ -80,10 +81,10 @@ abstract class TestCase extends Orchestra
         });
 
         // Including the package migration file
-        include_once __DIR__.'/../database/migrations/create_page_visit_table.php.stub';
+        include_once __DIR__.'/../src/database/migrations/create_page_views_table.php.stub';
 
         // Running the migration file
-        (new \CreatePageVisitsTable())->up();
+        (new \CreatePageViewsTable())->up();
 
         $task = new Task();
         $task->title = 'Write a story';
