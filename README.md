@@ -24,7 +24,7 @@ $article->getPageViewsBetween(Carbon::now()->parse('01-04-2017'), Carbon::now()-
 $article->addPageView();
 
 // Store a new page view into the database with an expiry date
-$article->addVisitThatExpiresAt(Carbon::now()->addHours(3));
+$article->addPageViewThatExpiresAt(Carbon::now()->addHours(3));
 ```
 
 This package is not built with the intent to collect analytical data. It is made to simply save the page views of a Laravel Eloquent model. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course, you can use this package as you want.
@@ -133,7 +133,7 @@ Let's assume where are handling the page views of an article in the following se
 
 ```php
 // Stores a new page view in the database
-$article->addPageVisit()
+$article->addPageView();
 ```
 
 "But what if users are refreshing the page multiple times?" Well, then you could use the `addPageViewThatExpiresAt()` method. It accepts an expiry date. Only the page view after that expiry date will be stored. The expiry date will be stored in the user's session.
@@ -141,7 +141,7 @@ $article->addPageVisit()
 ```php
 // Store a new page view in the database with an expiry date.
 // When storing it, it will first check if it hasn't been already viewed by the current user.
-$article->addVisitThatExpiresAt(Carbon::now()->addHours(2))
+$article->addPageViewThatExpiresAt(Carbon::now()->addHours(2));
 ```
 
 ### Retrieving page views
@@ -159,7 +159,7 @@ $article->getUniquePageViewsFrom(Carbon::now()->subWeeks(2)); // based upon ip a
 
 // Retrieve page views that are stored before the given date
 $article->getPageViewsBefore(Carbon::now()->subWeeks(2)); // upto two weeks ago
-$article->getPageViewsBefore(Carbon::now()->subWeeks(2)); // based upon ip address
+$article->getUniquePageViewsBefore(Carbon::now()->subWeeks(2)); // based upon ip address
 
 // Retrieve page views that are stored between the given two dates
 $article->getPageViewsBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
@@ -279,16 +279,14 @@ They are all commented out as default. To make them available, simply uncomment 
 For our example, we could do the following:
 
 ```php
-// ..
 'date-transformers' => [
     'past3days' => Carbon::now()->subDays(3),
 ],
-// ...
 ```
 
 We can now retrieve the page views like this in our blade views:
 
-```php
+```html
 <p>Page views in past three days {{ $article->$article->getPageViewsFrom('past3days') }}</p>
 ```
 
@@ -304,6 +302,25 @@ php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounte
 ```
 
 And update the `page_view_model` value.
+
+## Under the hood
+
+### List of properties/methods that the trait adds
+
+* `protected $sessionHistoryInstance;`
+* `public function views();`
+* `public function retrievePageViews();`
+* `public function getPageViews();`
+* `public function getPageViewsFrom();`
+* `public function getPageViewsBefore();`
+* `public function getPageViewsBetween();`
+* `public function getUniquePageViews();`
+* `public function getUniquePageViewsFrom();`
+* `public function getUniquePageViewsBefore();`
+* `public function getUniquePageViewsBetween();`
+* `public function addPageView();`
+* `public function addPageViewThatExpiresAt();`
+* `protected function transformDate();`
 
 ## Credits
 
