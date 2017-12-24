@@ -62,7 +62,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the PageView model](#extending-the-pageview-model)
 4. [Under the hood](#under-the-hood)
-    * [List of properties/methods that the trait adds](#list-of-propertiesmethods-that-the-trait-adds)
+    * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
 ## Getting Started
 
@@ -123,7 +123,7 @@ class Article extends Model
 }
 ```
 
-**Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#TODO)!
+**Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#list-of-propertiesmethods-that-the-trait-adds)!
 
 ### Storing new page views
 
@@ -305,7 +305,7 @@ And update the `page_view_model` value.
 
 ## Under the hood
 
-### List of properties/methods that the trait adds
+### List of properties/methods that the trait adds to your model
 
 * `protected $sessionHistoryInstance;`
 * `public function views();`
