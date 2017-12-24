@@ -3,7 +3,7 @@
 namespace CyrildeWit\PageViewCounter\Tests\TestCases;
 
 use Carbon\Carbon;
-use CyrildeWit\PageViewCounter\SessionHistory;
+use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 use CyrildeWit\PageViewCounter\Tests\TestCase;
 
 class ViewViewableTest extends TestCase
@@ -42,6 +42,7 @@ class ViewViewableTest extends TestCase
     {
         // Make a unique key to retrieve the page views history from the session
         $uniqueKey = snake_case(class_basename($this->testTaskModel));
+        $viewable_id = $this->testTaskModel->id;
 
         // Store a new page view with expiry date
         $this->testTaskModel->addPageViewThatExpiresAt(Carbon::now()->addSeconds(40));
@@ -51,7 +52,7 @@ class ViewViewableTest extends TestCase
         $this->assertTrue($hasPageView);
 
         // Check if the page view has been stored in the sesssion
-        $hasPageViewInSession = (new SessionHistory())->isItemVisited($uniqueKey, $visitable_id);
+        $hasPageViewInSession = (new SessionHistory())->isItemVisited($uniqueKey, $viewable_id);
         $this->assertTrue($hasPageViewInSession);
     }
 }
