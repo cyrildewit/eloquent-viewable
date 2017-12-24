@@ -17,7 +17,7 @@ use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 trait HasPageViewCounter
 {
     /**
-     * Instance of SessionHistory.
+     * The SessionHistory helper instance.
      *
      * @var \CyrildeWit\PageViewCounter\Helpers\SessionHistory
      */
@@ -95,7 +95,7 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views that are stored after the given date.
+     * Get the total number of page views after the given date.
      *
      * @param  \Carbon\Carbon|string  $sinceDate
      * @return int
@@ -108,7 +108,20 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views between two dates.
+     * Get the total number of page views before the given date.
+     *
+     * @param  \Carbon\Carbon|string  $uptoDate
+     * @return int
+     */
+    public function getPageViewsBefore($uptoDate)
+    {
+        $uptoDate = $this->transformDate($uptoDate);
+
+        return $this->retrievePageViews(null, $uptoDate);
+    }
+
+    /**
+     * Get the total number of page views between the given two dates.
      *
      * @param  \Carbon\Carbon|string  $sinceDate
      * @param  \Carbon\Carbon|string  $uptoDate
@@ -123,7 +136,7 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views.
+     * Get the total number of unique page views.
      *
      * @return int
      */
@@ -133,12 +146,12 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views starting from the given date.
+     * Get the total number of unique page views after the given date.
      *
-     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon|string  $sinceDate
      * @return int
      */
-    public function getUniquePageViewsFrom(Carbon $sinceDate)
+    public function getUniquePageViewsFrom($sinceDate)
     {
         $sinceDate = $this->transformDate($sinceDate);
 
@@ -146,13 +159,26 @@ trait HasPageViewCounter
     }
 
     /**
-     * Get the total number of page views between two dates.
+     * Get the total number of unique page views before the given date.
      *
-     * @param  \Carbon\Carbon  $sinceDate
-     * @param  \Carbon\Carbon  $uptoDate
+     * @param  \Carbon\Carbon|string  $uptoDate
      * @return int
      */
-    public function getUniquePageViewsBetween(Carbon $sinceDate, Carbon $uptoDate)
+    public function getUniquePageViewsBefore($uptoDate)
+    {
+        $uptoDate = $this->transformDate($uptoDate);
+
+        return $this->retrievePageViews(null, $uptoDate, true);
+    }
+
+    /**
+     * Get the total number of unique page views between the given two dates.
+     *
+     * @param  \Carbon\Carbon|string  $sinceDate
+     * @param  \Carbon\Carbon|string  $uptoDate
+     * @return int
+     */
+    public function getUniquePageViewsBetween($sinceDate, $uptoDate)
     {
         $sinceDate = $this->transformDate($sinceDate);
         $uptoDate = $this->transformDate($uptoDate);
@@ -161,7 +187,9 @@ trait HasPageViewCounter
     }
 
     /**
-     * Add a new page view and return an instance of the page view.
+     * Store a new page view and return an instance of it.
+     *
+     * @return \CyrildeWit\PageViewCounter\Contracts\PageView
      */
     public function addPageView()
     {
@@ -177,13 +205,15 @@ trait HasPageViewCounter
     }
 
     /**
-     * Add a new page view and store it into the session with an expiry date.
+     * Store a new page view and store it into the session with an expiry date.
      *
-     * @param  \Carbon\Carbon $expiryDate [description]
+     * @param  \Carbon\Carbon|string  $expiryDate
      * @return bool
      */
-    public function addPageViewThatExpiresAt(Carbon $expiryDate)
+    public function addPageViewThatExpiresAt($expiryDate)
     {
+        $expiryDate = $this->transformDate($expiryDate);
+
         if ($this->sessionHistoryInstance->addToSession($this, $expiryDate)) {
             $this->addPageView();
 
@@ -194,9 +224,9 @@ trait HasPageViewCounter
     }
 
     /**
-     * Transform the given value to a date based on defined transformers.
+     * Transform the given value to a date based on the defined transformers.
      *
-     * @param  [type] $date
+     * @param  \Carbon\Carbon|string  $date
      * @return \Carbon\Carbon
      */
     protected function transformDate($date)
