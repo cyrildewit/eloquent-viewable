@@ -4,7 +4,6 @@ namespace CyrildeWit\PageViewCounter\Traits;
 
 // use DB;
 use Request;
-use Carbon\Carbon;
 use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 
 /**

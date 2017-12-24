@@ -3,8 +3,8 @@
 namespace CyrildeWit\PageViewCounter\Tests\TestCases;
 
 use Carbon\Carbon;
-use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 use CyrildeWit\PageViewCounter\Tests\TestCase;
+use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 
 class ViewViewableTest extends TestCase
 {
