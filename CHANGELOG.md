@@ -4,24 +4,64 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.0] - 24-12-2017
+
+### Added
+
+- Added the `UniquePageViewsBefore()` method to the `HasPageViewCounter` trait.
+- `ViewViewableTest.php`
+
+### Changed
+
+- Replaced `fromCamelCaseToDashes()` method in `SessionHistory` with the provided `snake_case()` method of Laravel.
+- Updated the tests.
+
+### Removed
+
+- `VisitVisitableTest.php`
+
+## [1.0.0-alpha] - 23-12-2017
+
+A complete new version of this package.
+
+### Added
+
+- New trait: `HasPageViewCounter.php`
+- New service provider: `PageViewCounterServiceProvider.php`
+- New SessionHistory helper.
+
+### Changed
+
+- Package name: `PageVisitsCounter` to `PageViewCounter`.
+- PHP namespace: `Cyrildewit\PageVisitsCounter` -> `CyrildeWit\PageViewCounter`.
+- Config file name: `page-visits-counter.php` -> `page-view-counter.php`.
+- PageView model contract: `PageVisit.php` -> `PageView.php`
+- Displaced SessionHistory to `Helpers/`
+
+### Removed
+
+- Trait: `HasPageVisitsCounter.php`.
+- Service provider: `PageVisitsCounterServiceProvider.php`.
+- `SessionHistory` class.
+
 ## [0.1.7] - 10-10-2017
 
-## Added
+### Added
 
 - The Eloquent model will now pass the fillable attributes
 
-## Changed
+### Changed
 
 - Improved spelling and grammar in `README.md`
 - Updated the e-mailaddress in the `README.md` file.
 
 ## [0.1.6] - 19-7-2017
 
-## Added
+### Added
 
 - The `composer.json` now consists of package auto discovery.
 
-## Changed
+### Changed
 
 - The DocBlocks of some PHP classes have been rewritten to be more descriptive and cleaner.
 - Updated the copyright notices inside the MIT License file.
@@ -30,7 +70,7 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 - Updated the documentation inside the `README.md` file.
 - Replaced the double quotes inside the `VisitVisitableTest.php` file to single quotes.
 
-## Removed
+### Removed
 
 - Unnecessary comments have been removed from the SessionHistory class.
 
@@ -117,8 +157,10 @@ The initial release of the Laravel Page Visits Counter package.
 - A default Eloquent model (`PageVisit`) for storing the page visits into the database.
 - A contract for the `PageVisit` Eloquent model because it can be changed within the configuration file. It uses Laravels Service Container to updates this automatically.
 
-[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.7...HEAD
-[0.1.7]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0-alpha...v1.0.0
+[1.0.0-alpha]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.7...v1.0.0-alpha
+[0.1.7]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.3...v0.1.4
