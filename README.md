@@ -62,7 +62,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the PageView model](#extending-the-pageview-model)
 4. [Under the hood](#under-the-hood)
-    * [List of properties/methods that the trait adds](#list-of-properties/methods-that-the-trait-adds)
+    * [List of properties/methods that the trait adds](#list-of-propertiesmethods-that-the-trait-adds)
 
 ## Getting Started
 
