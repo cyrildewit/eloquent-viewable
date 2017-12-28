@@ -2,9 +2,9 @@
 
 namespace CyrildeWit\PageViewCounter\Traits;
 
-// use DB;
 use Request;
 use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
+use CyrildeWit\PageViewCounter\Helpers\DateTransformer;
 
 /**
  * Trait HasPageViewCounter for Eloquent models.
@@ -101,7 +101,7 @@ trait HasPageViewCounter
      */
     public function getPageViewsFrom($sinceDate)
     {
-        $sinceDate = $this->transformDate($sinceDate);
+        $sinceDate = DateTransformer::transform($sinceDate);
 
         return $this->retrievePageViews($sinceDate);
     }
@@ -114,7 +114,7 @@ trait HasPageViewCounter
      */
     public function getPageViewsBefore($uptoDate)
     {
-        $uptoDate = $this->transformDate($uptoDate);
+        $uptoDate = DateTransformer::transform($uptoDate);
 
         return $this->retrievePageViews(null, $uptoDate);
     }
@@ -128,8 +128,8 @@ trait HasPageViewCounter
      */
     public function getPageViewsBetween($sinceDate, $uptoDate)
     {
-        $sinceDate = $this->transformDate($sinceDate);
-        $uptoDate = $this->transformDate($uptoDate);
+        $sinceDate = DateTransformer::transform($sinceDate);
+        $uptoDate = DateTransformer::transform($uptoDate);
 
         return $this->retrievePageViews($sinceDate, $uptoDate);
     }
@@ -152,7 +152,7 @@ trait HasPageViewCounter
      */
     public function getUniquePageViewsFrom($sinceDate)
     {
-        $sinceDate = $this->transformDate($sinceDate);
+        $sinceDate = DateTransformer::transform($sinceDate);
 
         return $this->retrievePageViews($sinceDate, null, true);
     }
@@ -165,7 +165,7 @@ trait HasPageViewCounter
      */
     public function getUniquePageViewsBefore($uptoDate)
     {
-        $uptoDate = $this->transformDate($uptoDate);
+        $uptoDate = DateTransformer::transform($uptoDate);
 
         return $this->retrievePageViews(null, $uptoDate, true);
     }
@@ -179,8 +179,8 @@ trait HasPageViewCounter
      */
     public function getUniquePageViewsBetween($sinceDate, $uptoDate)
     {
-        $sinceDate = $this->transformDate($sinceDate);
-        $uptoDate = $this->transformDate($uptoDate);
+        $sinceDate = DateTransformer::transform($sinceDate);
+        $uptoDate = DateTransformer::transform($uptoDate);
 
         return $this->retrievePageViews($sinceDate, $uptoDate, true);
     }
@@ -211,7 +211,7 @@ trait HasPageViewCounter
      */
     public function addPageViewThatExpiresAt($expiryDate)
     {
-        $expiryDate = $this->transformDate($expiryDate);
+        $expiryDate = DateTransformer::transform($expiryDate);
 
         if ($this->sessionHistoryInstance->addToSession($this, $expiryDate)) {
             $this->addPageView();
@@ -220,24 +220,5 @@ trait HasPageViewCounter
         }
 
         return false;
-    }
-
-    /**
-     * Transform the given value to a date based on the defined transformers.
-     *
-     * @param  \Carbon\Carbon|string  $date
-     * @return \Carbon\Carbon
-     */
-    protected function transformDate($date)
-    {
-        $transformers = config('page-view-counter.date-transformers');
-
-        foreach ($transformers as $key => $transformer) {
-            if ($key === $date) {
-                return $transformer;
-            }
-        }
-
-        return $date;
     }
 }

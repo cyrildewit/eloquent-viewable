@@ -4,6 +4,12 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.1] - 28-12-2017
+
+## Changed
+
+- Removed the protected `transformDate()` method from the `HasPageViewCounter` trait and put it into his own helper class: `DateTransformer`.
+
 ## [1.0.0] - 24-12-2017
 
 ### Added
@@ -157,7 +163,8 @@ The initial release of the Laravel Page Visits Counter package.
 - A default Eloquent model (`PageVisit`) for storing the page visits into the database.
 - A contract for the `PageVisit` Eloquent model because it can be changed within the configuration file. It uses Laravels Service Container to updates this automatically.
 
-[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0-alpha...v1.0.0
 [1.0.0-alpha]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.7...v1.0.0-alpha
 [0.1.7]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v0.1.6...v0.1.7
