@@ -12,14 +12,12 @@ class DateTransformer
      */
     public static function transform($value)
     {
-        $transformers = config('page-view-counter.date-transformers');
+        $transformers = collect(config('page-view-counter.date-transformers'));
 
-        foreach ($transformers as $key => $transformer) {
-            if ($key === $date) {
-                return $transformer;
-            }
+        if ($transformers->isEmpty() || ! $transformers->has((string) $value)) {
+            return $value;
         }
 
-        return $value;
+        return $transformers->get($value);
     }
 }
