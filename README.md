@@ -320,7 +320,6 @@ And update the `page_view_model` value.
 * `public function getUniquePageViewsBetween();`
 * `public function addPageView();`
 * `public function addPageViewThatExpiresAt();`
-* `protected function transformDate();`
 
 ## Credits
 
