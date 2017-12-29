@@ -45,6 +45,8 @@ Here are some of the main features:
 * Get the total unique page views (by ip address)
 * Configure date transformers to replace big lines like `$article->getPageViewsFrom(Carbon::now()->subDays(1))` to `$article->getPageViewsFrom('24h')` ('24h', '7d' etc. is completely configurable).
 
+**Feature requests are very welcome! Create an issue with `[Feature Request]` as prefix**
+
 ## Documentation
 
 In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at github@cyrildewit.nl.
