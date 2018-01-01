@@ -58,15 +58,15 @@ trait HasPageViewCounter
      */
     public function retrievePageViews($sinceDate = null, $uptoDate = null, bool $unique = false)
     {
-        // Create new Query Builder instance of views relationship
+        // Create new Query Builder instance of the views relationship
         $query = $this->views();
 
-        // Apply the date in query
-        if ($sinceDate && !$uptoDate) {
+        // Apply the following date filters
+        if ($sinceDate && ! $uptoDate) {
             $query->where('created_at', '>=', $sinceDate);
-        } elseif (!$sinceDate && $uptoDate){
-	        $query->where('created_at', '=<', $uptoDate);
-        } elseif ($sinceDate && $uptoDate){
+        } elseif (! $sinceDate && $uptoDate) {
+            $query->where('created_at', '=<', $uptoDate);
+        } elseif ($sinceDate && $uptoDate) {
             $query->whereBetween('created_at', [$sinceDate, $uptoDate]);
         }
 
