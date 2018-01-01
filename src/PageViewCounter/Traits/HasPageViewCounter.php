@@ -68,7 +68,7 @@ trait HasPageViewCounter
 
         // Apply the following if the upto date is given
         if ($uptoDate) {
-            $query->where('created_at', '=<', $sinceDate);
+            $query->where('created_at', '=<', $uptoDate);
         }
 
         // Apply the following if page views should be unique
