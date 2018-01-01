@@ -61,14 +61,13 @@ trait HasPageViewCounter
         // Create new Query Builder instance of views relationship
         $query = $this->views();
 
-        // Apply the following if the since date is given
-        if ($sinceDate) {
+        // Apply the date in query
+        if ($sinceDate && !$uptoDate) {
             $query->where('created_at', '>=', $sinceDate);
-        }
-
-        // Apply the following if the upto date is given
-        if ($uptoDate) {
-            $query->where('created_at', '=<', $sinceDate);
+        } elseif (!$sinceDate && $uptoDate){
+	        $query->where('created_at', '=<', $uptoDate);
+        } elseif ($sinceDate && $uptoDate){
+            $query->whereBetween('created_at', [$sinceDate, $uptoDate]);
         }
 
         // Apply the following if page views should be unique
