@@ -5,36 +5,42 @@ use Carbon\Carbon;
 return [
 
     /*
-     * The class name of the page view Eloquent model to be used.
+     * Our "HasPageViewCounter" trait needs to know which Eloquent model should
+     * be used to retrieve your page views.
+     *
+     * The model you want to use as a PageView model needs to implement the
+     * `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
      */
     'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
-     * The table name of the page views database table.
+     * Our "HasPageViewCounter" trait needs to know which table should be used
+     * to retrieve your page views.
+     *
      * It is used by creating the migrations files and default Eloquent model.
      */
     'page_views_table_name' => 'page-views',
 
     /*
-     * The key thas used to store page views into the session. This is used by
-     * the SessionHistory class that handles the page views with expiry dates.
+     * The below key is used by the PageViewHistory class that handles the page
+     * views with expiry dates. Make sure that it's unique.
      */
-    'page_view_history_session_key' => 'page-view-counter.history',
+    'page_view_history_session_key' => 'page-view-counter.session.history',
 
     /*
-     * Configure here your custom recognisable dates. When the package sees one
-     * of the keys, it will use the value instead.
+     * Register here your custom date transformers. When the package get one of
+     * the below keys, it will use the value instead.
      *
      * Keep it empty, if you don't want any date transformers!
      *
      * Example:
-     * - $article->getPageViewsFrom('24h'); // Get the total page views of the last 24 hours
-     * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days
+     * - $article->getPageViewsFrom('past24hours'); // Get the total page views of the past 24 hours
+     * - $article->getPageViewsFrom('past14days'); // Get the total page views of the past 14 days
      */
     'date-transformers' => [
-        // '24h' => Carbon::now()->subDays(1),
-        // '7d' => Carbon::now()->subWeeks(1),
-        // '14d' => Carbon::now()->subWeeks(2),
+        // 'past24hours' => Carbon::now()->subDays(1),
+        // 'past7days' => Carbon::now()->subWeeks(1),
+        // 'past14days' => Carbon::now()->subWeeks(2),
     ],
 
 ];
