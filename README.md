@@ -6,7 +6,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
 
-This Laravel package allows you to store page views of different models into the database.
+This Laravel package allows you to store page views of different Eloquent models into the databse.
 
 Once installed you can do stuff like this:
 
@@ -325,7 +325,6 @@ And update the `page_view_model` value.
 
 ### List of properties/methods that the trait adds to your model
 
-* `protected $sessionHistoryInstance;`
 * `public function views();`
 * `public function retrievePageViews();`
 * `public function getPageViews();`
