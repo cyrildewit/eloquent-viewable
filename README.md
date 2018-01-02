@@ -51,22 +51,38 @@ Here are some of the main features:
 
 In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at github@cyrildewit.nl.
 
-**In this documentation:**
+### Table of contents
 
 1. [Getting Started](#getting-started)
+    * [Requirements](#requirements)
+    * [Branching Model](#branching-model)
+    * [Installation](#installation)
 2. [Usage](#usage)
     * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
     * [Storing new page views](#storing-new-page-views)
     * [Retrieving page views](#retrieving-page-views)
     * [Sorting model items by page views](#sorting-model-items-by-page-views)
 3. [Configuration](#configuration)
-
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the PageView model](#extending-the-pageview-model)
 4. [Under the hood](#under-the-hood)
     * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
 ## Getting Started
+
+### Requirements
+
+This package requires [PHP](https://php.net/) v7+ and Laravel 5.1+.
+
+### Branching Model
+
+This project uses the [Gitflow branching model](http://nvie.com/posts/a-successful-git-branching-model/).
+
+* the **master** branch contains the latest **stable** version
+* the **develop** branch contains the latest **unstable** development version
+* all stable versions are tagged using [semantic versioning](https://semver.org/).
+
+### Installation
 
 Before you can use this package you have to install it with composer.
 
