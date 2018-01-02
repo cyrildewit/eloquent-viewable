@@ -305,7 +305,7 @@ For our example, we could do the following:
 We can now retrieve the page views like this in our blade views:
 
 ```html
-<p>Page views in past three days {{ $article->$article->getPageViewsFrom('past3days') }}</p>
+<p>Page views in past three days {{ $article->getPageViewsFrom('past3days') }}</p>
 ```
 
 ### Extending the PageView model
