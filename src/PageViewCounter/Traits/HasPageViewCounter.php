@@ -2,7 +2,7 @@
 
 namespace CyrildeWit\PageViewCounter\Traits;
 
-use Request;
+use Illuminate\Http\Request;
 use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 use CyrildeWit\PageViewCounter\Helpers\DateTransformer;
 
@@ -15,26 +15,6 @@ use CyrildeWit\PageViewCounter\Helpers\DateTransformer;
  */
 trait HasPageViewCounter
 {
-    /**
-     * The SessionHistory helper instance.
-     *
-     * @var \CyrildeWit\PageViewCounter\Helpers\SessionHistory
-     */
-    protected $sessionHistoryInstance;
-
-    /**
-     * Create a new Eloquent model instance.
-     *
-     * @param  array  $attributes
-     * @return void
-     */
-    public function __construct(array $attributes = [])
-    {
-        $this->sessionHistoryInstance = new SessionHistory();
-
-        parent::__construct($attributes);
-    }
-
     /**
      * Get the page views associated with the given model.
      *
@@ -196,7 +176,7 @@ trait HasPageViewCounter
         $newView = new $viewClass();
         $newView->visitable_id = $this->id;
         $newView->visitable_type = get_class($this);
-        $newView->ip_address = Request::ip();
+        $newView->ip_address = (new Request)->ip();
         $this->views()->save($newView);
 
         return $newView;
@@ -212,7 +192,7 @@ trait HasPageViewCounter
     {
         $expiryDate = DateTransformer::transform($expiryDate);
 
-        if ($this->sessionHistoryInstance->addToSession($this, $expiryDate)) {
+        if ((new SessionHistory)->addToSession($this, $expiryDate)) {
             $this->addPageView();
 
             return true;
