@@ -15,9 +15,9 @@ class PageView extends Model implements PageViewContract
     protected $guarded = [];
 
     /**
-     * Constructor function of the PageVisit model.
+     * Create a new PageView Eloquent model instance.
      *
-     * @param array $attributes
+     * @param  array  $attributes
      * @return void
      */
     public function __construct(array $attributes = [])

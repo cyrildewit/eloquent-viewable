@@ -6,7 +6,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
 
-This Laravel package allows you to store page views of different models into the database.
+This Laravel package allows you to store page views of different Eloquent models into the databse.
 
 Once installed you can do stuff like this:
 
@@ -51,22 +51,38 @@ Here are some of the main features:
 
 In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at github@cyrildewit.nl.
 
-**In this documentation:**
+### Table of contents
 
 1. [Getting Started](#getting-started)
+    * [Requirements](#requirements)
+    * [Branching Model](#branching-model)
+    * [Installation](#installation)
 2. [Usage](#usage)
     * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
     * [Storing new page views](#storing-new-page-views)
     * [Retrieving page views](#retrieving-page-views)
     * [Sorting model items by page views](#sorting-model-items-by-page-views)
 3. [Configuration](#configuration)
-
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the PageView model](#extending-the-pageview-model)
 4. [Under the hood](#under-the-hood)
     * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
 ## Getting Started
+
+### Requirements
+
+This package requires [PHP](https://php.net/) v7+ and Laravel 5.1+.
+
+### Branching Model
+
+This project uses the [Gitflow branching model](http://nvie.com/posts/a-successful-git-branching-model/).
+
+* the **master** branch contains the latest **stable** version
+* the **develop** branch contains the latest **unstable** development version
+* all stable versions are tagged using [semantic versioning](https://semver.org/).
+
+### Installation
 
 Before you can use this package you have to install it with composer.
 
@@ -224,40 +240,45 @@ use Carbon\Carbon;
 return [
 
     /*
-     * The class name of the page view Eloquent model to be used.
+     * Our "HasPageViewCounter" trait needs to know which Eloquent model should
+     * be used to retrieve your page views.
+     *
+     * The model you want to use as a PageView model needs to implement the
+     * `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
      */
     'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
 
     /*
-     * The table name of the page views database table.
+     * Our "HasPageViewCounter" trait needs to know which table should be used
+     * to retrieve your page views.
+     *
      * It is used by creating the migrations files and default Eloquent model.
      */
     'page_views_table_name' => 'page-views',
 
     /*
-     * The key thas used to store page views into the session. This is used by
-     * the SessionHistory class that handles the page views with expiry dates.
+     * The below key is used by the PageViewHistory class that handles the page
+     * views with expiry dates. Make sure that it's unique.
      */
-    'page_view_history_session_key' => 'page-view-counter.history',
+    'page_view_history_session_key' => 'page-view-counter.session.history',
 
     /*
-     * Configure here your custom recognisable dates. When the package sees one
-     * of the keys, it will use the value instead.
+     * Register here your custom date transformers. When the package get one of
+     * the below keys, it will use the value instead.
      *
      * Keep it empty, if you don't want any date transformers!
      *
      * Example:
-     * - $article->getPageViewsFrom('24h'); // Get the total page views of the last 24 hours
-     * - $article->getPageViewsFrom('14d'); // Get the total page views of the last 14 days
+     * - $article->getPageViewsFrom('past24hours'); // Get the total page views of the past 24 hours
+     * - $article->getPageViewsFrom('past14days'); // Get the total page views of the past 14 days
      */
     'date-transformers' => [
-        // '24h' => Carbon::now()->subDays(1),
-        // '7d' => Carbon::now()->subWeeks(1),
-        // '14d' => Carbon::now()->subWeeks(2),
+        // 'past24hours' => Carbon::now()->subDays(1),
+        // 'past7days' => Carbon::now()->subWeeks(1),
+        // 'past14days' => Carbon::now()->subWeeks(2),
     ],
 
 ];
-
 ```
 
 ### Defining date transformers
@@ -267,13 +288,11 @@ Because we all love having to repeat less, this package allows you to define dat
 If you've published the configuration file, you will see something like this:
 
 ```php
-// ..
 'date-transformers' => [
-    // '24h' => Carbon::now()->subDays(1),
-    // '7d' => Carbon::now()->subWeeks(1),
-    // '14d' => Carbon::now()->subWeeks(2),
+    // 'past24hours' => Carbon::now()->subDays(1),
+    // 'past7days' => Carbon::now()->subWeeks(1),
+    // 'past14days' => Carbon::now()->subWeeks(2),
 ],
-// ...
 ```
 
 They are all commented out as default. To make them available, simply uncomment them. The provided ones are serving as an example. You can remove them or add your own ones.
@@ -289,7 +308,7 @@ For our example, we could do the following:
 We can now retrieve the page views like this in our blade views:
 
 ```html
-<p>Page views in past three days {{ $article->$article->getPageViewsFrom('past3days') }}</p>
+<p>Page views in past three days {{ $article->getPageViewsFrom('past3days') }}</p>
 ```
 
 ### Extending the PageView model
@@ -309,7 +328,6 @@ And update the `page_view_model` value.
 
 ### List of properties/methods that the trait adds to your model
 
-* `protected $sessionHistoryInstance;`
 * `public function views();`
 * `public function retrievePageViews();`
 * `public function getPageViews();`
