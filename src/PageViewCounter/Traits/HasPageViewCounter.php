@@ -174,7 +174,7 @@ trait HasPageViewCounter
         $viewClass = config('page-view-counter.page_view_model');
 
         $newView = new $viewClass();
-        $newView->visitable_id = $this->id;
+        $newView->visitable_id = $this->getKey();
         $newView->visitable_type = get_class($this);
         $newView->ip_address = (new Request)->ip();
         $this->views()->save($newView);
