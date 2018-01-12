@@ -4,9 +4,15 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.3] - 12-01-2018
+
+### Fixed
+
+- Use `->getKey()` method to get the models primary key value, instead of using the static attribute `id` #35.
+
 ## [1.0.2] - 02-01-2018
 
-## Fixed
+### Fixed
 
 - Fix where clauses in `retrievePageViews()` method in `HasPageViewCounter` because they were overriding each other.
 
