@@ -1,13 +1,13 @@
 {
-    "name": "cyrildewit/laravel-page-view-counter",
-    "description": "Simple package for storing page views of Eloquent models into the database",
-    "homepage": "https://github.com/cyrildewit/laravel-page-view-counter",
+    "name": "cyrildewit/eloquent-visitable",
+    "description": "Simple package for adding a page visit counter to your visitable Eloquent models",
+    "homepage": "https://github.com/cyrildewit/eloquent-visitable",
     "keywords": [
         "cyrildewit",
         "laravel",
-        "pageviews",
         "visits",
         "hits",
+        "counter",
         "model"
     ],
     "license": "MIT",
@@ -20,20 +20,21 @@
         }
     ],
     "require": {
-        "nesbot/carbon": "^1.22"
+        "php": "^7.0",
+        "nesbot/carbon": "~1.22"
     },
     "require-dev": {
-        "phpunit/phpunit": "~5.7.0",
+        "phpunit/phpunit": "^6.5",
         "orchestra/testbench": "^3.4"
     },
     "autoload": {
         "psr-4": {
-            "CyrildeWit\\PageViewCounter\\": "src/"
+            "CyrildeWit\\EloquentVisitable\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "CyrildeWit\\PageViewCounter\\Tests\\": "tests/"
+            "CyrildeWit\\EloquentVisitable\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -47,7 +48,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "CyrildeWit\\PageViewCounter\\PageViewCounterServiceProvider"
+                "CyrildeWit\\EloquentVisitable\\EloquentVisitableServiceProvider"
             ]
         }
     },
