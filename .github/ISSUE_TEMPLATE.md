@@ -1,5 +1,5 @@
-- Laravel Page View Counter Version: #.#.#
 - Laravel Version: #.#.#
+- Eloquent Visitable: #.#.#
 - PHP Version:
 - Database Driver & Version:
 
