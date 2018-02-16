@@ -74,10 +74,27 @@ class EloquentVisitableServiceProvider extends ServiceProvider
      */
     protected function registerPublishes()
     {
+        $config = $this->app->config['eloquent-visitable'];
+
         // Publish the Eloquent Visitable config file
         $this->publishes([
             __DIR__.'/../config/eloquent-visitable.php' => $this->app->configPath('eloquent-visitable.php'),
         ], 'config');
+
+        // Publish the Eloquent Visitable config file
+        $this->publishes([
+            __DIR__.'/../config/eloquent-visitable.php' => $this->app->configPath('eloquent-visitable.php'),
+        ], 'config');
+
+        // Publish the `CreateVisitsTable` migration if it doesn't exists
+        if (! class_exists('CreateVisitsTable')) {
+            $timestamp = date('Y_m_d_His', time());
+            $visitsTableName = snake_case($config['table_names']['visits']);
+
+            $this->publishes([
+                __DIR__.'/../database/migrations/create_visits_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_{$visitsTableName}_table.php"),
+            ], 'migrations');
+        }
     }
 
     /**
