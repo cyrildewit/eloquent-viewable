@@ -74,7 +74,10 @@ class EloquentVisitableServiceProvider extends ServiceProvider
      */
     protected function registerPublishes()
     {
-        //
+        // Publish the Eloquent Visitable config file
+        $this->publishes([
+            __DIR__.'/../config/eloquent-visitable.php' => $this->app->configPath('eloquent-visitable.php'),
+        ], 'config');
     }
 
     /**
@@ -84,6 +87,9 @@ class EloquentVisitableServiceProvider extends ServiceProvider
      */
     protected function mergeConfig()
     {
-        //
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/eloquent-visitable.php',
+            'eloquent-visitable'
+        );
     }
 }
