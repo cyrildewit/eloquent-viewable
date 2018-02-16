@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentVisitable;
 
 use Illuminate\Support\ServiceProvider;
+use CyrildeWit\EloquentVisitable\Contracts\Visit as VisitContract;
 
 /**
  * This is the eloquent visitable service provider class.
@@ -61,7 +62,9 @@ class EloquentVisitableServiceProvider extends ServiceProvider
      */
     protected function registerContracts()
     {
-        //
+        $config = $this->app->config['eloquent-visitable'];
+
+        $this->app->bind(VisitContract::class, $config['models']['visit']);
     }
 
     /**
