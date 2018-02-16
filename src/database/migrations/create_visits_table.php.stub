@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of Eloquent Visitable.
+ *
+ * (c) Cyril de Wit <github@cyrildewit.nl>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+/**
+ * Migration for the visits table.
+ *
+ * @author Cyril de Wit <github@cyrildewit.nl>
+ */
+class CreateVisitsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $visitsTableName = config('eloquent-visitable.table_names.visits');
+
+        Schema::create($visitsTableName, function (Blueprint $table) {
+            $table->increments('id');
+            $table->morphs('visitable');
+            $table->string('ip_address')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $visitsTableName = config('eloquent-visitable.table_names.visits');
+
+        Schema::dropIfExists($visitsTableName);
+    }
+}
