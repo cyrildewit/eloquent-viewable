@@ -65,7 +65,7 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires [PHP](https://php.net/) v7+ and Laravel 5.1+.
+This package requires [PHP](https://php.net/) v7+ and [Laravel](https://laravel.com/) 5.1+.
 
 ### Installation
 
