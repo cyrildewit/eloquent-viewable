@@ -13,9 +13,9 @@ return [
          * need to extend it, you can easily change the below value.
          *
          * The model you want to use as a Visit model needs to implement the
-         * `CyrildeWit\EloquentVisitable\Contracts\VisitContract`
+         * `CyrildeWit\EloquentVisitable\Contracts\Models\Visit`
          */
-        'visit' => CyrildeWit\EloquentVisitable\Models\ModelVisit::class,
+        'visit' => CyrildeWit\EloquentVisitable\Models\Visit::class,
 
     ],
 
