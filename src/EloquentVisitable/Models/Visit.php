@@ -15,7 +15,7 @@ namespace CyrildeWit\EloquentVisitable\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use CyrildeWit\EloquentVisitable\Contracts\Visit as VisitContract;
+use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
 
 /**
  * This is the Eloquent model Visit class.
