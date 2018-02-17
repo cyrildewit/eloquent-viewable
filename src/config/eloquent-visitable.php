@@ -1,5 +1,7 @@
 <?php
 
+use Carbon\Carbon;
+
 return [
 
     'models' => [
@@ -27,6 +29,36 @@ return [
          */
         'visits' => 'visits',
 
+    ],
+
+    // Not finished yet!
+    'use-queue' => false,
+
+    /*
+     * By default everything will be cached under the following key. You can
+     * change it if you want.
+     */
+    'cache-key' => 'cyrildewit.eloquent-visitable.cache',
+
+    /*
+     * By default all visits will be cached for 30 minutes.
+     */
+    'cache_expiration_time' => 30,
+
+    /*
+     * Register here your custom date transformers. When the package get one of
+     * the below keys, it will use the value instead.
+     *
+     * Keep it empty, if you don't want any date transformers!
+     *
+     * Example:
+     * - $article->getPageViewsFrom('past24hours'); // Get the total page views of the past 24 hours
+     * - $article->getPageViewsFrom('past14days'); // Get the total page views of the past 14 days
+     */
+    'date-transformers' => [
+        'past24hours' => Carbon::now()->subDays(1),
+        // 'past7days' => Carbon::now()->subWeeks(1),
+        // 'past14days' => Carbon::now()->subWeeks(2),
     ],
 
 ];
