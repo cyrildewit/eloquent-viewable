@@ -29,7 +29,7 @@
     },
     "autoload": {
         "psr-4": {
-            "CyrildeWit\\EloquentVisitable\\": "src/"
+            "CyrildeWit\\EloquentVisitable\\": "src/EloquentVisitable/"
         }
     },
     "autoload-dev": {
