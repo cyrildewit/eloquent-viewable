@@ -15,8 +15,8 @@ namespace CyrildeWit\EloquentVisitable\Services;
 
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentVisitable\Jobs\StoreVisitJob;
 use CyrildeWit\EloquentVisitable\Helpers\Serializer;
+use CyrildeWit\EloquentVisitable\Jobs\StoreVisitJob;
 use CyrildeWit\EloquentVisitable\Helpers\DateTransformer;
 use CyrildeWit\EloquentVisitable\Cache\VisitCounterCacheRepository;
 use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
@@ -123,7 +123,6 @@ class VisitService
     }
 
     /**
-     *
      * @return bool
      */
     public function storeModelVisit($model): bool
