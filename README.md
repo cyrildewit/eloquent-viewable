@@ -38,7 +38,8 @@ Here are some of the main features:
 * Get the total number (unique) visits
 * Get the total number (unique) visits since a specific date
 * Get the total number (unique) visits upto a specific date
-* Caching retrieved visit counts
+* Cache the retrieved visits counts
+* Queue the visits before to prefent slow requests
 * Configure date transformers to replace big lines like `$post->getVisitsCountSince(Carbon::now()->subDays(1));` to `$article->getVisitsCountSince('past24hours')` ('past24hours' is configured in the config).
 
 Feature requests are very welcome! Create an issue with `[Feature Request]` as prefix.
