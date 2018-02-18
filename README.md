@@ -61,6 +61,8 @@ In this documentation, you will find some helpful information about the use of t
 3. [Configuring](#configuring)
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the Visit model](#extending-the-visit-model)
+4. [Under the hood](#under-the-hood)
+    * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
 ## Getting Started
 
@@ -183,7 +185,59 @@ $sortedPosts = $posts->sortByDesc(function ($post) {
 
 ### Defining date transformers
 
+Because developers hate to repeat code, this package allows you to define date transformers. Let's say we're using the following code in our (blade) views a lot: `$post->getVisitsCountSince(Carbon::now()->subDays(4))`. It can get a little bit annoying and unreadable. Let's solve that by defining a date transformer for this.
+
+If you have published the configuration file, you will find something like this:
+
+```php
+'date-transformers' => [
+    // 'past24hours' => Carbon::now()->subDays(1),
+    // 'past7days' => Carbon::now()->subWeeks(1),
+    // 'past14days' => Carbon::now()->subWeeks(2),
+],
+```
+
+They are all commented out as default. To make them available, simply uncomment them. The provided ones are serving as an example. You can remove them or add your own ones.
+
+```php
+'date-transformers' => [
+    'past4days' => Carbon::now()->subDays(4),
+],
+```
+
+We can now retrieve the visits like this in our (blade) views:
+
+```html
+<p>Total number of views in the past 4 days: {{ $article->getVisitsCountSince('past4days') }}</p>
+```
+
 ### Extending the Visit model
+
+If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
+
+* Your `Visit` model needs to implement the `CyrildeWit\EloquentVisitable\Contracts\Models\Visit` contract.
+* You can publish the configuration file with this command:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentVisitable\EloquentVisitableServiceProvider" --tag="config"
+```
+
+And update the `visit` value under `models` in the configuration file.
+
+## Under the hood
+
+### List of properties/methods that the trait adds to your model
+
+* `public function visits(): MorphMany;`
+* `public function getVisitsCount();`
+* `public function getVisitsCountSince($sinceDate): int;`
+* `public function getVisitsCountUpto($uptoDate): int;`
+* `public function getVisitsCountBetween($sinceDate, $uptoDate): int;`
+* `public function getUniqueVisitsCount(): int;`
+* `public function getUniqueVisitsCountSince($sinceDate): int;`
+* `public function getUniqueVisitsCountUpto($uptoDate): int;`
+* `public function getUniqueVisitsCountBetween($sinceDate, $uptoDate): int;`
+* `public function addVisit(): bool;`
 
 ## Contributing
 
