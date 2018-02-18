@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentVisitable;
 
 use Illuminate\Support\ServiceProvider;
-use CyrildeWit\EloquentVisitable\Services\VisitService;
 use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
 
 /**
@@ -43,7 +42,7 @@ class EloquentVisitableServiceProvider extends ServiceProvider
      */
     public function register()
     {
-       $this->mergeConfig();
+        $this->mergeConfig();
     }
 
     /**

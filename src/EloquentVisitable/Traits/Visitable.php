@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentVisitable\Traits;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentVisitable\Services\VisitService;
 

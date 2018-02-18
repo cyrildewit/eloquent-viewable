@@ -61,8 +61,6 @@ class VisitService
     }
 
     /**
-     *
-     *
      * @return int
      */
     public function getVisitsCount($model, $sinceDate = null, $uptoDate = null, bool $unique = false): int
