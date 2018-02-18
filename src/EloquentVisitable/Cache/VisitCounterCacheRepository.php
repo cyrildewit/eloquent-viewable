@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentVisitable\Cache;
 
-use Carbon\Carbon;
 use Illuminate\Contracts\Cache\Repository;
 
 /**
