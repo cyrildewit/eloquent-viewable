@@ -59,6 +59,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Retrieving visits count](#retrieving-visits-count)
     * [Sorting Eloquent models by visits count](#sorting-eloquent-models-by-visits-count)
 3. [Configuring](#configuring)
+    * [Turning queuing on](#turning-queuing-on)
     * [Defining date transformers](#defining-date-transformers)
     * [Extending the Visit model](#extending-the-visit-model)
 4. [Under the hood](#under-the-hood)
@@ -182,6 +183,10 @@ $sortedPosts = $posts->sortByDesc(function ($post) {
 ```
 
 ## Configuring
+
+### Turning queuing on
+
+When calling the `->addVisit()` method on your model, it will save a new visit in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store-new-visit` under `queue_actions` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
 ### Defining date transformers
 
