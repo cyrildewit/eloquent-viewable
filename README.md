@@ -6,7 +6,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-visitable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-visitable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-visitable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-visitable/blob/master/LICENSE.md)
 
-This Laravel >= 5 package allows you to add a page visit counter to your visitable Eloquent models.
+This Laravel >= 5 package allows you to add a visit counter to your visitable Eloquent models.
 
 Once installed you can do stuff like this:
 
