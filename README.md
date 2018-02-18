@@ -186,6 +186,8 @@ $sortedPosts = $posts->sortByDesc(function ($post) {
 
 ## Contributing
 
+Please see the [CONTRIBUTING.md]() file for more information about contributing and the project.
+
 ## Credits
 
 * [Cyril de Wit](https://github.com/cyrildewit)
