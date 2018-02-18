@@ -31,8 +31,16 @@ return [
 
     ],
 
-    // Not finished yet!
-    'use-queue' => false,
+    'queue_actions' => [
+
+        /*
+         * When storing a new visit in the database with some data, it could
+         * slow down your application. You can turn queueing on for this job
+         * if you want.
+        */
+        'store-new-visit' => false,
+
+    ],
 
     /*
      * By default everything will be cached under the following key. You can

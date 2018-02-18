@@ -136,7 +136,7 @@ class VisitService
 
         // # 2 >> Check if the user enabled queuing
         // # 2.1 >> Queuing is enabled: dispatch the job
-        if (config('eloquent-visitable.use-queue', false)) {
+        if (config('eloquent-visitable.queue_actions.store-new-visit', false)) {
             StoreVisitJob::dispatch($visit)
                 ->delay(Carbon::now()->addSeconds(20));
 
