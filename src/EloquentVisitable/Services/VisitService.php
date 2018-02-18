@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentVisitable\Services;
 
 use Request;
 use Carbon\Carbon;
+use CyrildeWit\EloquentVisitable\Jobs\StoreVisitJob;
 use CyrildeWit\EloquentVisitable\Helpers\Serializer;
 use CyrildeWit\EloquentVisitable\Helpers\DateTransformer;
 use CyrildeWit\EloquentVisitable\Cache\VisitCounterCacheRepository;
@@ -121,23 +122,30 @@ class VisitService
         return $visitsCount;
     }
 
+    /**
+     *
+     * @return bool
+     */
     public function storeModelVisit($model): bool
     {
-        // # 1 >> Check if the user enabled queuing
+        // # 1 >> Create a new Visit model instance with data
+        $visit = app(VisitContract::class)->create([
+            'visitable_id' => $model->getKey(),
+            'visitable_type' => get_class($model),
+            'ip_address' => Request::ip(),
+        ]);
 
-        // # 1.1 >> Queuing is enabled
+        // # 2 >> Check if the user enabled queuing
+        // # 2.1 >> Queuing is enabled: dispatch the job
         if (config('eloquent-visitable.use-queue', false)) {
-            // Do queue stuff here
+            StoreVisitJob::dispatch($visit)
+                ->delay(Carbon::now()->addSeconds(20));
 
             return true;
         }
 
-        // # 1.2 >> Queuing is disabled
-        app(VisitContract::class)->create([
-            'visitable_id' => $model->getKey(),
-            'visitable_type' => get_class($model),
-            'ip_address' => Request::ip(),
-        ])->save();
+        // # @.2 >> Queuing is disabled: Save the visit in the database
+        $visit->save();
 
         return true;
     }
