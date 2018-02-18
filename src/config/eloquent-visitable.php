@@ -11,7 +11,7 @@ return [
          * know which model should be used to retrieve and store the visits.
          *
          * We have created a simple default Eloquent model that could be used:
-         * `CyrildeWit\EloquentVisitable\Models\ModelVisit::class`. But if you
+         * `CyrildeWit\EloquentVisitable\Models\Visit::class`. But if you
          * need to extend it, you can easily change the below value.
          *
          * The model you want to use as a Visit model needs to implement the
@@ -41,7 +41,7 @@ return [
     'cache-key' => 'cyrildewit.eloquent-visitable.cache',
 
     /*
-     * By default all visits will be cached for 30 minutes.
+     * By default all retrieved visits will be cached for 30 minutes.
      */
     'cache_expiration_time' => 30,
 
@@ -51,12 +51,11 @@ return [
      *
      * Keep it empty, if you don't want any date transformers!
      *
-     * Example:
-     * - $article->getPageViewsFrom('past24hours'); // Get the total page views of the past 24 hours
-     * - $article->getPageViewsFrom('past14days'); // Get the total page views of the past 14 days
+     * More information at:
+     * github.com/cyrildewit/eloquent-visitable/README.md#defining-date-transformers
      */
     'date-transformers' => [
-        'past24hours' => Carbon::now()->subDays(1),
+        // 'past24hours' => Carbon::now()->subDays(1),
         // 'past7days' => Carbon::now()->subWeeks(1),
         // 'past14days' => Carbon::now()->subWeeks(2),
     ],
