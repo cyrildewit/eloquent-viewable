@@ -132,7 +132,7 @@ class Post extends Model
 }
 ```
 
-**Tip!** To see which properties and method this trait adds to your model, look at the bottom of this documentation or [click here](#)!
+**Tip!** To see which properties and method this trait adds to your model, look at the bottom of this documentation or [click here](#under-the-hood)!
 
 ### Saving new visits
 
