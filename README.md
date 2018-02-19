@@ -78,7 +78,7 @@ Before you can use this package you have to install it with composer.
 You can install the package via composer:
 
 ```winbatch
-composer require cyrildewit/laravel-page-view-counter
+composer require cyrildewit/eloquent-visitable
 ```
 
 Now add the service provider in `config/app.php` file, or if you're using Laravel >=5.5, this can be done via the automatic package discovery:
@@ -86,7 +86,7 @@ Now add the service provider in `config/app.php` file, or if you're using Larave
 ```php
 'providers' => [
     // ...
-    CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class,
+    CyrildeWit\EloquentVisitable\EloquentVisitableServiceProvider::class,
 ];
 ```
 
@@ -151,7 +151,7 @@ $post->addVisit();
 
 When retrieving visits count from the database, the values will be stored in the cache for a while. You can configure this in the config file.
 
-**Note:** Unique visits are getting retrieved differently than the total visits. When calculating the total page views, we are using the aggregate functions of SQL. But the calculation of the unique page views is done by retrieving all the items and count them. If you're a SQL expert and know how to solve this, please send a PR! Thanks!
+**Note:** Unique visits are getting retrieved differently than the total visits. When calculating the total visits, we are using the aggregate functions of SQL. But the calculation of the unique visits is done by retrieving all the items and count them. If you're a SQL expert and know how to solve this, please send a PR! Thanks!
 
 ```php
 // Retrieve the total (unique) visits
@@ -220,7 +220,7 @@ We can now retrieve the visits like this in our (blade) views:
 
 ### Extending the Visit model
 
-If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
+If you need to extend or replace the existing `Visit` model you just need to keep the following thing in mind:
 
 * Your `Visit` model needs to implement the `CyrildeWit\EloquentVisitable\Contracts\Models\Visit` contract.
 * You can publish the configuration file with this command:
