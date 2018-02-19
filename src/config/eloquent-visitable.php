@@ -31,14 +31,21 @@ return [
 
     ],
 
-    'queue_actions' => [
+
+    'jobs' => [
 
         /*
-         * When storing a new visit in the database with some data, it could
-         * slow down your application. You can turn queueing on for this job
-         * if you want.
-        */
-        'store-new-visit' => false,
+         * When storing a new visit in the database, it could slow down your
+         * aplication. You can turn queueing on for this job by changing the
+         * value of `queue` to `true., if you want. Make sure your Laravel is
+         * ready for queueing.
+         */
+        'store-new-visit' => [
+
+            'queue' => false,
+            'delay_in_seconds' => 30,
+
+        ],
 
     ],
 
