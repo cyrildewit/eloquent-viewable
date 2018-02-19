@@ -145,6 +145,8 @@ Let's assume we're handling the visits of a post. `$post` contains an instance o
 $post->addVisit();
 ```
 
+**Note:** If you want to queue this job, you can turn this on in the configuration! See the [Turning queuing on](#turning-queuing-on) section!
+
 ### Retrieving visits count
 
 When retrieving visits count from the database, the values will be stored in the cache for a while. You can configure this in the config file.
