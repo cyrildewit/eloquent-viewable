@@ -18,7 +18,10 @@ $post->getVisitsCount();
 $post->getVisitsCountSince(Carbon::now()->subDays(7));
 
 // Get the total number of visits upto a specific date
-$post->getVisitsCountUpto(Carbon::now()->parse('01-04-2017'), Carbon::now()->parse('01-07-2017'));
+$post->getVisitsCountUpto(Carbon::now()->parse('11-09-2017'));
+
+// Get the total number of visits between the given date range
+$post->getVisitsCountBetween(Carbon::now()->parse('01-04-2017'), Carbon::now()->parse('01-07-2017'));
 
 // Add a new visit
 $post->addVisit();
