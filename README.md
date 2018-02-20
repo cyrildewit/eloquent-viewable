@@ -191,7 +191,7 @@ $sortedPosts = $posts->sortByDesc(function ($post) {
 
 ### Turning queuing on
 
-When calling the `->addVisit()` method on your model, it will save a new visit in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store-new-visit` under `queue_actions` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
+When calling the `->addVisit()` method on your model, it will save a new visit in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store-new-visit` under `jobs` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
 ### Defining date transformers
 
