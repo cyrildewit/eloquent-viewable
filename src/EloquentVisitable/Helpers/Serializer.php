@@ -40,7 +40,7 @@ class Serializer
      *
      * @return string
      */
-    public function createPeriod($sinceDate, $uptoDate, $now)
+    public function createPeriod($sinceDate = null, $uptoDate = null, $now)
     {
         $sinceDateString = $sinceDate ? $sinceDate->diffInSeconds($now) : '';
         $uptoDateString = $uptoDate ? $uptoDate->diffInSeconds($now) : '';
