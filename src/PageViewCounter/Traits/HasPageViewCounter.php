@@ -2,7 +2,7 @@
 
 namespace CyrildeWit\PageViewCounter\Traits;
 
-use Illuminate\Http\Request;
+use Request;
 use CyrildeWit\PageViewCounter\Helpers\SessionHistory;
 use CyrildeWit\PageViewCounter\Helpers\DateTransformer;
 
@@ -176,7 +176,7 @@ trait HasPageViewCounter
         $newView = new $viewClass();
         $newView->visitable_id = $this->getKey();
         $newView->visitable_type = get_class($this);
-        $newView->ip_address = (new Request)->ip();
+        $newView->ip_address = Request::ip();
         $this->views()->save($newView);
 
         return $newView;
