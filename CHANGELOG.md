@@ -4,6 +4,12 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.4] - 20-02-2018
+
+### Fixed
+
+- Use the `Request` facade for getting the ip address of the visitor instead of creating a new empty request (#39)
+
 ## [1.0.3] - 12-01-2018
 
 ### Fixed
@@ -175,7 +181,9 @@ The initial release of the Laravel Page Visits Counter package.
 - A default Eloquent model (`PageVisit`) for storing the page visits into the database.
 - A contract for the `PageVisit` Eloquent model because it can be changed within the configuration file. It uses Laravels Service Container to updates this automatically.
 
-[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.0-alpha...v1.0.0
