@@ -49,7 +49,7 @@ class StoreVisitJob implements ShouldQueue
      */
     public function handle()
     {
-        // Save the given visit in the database.
+        // Save the new visit in the database.
         $this->visit->save();
     }
 }
