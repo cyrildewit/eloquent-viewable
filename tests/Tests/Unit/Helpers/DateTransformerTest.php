@@ -17,6 +17,7 @@ use Config;
 use Carbon\Carbon;
 use CyrildeWit\EloquentVisitable\Tests\TestCase;
 use CyrildeWit\EloquentVisitable\Helpers\DateTransformer;
+use CyrildeWit\EloquentVisitable\Exceptions\DateTransformerDoesNotExists;
 
 /**
  * Class DateTransformerTest.
@@ -53,5 +54,13 @@ class DateTransformerTest extends TestCase
         $this->assertEquals($pastDay, $dateTransformer->transform('pastDay'));
         $this->assertEquals($pastWeek, $dateTransformer->transform('pastWeek'));
         $this->assertEquals($pastMonth, $dateTransformer->transform('pastMonth'));
+    }
+
+    /** @test */
+    public function it_throws_an_exception_when_the_given_date_transformer_does_not_exists()
+    {
+        $this->expectException(DateTransformerDoesNotExists::class);
+
+        $dateTransformer = app(DateTransformer::class)->transform('something');
     }
 }
