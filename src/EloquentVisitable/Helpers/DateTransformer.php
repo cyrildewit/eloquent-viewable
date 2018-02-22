@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentVisitable\Helpers;
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentVisitable\Exceptions\DateTransformerDoesNotExists;
 
 /**
  * This is the date transformer service.
@@ -28,13 +29,17 @@ class DateTransformer
      * @param  string  $key
      * @return \Carbon\Carbon
      */
-    public function transform($key): Carbon
+    public function transform($key)
     {
-        if (! is_string($key) && $key instanceof Carbon) {
+        if ($key instanceof Carbon) {
             return $key;
         }
 
         $transformers = collect(config('eloquent-visitable.date-transformers', []));
+
+        if (! $transformers->has($key)) {
+            throw new DateTransformerDoesNotExists($key);
+        }
 
         return $transformers->get($key);
     }
