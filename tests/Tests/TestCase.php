@@ -57,7 +57,10 @@ abstract class TestCase extends Orchestra
      */
     public function publishPackageMigrations()
     {
-        $this->artisan('vendor:publish', ['--force' => '', '--tag' => 'migrations']);
+        $this->artisan('vendor:publish', [
+            '--force' => '',
+            '--tag' => 'migrations'
+        ]);
     }
 
     /**
@@ -78,7 +81,6 @@ abstract class TestCase extends Orchestra
     protected function migratePackageTables()
     {
         $this->loadMigrationsFrom([
-            // '--database' => 'sqlite',
             '--realpath' => database_path('migrations'),
         ]);
     }
@@ -91,8 +93,7 @@ abstract class TestCase extends Orchestra
     protected function migrateUnitTestTables()
     {
         $this->loadMigrationsFrom([
-            // '--database' => 'sqlite',
-            '--realpath' => realpath(__DIR__.'/../../database/migrations'),
+            '--realpath' => realpath(__DIR__.'/../database/migrations'),
         ]);
     }
 
@@ -103,7 +104,7 @@ abstract class TestCase extends Orchestra
      */
     protected function registerPackageFactories()
     {
-        $pathToFactories = realpath(__DIR__.'/../../database/factories');
+        $pathToFactories = realpath(__DIR__.'/../database/factories');
         $this->withFactories($pathToFactories);
     }
 }
