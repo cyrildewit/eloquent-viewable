@@ -18,7 +18,7 @@ use CyrildeWit\EloquentVisitable\Models\Visit;
 use CyrildeWit\EloquentVisitable\Events\VisitableWasVisited;
 
 /**
- * Class VisitObserver
+ * Class VisitObserver.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */

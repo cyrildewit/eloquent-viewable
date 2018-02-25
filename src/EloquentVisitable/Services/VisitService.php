@@ -15,8 +15,8 @@ namespace CyrildeWit\EloquentVisitable\Services;
 
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentVisitable\Helpers\Serializer;
 use CyrildeWit\EloquentVisitable\Jobs\ProcessVisit;
+use CyrildeWit\EloquentVisitable\Helpers\Serializer;
 use CyrildeWit\EloquentVisitable\Helpers\DateTransformer;
 use CyrildeWit\EloquentVisitable\Cache\VisitCounterCacheRepository;
 use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
