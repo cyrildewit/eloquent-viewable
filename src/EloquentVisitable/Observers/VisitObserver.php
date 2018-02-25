@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentVisitable\Observers;
 
+use Event;
 use CyrildeWit\EloquentVisitable\Models\Visit;
-use CyrildeWit\EloquentVisitable\Events\VisitableWasVisted;
+use CyrildeWit\EloquentVisitable\Events\VisitableWasVisited;
 
 /**
  * Class VisitObserver
@@ -31,6 +32,6 @@ class VisitObserver
      */
     public function created(Visit $visit)
     {
-        event(new VisitableWasVisted($visit));
+        Event::fire(new VisitableWasVisited($visit));
     }
 }
