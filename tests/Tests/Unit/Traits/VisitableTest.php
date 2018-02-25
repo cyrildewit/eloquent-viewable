@@ -16,7 +16,6 @@ namespace CyrildeWit\EloquentVisitable\Tests\Unit\Helpers;
 use Carbon\Carbon;
 use CyrildeWit\EloquentVisitable\Models\Visit;
 use CyrildeWit\EloquentVisitable\Tests\TestCase;
-use CyrildeWit\EloquentVisitable\Helpers\Serializer;
 use CyrildeWit\EloquentVisitable\Tests\Stubs\Models\Post;
 
 /**
