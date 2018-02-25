@@ -55,9 +55,19 @@ return [
     'cache-key' => 'cyrildewit.eloquent-visitable.cache',
 
     /*
-     * By default all retrieved visits will be cached for 30 minutes.
+     * By default all visit counts will be cached for 30 minutes.
      */
-    'cache_expiration_time' => 30,
+    'cache-expiration-time' => 30,
+
+    'cache_events' => [
+
+        /*
+         * By default every visit count will be cached. If you want to disable
+         * this, change the value to false.
+         */
+        'cache-visit-counts' => true,
+
+    ],
 
     /*
      * Register here your custom date transformers. When the package get one of
