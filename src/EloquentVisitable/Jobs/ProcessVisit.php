@@ -25,7 +25,7 @@ use CyrildeWit\EloquentVisitable\Models\Visit;
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class StoreVisitJob implements ShouldQueue
+class ProcessVisit implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
