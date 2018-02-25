@@ -62,40 +62,69 @@ class VisitService
     }
 
     /**
+     * Get the visits count based upon the inserted arguments.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Carbon\Carbon|null  $sinceDate
+     * @param  \Carbon\Carbon|null  $uptoDate
+     * @param  bool  $unique
      * @return int
      */
     public function getVisitsCount($model, $sinceDate = null, $uptoDate = null, bool $unique = false): int
     {
-        // # 1 >> Convert the given dates
+        // First we have to transform the since date and upto date, if they are
+        // given, with the date transformer.
         $sinceDate = $sinceDate ? $this->dateTransformer->transform($sinceDate) : null;
         $uptoDate = $uptoDate ? $this->dateTransformer->transform($uptoDate) : null;
 
-        // # 2 >> Prepare some date
-        // # 2.1 >> Convert the given options to serialized keys
+        // Create a type and period based upon the given arguments. This data
+        // is required to be able to retrieve the cached counts and cache
+        // new counts.
         $typeKey = $this->serializer->createType($unique);
         $periodKey = $this->serializer->createPeriod($sinceDate, $uptoDate, Carbon::now());
 
-        // # 3 >> Get the visits count from the cache, otherwise recount it
-        // # 3.1 >> Search in cache and return it, if it's not expired
-        $visitsCountCache = $this->visitCounterCache->getVisitCounter($model, $typeKey, $periodKey);
+        // If caching is enabled, try to find a cached value, otherwise continue
+        // and count again
+        if (config('eloquent-visitable.cache-retrieved-visits-count', true)) {
+            $visitsCountCache = $this->visitCounterCache->getVisitCounter($model, $typeKey, $periodKey);
 
-        if ($visitsCountCache) {
-            return $visitsCountCache;
+            if ($visitsCountCache) {
+                return $visitsCountCache;
+            }
         }
 
-        // # 3.2 >> Recount the visits, cache it and return the count
+        // Count the visits again
         $visitsCount = $this->countVisits($model, $sinceDate, $uptoDate, $unique);
 
+        // Cache the counted visits
         $this->visitCounterCache->putVisitCounter($model, $visitsCount, $typeKey, $periodKey);
 
         return $visitsCount;
     }
 
-    public function getUniqueVisitsCount($model, $sinceDate = null, $uptoDate = null)
+    /**
+     * Get the unique visits count based upon the inserted arguments.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Carbon\Carbon|null  $sinceDate
+     * @param  \Carbon\Carbon|null  $uptoDate
+     * @param  bool  $unique
+     * @return int
+     */
+    public function getUniqueVisitsCount($model, $sinceDate = null, $uptoDate = null): int
     {
         return $this->getVisitsCount($model, $sinceDate, $uptoDate, true);
     }
 
+    /**
+     * Count the visits based upon the inserted arguments.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Carbon\Carbon|null  $sinceDate
+     * @param  \Carbon\Carbon|null  $uptoDate
+     * @param  bool  $unique
+     * @return int
+     */
     public function countVisits($model, $sinceDate = null, $uptoDate = null, bool $unique = false)
     {
         // Create new Query Builder instance of the visits relationship
@@ -105,12 +134,13 @@ class VisitService
         if ($sinceDate && ! $uptoDate) {
             $query->where('created_at', '>=', $sinceDate);
         } elseif (! $sinceDate && $uptoDate) {
-            $query->where('created_at', '=<', $uptoDate);
+            $query->where('created_at', '<=', $uptoDate);
         } elseif ($sinceDate && $uptoDate) {
             $query->whereBetween('created_at', [$sinceDate, $uptoDate]);
         }
 
-        // Apply the following if page views should be unique
+        // Retrieve a collection of all the ip addresses and group them by
+        // ip address
         if ($unique) {
             $query->select('ip_address')->groupBy('ip_address');
         }
@@ -123,19 +153,21 @@ class VisitService
     }
 
     /**
+     * Store a new visit.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      */
     public function storeModelVisit($model): bool
     {
-        // # 1 >> Create a new Visit model instance with data
+        // Create a new Visit model instance
         $visit = app(VisitContract::class)->create([
             'visitable_id' => $model->getKey(),
             'visitable_type' => get_class($model),
             'ip_address' => Request::ip(),
         ]);
 
-        // # 2 >> Check if the user enabled queuing
-        // # 2.1 >> Queuing is enabled: dispatch the job
+        // If queuing is enabled, dispatch the job
         if (config('eloquent-visitable.jobs.store-new-visit.queue', false)) {
             StoreVisitJob::dispatch($visit)
                 ->delay(Carbon::now()->addSeconds(config('eloquent-visitable.jobs.store-new-visit.delay_in_seconds', 20)));
@@ -143,7 +175,7 @@ class VisitService
             return true;
         }
 
-        // # @.2 >> Queuing is disabled: Save the visit in the database
+        // Otherwise, just save the visit in the database
         $visit->save();
 
         return true;
