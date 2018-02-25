@@ -85,7 +85,7 @@ class VisitCounterCacheRepository
     protected function createKeyFromModel($model, string $type, string $period): string
     {
         $modelId = $model->getKey();
-        $modelType = get_class($model);
+        $modelType = strtolower(str_replace('\\', '-', get_class($model)));
 
         return "{$this->cacheKey}.counters.{$modelType}.{$modelId}.{$type}.{$period}";
     }
