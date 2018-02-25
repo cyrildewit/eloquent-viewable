@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentVisitable;
 
 use Illuminate\Support\ServiceProvider;
+use CyrildeWit\EloquentVisitable\Observers\VisitObserver;
 use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
 
 /**
@@ -32,6 +33,7 @@ class EloquentVisitableServiceProvider extends ServiceProvider
     {
         $this->registerConsoleCommands();
         $this->registerContracts();
+        $this->registerObservers();
         $this->registerPublishes();
     }
 
@@ -65,6 +67,16 @@ class EloquentVisitableServiceProvider extends ServiceProvider
         $config = $this->app->config['eloquent-visitable'];
 
         $this->app->bind(VisitContract::class, $config['models']['visit']);
+    }
+
+    /**
+     * Register the model observers.
+     *
+     * @return void
+     */
+    protected function registerObservers()
+    {
+        $this->app->make(VisitContract::class)->observe(VisitObserver::class);
     }
 
     /**
