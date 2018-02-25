@@ -16,7 +16,7 @@ namespace CyrildeWit\EloquentVisitable\Services;
 use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentVisitable\Helpers\Serializer;
-use CyrildeWit\EloquentVisitable\Jobs\StoreVisitJob;
+use CyrildeWit\EloquentVisitable\Jobs\ProcessVisit;
 use CyrildeWit\EloquentVisitable\Helpers\DateTransformer;
 use CyrildeWit\EloquentVisitable\Cache\VisitCounterCacheRepository;
 use CyrildeWit\EloquentVisitable\Contracts\Models\Visit as VisitContract;
@@ -169,7 +169,7 @@ class VisitService
 
         // If queuing is enabled, dispatch the job
         if (config('eloquent-visitable.jobs.store-new-visit.queue', false)) {
-            StoreVisitJob::dispatch($visit)
+            ProcessVisit::dispatch($visit)
                 ->delay(Carbon::now()->addSeconds(config('eloquent-visitable.jobs.store-new-visit.delay_in_seconds', 20)));
 
             return true;
