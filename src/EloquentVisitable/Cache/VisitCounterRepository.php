@@ -48,41 +48,46 @@ class VisitCounterCacheRepository
     }
 
     /**
-     * Get the a visit counter from the cache.
+     * Retrieve a visit counter from the cache.
      *
-     * Cache key structure:
-     *  <cache-key>.counters.<visitable-model-type>.<visitable-model-id>.<type>.<period>
-     *
-     * @return
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $type
+     * @param  string  $period
+     * @return mixed
      */
-    public function getVisitCounter($model, string $type, string $period)
+    public function get($model, string $type, string $period)
     {
-        return $this->cache->get($this->createKeyFromModel($model, $type, $period));
+        $visitCounterKey = $this->createKey($model, $type, $period);
+
+        return $this->cache->get($visitCounterKey);
     }
 
     /**
-     * Put a new visit counter into the cache.
+     * Store a visit counter in the cache.
      *
-     * Cache key structure:
-     *  <cache-key>.counters.<visitable-model-type>.<visitable-model-id>.<type>.<period>
-     *
-     * @return
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $type
+     * @param  string  $period
+     * @param  int  $visitsCount
+     * @param  \DateTimeInterface|\DateInterval|float|int  $minutes
+     * @return void
      */
-    public function putVisitCounter($model, $value, string $type, string $period, $expiresAt = null)
+    public function put($model, string $type, string $period, int $visitsCount, $minutes = null)
     {
-        $expiresAt = $expiresAt ?? config('eloquent-visitable.cache_expiration_time', 30);
+        $visitCounterKey = $this->createKey($model, $type, $period);
 
-        $key = $this->createKeyFromModel($model, $type, $period);
-
-        return $this->cache->put($key, $value, $expiresAt);
+        $this->cache->put($visitCounterKey, $visitsCount, $minutes);
     }
 
     /**
-     * Create a key from the given model, type and period.
+     * Create a new key from the given data.
      *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $type
+     * @param  string  $period
      * @return string
      */
-    protected function createKeyFromModel($model, string $type, string $period): string
+    public function createKey($model, string $type, string $period)
     {
         $modelId = $model->getKey();
         $modelType = strtolower(str_replace('\\', '-', get_class($model)));
