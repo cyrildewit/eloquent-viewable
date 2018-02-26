@@ -86,9 +86,8 @@ class VisitService
         // If caching is enabled, try to find a cached value, otherwise continue
         // and count again
         if (config('eloquent-visitable.cache-retrieved-visits-count', true)) {
-            $cachedVisitsCount = $this->visitCounterCacheRepository->get($model, $typeKey, $periodKey);
 
-            if ($cachedVisitsCount) {
+            if (! is_null($cachedVisitsCount = $this->visitCounterCacheRepository->get($model, $typeKey, $periodKey))) {
                 return $cachedVisitsCount;
             }
         }
@@ -120,12 +119,12 @@ class VisitService
      * Count the visits based upon the inserted arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @param  \Carbon\Carbon|null  $sinceDate
-     * @param  \Carbon\Carbon|null  $uptoDate
+     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon  $uptoDate
      * @param  bool  $unique
      * @return int
      */
-    public function countVisits($model, $sinceDate = null, $uptoDate = null, bool $unique = false)
+    public function countVisits($model, $sinceDate, $uptoDate, bool $unique): int
     {
         // Create new Query Builder instance of the visits relationship
         $query = $model->visits();
