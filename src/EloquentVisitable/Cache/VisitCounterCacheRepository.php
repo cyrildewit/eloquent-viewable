@@ -48,6 +48,21 @@ class VisitCounterCacheRepository
     }
 
     /**
+     * Determine if a visit counter exists in the cache.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $type
+     * @param  string  $period
+     * @return bool
+     */
+    public function has($model, string $type, string $period): bool
+    {
+        $visitCounterKey = $this->createKey($model, $type, $period);
+
+        return $this->cache->has($visitCounterKey);
+    }
+
+    /**
      * Retrieve a visit counter from the cache.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $model
