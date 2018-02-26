@@ -39,7 +39,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "CyrildeWit\\EloquentVisitable\\Tests\\": "tests/Tests/"
+            "CyrildeWit\\EloquentVisitable\\Tests\\": "tests/"
         }
     },
     "scripts": {
