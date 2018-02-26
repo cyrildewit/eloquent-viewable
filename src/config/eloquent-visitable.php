@@ -48,29 +48,48 @@ return [
 
     ],
 
-    /*
-     * By default everything will be cached under the following key. You can
-     * change it if you want.
-     */
-    'cache-key' => 'cyrildewit.eloquent-visitable.cache',
-
-    /*
-     * By default all visit counts will be cached for 30 minutes.
-     */
-    'cache-expiration-time' => 30,
-
-    'cache_events' => [
+    'cache' => [
 
         /*
-         * By default every visit count will be cached. If you want to disable
-         * this, change the value to false.
+         * Determine if the this package should cache data.
          */
-        'cache-visit-counts' => true,
+        'enabled' => env('ELOQUENT_VISITABLE_CACHE_ENABLED', true),
+
+        /*
+         * Everthing will be cached under the following key.
+         */
+        'key' => env('ELOQUENT_VISITABLE_CACHE_ENABLED', 'cyrildewit.eloquent-visitable.cache'),
+
+
+        'events' => [
+
+            /*
+             * Caching visits counts can speed up your request. Instead of
+             * counting on each request, the package will retrieve this data
+             * from the cache. If the cache is empty, it will recount and cache
+             * that value.
+             *
+             * Enable this by setting the value of 'enabled' to 'true' (default)
+             * or disable it by setting this value to 'false'.
+             *
+             * By default each visits count will be stored for 10 minutes. If
+             * you want to change this, simply change the value of
+             * 'default_lifetime_in_minutes' to something else. Make sure it is
+             * in minutes!
+             */
+            'cache_visits_count' => [
+
+                'enabled' => true,
+                'default_lifetime_in_minutes' => 60 * 10,
+
+            ],
+
+        ],
 
     ],
 
     /*
-     * Register here your custom date transformers. When the package get one of
+     * Register here your custom date transformers. When the 7package get one of
      * the below keys, it will use the value instead.
      *
      * Keep it empty, if you don't want any date transformers!

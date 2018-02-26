@@ -85,8 +85,7 @@ class VisitService
 
         // If caching is enabled, try to find a cached value, otherwise continue
         // and count again
-        if (config('eloquent-visitable.cache-retrieved-visits-count', true)) {
-
+        if (config('eloquent-visitable.cache.events.cache-visits-count.enabled', true)) {
             if (! is_null($cachedVisitsCount = $this->visitCounterCacheRepository->get($model, $typeKey, $periodKey))) {
                 return $cachedVisitsCount;
             }
@@ -124,7 +123,7 @@ class VisitService
      * @param  bool  $unique
      * @return int
      */
-    public function countVisits($model, $sinceDate, $uptoDate, bool $unique): int
+    public function countVisits($model, $sinceDate = null, $uptoDate  = null, bool $unique = false): int
     {
         // Create new Query Builder instance of the visits relationship
         $query = $model->visits();

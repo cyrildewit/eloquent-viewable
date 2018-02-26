@@ -44,7 +44,7 @@ class VisitCounterCacheRepository
     public function __construct(Repository $cache)
     {
         $this->cache = $cache;
-        $this->cacheKey = config('eloquent-visitable.cache-key', 'cyrildewit.eloquent-visitable.cache');
+        $this->cacheKey = config('eloquent-visitable.cache.key', 'cyrildewit.eloquent-visitable.cache');
     }
 
     /**
