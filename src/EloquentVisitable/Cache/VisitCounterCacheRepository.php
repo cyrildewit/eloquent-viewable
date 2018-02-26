@@ -90,6 +90,7 @@ class VisitCounterCacheRepository
     public function put($model, string $type, string $period, int $visitsCount, $minutes = null)
     {
         $visitCounterKey = $this->createKey($model, $type, $period);
+        $minutes = $minutes ?? config('eloquent-visitable.cache.events.cache_visits_count.default_lifetime_in_minutes', 60 * 10);
 
         $this->cache->put($visitCounterKey, $visitsCount, $minutes);
     }
