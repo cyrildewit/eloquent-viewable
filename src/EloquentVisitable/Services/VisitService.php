@@ -33,7 +33,7 @@ class VisitService
      *
      * @var \CyrildeWit\EloquentVisitable\Cache\VisitCounterCacheRepository
      */
-    protected $visitCounterCache;
+    protected $visitCounterCacheRepository;
 
     /**
      * Date transformer helper instance.
@@ -56,7 +56,7 @@ class VisitService
      */
     public function __construct()
     {
-        $this->visitCounterCache = app(VisitCounterCacheRepository::class);
+        $this->visitCounterCacheRepository = app(VisitCounterCacheRepository::class);
         $this->dateTransformer = app(DateTransformer::class);
         $this->serializer = app(Serializer::class);
     }
@@ -86,10 +86,10 @@ class VisitService
         // If caching is enabled, try to find a cached value, otherwise continue
         // and count again
         if (config('eloquent-visitable.cache-retrieved-visits-count', true)) {
-            $visitsCountCache = $this->visitCounterCache->getVisitCounter($model, $typeKey, $periodKey);
+            $cachedVisitsCount = $this->visitCounterCacheRepository->get($model, $typeKey, $periodKey);
 
-            if ($visitsCountCache) {
-                return $visitsCountCache;
+            if ($cachedVisitsCount) {
+                return $cachedVisitsCount;
             }
         }
 
@@ -97,7 +97,7 @@ class VisitService
         $visitsCount = $this->countVisits($model, $sinceDate, $uptoDate, $unique);
 
         // Cache the counted visits
-        $this->visitCounterCache->putVisitCounter($model, $visitsCount, $typeKey, $periodKey);
+        $this->visitCounterCacheRepository->put($model, $typeKey, $periodKey, $visitsCount);
 
         return $visitsCount;
     }
