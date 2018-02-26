@@ -21,26 +21,24 @@ namespace CyrildeWit\EloquentVisitable\Helpers;
 class Serializer
 {
     /**
-     * Return the right type, based upon the given options.
-     *
-     * Available types:
-     * - normal
-     * - unique
+     * Find the right type based upon the given argument.
      *
      * @return string
      */
-    public function createType($unique): string
+    public function createType(bool $unique): string
     {
-        // If unique option was given, it's: 'unique' otherwise it's: 'normal'
         return $unique ? 'unique' : 'normal';
     }
 
     /**
-     * Create a period from two dates.
+     * Create a period from the since date and the upto date.
      *
+     * @param  \Carbon\Carbon  $sinceDate
+     * @param  \Carbon\Carbon  $uptoDate
+     * @param  \Carbon\Carbon  $now
      * @return string
      */
-    public function createPeriod($sinceDate, $uptoDate, $now)
+    public function createPeriod($sinceDate, $uptoDate, $now): string
     {
         $sinceDateString = $sinceDate ? $sinceDate->diffInSeconds($now) : '';
         $uptoDateString = $uptoDate ? $uptoDate->diffInSeconds($now) : '';
