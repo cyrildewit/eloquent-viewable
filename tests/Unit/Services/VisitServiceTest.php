@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentVisitable\Tests\Unit\Cache;
 
-
 use Carbon\Carbon;
 use CyrildeWit\EloquentVisitable\Models\Visit;
 use CyrildeWit\EloquentVisitable\Tests\TestCase;

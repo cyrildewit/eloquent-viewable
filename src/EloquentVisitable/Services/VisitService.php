@@ -123,7 +123,7 @@ class VisitService
      * @param  bool  $unique
      * @return int
      */
-    public function countVisits($model, $sinceDate = null, $uptoDate  = null, bool $unique = false): int
+    public function countVisits($model, $sinceDate = null, $uptoDate = null, bool $unique = false): int
     {
         // Create new Query Builder instance of the visits relationship
         $query = $model->visits();
