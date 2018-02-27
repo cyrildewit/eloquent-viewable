@@ -85,7 +85,7 @@ class VisitService
 
         // If caching is enabled, try to find a cached value, otherwise continue
         // and count again
-        if (config('eloquent-visitable.cache.events.cache-visits-count.enabled', true)) {
+        if (config('eloquent-visitable.cache.cache_visits_count.enabled', true)) {
             if (! is_null($cachedVisitsCount = $this->visitCounterCacheRepository->get($model, $typeKey, $periodKey))) {
                 return $cachedVisitsCount;
             }
@@ -166,9 +166,17 @@ class VisitService
         ]);
 
         // If queuing is enabled, dispatch the job
-        if (config('eloquent-visitable.jobs.store-new-visit.queue', false)) {
+        $configStoreNewVisit = config('eloquent-visitable.jobs.store_new_visit');
+
+        if ($configStoreNewVisit['enabled'] ?? false) {
+            $delayInSeconds = $configStoreNewVisit['delay_in_seconds'] ?? 60 * 2;
+            $onQueue = $configStoreNewVisit['onQueue'] ?? null;
+            $onConnection = $configStoreNewVisit['onConnection'] ?? null;
+
             ProcessVisit::dispatch($visit)
-                ->delay(Carbon::now()->addSeconds(config('eloquent-visitable.jobs.store-new-visit.delay_in_seconds', 20)));
+                ->delay(Carbon::now()->addSeconds($delayInSeconds))
+                ->onQueue($onQueue)
+                ->onConnection($onConnection);
 
             return true;
         }
