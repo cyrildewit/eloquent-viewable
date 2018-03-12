@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class CreateViewsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $viewsTableName = config('eloquent-viewable.table_names.views');
+
+        Schema::create($viewsTableName, function (Blueprint $table) {
+            $table->increments('id');
+            $table->morphs('viewable');
+            $table->string('ip_address')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $viewsTableName = config('eloquent-viewable.table_names.views');
+
+        Schema::dropIfExists($viewsTableName);
+    }
+}
