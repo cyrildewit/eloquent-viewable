@@ -94,8 +94,9 @@ class ViewableService
     /**
      * Get the views count of the past period.
      *
-     * @param  $pastType
-     * @param  $subValue
+     * @param  \Illuminate\Database\Eloquent\Model  $pastType
+     * @param  int  $subValue
+     * @param  bool  $unique
      * @return int
      */
     public function getViewsCountOfPast($model, $pastType, int $pastValue, bool $unique = false): int
@@ -149,6 +150,19 @@ class ViewableService
     }
 
     /**
+     * Get the unique views count of the past period.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $pastType
+     * @param  int  $subValue
+     * @param  bool  $unique
+     * @return int
+     */
+    public function getUniqueViewsCountOfPast($model, $pastType, int $pastValue)
+    {
+        return $this->getViewsCountOfPast($model, $pastValue, true);
+    }
+
+    /**
      * Count the views based upon the given arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $model
@@ -164,9 +178,9 @@ class ViewableService
 
         // Apply the following date filters
         if ($sinceDateTime && ! $uptoDateTime) {
-            $query->where('created_at', '>=', $sinceDateTime);
+            $query->where('created_at', '>', $sinceDateTime);
         } elseif (! $sinceDateTime && $uptoDateTime) {
-            $query->where('created_at', '<=', $uptoDateTime);
+            $query->where('created_at', '<', $uptoDateTime);
         } elseif ($sinceDateTime && $uptoDateTime) {
             $query->whereBetween('created_at', [$sinceDateTime, $uptoDateTime]);
         }
