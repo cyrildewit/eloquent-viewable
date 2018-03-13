@@ -132,7 +132,8 @@ trait Viewable
      */
     public function getViewsOfPastSeconds(int $pastValue): int
     {
-        return app(ViewableService::class)->getViewsCountOfPast($this, PastType::PAST_SECONDS, $pastValue);
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_SECONDS, $pastValue);
     }
 
     /**
@@ -142,7 +143,8 @@ trait Viewable
      */
     public function getViewsOfPastMinutes(int $pastValue): int
     {
-        return app(ViewableService::class)->getViewsCountOfPast($this, PastType::PAST_MINUTES, $pastValue);
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_MINUTES, $pastValue);
     }
 
     /**
@@ -152,7 +154,107 @@ trait Viewable
      */
     public function getViewsOfPastDays(int $pastValue): int
     {
-        return app(ViewableService::class)->getViewsCountOfPast($this, PastType::PAST_DAYS, $pastValue);
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_DAYS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' weeks.
+     *
+     * @return int
+     */
+    public function getViewsOfPastWeeks(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_WEEKS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' months.
+     *
+     * @return int
+     */
+    public function getViewsOfPastMonths(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_MONTHS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' months.
+     *
+     * @return int
+     */
+    public function getViewsOfPastYears(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCountOfPast($this, PastType::PAST_YEARS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' seconds.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastSeconds(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_SECONDS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' minutes.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastMinutes(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_MINUTES, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' days.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastDays(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_DAYS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' weeks.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastWeeks(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_WEEKS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' months.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastMonths(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_MONTHS, $pastValue);
+    }
+
+    /**
+     * Get the total number of views in the past 'n' months.
+     *
+     * @return int
+     */
+    public function getUniqueViewsOfPastYears(int $pastValue): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCountOfPast($this, PastType::PAST_YEARS, $pastValue);
     }
 
     /**
