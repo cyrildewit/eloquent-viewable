@@ -279,7 +279,7 @@ class ViewableService
      * @param  string  $requestPeriod
      * @return string
      */
-    public function createBaseDatesKey($model, bool $unique = false, string $requestPeriod)
+    public function createBaseDatesKey($model, bool $unique, string $requestPeriod)
     {
         $modelId = $model->getKey();
         $modelType = strtolower(str_replace('\\', '-', get_class($model)));
