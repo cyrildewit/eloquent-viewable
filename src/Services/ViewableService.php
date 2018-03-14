@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Services;
 
+use Cookie;
 use Request;
 use Carbon\Carbon;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
@@ -187,11 +188,11 @@ class ViewableService
 
         // Apply the following date filters
         if ($sinceDateTime && ! $uptoDateTime) {
-            $query->where('created_at', '>', $sinceDateTime);
+            $query->where('viewed_at', '>', $sinceDateTime);
         } elseif (! $sinceDateTime && $uptoDateTime) {
-            $query->where('created_at', '<', $uptoDateTime);
+            $query->where('viewed_at', '<', $uptoDateTime);
         } elseif ($sinceDateTime && $uptoDateTime) {
-            $query->whereBetween('created_at', [$sinceDateTime, $uptoDateTime]);
+            $query->whereBetween('viewed_at', [$sinceDateTime, $uptoDateTime]);
         }
 
         // Retrieve a collection of all the ip addresses and group them by
@@ -217,6 +218,7 @@ class ViewableService
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
+        $cookieName = config('eloquent-viewable.cookie_name', 'ELOQUENT_VIEWABLE_COOKIE');
 
         // If ignore bots is true and the current viewer is a bot, return false
         if ($ignoreBots && $this->crawlerDetect->isCrawler()) {
@@ -229,11 +231,18 @@ class ViewableService
             return false;
         }
 
+        // If there is a cookie, get it, otherwise create new one
+        if (Cookie::has($cookieName)) {
+            $cookieValue = Cookie::get($cookieName);
+        } else {
+            $cookieValue = Cookie::queue(Cookie::forever($cookieName, str_random(80)));
+        }
+
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => get_class($model),
-            'ip_address' => Request::ip(),
+            'cookie_value' => $cookieValue,
         ]);
 
         // If queuing is enabled, dispatch the job
