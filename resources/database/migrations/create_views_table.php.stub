@@ -18,8 +18,8 @@ class CreateViewsTable extends Migration
         Schema::create($viewsTableName, function (Blueprint $table) {
             $table->increments('id');
             $table->morphs('viewable');
-            $table->string('ip_address')->nullable();
-            $table->timestamps();
+            $table->string('cookie_value')->nullable();
+            $table->timestamp('viewed_at')->useCurrent();
         });
     }
 

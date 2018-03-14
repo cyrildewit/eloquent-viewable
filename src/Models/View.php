@@ -32,6 +32,13 @@ class View extends Model implements ViewContract
     protected $guarded = [];
 
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
+    /**
      * Create a new View instance.
      *
      * @param  array  $attributes
