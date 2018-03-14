@@ -150,7 +150,7 @@ class ViewableService
         }
 
         // Count the views again
-        $viewsCount = $this->countViews($model, $sinceDateTime, $uptoDateTime, $unique);
+        $viewsCount = $this->countViews($model, $sinceDateTime, null, $unique);
 
         // Cache the counted views
         if ($cachingEnabled) {
@@ -163,14 +163,14 @@ class ViewableService
     /**
      * Get the unique views count of the past period.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $pastType
-     * @param  int  $subValue
-     * @param  bool  $unique
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $pastType
+     * @param  int  $pastValue
      * @return int
      */
     public function getUniqueViewsCountOfPast($model, $pastType, int $pastValue)
     {
-        return $this->getViewsCountOfPast($model, $pastValue, true);
+        return $this->getViewsCountOfPast($model, $pastType, $pastValue, true);
     }
 
     /**
