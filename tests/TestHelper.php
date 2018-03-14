@@ -25,15 +25,16 @@ class TestHelper
     /**
      * Helper function to create a view.
      *
+     * @param  \Carbon\Carbon  $viewedAt
      * @return \CyrildeWit\EloquentViewable\Models\View
      */
-    public static function createNewView($model, $createdAt)
+    public static function createNewView($model, $viewedAt)
     {
         return View::create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => get_class($model),
-            'ip_address' => '130.57.143.127',
-            'created_at' => $createdAt,
+            'cookie_value' => '130.57.143.127',
+            'viewed_at' => $viewedAt,
         ]);
     }
 }
