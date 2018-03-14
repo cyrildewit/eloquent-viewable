@@ -3,4 +3,5 @@ build/
 doc/
 vendor/
 node_modules/
+.vscode/
 composer.lock
