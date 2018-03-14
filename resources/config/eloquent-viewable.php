@@ -109,11 +109,31 @@ return [
         'cache_views_count' => [
 
             'enabled' => true,
-            // 'lifetime_in_minutes' => 60 * 10,
-            'lifetime_in_minutes' => 4,
+            'lifetime_in_minutes' => 10,
 
         ],
 
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ignore Bots
+    |--------------------------------------------------------------------------
+    |
+    | If you want to ignore bots, you can specify that here.
+    |
+    */
+    'ignore_bots' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Honor
+    |--------------------------------------------------------------------------
+    |
+    | If you want to honor the DNT header, you can specify that here.
+    | More information at: developer.mozilla.org/en-US/docs/Web/HTTP/Headers/DNT
+    |
+    */
+    'honor_dnt' => false,
 
 ];

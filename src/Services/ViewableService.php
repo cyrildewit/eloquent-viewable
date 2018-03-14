@@ -15,8 +15,9 @@ namespace CyrildeWit\EloquentViewable\Services;
 
 use Request;
 use Carbon\Carbon;
+use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Enums\PastType;
-// use CyrildeWit\EloquentViewable\Jobs\ProcessView;
+use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 
@@ -35,6 +36,13 @@ class ViewableService
     protected $viewsCountCacheRepository;
 
     /**
+     * CrawlerDetect instance.
+     *
+     * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
+     */
+    protected $crawlerDetect;
+
+    /**
      * Create a new ViewableService instance.
      *
      * @return void
@@ -42,6 +50,7 @@ class ViewableService
     public function __construct()
     {
         $this->viewsCountCacheRepository = app(ViewsCountCacheRepository::class);
+        $this->crawlerDetect = app(CrawlerDetect::class);
     }
 
     /**
@@ -206,6 +215,20 @@ class ViewableService
      */
     public function addViewTo($model): bool
     {
+        $ignoreBots = config('eloquent-viewable.ignore_bots', true);
+        $honorToDnt = config('eloquent-viewable.honor_dnt', false);
+
+        // If ignore bots is true and the current viewer is a bot, return false
+        if ($ignoreBots && $this->crawlerDetect->isCrawler()) {
+            return false;
+        }
+
+        // If we honor to the DNT header and the current request contains the
+        // DNT header, return false
+        if ($honorToDnt && $this->requestHasDntHeader()) {
+            return false;
+        }
+
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $model->getKey(),
@@ -233,6 +256,17 @@ class ViewableService
         $view->save();
 
         return true;
+    }
+
+    /**
+     * Check if the current request contains the HTTP_DNT header and check if
+     * it's true.
+     *
+     * @return bool
+     */
+    protected function requestHasDntHeader()
+    {
+        return Request::header('HTTP_DNT') == 1;
     }
 
     /**
