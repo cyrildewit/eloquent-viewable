@@ -104,8 +104,9 @@ class ViewableService
     /**
      * Get the views count of the past period.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $pastType
-     * @param  int  $subValue
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $pastType
+     * @param  int  $pastValue
      * @param  bool  $unique
      * @return int
      */
@@ -149,7 +150,7 @@ class ViewableService
         }
 
         // Count the views again
-        $viewsCount = $this->countViews($model, $sinceDateTime, $unique);
+        $viewsCount = $this->countViews($model, $sinceDateTime, $uptoDateTime, $unique);
 
         // Cache the counted views
         if ($cachingEnabled) {
@@ -198,7 +199,7 @@ class ViewableService
         // Retrieve a collection of all the ip addresses and group them by
         // ip address
         if ($unique) {
-            $query->select('ip_address')->groupBy('ip_address');
+            $query->select('cookie_value')->groupBy('cookie_value');
         }
 
         // If the unique option is false then just use the SQL count method,
@@ -235,7 +236,7 @@ class ViewableService
         if (Cookie::has($cookieName)) {
             $cookieValue = Cookie::get($cookieName);
         } else {
-            $cookieValue = Cookie::queue(Cookie::forever($cookieName, str_random(80)));
+            $cookieValue = Cookie::forever($cookieName, str_random(80));
         }
 
         // Create a new View model instance
