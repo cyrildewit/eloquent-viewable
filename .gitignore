@@ -1,65 +1,6 @@
 build/
-composer.lock
-docs/
+build/
+doc/
 vendor/
-test/temp/
 node_modules/
-tests/reports
-
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
-
-# Folder config file
-Desktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# =========================
-# Operating System Files
-# =========================
-
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-/tests export-ignore
-/.gitattributes export-ignore
-/.gitignore export-ignore
-/.styleci.yml export-ignore
-/.travis.yml export-ignore
-/phpunit.xml export-ignore
-/CHANGELOG.md export-ignore
-/README.md export-ignore
-/CODE_OF_CONDUCT.md export-ignore
+composer.lock
