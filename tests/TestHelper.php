@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 
 /**
@@ -25,16 +26,16 @@ class TestHelper
     /**
      * Helper function to create a view.
      *
-     * @param  \Carbon\Carbon  $viewedAt
+     * @param  array  $data
      * @return \CyrildeWit\EloquentViewable\Models\View
      */
-    public static function createNewView($model, $viewedAt)
+    public static function createNewView($model, $data)
     {
         return View::create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => get_class($model),
-            'cookie_value' => '130.57.143.127',
-            'viewed_at' => $viewedAt,
+            'cookie_value' => $data['cookie_value'] ?? 'unique_hash',
+            'viewed_at' => $data['viewed_at'] ?? Carbon::now(),
         ]);
     }
 }

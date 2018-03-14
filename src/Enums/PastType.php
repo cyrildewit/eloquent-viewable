@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Enums;
 
 /**
- * This is the visit service manager.
+ * Abstract class PastType.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
