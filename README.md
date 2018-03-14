@@ -1,70 +1,68 @@
-# Laravel Page View Counter
+# Eloquent Viewable
 
-[![Packagist](https://img.shields.io/packagist/v/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/laravel-page-view-counter/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/laravel-page-view-counter)
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
-[![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
-[![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
+[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
+[![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
+[![Built For Laravel](https://img.shields.io/badge/built%20for-laravel-blue.svg)](http://laravel.com)
+[![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
-This Laravel package allows you to store page views of different Eloquent models into the databse.
+This Laravel >= 5.5 package allows you to add a view counter to your viewable Eloquent models.
 
 Once installed you can do stuff like this:
 
 ```php
-// Get the total page views
-$article->getPageViews();
+// Get the total number of views
+$post->getViews();
 
-// Get the total page from a specific date
-$article->getPageViewsFrom(Carbon::now()->subDays(2));
+// Get the total number of views since a specific date
+$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
 
-// Get the total page of a specific date range
-$article->getPageViewsBetween(Carbon::now()->parse('01-04-2017'), Carbon::now()->parse('01-06-2017'));
+// Get the total number of views upto a specific date
+$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
 
-// Store a new page view into the database
-$article->addPageView();
+// Get the total number of views between the given date range
+$post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
 
-// Store a new page view into the database with an expiry date
-$article->addPageViewThatExpiresAt(Carbon::now()->addHours(3));
+// Store a new view in the database
+$post->addView();
 ```
-
-This package is not built with the intent to collect analytical data. It is made to simply save the page views of a Laravel Eloquent model. You would use our trait for models like `Task`, `Article`, `Post` or `Course`. But of course, you can use this package as you want.
 
 ## Overview
 
-Laravel Page View Counter is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects. Instead of only a simple page view counter, we provide out of the box some great functionalities.
+Eloquent Viewable is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects.
+
+This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use our trait for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
 
 ### Features
 
 Here are some of the main features:
 
-* Store page views
-* Store page views with expiry dates (history is stored in the users session)
-* Get the total page views
-* Get the total page views from a specific date
-* Get the total page views between a specific date range
-* Get the total unique page views (by ip address)
-* Configure date transformers to replace big lines like `$article->getPageViewsFrom(Carbon::now()->subDays(1))` to `$article->getPageViewsFrom('24h')` ('24h', '7d' etc. is completely configurable).
+* Store model views
+* Get the total number (unique) views
+* Get the total number (unique) views since a specific date
+* Get the total number (unique) views upto a specific date
+* Cache the retrieved views counts
+* Queue the views before saving them in the database to prevent slow requests
 
-**Feature requests are very welcome! Create an issue with `[Feature Request]` as prefix**
+Feature requests are very welcome! Create an issue with [Feature Request] as prefix or send a pull request.
 
 ## Documentation
 
-In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at github@cyrildewit.nl.
+In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at `github@cyrildewit.nl`.
 
 ### Table of contents
 
 1. [Getting Started](#getting-started)
     * [Requirements](#requirements)
-    * [Branching Model](#branching-model)
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
-    * [Storing new page views](#storing-new-page-views)
-    * [Retrieving page views](#retrieving-page-views)
-    * [Sorting model items by page views](#sorting-model-items-by-page-views)
+    * [Saving new views](#saving-new-vies)
+    * [Retrieving views counts](#retrieving-views-counts)
 3. [Configuration](#configuration)
-    * [Defining date transformers](#defining-date-transformers)
-    * [Extending the PageView model](#extending-the-pageview-model)
+    * [Queue the ProcessView job](#d)
 4. [Under the hood](#under-the-hood)
     * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
