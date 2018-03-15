@@ -28,7 +28,7 @@
     },
     "autoload": {
         "psr-4": {
-            "CyrildeWit\\PageViewCounter\\": "src/"
+            "CyrildeWit\\PageViewCounter\\": "src/PageViewCounter"
         }
     },
     "autoload-dev": {
