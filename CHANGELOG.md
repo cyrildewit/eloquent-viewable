@@ -4,6 +4,12 @@ All notable changes to `laravel-page-views-counter` will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.5] - 15-03-2018
+
+### Fixed
+
+- Add `PageViewCounter` to autoload path in composer.json (#50).
+
 ## [1.0.4] - 20-02-2018
 
 ### Fixed
