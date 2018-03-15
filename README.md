@@ -137,7 +137,7 @@ class Article extends Model
 
 **Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#list-of-propertiesmethods-that-the-trait-adds)!
 
-### Storing new views
+### Saving new views
 
 After adding the trait to your model, some methods will be available. `addView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
 
@@ -202,7 +202,7 @@ $post->getUniqueViewsOfPastYears(5);
 
 ## Configuration
 
-### Turning queuing on
+### Queue the ProcessView job
 
 When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
