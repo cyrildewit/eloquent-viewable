@@ -20,7 +20,7 @@ $post->getViews();
 $post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
 
 // Get the total number of views upto a specific date
-$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+$post->getViewsUpto(Carbon::parse('2013-05-21 00:00:00'));
 
 // Get the total number of views between the given date range
 $post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
@@ -55,30 +55,26 @@ In this documentation, you will find some helpful information about the use of t
 ### Table of contents
 
 1. [Getting Started](#getting-started)
-    * [Requirements](#requirements)
+    * [Version Information](#version-information)
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
     * [Saving new views](#saving-new-vies)
     * [Retrieving views counts](#retrieving-views-counts)
 3. [Configuration](#configuration)
-    * [Queue the ProcessView job](#d)
+    * [Queue the ProcessView job](#queue-the-processview-job)
+    * [Extending the View model](#extending-the-view-model)
 4. [Under the hood](#under-the-hood)
     * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
 ## Getting Started
 
-### Requirements
+### Version Information
 
-This package requires [PHP](https://php.net/) v7+ and Laravel 5.1+.
-
-### Branching Model
-
-This project uses the [Gitflow branching model](http://nvie.com/posts/a-successful-git-branching-model/).
-
-* the **master** branch contains the latest **stable** version
-* the **develop** branch contains the latest **unstable** development version
-* all stable versions are tagged using [semantic versioning](https://semver.org/).
+| Version | Illuminate    | Status         | PHP Version |
+|---------|---------------|----------------|-------------|
+| 2.x     | 5.5.x - 5.6.x | Active support | >= 7.0.0    |
+| 1.x     | 5.5.x - 5.6.x | Bug fixes only | >= 7.0.0    |
 
 ### Installation
 
@@ -87,25 +83,25 @@ Before you can use this package you have to install it with composer.
 You can install the package via composer:
 
 ```winbatch
-composer require cyrildewit/laravel-page-view-counter
+composer require cyrildewit/eloquent-viewable
 ```
 
-Now add the service provider in `config/app.php` file, or if you're using Laravel >=5.5, this can be done via the automatic package discovery:
+Optionally, you can add the service provider in the `config/app.php` file. Otherwise this can be done via automatic package discovery.
 
 ```php
 'providers' => [
     // ...
-    CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class,
+    CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
 ];
 ```
 
 You can publish the migration with:
 
 ```winbatch
-php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="migrations"
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-After publishing the migration file you can create the `page visits` table by running the migrations:
+After publishing the migration file you can create the `view` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'table_names->views' and change the value to something unique.
 
 ```winbatch
 php artisan migrate
@@ -114,7 +110,7 @@ php artisan migrate
 You can publish the config file with:
 
 ```winbatch
-php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
 ## Usage
@@ -123,17 +119,17 @@ In the following sections, you will find information about the usage of this pac
 
 ### Making an Eloquent model viewable
 
-First add the `CyrildeWit\PageViewCounter\Traits\HasPageViewCounter` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them.
+First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them.
 
 Here's an example of a an Eloquent model:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\PageViewCounter\Traits\HasPageViewCounter;
+use CyrildeWit\EloquentViewable\Traits\Viewable;
 
 class Article extends Model
 {
-    use HasPageViewCounter;
+    use Viewable;
 
     // ...
 }
@@ -141,203 +137,113 @@ class Article extends Model
 
 **Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#list-of-propertiesmethods-that-the-trait-adds)!
 
-### Storing new page views
+### Storing new views
 
-After adding the trait to your model, some methods will be available. `addPageView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is in your controller. If you're following the CRUD standard, it would be the show method.
+After adding the trait to your model, some methods will be available. `addView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
 
-Let's assume where are handling the page views of an article in the following sections. `$article` contains an instance of our Eloquent model `Article`.
-
-```php
-// Stores a new page view in the database
-$article->addPageView();
-```
-
-"But what if users are refreshing the page multiple times?" Well, then you could use the `addPageViewThatExpiresAt()` method. It accepts an expiry date. Only the page view after that expiry date will be stored. The expiry date will be stored in the user's session.
+Let's assume where are handling the page views of a post. `$post` contains an instance of our Eloquent model `App\Models\Post`.
 
 ```php
-// Store a new page view in the database with an expiry date.
-// When storing it, it will first check if it hasn't been already viewed by the current user.
-$article->addPageViewThatExpiresAt(Carbon::now()->addHours(2));
-```
-
-### Retrieving page views
-
-**Note:** Unique page views are getting retrieved differently than the total page views. When calculating the total page views, we are using the aggregate functions of SQL. But the calculation of the unique page views is done by retrieving all the items and count them. If you're a SQL expert and would like to solve this, thanks!
-
-```php
-// Retrieve the total page views
-$article->getPageViews();
-$article->getUniquePageViews();
-
-// Retrieve page views that are stored after the given date
-$article->getPageViewsFrom(Carbon::now()->subWeeks(2)); // since two weeks ago
-$article->getUniquePageViewsFrom(Carbon::now()->subWeeks(2)); // based upon ip address
-
-// Retrieve page views that are stored before the given date
-$article->getPageViewsBefore(Carbon::now()->subWeeks(2)); // upto two weeks ago
-$article->getUniquePageViewsBefore(Carbon::now()->subWeeks(2)); // based upon ip address
-
-// Retrieve page views that are stored between the given two dates
-$article->getPageViewsBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1));
-$article->getUniquePageViewsBetween(Carbon::now()->subMonths(1), Carbon::now()->subWeeks(1)); // based upon ip address
-```
-
-### Sorting model items by page views
-
-```php
-$articles = Article::all(); // Laravel Collection instance
-
-// Articles sorted on page views (most page views is on top)
-$sortedArticles = $articles->sortByDesc(function ($article) {
-    return $article->getPageViews();
-});
-```
-
-If you're interested in a more cleaner way, you could create an attribute in your model and append it.
-
-```php
-class Article extends Model
+// ...
+public function show(Post $post)
 {
-    use HasPageViewCounter;
+    $post->addView();
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
-    protected $appends = ['page_views'];
-
-    /**
-     * Get the total page views of the article.
-     *
-     * @return int
-     */
-    public function getPageViewsAttribute()
-    {
-        return $this->getPageViews();
-    }
+    return view('blog.post', compact('post'));
 }
+// ...
 ```
 
-You can access the total page views now by `$article->page_views`. This makes the following available:
+**Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
+
+### Retrieving views counts
+
+When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file.
+
+::TODO_V2:: **Note:** Unique views are getting retrieved differently than the total views. When calculating the total views, we are using the aggregate functions of SQL. But the calculation of the unique views is done by retrieving all the items and count them. If you're a SQL expert and know how to solve this, please send a PR! Thanks!
 
 ```php
-// Different examples
-$articles = Article::all()->sortBy('page_views');
-$articles = Article::with('relatedModel')->get()->sortBy('page_views');
-$articles = Article::where('status', 'published')->get()->sortBy('page_views');
+// Retrieve the total (unique) views
+$post->getViews();
+$post->getUniqueViews();
+
+// Retrieve the total (unique) views that are stored after the given date
+$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+$post->getUniqueViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+
+// Retrieve the total (unique) views that are stored before the given date
+$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+$post->getUniqueViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+
+// Retrieve the total (unique) views that are stored between the two given dates
+$post->getViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+$post->getUniqueViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+```
+
+You can use the following methods to retrieve the total number of views in the past seconds, minutes, days, weeks, months and years.
+
+```php
+// Normal
+$post->getViewsOfPastSeconds(30);
+$post->getViewsOfPastMinutes(15);
+$post->getViewsOfPastDays(2);
+$post->getViewsOfPastWeeks(2);
+$post->getViewsOfPastMonths(4);
+$post->getViewsOfPastYears(5);
+
+// Unique
+$post->getUniqueViewsOfPastSeconds(30);
+$post->getUniqueViewsOfPastMinutes(15);
+$post->getUniqueViewsOfPastDays(2);
+$post->getUniqueViewsOfPastWeeks(2);
+$post->getUniqueViewsOfPastMonths(4);
+$post->getUniqueViewsOfPastYears(5);
 ```
 
 ## Configuration
 
-When published, the `config/page-view-counter.php` config file contains:
+### Turning queuing on
 
-```php
-use Carbon\Carbon;
+When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
-return [
+### Extending the View model
 
-    /*
-     * Our "HasPageViewCounter" trait needs to know which Eloquent model should
-     * be used to retrieve your page views.
-     *
-     * The model you want to use as a PageView model needs to implement the
-     * `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
-     */
-    'page_view_model' => CyrildeWit\PageViewCounter\Models\PageView::class,
+If you need to extend or replace the existing `View` model you just need to keep the following thing in mind:
 
-    /*
-     * Our "HasPageViewCounter" trait needs to know which table should be used
-     * to retrieve your page views.
-     *
-     * It is used by creating the migrations files and default Eloquent model.
-     */
-    'page_views_table_name' => 'page-views',
-
-    /*
-     * The below key is used by the PageViewHistory class that handles the page
-     * views with expiry dates. Make sure that it's unique.
-     */
-    'page_view_history_session_key' => 'page-view-counter.session.history',
-
-    /*
-     * Register here your custom date transformers. When the package get one of
-     * the below keys, it will use the value instead.
-     *
-     * Keep it empty, if you don't want any date transformers!
-     *
-     * Example:
-     * - $article->getPageViewsFrom('past24hours'); // Get the total page views of the past 24 hours
-     * - $article->getPageViewsFrom('past14days'); // Get the total page views of the past 14 days
-     */
-    'date-transformers' => [
-        // 'past24hours' => Carbon::now()->subDays(1),
-        // 'past7days' => Carbon::now()->subWeeks(1),
-        // 'past14days' => Carbon::now()->subWeeks(2),
-    ],
-
-];
-```
-
-### Defining date transformers
-
-Because we all love having to repeat less, this package allows you to define date transformers. Let's say we are using the following code a lot in our blade views: `$article->getPageViewsFrom(Carbon::now()->subDays(3))`. It can get a little bit annoying and unreadable. Let's solve that!
-
-If you've published the configuration file, you will see something like this:
-
-```php
-'date-transformers' => [
-    // 'past24hours' => Carbon::now()->subDays(1),
-    // 'past7days' => Carbon::now()->subWeeks(1),
-    // 'past14days' => Carbon::now()->subWeeks(2),
-],
-```
-
-They are all commented out as default. To make them available, simply uncomment them. The provided ones are serving as an example. You can remove them or add your own ones.
-
-For our example, we could do the following:
-
-```php
-'date-transformers' => [
-    'past3days' => Carbon::now()->subDays(3),
-],
-```
-
-We can now retrieve the page views like this in our blade views:
-
-```html
-<p>Page views in past three days {{ $article->getPageViewsFrom('past3days') }}</p>
-```
-
-### Extending the PageView model
-
-If you need to extend or replace the existing PageView model you just need to keep the following thing in mind:
-
-* Your `PageView` model needs to implement the `CyrildeWit\PageViewCounter\Contracts\PageView` contract.
+* Your `View` model needs to implement the `CyrildeWit\EloquentViewable\Contracts\Models\View` contract.
 * You can publish the configuration file with this command:
 
 ```winbatch
-php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
-And update the `page_view_model` value.
+And update the `view` value under `models` in the configuration file.
 
 ## Under the hood
 
 ### List of properties/methods that the trait adds to your model
 
 * `public function views();`
-* `public function retrievePageViews();`
-* `public function getPageViews();`
-* `public function getPageViewsFrom();`
-* `public function getPageViewsBefore();`
-* `public function getPageViewsBetween();`
-* `public function getUniquePageViews();`
-* `public function getUniquePageViewsFrom();`
-* `public function getUniquePageViewsBefore();`
-* `public function getUniquePageViewsBetween();`
-* `public function addPageView();`
-* `public function addPageViewThatExpiresAt();`
+* `public function getViews();`
+* `public function getViewsSince();`
+* `public function getViewsUpto();`
+* `public function getViewsBetween();`
+* `public function getUniqueViews();`
+* `public function getUniqueViewsSince();`
+* `public function getUniqueViewsUpto();`
+* `public function getUniqueViewsBetween();`
+* `public function getViewsOfPastSeconds($seconds);`
+* `public function getViewsOfPastMinutes();`
+* `public function getViewsOfPastDays();`
+* `public function getViewsOfPastWeeks();`
+* `public function getViewsOfPastMonths();`
+* `public function getViewsOfPastYears();`
+* `public function getUniqueViewsOfPastSeconds();`
+* `public function getUniqueViewsOfPastMinutes();`
+* `public function getUniqueViewsOfPastDays();`
+* `public function getUniqueViewsOfPastWeeks();`
+* `public function getUniqueViewsOfPastMonths();`
+* `public function getUniqueViewsOfPastYears();`
 
 ## Credits
 
@@ -346,4 +252,4 @@ And update the `page_view_model` value.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The Apache 2.0 license. Please see [License File](LICENSE.md) for more information.
