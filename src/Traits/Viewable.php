@@ -120,7 +120,7 @@ trait Viewable
      * @param  \Carbon\Carbon  $uptoDateTime
      * @return int
      */
-    public function getUniqueViewsCountBetween($sinceDateTime, $uptoDateTime): int
+    public function getUniqueViewsBetween($sinceDateTime, $uptoDateTime): int
     {
         return app(ViewableService::class)->getUniqueViewsCount($this, $sinceDateTime, $uptoDateTime);
     }
