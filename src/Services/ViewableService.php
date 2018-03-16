@@ -68,7 +68,7 @@ class ViewableService
         // Key based upon the arguments to retrieve cached views counts
         $viewsCountKey = $this->createStaticDatesKey($model, $sinceDateTime, $uptoDateTime, $unique);
 
-        $cachingEnabled = config('eloquent-viewable.cache.cache_views_count.enabled', true);
+        $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
 
         if ($cachingEnabled) {
             if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($viewsCountKey))) {
@@ -141,7 +141,7 @@ class ViewableService
         // Key based upon the arguments to retrieve cached views counts
         $viewsCountKey = $this->createReactiveDatesKey($model, $pastType, $pastValue, $unique);
 
-        $cachingEnabled = config('eloquent-viewable.cache.cache_views_count.enabled', true);
+        $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
 
         if ($cachingEnabled) {
             if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($viewsCountKey))) {
