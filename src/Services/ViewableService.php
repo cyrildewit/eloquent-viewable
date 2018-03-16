@@ -242,7 +242,7 @@ class ViewableService
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $model->getKey(),
-            'viewable_type' => get_class($model),
+            'viewable_type' => $model->getMorphClass(),
             'cookie_value' => $cookieValue,
         ]);
 
@@ -266,6 +266,20 @@ class ViewableService
         $view->save();
 
         return true;
+    }
+
+    /**
+     * Remove all views from a viewable model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return void
+     */
+    public function removeModelViews($model)
+    {
+        app(ViewContract::class)->where([
+            'viewable_id' => $model->getKey(),
+            'viewable_type' => $model->getMorphClass(),
+        ])->delete();
     }
 
     /**
@@ -326,7 +340,7 @@ class ViewableService
     public function createBaseDatesKey($model, bool $unique, string $requestPeriod)
     {
         $modelId = $model->getKey();
-        $modelType = strtolower(str_replace('\\', '-', get_class($model)));
+        $modelType = strtolower(str_replace('\\', '-', $model->getMorphClass()));
 
         $requestType = $unique ? 'unique' : 'normal';
 
