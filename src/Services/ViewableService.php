@@ -196,15 +196,15 @@ class ViewableService
             $query->whereBetween('viewed_at', [$sinceDateTime, $uptoDateTime]);
         }
 
-        // Retrieve a collection of all the ip addresses and group them by
-        // ip address
-        if ($unique) {
-            $query->select('cookie_value')->groupBy('cookie_value');
+        // Count all the views
+        if (! $unique) {
+            $viewsCount = $query->count();
         }
 
-        // If the unique option is false then just use the SQL count method,
-        // otherwise get the results and count them
-        $viewsCount = ! $unique ? $query->count() : $query->get()->count();
+        // Count only the unique views
+        if ($unique) {
+            $viewsCount = $query->distinct('cookie_value')->count('cookie_value');
+        }
 
         return $viewsCount;
     }
