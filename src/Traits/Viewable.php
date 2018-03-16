@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Traits;
 use CyrildeWit\EloquentViewable\Enums\PastType;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
+use CyrildeWit\EloquentViewable\Observers\ViewableObserver;
 
 /**
  * Trait Viewable.
@@ -24,6 +25,16 @@ use CyrildeWit\EloquentViewable\Services\ViewableService;
  */
 trait Viewable
 {
+    /**
+     * Boot the Viewable trait for a model.
+     *
+     * @return void
+     */
+    public static function bootViewable()
+    {
+        static::observe(ViewableObserver::class);
+    }
+
     /**
      * Get a collection of all the views the model has.
      *
@@ -265,5 +276,15 @@ trait Viewable
     public function addView(): bool
     {
         return app(ViewableService::class)->addViewTo($this);
+    }
+
+    /**
+     * Get the total number of views.
+     *
+     * @return void
+     */
+    public function removeViews()
+    {
+        return app(ViewableService::class)->removeModelViews($this);
     }
 }
