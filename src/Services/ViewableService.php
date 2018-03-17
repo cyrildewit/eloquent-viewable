@@ -281,7 +281,7 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
-     * Fetch records sorted by views count.
+     * Retrieve records sorted by views count.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
