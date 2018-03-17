@@ -31,9 +31,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->registerConsoleCommands();
+        // $this->registerConsoleCommands();
         $this->registerContracts();
         // $this->registerObservers();
+        $this->registerRoutes();
         $this->registerPublishes();
     }
 
@@ -78,6 +79,20 @@ class EloquentViewableServiceProvider extends ServiceProvider
     // {
     //     $this->app->make(VisitContract::class)->observe(VisitObserver::class);
     // }
+
+    /**
+     * Register the required routes for Eloquent Viewable.
+     *
+     * @return void
+     */
+    protected function registerRoutes()
+    {
+        $namespace = $this->app->getNamespace();
+
+        $this->app->router->group(['namespace' => $namespace.'Http\Controllers'], function () {
+            require __DIR__.'/Http/routes.php';
+        });
+    }
 
     /**
      * Setup the resource publishing groups for Eloquent Viewable.
