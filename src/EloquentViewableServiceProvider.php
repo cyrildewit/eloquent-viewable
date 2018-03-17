@@ -14,7 +14,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 // use CyrildeWit\EloquentViewable\Observers\VisitObserver;
 
 /**
@@ -65,9 +68,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     protected function registerContracts()
     {
-        $config = $this->app->config['eloquent-viewable'];
-
-        $this->app->bind(ViewContract::class, $config['models']['view']);
+        $this->app->bind(ViewContract::class, View::class);
+        $this->app->singleton(ViewableServiceContract::class, ViewableService::class);
     }
 
     // /**

@@ -17,18 +17,20 @@ use Hash;
 use Cookie;
 use Request;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Enums\PastType;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**
  * Class ViewableService.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewableService
+class ViewableService implements ViewableServiceContract
 {
     /**
      * ViewsCountCacheRepository instance.

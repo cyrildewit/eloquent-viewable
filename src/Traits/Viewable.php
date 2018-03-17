@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Enums\PastType;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Observers\ViewableObserver;
+use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 
 /**
  * Trait Viewable.
@@ -42,10 +44,7 @@ trait Viewable
      */
     public function views(): MorphMany
     {
-        return $this->morphMany(
-            config('eloquent-viewable.models.view'),
-            'viewable'
-        );
+        return $this->morphMany(app(ViewContract::class), 'viewable');
     }
 
     /**
