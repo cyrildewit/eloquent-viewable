@@ -281,6 +281,24 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
+     * Fetch records sorted by views count.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder
+    {
+        $viewable = $query->getModel();
+        $viewModel = app(ViewContract::class);
+
+        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.id")
+            ->selectRaw("{$viewable->getTable()}.*, count({$viewModel->getTable()}.{$viewModel->getKeyName()}) as aggregate")
+            ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
+            ->orderBy('aggregate', $direction);
+    }
+
+    /**
      * Check if the current request contains the HTTP_DNT header and check if
      * it's true.
      *
