@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `ViewsCountCacheRepository` class to `src/Cache` directory ([6868208](https://github.com/cyrildewit/eloquent-viewable/commit/377098a2cd408ca2a7a010d4f88a36f6438e6a7d))
 - Added `View` model contract to `src/Contracts/Models` directory ([a3755be](https://github.com/cyrildewit/eloquent-viewable/commit/db70f1cd176ff8393442c30aa0b1096c135288f5))
 - Added `EloquentViewableServiceProvider` class to `src/` directory ([843f544](https://github.com/cyrildewit/eloquent-viewable/commit/6868208ae0aa4c88acc35efbafb0648bf25e5f8d))
-- Added `PastType` enum class to `src/Enums` directory ([8a238f8 ](https://github.com/cyrildewit/eloquent-viewable/commit/843f54451ed8782bf85bb911bf260010ea1b2f1b))
+- Added `PastType` enum class to `src/Enums` directory ([8a238f8](https://github.com/cyrildewit/eloquent-viewable/commit/843f54451ed8782bf85bb911bf260010ea1b2f1b))
 - Added `ProcessView` job class to `src/Jobs` directory ([a3755be](https://github.com/cyrildewit/eloquent-viewable/commit/db70f1cd176ff8393442c30aa0b1096c135288f5), [597df68](https://github.com/cyrildewit/eloquent-viewable/commit/cec4d4faf746cfb7a5b371550f07db9c497c4d64))
 - Added `View` model class to `src/Models` directory ([a3755be](https://github.com/cyrildewit/eloquent-viewable/commit/db70f1cd176ff8393442c30aa0b1096c135288f5))
 - Added `ViewableObserver` class to `src/Observers` directory ([4038ef8](https://github.com/cyrildewit/eloquent-viewable/commit/64d03fa288637a4068c2e27a55829362ad45c2ad))
