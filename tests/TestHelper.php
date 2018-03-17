@@ -34,7 +34,7 @@ class TestHelper
         return View::create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => $model->getMorphClass(),
-            'cookie_value' => $data['cookie_value'] ?? 'unique_hash',
+            'visitor_cookie' => $data['visitor_cookie'] ?? 'unique_hash',
             'viewed_at' => $data['viewed_at'] ?? Carbon::now(),
         ]);
     }
