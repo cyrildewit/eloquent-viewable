@@ -542,4 +542,23 @@ class ViewableTest extends TestCase
         // past 60 years == 5
         $this->assertEquals(5, $post->getViewsOfPastYears(60));
     }
+
+    /** @test */
+    public function it_can_remove_all_views_from_a_model()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addView();
+        $post->addView();
+        $post->addView();
+
+        // Before
+        $this->assertEquals(3, View::where('viewable_id', 1)->count());
+
+        // Remove all views from the post
+        $post->removeViews();
+
+        // After
+        $this->assertEquals(0, View::where('viewable_id', 1)->count());
+    }
 }
