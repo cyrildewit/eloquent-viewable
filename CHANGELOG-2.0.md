@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - Added `ViewsCountCacheRepository` class to `src/Cache` directory ([6868208](https://github.com/cyrildewit/eloquent-viewable/commit/377098a2cd408ca2a7a010d4f88a36f6438e6a7d))
+- Added `ViewableService` contract to `src/Contracts/Services` directory ([8f09dd8](https://github.com/cyrildewit/eloquent-viewable/commit/e1049699e8ac5ecce708c2f05684fef8c43e495b))
+- Added `Viewable` contract to `src/Contracts/Traits` directory ([e104969](https://github.com/cyrildewit/eloquent-viewable/commit/dd20dfaf8028a572995ffbff0697b51b68f4e10c))
 - Added `View` model contract to `src/Contracts/Models` directory ([a3755be](https://github.com/cyrildewit/eloquent-viewable/commit/db70f1cd176ff8393442c30aa0b1096c135288f5))
 - Added `EloquentViewableServiceProvider` class to `src/` directory ([843f544](https://github.com/cyrildewit/eloquent-viewable/commit/6868208ae0aa4c88acc35efbafb0648bf25e5f8d))
 - Added `PastType` enum class to `src/Enums` directory ([8a238f8](https://github.com/cyrildewit/eloquent-viewable/commit/843f54451ed8782bf85bb911bf260010ea1b2f1b))
@@ -24,7 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `PostFactory` class to `tests/database/factories` directory ([97e3ddf](https://github.com/cyrildewit/eloquent-viewable/commit/26f58967146f86e5673707259910fae17ee4daae))
 - Added `TestHelper` class to `tests` directory ([486af68](https://github.com/cyrildewit/eloquent-viewable/commit/d9e0f97132facbf4f7b62c884cc0dd157fad54bb))
 - Added `ViewsCountCacheRepositoryTest` class to `tests/Unit/Cache` directory ([62c0f4b](https://github.com/cyrildewit/eloquent-viewable/commit/8b5d0a3a81789eef02a7be72a434f3f8bc6f58e1), [](https://github.com/cyrildewit/eloquent-viewable/commit/))
-- Added `ViewTest` class to `tests/Unit/Models` directory ([62c0f4b](https://github.com/cyrildewit/eloquent-viewable/commit/8b5d0a3a81789eef02a7be72a434f3f8bc6f58e1), [](https://github.com/cyrildewit/eloquent-viewable/commit/))
 - Added `ViewableServiceTest` class to `tests/Unit/Services` directory ([62c0f4b](https://github.com/cyrildewit/eloquent-viewable/commit/8b5d0a3a81789eef02a7be72a434f3f8bc6f58e1), [](https://github.com/cyrildewit/eloquent-viewable/commit/))
 - Added `ViewableTest` class to `tests/Unit/Traits` directory ([62c0f4b](https://github.com/cyrildewit/eloquent-viewable/commit/8b5d0a3a81789eef02a7be72a434f3f8bc6f58e1), [](https://github.com/cyrildewit/eloquent-viewable/commit/))
 - Added `ViewableTest` class to `tests/Unit/Traits` directory ([62c0f4b](https://github.com/cyrildewit/eloquent-viewable/commit/8b5d0a3a81789eef02a7be72a434f3f8bc6f58e1), [](https://github.com/cyrildewit/eloquent-viewable/commit/))
