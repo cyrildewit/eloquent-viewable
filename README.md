@@ -119,9 +119,9 @@ In the following sections, you will find information about the usage of this pac
 
 ### Prepare Viewable Model
 
-First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them. After adding the trait to your model, you need to implement the `ViewableContract`.
+First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them. After adding the trait to your model, you can optionally implement the `ViewableContract`.
 
-Here's an example of a an Eloquent model:
+Here's an example of an Eloquent model:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
