@@ -48,7 +48,7 @@ class View extends Model implements ViewContract
     {
         parent::__construct($attributes);
 
-        $this->setTable(config('eloquent-viewable.table_names.views'));
+        $this->setTable(config('eloquent-viewable.table_names.views', 'views'));
     }
 
     /**
