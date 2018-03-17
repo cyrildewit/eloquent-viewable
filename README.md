@@ -160,8 +160,6 @@ public function show(Post $post)
 
 When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file.
 
-::TODO_V2:: **Note:** Unique views are getting retrieved differently than the total views. When calculating the total views, we are using the aggregate functions of SQL. But the calculation of the unique views is done by retrieving all the items and count them. If you're a SQL expert and know how to solve this, please send a PR! Thanks!
-
 ```php
 // Retrieve the total (unique) views
 $post->getViews();
@@ -244,6 +242,8 @@ And update the `view` value under `models` in the configuration file.
 * `public function getUniqueViewsOfPastWeeks();`
 * `public function getUniqueViewsOfPastMonths();`
 * `public function getUniqueViewsOfPastYears();`
+* `public addView()`
+* `public removeViews()`
 
 ## Credits
 
