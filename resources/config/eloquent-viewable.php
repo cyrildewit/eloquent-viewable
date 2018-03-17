@@ -4,29 +4,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Eloquent Models
-    |--------------------------------------------------------------------------
-    */
-
-    'models' => [
-
-        /*
-         * When using the "Viewable" trait from this package, it needs to
-         * know which model should be used to retrieve and store the views.
-         *
-         * We have created a simple default Eloquent model that could be used
-         * `CyrildeWit\EloquentViewable\Models\View::class`, but if you
-         * need to extend it, you can easily change the below value.
-         *
-         * The model you want to use as a Visit model needs to implement the
-         * `CyrildeWit\EloquentViewable\Contracts\Models\View` interface.
-         */
-        'view' => CyrildeWit\EloquentViewable\Models\View::class,
-
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Database Tables
     |--------------------------------------------------------------------------
     */
