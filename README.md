@@ -143,6 +143,10 @@ class Article extends Model implements ViewableContract
 
 After adding the trait to your model, some methods will be available. `addView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
 
+```php
+$post->addView();
+```
+
 Let's assume where are handling the page views of a post. `$post` contains an instance of our Eloquent model `App\Models\Post`.
 
 ```php
