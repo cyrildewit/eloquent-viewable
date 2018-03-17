@@ -61,6 +61,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Prepare Viewable Model](#prepare-viewable-model)
     * [Saving new views](#saving-new-vies)
     * [Retrieving views counts](#retrieving-views-counts)
+    * [Scopes](#scopes)
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
     * [Extending](#extending)
@@ -197,6 +198,15 @@ $post->getUniqueViewsOfPastDays(2);
 $post->getUniqueViewsOfPastWeeks(2);
 $post->getUniqueViewsOfPastMonths(4);
 $post->getUniqueViewsOfPastYears(5);
+```
+
+### Scopes
+
+#### Retrieve Viewable models by views count
+
+```php
+$sortedPosts = Post::orderByViewsCount()->get();
+$sortedPosts = Post::orderByViewsCount('asc')->get();
 ```
 
 ## Configuration
