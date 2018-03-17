@@ -286,4 +286,16 @@ trait Viewable
     {
         return app(ViewableService::class)->removeModelViews($this);
     }
+
+    /**
+     * Fetch records sorted by views count.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc'): Builder
+    {
+        return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction);
+    }
 }
