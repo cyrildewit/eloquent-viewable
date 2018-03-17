@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Services;
 
+use Hash;
 use Cookie;
 use Request;
 use Carbon\Carbon;
@@ -203,7 +204,7 @@ class ViewableService
 
         // Count only the unique views
         if ($unique) {
-            $viewsCount = $query->distinct('cookie_value')->count('cookie_value');
+            $viewsCount = $query->distinct('visitor_cookie')->count('visitor_cookie');
         }
 
         return $viewsCount;
@@ -232,18 +233,13 @@ class ViewableService
             return false;
         }
 
-        // If there is a cookie, get it, otherwise create new one
-        if (Cookie::has($cookieName)) {
-            $cookieValue = Cookie::get($cookieName);
-        } else {
-            $cookieValue = Cookie::forever($cookieName, str_random(80));
-        }
+        $visitorCookie = Hash::make(Cookie::get($cookieName));
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => $model->getMorphClass(),
-            'cookie_value' => $cookieValue,
+            'visitor_cookie' => $visitorCookie,
         ]);
 
         // If queuing is enabled, dispatch the job
