@@ -58,12 +58,12 @@ In this documentation, you will find some helpful information about the use of t
     * [Version Information](#version-information)
     * [Installation](#installation)
 2. [Usage](#usage)
-    * [Making an Eloquent model viewable](#making-an-eloquent-model-viewable)
+    * [Prepare Viewable Model](#prepare-viewable-model)
     * [Saving new views](#saving-new-vies)
     * [Retrieving views counts](#retrieving-views-counts)
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
-    * [Extending the View model](#extending-the-view-model)
+    * [Extending](#extending)
 4. [Under the hood](#under-the-hood)
     * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
 
@@ -117,17 +117,18 @@ php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewa
 
 In the following sections, you will find information about the usage of this package.
 
-### Making an Eloquent model viewable
+### Prepare Viewable Model
 
-First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them.
+First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them. After adding the trait to your model, you need to implement the `ViewableContract`.
 
 Here's an example of a an Eloquent model:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Traits\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Traits\Viewable as ViewableContract;
 
-class Article extends Model
+class Article extends Model implements ViewableContract
 {
     use Viewable;
 
@@ -204,18 +205,32 @@ $post->getUniqueViewsOfPastYears(5);
 
 When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
-### Extending the View model
+### Extending
 
-If you need to extend or replace the existing `View` model you just need to keep the following thing in mind:
+If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
-* Your `View` model needs to implement the `CyrildeWit\EloquentViewable\Contracts\Models\View` contract.
-* You can publish the configuration file with this command:
+* `CyrildeWit\Eloquent\Viewable\Models\View`
+* `CyrildeWit\Eloquent\Viewable\Services\ViewableService`
 
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
+_**Note:** Don't forget that all custom classes must implement their original interfaces_
+
+#### Replace model class with own implementation
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Contracts\Models\View::class,
+    \App\Models\CustomView::class
+);
 ```
 
-And update the `view` value under `models` in the configuration file.
+##### Replace service class with own implementation
+
+```php
+$this->app->singleton(
+    \CyrildeWit\EloquentViewable\Contracts\Services\ViewableService::class,
+    \App\Services\CustomViewableService::class
+);
+```
 
 ## Under the hood
 
@@ -244,6 +259,15 @@ And update the `view` value under `models` in the configuration file.
 * `public function getUniqueViewsOfPastYears();`
 * `public addView()`
 * `public removeViews()`
+* `public scopeOrderByViews()`
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG-2.0.md) for more information on what has changed recently.
+
+## Contributing
+
+Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Credits
 
