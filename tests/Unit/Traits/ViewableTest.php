@@ -164,9 +164,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['visitor_cookie' => 'visitor_one']);
-        TestHelper::createNewView($post, ['visitor_cookie' => 'visitor_one']);
-        TestHelper::createNewView($post, ['visitor_cookie' => 'visitor_two']);
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['visitor' => 'visitor_two']);
 
         $this->assertEquals(2, $post->getUniqueViews());
     }
@@ -177,41 +177,41 @@ class ViewableTest extends TestCase
         $post = factory(Post::class)->create();
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 01:00:00'),
         ]); // 1.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 02:00:00'),
         ]); // 1.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-01-01 03:00:00'),
         ]); // 1.3
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-02-01 01:00:00'),
         ]); // 2.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 02:00:00'),
         ]); // 2.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 03:00:00'),
         ]); // 2.1
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-03-01 01:00:00'),
         ]); // 3.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 02:00:00'),
         ]); // 3.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 03:00:00'),
         ]); // 3.2
 
@@ -234,41 +234,41 @@ class ViewableTest extends TestCase
         $post = factory(Post::class)->create();
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 01:00:00'),
         ]); // 1.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 02:00:00'),
         ]); // 1.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-01-01 03:00:00'),
         ]); // 1.3
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-02-01 01:00:00'),
         ]); // 2.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 02:00:00'),
         ]); // 2.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 03:00:00'),
         ]); // 2.1
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-03-01 01:00:00'),
         ]); // 3.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 02:00:00'),
         ]); // 3.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 03:00:00'),
         ]); // 3.2
 
@@ -291,41 +291,41 @@ class ViewableTest extends TestCase
         $post = factory(Post::class)->create();
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 01:00:00'),
         ]); // 1.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-01-01 02:00:00'),
         ]); // 1.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-01-01 03:00:00'),
         ]); // 1.3
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_one',
+            'visitor' => 'visitor_one',
             'viewed_at' => Carbon::parse('2018-02-01 01:00:00'),
         ]); // 2.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 02:00:00'),
         ]); // 2.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-02-01 03:00:00'),
         ]); // 2.3
 
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_two',
+            'visitor' => 'visitor_two',
             'viewed_at' => Carbon::parse('2018-03-01 01:00:00'),
         ]); // 3.1
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 02:00:00'),
         ]); // 3.2
         TestHelper::createNewView($post, [
-            'visitor_cookie' => 'visitor_three',
+            'visitor' => 'visitor_three',
             'viewed_at' => Carbon::parse('2018-03-01 03:00:00'),
         ]); // 3.2
 

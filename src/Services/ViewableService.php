@@ -206,7 +206,7 @@ class ViewableService implements ViewableServiceContract
 
         // Count only the unique views
         if ($unique) {
-            $viewsCount = $query->distinct('visitor_cookie')->count('visitor_cookie');
+            $viewsCount = $query->distinct('visitor')->count('visitor');
         }
 
         return $viewsCount;
@@ -235,13 +235,15 @@ class ViewableService implements ViewableServiceContract
             return false;
         }
 
-        $visitorCookie = Hash::make(Cookie::get($cookieName));
+        $visitorCookie = Cookie::get($cookieName);
+        $visitor = $visitorCookie ?? Request::ip();
+        // dd($visitor);
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $model->getKey(),
             'viewable_type' => $model->getMorphClass(),
-            'visitor_cookie' => $visitorCookie,
+            'visitor' => $visitor,
         ]);
 
         // If queuing is enabled, dispatch the job
