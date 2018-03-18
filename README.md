@@ -228,7 +228,7 @@ If you want to extend or replace one of the core classes with your own implement
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-#### Replace model class with own implementation
+#### Replace model class with custom implementation
 
 ```php
 $this->app->bind(
@@ -237,7 +237,7 @@ $this->app->bind(
 );
 ```
 
-##### Replace service class with own implementation
+#### Replace service class with custom implementation
 
 ```php
 $this->app->singleton(
