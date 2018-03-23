@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts\Services;
 
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-
 /**
  * Interface ViewableService.
  *

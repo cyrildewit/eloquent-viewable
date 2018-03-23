@@ -28,7 +28,7 @@ class ViewableObserver
      */
     public function deleted($viewable)
     {
-        if (!$this->removeViewsOnDelete($viewable)) {
+        if (! $this->removeViewsOnDelete($viewable)) {
             return;
         }
 
