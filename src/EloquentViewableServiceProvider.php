@@ -18,7 +18,6 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
-// use CyrildeWit\EloquentViewable\Observers\VisitObserver;
 
 /**
  * Class ServiceProvider.
@@ -71,16 +70,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->app->bind(ViewContract::class, View::class);
         $this->app->singleton(ViewableServiceContract::class, ViewableService::class);
     }
-
-    // /**
-    //  * Register the model observers.
-    //  *
-    //  * @return void
-    //  */
-    // protected function registerObservers()
-    // {
-    //     $this->app->make(VisitContract::class)->observe(VisitObserver::class);
-    // }
 
     /**
      * Register the required routes for Eloquent Viewable.
