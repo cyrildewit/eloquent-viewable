@@ -26,23 +26,23 @@ class ViewableObserver
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return void
      */
-    public function deleted($model)
+    public function deleted($viewable)
     {
-        if (!$this->removeViewsOnDelete($model)) {
+        if (!$this->removeViewsOnDelete($viewable)) {
             return;
         }
 
-        $likeable->removeViews();
+        $viewable->removeViews();
     }
 
     /**
      * Determine if should remove views on model delete (defaults to true).
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    private function removeViewsOnDelete($model): bool
+    private function removeViewsOnDelete($viewable): bool
     {
-        return $model->removeViewsOnDelete ?? true;
+        return $viewable->removeViewsOnDelete ?? true;
     }
 }
