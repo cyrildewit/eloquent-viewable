@@ -60,100 +60,88 @@ class ViewableService implements ViewableServiceContract
     /**
      * Get the views count based upon the given arguments.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \Carbon\Carbon|null  $sinceDateTime
      * @param  \Carbon\Carbon|null  $uptoDateTime
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCount($model, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false): int
+    public function getViewsCount($viewable, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false): int
     {
         // Key based upon the arguments to retrieve cached views counts
-        $viewsCountKey = $this->createStaticDatesKey($model, $sinceDateTime, $uptoDateTime, $unique);
+        $viewsCountKey = $this->createStaticDatesKey($viewable, $sinceDateTime, $uptoDateTime, $unique);
 
-        $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
-
-        if ($cachingEnabled) {
-            if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($viewsCountKey))) {
-                return $cachedViewsCount;
-            }
-        }
-
-        // Count the views again
-        $viewsCount = $this->countViews($model, $sinceDateTime, $uptoDateTime, $unique);
-
-        // Cache the counted views
-        if ($cachingEnabled) {
-            $this->viewsCountCacheRepository->put($viewsCountKey, $viewsCount);
-        }
-
-        return $viewsCount;
+        return $this->countAndCacheViewsCount($viewable, $viewsCountKey, $sinceDateTime, $uptoDateTime, $unique);
     }
 
     /**
      * Get the unique views count based upon the given arguments.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \Carbon\Carbon|null  $sinceDateTime
      * @param  \Carbon\Carbon|null  $uptoDateTime
-     * @param  bool  $unique
      * @return int
      */
-    public function getUniqueViewsCount($model, $sinceDateTime = null, $uptoDateTime = null): int
+    public function getUniqueViewsCount($viewable, $sinceDateTime = null, $uptoDateTime = null): int
     {
-        return $this->getViewsCount($model, $sinceDateTime, $uptoDateTime, true);
+        return $this->getViewsCount($viewable, $sinceDateTime, $uptoDateTime, true);
     }
 
     /**
      * Get the views count of the past period.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  string  $pastType
      * @param  int  $pastValue
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCountOfPast($model, $pastType, int $pastValue, bool $unique = false): int
+    public function getViewsCountOfPast($viewable, $pastType, int $pastValue, bool $unique = false): int
     {
-        $now = Carbon::now();
-
-        if ($pastType == PastType::PAST_SECONDS) {
-            $sinceDateTime = $now->copy()->subSeconds($pastValue);
-        }
-
-        if ($pastType == PastType::PAST_MINUTES) {
-            $sinceDateTime = $now->copy()->subMinutes($pastValue);
-        }
-
-        if ($pastType == PastType::PAST_DAYS) {
-            $sinceDateTime = $now->copy()->subDays($pastValue);
-        }
-
-        if ($pastType == PastType::PAST_WEEKS) {
-            $sinceDateTime = $now->copy()->subWeeks($pastValue);
-        }
-
-        if ($pastType == PastType::PAST_MONTHS) {
-            $sinceDateTime = $now->copy()->subMonths($pastValue);
-        }
-
-        if ($pastType == PastType::PAST_YEARS) {
-            $sinceDateTime = $now->copy()->subYears($pastValue);
-        }
+        $sinceDateTime = Carbon::now()->{$pastType}($pastValue);
 
         // Key based upon the arguments to retrieve cached views counts
-        $viewsCountKey = $this->createReactiveDatesKey($model, $pastType, $pastValue, $unique);
+        $viewsCountKey = $this->createReactiveDatesKey($viewable, $pastType, $pastValue, $unique);
 
+        return $this->countAndCacheViewsCount($viewable, $viewsCountKey, $sinceDateTime, $uptoDateTime, $unique);
+    }
+
+    /**
+     * Get the unique views count of the past period.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  string  $pastType
+     * @param  int  $pastValue
+     * @return int
+     */
+    public function getUniqueViewsCountOfPast($viewable, $pastType, int $pastValue)
+    {
+        return $this->getViewsCountOfPast($viewable, $pastType, $pastValue, true);
+    }
+
+    /**
+     * Count the views of the viewable model and store the value under the
+     * given key.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  string  $cacheKey
+     * @param  \Carbon\Carbon|null  $sinceDateTime
+     * @param  \Carbon\Carbon|null  $uptoDateTime
+     * @param  bool  $unique
+     */
+    public function countAndCacheViewsCount($viewable, $cacheKey, $sinceDateTime, $uptoDateTime, $unique)
+    {
         $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
+        $cachingViewsCountEnabled = config('eloquent-viewable.cache.cache_views_count.enabled', true);
 
-        if ($cachingEnabled) {
+        if ($cachingEnabled && $cachingViewsCountEnabled) {
             if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($viewsCountKey))) {
                 return $cachedViewsCount;
             }
         }
 
         // Count the views again
-        $viewsCount = $this->countViews($model, $sinceDateTime, null, $unique);
+        $viewsCount = $this->countViews($viewable, $sinceDateTime, $uptoDateTime, $unique);
 
         // Cache the counted views
         if ($cachingEnabled) {
@@ -164,31 +152,18 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
-     * Get the unique views count of the past period.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @param  string  $pastType
-     * @param  int  $pastValue
-     * @return int
-     */
-    public function getUniqueViewsCountOfPast($model, $pastType, int $pastValue)
-    {
-        return $this->getViewsCountOfPast($model, $pastType, $pastValue, true);
-    }
-
-    /**
      * Count the views based upon the given arguments.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \Carbon\Carbon  $sinceDateTime
      * @param  \Carbon\Carbon  $uptoDateTime
      * @param  bool  $unique
      * @return int
      */
-    public function countViews($model, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false): int
+    public function countViews($viewable, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false): int
     {
         // Create new Query Builder instance of the views relationship
-        $query = $model->views();
+        $query = $viewable->views();
 
         // Apply the following date filters
         if ($sinceDateTime && ! $uptoDateTime) {
@@ -215,10 +190,10 @@ class ViewableService implements ViewableServiceContract
     /**
      * Store a new view.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($model): bool
+    public function addViewTo($viewable): bool
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
@@ -231,7 +206,7 @@ class ViewableService implements ViewableServiceContract
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if ($honorToDnt && $this->requestHasDntHeader()) {
+        if ($honorToDnt && (Request::header('HTTP_DNT') == 1)) {
             return false;
         }
 
@@ -241,8 +216,8 @@ class ViewableService implements ViewableServiceContract
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
-            'viewable_id' => $model->getKey(),
-            'viewable_type' => $model->getMorphClass(),
+            'viewable_id' => $viewable->getKey(),
+            'viewable_type' => $viewable->getMorphClass(),
             'visitor' => $visitor,
         ]);
 
@@ -271,14 +246,14 @@ class ViewableService implements ViewableServiceContract
     /**
      * Remove all views from a viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return void
      */
-    public function removeModelViews($model)
+    public function removeModelViews($viewable)
     {
         app(ViewContract::class)->where([
-            'viewable_id' => $model->getKey(),
-            'viewable_type' => $model->getMorphClass(),
+            'viewable_id' => $viewable->getKey(),
+            'viewable_type' => $viewable->getMorphClass(),
         ])->delete();
     }
 
@@ -301,67 +276,56 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
-     * Check if the current request contains the HTTP_DNT header and check if
-     * it's true.
-     *
-     * @return bool
-     */
-    protected function requestHasDntHeader()
-    {
-        return Request::header('HTTP_DNT') == 1;
-    }
-
-    /**
      * Create a views count cache key for static dates.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \Carbon\Carbon|null  $sinceDateTime
      * @param  \Carbon\Carbon|null  $uptoDateTime
      * @param  bool  $unique
      * @return string
      */
-    protected function createStaticDatesKey($model, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false)
+    protected function createStaticDatesKey($viewable, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false)
     {
         $sinceDateTimeString = $sinceDateTime ? $sinceDateTime->toDateTimeString() : '';
         $uptoDateTimeString = $uptoDateTime ? $uptoDateTime->toDateTimeString() : '';
 
         $requestPeriod = "{$sinceDateTimeString}|{$uptoDateTimeString}";
 
-        return $this->createBaseDatesKey($model, $unique, $requestPeriod);
+        return $this->createBaseDatesKey($viewable, $unique, $requestPeriod);
     }
 
     /**
      * Create a views count cache key for reactive dates.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  string  $pastType
      * @param  int  $pastValue
      * @return string
      */
-    protected function createReactiveDatesKey($model, $pastType, int $pastValue, bool $unique = false)
+    protected function createReactiveDatesKey($viewable, $pastType, int $pastValue, bool $unique = false)
     {
         $pastDateTime = strtolower(str_replace('_', $pastValue, $pastType));
 
         $requestPeriod = "{$pastDateTime}|";
 
-        return $this->createBaseDatesKey($model, $unique, $requestPeriod);
+        return $this->createBaseDatesKey($viewable, $unique, $requestPeriod);
     }
 
     /**
      * Create a views count cache key.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  bool  $unique
      * @param  string  $requestPeriod
      * @return string
      */
-    public function createBaseDatesKey($model, bool $unique, string $requestPeriod)
+    public function createBaseDatesKey($viewable, bool $unique, string $requestPeriod)
     {
-        $modelId = $model->getKey();
-        $modelType = strtolower(str_replace('\\', '-', $model->getMorphClass()));
+        $viewableId = $viewable->getKey();
+        $viewableType = strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
 
         $requestType = $unique ? 'unique' : 'normal';
 
-        return "{$modelType}.{$modelId}.{$requestType}.{$requestPeriod}";
+        return "{$viewableType}.{$viewableId}.{$requestType}.{$requestPeriod}";
     }
 }
