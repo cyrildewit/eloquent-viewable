@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 /**
  * Interface Viewable.
  *
@@ -199,7 +202,7 @@ interface Viewable
      *
      * @return void
      */
-    public function removeViews(): void;
+    public function removeViews();
 
     /**
      * Retrieve records sorted by views count.
