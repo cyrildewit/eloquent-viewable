@@ -52,11 +52,11 @@ class View extends Model implements ViewContract
     }
 
     /**
-     * Create the polymorphic relation.
+     * Get all of the owning viewable models.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo
      */
-    public function model(): MorphTo
+    public function viewable(): MorphTo
     {
         return $this->morphTo();
     }
