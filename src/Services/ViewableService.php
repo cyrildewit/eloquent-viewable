@@ -13,13 +13,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Services;
 
-use Hash;
 use Cookie;
 use Request;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use CyrildeWit\EloquentViewable\Enums\PastType;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
