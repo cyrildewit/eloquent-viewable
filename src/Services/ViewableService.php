@@ -103,7 +103,7 @@ class ViewableService implements ViewableServiceContract
         // Key based upon the arguments to retrieve cached views counts
         $viewsCountKey = $this->createReactiveDatesKey($viewable, $pastType, $pastValue, $unique);
 
-        return $this->countAndCacheViewsCount($viewable, $viewsCountKey, $sinceDateTime, $uptoDateTime, $unique);
+        return $this->countAndCacheViewsCount($viewable, $viewsCountKey, $sinceDateTime, null, $unique);
     }
 
     /**
