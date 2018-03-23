@@ -24,6 +24,20 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 interface Viewable
 {
     /**
+     * Get the value of the model's primary key.
+     *
+     * @return mixed
+     */
+    public function getKey();
+
+    /**
+     * Get the class name for polymorphic relations.
+     *
+     * @return string
+     */
+    public function getMorphClass();
+
+    /**
      * Get a collection of all the views the model has.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
