@@ -20,10 +20,10 @@ namespace CyrildeWit\EloquentViewable\Enums;
  */
 abstract class PastType
 {
-    const PAST_SECONDS = 'PAST_SECONDS';
-    const PAST_MINUTES = 'PAST_MINUTES';
-    const PAST_DAYS = 'PAST_DAYS';
-    const PAST_WEEKS = 'PAST_WEEKS';
-    const PAST_MONTHS = 'PAST_MONTHS';
-    const PAST_YEARS = 'PAST_YEARS';
+    const PAST_SECONDS = 'subSeconds';
+    const PAST_MINUTES = 'subMinutes';
+    const PAST_DAYS = 'subDays';
+    const PAST_WEEKS = 'subWeeks';
+    const PAST_MONTHS = 'subMonths';
+    const PAST_YEARS = 'subYears';
 }
