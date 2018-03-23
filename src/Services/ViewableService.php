@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable\Services;
 
 use Cookie;
 use Request;
+use Collection;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
@@ -195,7 +196,7 @@ class ViewableService implements ViewableServiceContract
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
-        $cookieName = config('eloquent-viewable.cookie_name', 'ELOQUENT_VIEWABLE_COOKIE');
+        $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
 
         // If ignore bots is true and the current viewer is a bot, return false
         if ($ignoreBots && $this->crawlerDetect->isCrawler()) {
@@ -208,9 +209,14 @@ class ViewableService implements ViewableServiceContract
             return false;
         }
 
+        $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses'));
+
+        if ($ignoredIpAddresses->has(Request::ip())) {
+            return false;
+        }
+
         $visitorCookie = Cookie::get($cookieName);
         $visitor = $visitorCookie ?? Request::ip();
-        // dd($visitor);
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
