@@ -21,7 +21,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use CyrildeWit\EloquentViewable\Models\View;
 
 /**
- * ProcessView class.
+ * Class ProcessView.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */

@@ -16,7 +16,7 @@ namespace CyrildeWit\EloquentViewable\Cache;
 use Illuminate\Contracts\Cache\Repository;
 
 /**
- * This is the Eloquent model Visit class.
+ * ViewsCountCacheRepository.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
