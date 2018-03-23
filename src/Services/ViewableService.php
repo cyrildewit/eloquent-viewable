@@ -135,7 +135,7 @@ class ViewableService implements ViewableServiceContract
         $cachingViewsCountEnabled = config('eloquent-viewable.cache.cache_views_count.enabled', true);
 
         if ($cachingEnabled && $cachingViewsCountEnabled) {
-            if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($viewsCountKey))) {
+            if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($cacheKey))) {
                 return $cachedViewsCount;
             }
         }
@@ -145,7 +145,7 @@ class ViewableService implements ViewableServiceContract
 
         // Cache the counted views
         if ($cachingEnabled) {
-            $this->viewsCountCacheRepository->put($viewsCountKey, $viewsCount);
+            $this->viewsCountCacheRepository->put($cacheKey, $viewsCount);
         }
 
         return $viewsCount;
