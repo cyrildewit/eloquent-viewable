@@ -223,6 +223,7 @@ class ViewableService implements ViewableServiceContract
             'viewable_id' => $viewable->getKey(),
             'viewable_type' => $viewable->getMorphClass(),
             'visitor' => $visitor,
+            'viewed_at' => Carbon::now(),
         ]);
 
         // If queuing is enabled, dispatch the job
