@@ -20,7 +20,7 @@ use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**
- * Class ServiceProvider.
+ * Class EloquentViewableServiceProvider.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
