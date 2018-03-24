@@ -356,29 +356,26 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(10)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(10)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(10)]);
 
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(20)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(20)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(20)]);
 
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(30)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(30)]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(30)]);
 
         // total views
         $this->assertEquals(9, $post->getViews());
 
-        // past 15 seconds == 1
-        $this->assertEquals(1, $post->getViewsOfPastSeconds(15));
+        $this->assertEquals(3, $post->getViewsOfPastSeconds(15));
 
-        // past 30 seconds == 2
-        $this->assertEquals(2, $post->getViewsOfPastSeconds(30));
+        $this->assertEquals(6, $post->getViewsOfPastSeconds(25));
 
-        // past 60 seconds == 5
-        $this->assertEquals(5, $post->getViewsOfPastSeconds(60));
+        $this->assertEquals(9, $post->getViewsOfPastSeconds(35));
     }
 
     /** @test */
