@@ -15,8 +15,8 @@ namespace CyrildeWit\EloquentViewable\Services;
 
 use Cookie;
 use Request;
-use Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
@@ -211,7 +211,7 @@ class ViewableService implements ViewableServiceContract
 
         $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses'));
 
-        if ($ignoredIpAddresses->has(Request::ip())) {
+        if ($ignoredIpAddresses->contains(Request::ip())) {
             return false;
         }
 
