@@ -27,6 +27,13 @@ use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableSe
 class EloquentViewableServiceProvider extends ServiceProvider
 {
     /**
+     * Indicates if loading of the provider is deferred.
+     *
+     * @var bool
+     */
+    protected $defer = false;
+
+    /**
      * Perform post-registration booting of services.
      *
      * @return void
