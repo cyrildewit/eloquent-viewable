@@ -294,9 +294,9 @@ trait Viewable
      *
      * @return void
      */
-    public function removeViews(): void
+    public function removeViews()
     {
-        return app(ViewableService::class)->removeModelViews($this);
+        app(ViewableService::class)->removeModelViews($this);
     }
 
     /**
