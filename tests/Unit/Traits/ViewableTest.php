@@ -354,21 +354,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_seconds()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subSeconds(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
@@ -386,21 +384,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_minutes()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMinutes(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
@@ -418,21 +414,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_days()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subDays(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
@@ -450,21 +444,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_weeks()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subWeeks(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
@@ -482,21 +474,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_months()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subMonths(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
@@ -514,21 +504,19 @@ class ViewableTest extends TestCase
     /** @test */
     public function it_can_return_the_total_number_of_views_of_past_years()
     {
-        $now = Carbon::now();
-
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(10)]); // 1.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(20)]); // 1.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(30)]); // 1.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(10)]); // 1.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(20)]); // 1.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(30)]); // 1.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(40)]); // 2.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(50)]); // 2.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(60)]); // 2.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(40)]); // 2.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(50)]); // 2.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(60)]); // 2.3
 
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(70)]); // 3.1
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(80)]); // 3.2
-        TestHelper::createNewView($post, ['viewed_at' => $now->copy()->subYears(90)]); // 3.3
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(70)]); // 3.1
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(80)]); // 3.2
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(90)]); // 3.3
 
         // total views
         $this->assertEquals(9, $post->getViews());
