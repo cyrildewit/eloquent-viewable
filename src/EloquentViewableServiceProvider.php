@@ -42,7 +42,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         // $this->registerConsoleCommands();
         $this->registerContracts();
-        // $this->registerObservers();
         $this->registerRoutes();
         $this->registerPublishes();
     }
