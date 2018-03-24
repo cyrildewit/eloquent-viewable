@@ -35,6 +35,7 @@
         "illuminate/contracts": "5.5.*|5.6.*",
         "illuminate/database": "5.5.*|5.6.*",
         "illuminate/support": "5.5.*|5.6.*",
+        "illuminate/routing": "5.5.*|5.6.*",
         "jaybizzle/crawler-detect": "^1.0",
         "nesbot/carbon": "^1.22"
     },
