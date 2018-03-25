@@ -79,7 +79,7 @@ class ViewsCountCacheRepository
      */
     public function put($key, int $viewsCount, $minutes = null)
     {
-        $minutes = $minutes ?? config('eloquent-viewable.cache.events.cache_views_count.default_lifetime_in_minutes', 10);
+        $minutes = $minutes ?? config('eloquent-viewable.cache.cache_views_count.default_lifetime_in_minutes', 10);
 
         $this->cache->put("{$this->cacheKey}.{$key}", $viewsCount, $minutes);
     }
