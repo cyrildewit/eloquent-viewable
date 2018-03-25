@@ -855,4 +855,46 @@ class ViewableTest extends TestCase
         // After
         $this->assertEquals(0, View::where('viewable_id', 1)->count());
     }
+
+    /** @test */
+    public function it_can_order_by_views_count_in_descending_order()
+    {
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        $postOne->addView();
+        $postOne->addView();
+        $postOne->addView();
+
+        $postTwo->addView();
+
+        $postThree->addView();
+        $postThree->addView();
+
+        $posts = Post::orderByViewsCount()->get()->pluck('id');
+
+        $this->assertEquals(collect([1, 3, 2]), $posts);
+    }
+
+    /** @test */
+    public function it_can_order_by_views_count_in_ascending_order()
+    {
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        $postOne->addView();
+        $postOne->addView();
+        $postOne->addView();
+
+        $postTwo->addView();
+
+        $postThree->addView();
+        $postThree->addView();
+
+        $posts = Post::orderByViewsCount('asc')->get()->pluck('id');
+
+        $this->assertEquals(collect([2, 3, 1]), $posts);
+    }
 }
