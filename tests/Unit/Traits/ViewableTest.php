@@ -514,6 +514,330 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_seconds()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subSeconds(50),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subSeconds(50),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subSeconds(50),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subSeconds(100),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subSeconds(100),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subSeconds(100),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subSeconds(150),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subSeconds(150),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subSeconds(150),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastSeconds(75));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastSeconds(125));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastSeconds(175));
+    }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_minutes()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMinutes(10),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMinutes(10),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMinutes(10),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMinutes(20),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subMinutes(20),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMinutes(20),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMinutes(30),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subMinutes(30),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subMinutes(30),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastMinutes(15));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastMinutes(25));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastMinutes(35));
+    }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_days()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subDays(10),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subDays(10),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subDays(10),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subDays(20),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subDays(20),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subDays(20),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subDays(30),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subDays(30),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subDays(30),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastDays(15));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastDays(25));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastDays(35));
+    }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_weeks()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subWeeks(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subWeeks(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subWeeks(2),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subWeeks(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subWeeks(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subWeeks(4),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subWeeks(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subWeeks(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subWeeks(6),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastWeeks(3));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastWeeks(5));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastWeeks(7));
+    }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_months()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMonths(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMonths(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMonths(2),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMonths(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subMonths(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subMonths(4),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subMonths(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subMonths(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subMonths(6),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastMonths(3));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastMonths(5));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastMonths(7));
+    }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_unique_views_of_past_years()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subYears(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subYears(2),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subYears(2),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subYears(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subYears(4),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_one',
+            'viewed_at' => Carbon::now()->subYears(4),
+        ]);
+
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_two',
+            'viewed_at' => Carbon::now()->subYears(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_three',
+            'viewed_at' => Carbon::now()->subYears(6),
+        ]);
+        TestHelper::createNewView($post, [
+            'visitor' => 'visitor_four',
+            'viewed_at' => Carbon::now()->subYears(6),
+        ]);
+
+        // total views
+        $this->assertEquals(9, $post->getViews());
+
+        $this->assertEquals(2, $post->getUniqueViewsOfPastYears(3));
+
+        $this->assertEquals(3, $post->getUniqueViewsOfPastYears(5));
+
+        $this->assertEquals(4, $post->getUniqueViewsOfPastYears(7));
+    }
+
+    /** @test */
     public function it_can_remove_all_views_from_a_model()
     {
         $post = factory(Post::class)->create();
