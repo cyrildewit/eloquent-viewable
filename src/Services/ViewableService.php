@@ -209,7 +209,7 @@ class ViewableService implements ViewableServiceContract
             return false;
         }
 
-        $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses'));
+        $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses', []));
 
         if ($ignoredIpAddresses->contains(Request::ip())) {
             return false;
