@@ -309,7 +309,7 @@ class ViewableService implements ViewableServiceContract
      */
     protected function createReactiveDatesKey($viewable, $pastType, int $pastValue, bool $unique = false)
     {
-        $pastDateTime = strtolower(str_replace('_', $pastValue, $pastType));
+        $pastDateTime = strtolower('past'.$pastValue.str_after($pastType, 'sub'));
 
         $requestPeriod = "{$pastDateTime}|";
 
