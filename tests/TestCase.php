@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use Config;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -33,13 +34,14 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
-        Carbon::setTestNow(Carbon::create(2020, 1, 1));
-
         $this->destroyPackageMigrations();
         $this->publishPackageMigrations();
         $this->migratePackageTables();
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
+        $this->setCustomConfiguration();
+
+        sleep(60);
     }
 
     /**
@@ -54,6 +56,20 @@ abstract class TestCase extends Orchestra
             \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
             \Orchestra\Database\ConsoleServiceProvider::class,
         ];
+    }
+
+    /**
+     * Configure the test environment.
+     *
+     * @
+     */
+    protected function setCustomConfiguration()
+    {
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
+        // Turn caching off
+        Config::set('eloquent-viewable.cache.enabled', false);
     }
 
     /**
