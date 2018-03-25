@@ -40,8 +40,6 @@ abstract class TestCase extends Orchestra
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
         $this->setCustomConfiguration();
-
-        sleep(60);
     }
 
     /**
