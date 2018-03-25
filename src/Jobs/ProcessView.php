@@ -32,7 +32,7 @@ class ProcessView implements ShouldQueue
     /**
      * @var \CyrildeWit\EloquentViewable\Models\View
      */
-    protected $view;
+    public $view;
 
     /**
      * Create a new job instance.
