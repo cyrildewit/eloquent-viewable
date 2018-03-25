@@ -109,7 +109,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         // Publish the `CreateViewsTable` migration if it doesn't exists
         if (! class_exists('CreateViewsTable')) {
             $timestamp = date('Y_m_d_His', time());
-            $viewsTableName = snake_case($config['table_names']['views']);
+            $viewsTableName = snake_case($config['models']['view']['table_name']);
 
             $this->publishes([
                 __DIR__.'/../publishable/database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_{$viewsTableName}_table.php"),

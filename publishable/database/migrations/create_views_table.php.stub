@@ -13,14 +13,18 @@ class CreateViewsTable extends Migration
      */
     public function up()
     {
-        $viewsTableName = config('eloquent-viewable.table_names.views');
+        $viewsTableName = config('eloquent-viewable.models.view.table_name');
+        $connection = config('eloquent-viewable.models.view.connection', null);
 
-        Schema::create($viewsTableName, function (Blueprint $table) {
-            $table->increments('id');
-            $table->morphs('viewable');
-            $table->string('visitor');
-            $table->timestamp('viewed_at')->useCurrent();
-        });
+        if ($connection) {
+            Schema::connection($connection)->create($viewsTableName, function (Blueprint $table) {
+                $this->createColumns($table);
+            });
+        } else {
+            Schema::create($viewsTableName, function (Blueprint $table) {
+                $this->createColumns($table);
+            });
+        }
     }
 
     /**
@@ -30,8 +34,22 @@ class CreateViewsTable extends Migration
      */
     public function down()
     {
-        $viewsTableName = config('eloquent-viewable.table_names.views');
+        $viewsTableName = config('eloquent-viewable.models.view.table_name');
 
         Schema::dropIfExists($viewsTableName);
+    }
+
+    /**
+     * Generate the table collumns.
+     *
+     * @param  Illuminate\Database\Schema\Blueprint  $table
+     * @return void
+     */
+    protected function createColumns(Blueprint $table)
+    {
+        $table->increments('id');
+        $table->morphs('viewable');
+        $table->string('visitor');
+        $table->timestamp('viewed_at')->useCurrent();
     }
 }

@@ -4,17 +4,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Database Tables
+    | Eloquent Models
     |--------------------------------------------------------------------------
     */
 
-    'table_names' => [
+    'models' => [
 
         /*
-         * When using the "Viewable" trait from this package, it needs to
-         * know which table should be used to retrieve and store the views.
+         *
+         * Here you can configure the default `View` model.
          */
-        'views' => 'views',
+        'view' => [
+
+            'table_name' => 'views',
+            'connection' => null,
+
+        ],
 
     ],
 
