@@ -103,7 +103,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $config = $this->app->config['eloquent-viewable'];
 
         $this->publishes([
-            __DIR__.'/../resources/config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
+            __DIR__.'/../publishable/config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
         ], 'config');
 
         // Publish the `CreateViewsTable` migration if it doesn't exists
@@ -112,7 +112,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $viewsTableName = snake_case($config['table_names']['views']);
 
             $this->publishes([
-                __DIR__.'/../resources/database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_{$viewsTableName}_table.php"),
+                __DIR__.'/../publishable/database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_{$viewsTableName}_table.php"),
             ], 'migrations');
         }
     }
@@ -125,7 +125,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function mergeConfig()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../resources/config/eloquent-viewable.php',
+            __DIR__.'/../publishable/config/eloquent-viewable.php',
             'eloquent-viewable'
         );
     }
