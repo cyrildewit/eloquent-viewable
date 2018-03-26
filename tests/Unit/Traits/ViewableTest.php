@@ -897,4 +897,21 @@ class ViewableTest extends TestCase
 
         $this->assertEquals(collect([2, 3, 1]), $posts);
     }
+
+    /** @test */
+    public function it_can_return_the_total_number_of_views_from_the_cache()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addView();
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(3, $post->getViews());
+
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(3, $post->getViews());
+    }
 }
