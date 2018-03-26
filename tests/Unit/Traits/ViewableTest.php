@@ -16,11 +16,11 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Traits;
 use Config;
 use Request;
 use Carbon\Carbon;
-use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 /**
