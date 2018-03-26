@@ -26,6 +26,11 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
  */
 class ViewableTest extends TestCase
 {
+    protected function tearDown()
+    {
+        Carbon::setTestNow();
+    }
+
     /** @test */
     public function it_can_add_a_new_view_to_a_model()
     {
@@ -356,6 +361,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(50)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(50)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subSeconds(50)]);
@@ -382,6 +390,9 @@ class ViewableTest extends TestCase
     public function it_can_return_the_total_number_of_views_of_past_minutes()
     {
         $post = factory(Post::class)->create();
+
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
 
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(10)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMinutes(10)]);
@@ -410,6 +421,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(10)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(10)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subDays(10)]);
@@ -436,6 +450,9 @@ class ViewableTest extends TestCase
     public function it_can_return_the_total_number_of_views_of_past_weeks()
     {
         $post = factory(Post::class)->create();
+
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
 
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(2)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subWeeks(2)]);
@@ -464,6 +481,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(2)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(2)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subMonths(2)]);
@@ -491,6 +511,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(2)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(2)]);
         TestHelper::createNewView($post, ['viewed_at' => Carbon::now()->subYears(2)]);
@@ -517,6 +540,9 @@ class ViewableTest extends TestCase
     public function it_can_return_the_total_number_of_unique_views_of_past_seconds()
     {
         $post = factory(Post::class)->create();
+
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
 
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',
@@ -572,6 +598,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',
             'viewed_at' => Carbon::now()->subMinutes(10),
@@ -625,6 +654,9 @@ class ViewableTest extends TestCase
     public function it_can_return_the_total_number_of_unique_views_of_past_days()
     {
         $post = factory(Post::class)->create();
+
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
 
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',
@@ -680,6 +712,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',
             'viewed_at' => Carbon::now()->subWeeks(2),
@@ -734,6 +769,9 @@ class ViewableTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
+
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',
             'viewed_at' => Carbon::now()->subMonths(2),
@@ -787,6 +825,9 @@ class ViewableTest extends TestCase
     public function it_can_return_the_total_number_of_unique_views_of_past_years()
     {
         $post = factory(Post::class)->create();
+
+        // Set a fixed date for Carbon::now()
+        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
 
         TestHelper::createNewView($post, [
             'visitor' => 'visitor_one',

@@ -39,7 +39,6 @@ abstract class TestCase extends Orchestra
         $this->migratePackageTables();
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
-        $this->setCustomConfiguration();
     }
 
     /**
@@ -54,20 +53,6 @@ abstract class TestCase extends Orchestra
             \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
             \Orchestra\Database\ConsoleServiceProvider::class,
         ];
-    }
-
-    /**
-     * Configure the test environment.
-     *
-     * @
-     */
-    protected function setCustomConfiguration()
-    {
-        // Set a fixed date for Carbon::now()
-        Carbon::setTestNow(Carbon::create(2020, 1, 1, 0, 0, 0));
-
-        // Turn caching off
-        Config::set('eloquent-viewable.cache.enabled', false);
     }
 
     /**
