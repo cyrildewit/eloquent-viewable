@@ -18,8 +18,9 @@ use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
-use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
+use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
@@ -43,7 +44,14 @@ class ViewableService implements ViewableServiceContract
      *
      * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
      */
-    protected $crawlerDetect;
+    protected $crawlerDetector;
+
+    /**
+     * Ip instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Support\Ip
+     */
+    protected $ipRepository;
 
     /**
      * Create a new ViewableService instance.
@@ -53,7 +61,8 @@ class ViewableService implements ViewableServiceContract
     public function __construct()
     {
         $this->viewsCountCacheRepository = app(ViewsCountCacheRepository::class);
-        $this->crawlerDetect = app(CrawlerDetect::class);
+        $this->crawlerDetector = app(CrawlerDetector::class);
+        $this->ipRepository = app(Ip::class);
     }
 
     /**
@@ -199,7 +208,7 @@ class ViewableService implements ViewableServiceContract
         $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
 
         // If ignore bots is true and the current viewer is a bot, return false
-        if ($ignoreBots && $this->crawlerDetect->isCrawler()) {
+        if ($ignoreBots && $this->crawlerDetector->isRobot()) {
             return false;
         }
 
@@ -211,12 +220,12 @@ class ViewableService implements ViewableServiceContract
 
         $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses', []));
 
-        if ($ignoredIpAddresses->contains(Request::ip())) {
+        if ($ignoredIpAddresses->contains($this->ipRepository->get())) {
             return false;
         }
 
         $visitorCookie = Cookie::get($cookieName);
-        $visitor = $visitorCookie ?? Request::ip();
+        $visitor = $visitorCookie ?? $this->ipRepository->get();
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([

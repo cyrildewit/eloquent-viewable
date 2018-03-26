@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
@@ -75,6 +76,13 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->bind(ViewContract::class, View::class);
         $this->app->singleton(ViewableServiceContract::class, ViewableService::class);
+
+        $this->app->bind(CrawlerDetector::class, function ($app) {
+            return new CrawlerDetector(
+                $app['request']->headers->all(),
+                $app['request']->server('HTTP_USER_AGENT')
+            );
+        });
     }
 
     /**
