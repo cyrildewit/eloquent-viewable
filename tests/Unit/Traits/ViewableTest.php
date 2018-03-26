@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Traits;
 
+use Config;
+use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
@@ -954,5 +956,20 @@ class ViewableTest extends TestCase
         $post->addView();
 
         $this->assertEquals(3, $post->getViews());
+    }
+
+    /** @test */
+    public function it_does_not_save_views_of_visitors_with_dnt_header()
+    {
+        $post = factory(Post::class)->create();
+
+        Config::set('eloquent-viewable.honor_dnt', true);
+        Request::instance()->headers->set('HTTP_DNT', 1);
+
+        $post->addView();
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(0, View::where('id', 1)->count());
     }
 }
