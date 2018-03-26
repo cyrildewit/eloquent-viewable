@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Config;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
 
