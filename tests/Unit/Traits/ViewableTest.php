@@ -16,9 +16,12 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Traits;
 use Config;
 use Request;
 use Carbon\Carbon;
+use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 /**
@@ -959,6 +962,28 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
+    public function it_does_not_save_views_of_bots()
+    {
+        $post = factory(Post::class)->create();
+
+        // Faking that the visitor is a bot
+        app()->bind(CrawlerDetector::class, function () {
+            return new class {
+                public function isRobot()
+                {
+                    return true;
+                }
+            };
+        });
+
+        $post->addView();
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(0, View::where('id', 1)->count());
+    }
+
+    /** @test */
     public function it_does_not_save_views_of_visitors_with_dnt_header()
     {
         $post = factory(Post::class)->create();
@@ -971,5 +996,44 @@ class ViewableTest extends TestCase
         $post->addView();
 
         $this->assertEquals(0, View::where('id', 1)->count());
+    }
+
+    /** @test */
+    public function it_does_not_save_views_of_ignored_ip_addresses()
+    {
+        $post = factory(Post::class)->create();
+
+        Config::set('eloquent-viewable.ignored_ip_addresses', [
+            '127.20.22.6',
+            '10.10.30.40',
+        ]);
+
+        $this->app->bind(Ip::class, function ($app) {
+            return new class {
+                public function get()
+                {
+                    return '127.20.22.6';
+                }
+            };
+        });
+
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(0, View::where('viewable_id', $post->getKey())->count());
+
+        $this->app->bind(Ip::class, function ($app) {
+            return new class {
+                public function get()
+                {
+                    return '10.10.30.40';
+                }
+            };
+        });
+
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(0, View::where('viewable_id', $post->getKey())->count());
     }
 }
