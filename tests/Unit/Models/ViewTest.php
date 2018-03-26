@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Observers;
 
+use Config;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
@@ -24,6 +25,18 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
  */
 class ViewTest extends TestCase
 {
+    /** @test */
+    public function it_can_save_views_with_a_custom_connection()
+    {
+        $post = factory(Post::class)->create();
+
+        Config::set('eloquent-viewable.models.view.connection', 'sqlite');
+
+        $post->addView();
+
+        $this->assertInstanceOf(Post::class, View::where('viewable_id', $post->getKey())->firstOrFail()->viewable);
+    }
+
     /** @test */
     public function it_has_viewable_relationship()
     {
