@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Traits;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Enums\PastType;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
@@ -63,9 +65,10 @@ trait Viewable
      * @param  \Carbon\Carbon  $sinceDateTime
      * @return int
      */
-    public function getViewsSince($sinceDateTime): int
+    public function getViewsSince(DateTime $sinceDateTime): int
     {
-        return app(ViewableService::class)->getViewsCount($this, $sinceDateTime);
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::create($sinceDateTime, null));
     }
 
     /**
@@ -74,9 +77,10 @@ trait Viewable
      * @param  \Carbon\Carbon  $uptoDateTime
      * @return int
      */
-    public function getViewsUpto($uptoDateTime): int
+    public function getViewsUpto(DateTime $uptoDateTime): int
     {
-        return app(ViewableService::class)->getViewsCount($this, null, $uptoDateTime);
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::create(null, $uptoDateTime));
     }
 
     /**
