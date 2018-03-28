@@ -83,12 +83,19 @@ return [
          * Enable this by setting the value of 'enabled' to 'true' (default)
          * or disable it by setting this value to 'false'.
          *
-         * By default each views count will be stored for 10 minutes. If
+         * By default each views count will be stored for 60 minutes. If
          * you want to change that, simply edit the value of
          * 'lifetime_in_minutes' to something else. Make sure it is
          * in minutes!
          */
         'cache_views_count' => [
+
+            'enabled' => true,
+            'lifetime_in_minutes' => 60,
+
+        ],
+
+        'cache_analytics_views_count' => [
 
             'enabled' => true,
             'lifetime_in_minutes' => 10,
