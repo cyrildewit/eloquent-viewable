@@ -16,7 +16,7 @@ namespace CyrildeWit\EloquentViewable\Cache;
 use Illuminate\Contracts\Cache\Repository;
 
 /**
- * ViewsCountCacheRepository.
+ * Class viewsCountCacheRepository.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
