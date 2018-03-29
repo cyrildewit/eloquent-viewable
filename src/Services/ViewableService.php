@@ -200,7 +200,7 @@ class ViewableService implements ViewableServiceContract
         // If queuing is enabled, dispatch the job
         $configStoreNewView = config('eloquent-viewable.jobs.store_new_view');
 
-        if ($configStoreNewView['enabled'] ?? false) {
+        if ($configStoreNewView['enabled']) {
             $delayInSeconds = $configStoreNewView['delay_in_seconds'] ?? 60 * 2;
             $onQueue = $configStoreNewView['onQueue'] ?? null;
             $onConnection = $configStoreNewView['onConnection'] ?? null;
