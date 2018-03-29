@@ -123,10 +123,10 @@ trait Viewable
      * @param  \DateTime  $uptoDateTime
      * @return int
      */
-    public function getUniqueViewsUpto($uptoDateTime): int
+    public function getUniqueViewsUpto(DateTime $uptoDateTime): int
     {
         return app(ViewableService::class)
-            ->getUniqueViewsCount($this, null, Period::create(null, $uptoDateTime));
+            ->getUniqueViewsCount($this, Period::create(null, $uptoDateTime));
     }
 
     /**
@@ -136,7 +136,7 @@ trait Viewable
      * @param  \DateTime  $uptoDateTime
      * @return int
      */
-    public function getUniqueViewsBetween($sinceDateTime, $uptoDateTime): int
+    public function getUniqueViewsBetween(DateTime $sinceDateTime, DateTime $uptoDateTime): int
     {
         return app(ViewableService::class)
             ->getUniqueViewsCount($this, Period::create($sinceDateTime, $uptoDateTime));
@@ -188,6 +188,54 @@ trait Viewable
     {
         return app(ViewableService::class)
             ->getViewsCount($this, Period::pastYears($years));
+    }
+
+    /**
+     * Get the total number of views in the past days.
+     *
+     * @param  int  $seconds
+     * @return int
+     */
+    public function getUniqueViewsOfPastDays(int $days): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::pastDays($days));
+    }
+
+    /**
+     * Get the total number of views in the past weeks.
+     *
+     * @param  int  $weeks
+     * @return int
+     */
+    public function getUniqueViewsOfPastWeeks(int $weeks): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::pastWeeks($weeks));
+    }
+
+    /**
+     * Get the total number of views in the past months.
+     *
+     * @param  int  $months
+     * @return int
+     */
+    public function getUniqueViewsOfPastMonths(int $months): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::pastMonths($months));
+    }
+
+    /**
+     * Get the total number of views in the past years.
+     *
+     * @param  int  $years
+     * @return int
+     */
+    public function getUniqueViewsOfPastYears(int $years): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::pastYears($years));
     }
 
     /**
