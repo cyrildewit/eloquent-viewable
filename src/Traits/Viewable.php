@@ -115,12 +115,37 @@ trait Viewable
      */
     public function getUniqueViewsSince(DateTime $sinceDateTime): int
     {
-        return app(ViewableService::class)->getUniqueViewsCount($this, Period::create($sinceDateTime));
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::create($sinceDateTime));
     }
 
+    /**
+     * Get the total number of unique views upto the given date.
+     *
+     * @param  \DateTime  $uptoDateTime
+     * @return int
+     */
+    public function getUniqueViewsUpto($uptoDateTime): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, null, Period::create(null, $uptoDateTime));
+    }
 
     /**
-     * Get the total number of views in the past 'n' seconds.
+     * Get the total number of unique views upto the given date.
+     *
+     * @param  \DateTime  $sinceDateTime
+     * @param  \DateTime  $uptoDateTime
+     * @return int
+     */
+    public function getUniqueViewsBetween($sinceDateTime, $uptoDateTime): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::create($sinceDateTime, $uptoDateTime));
+    }
+
+    /**
+     * Get the total number of views in the past days.
      *
      * @param  int  $seconds
      * @return int
@@ -132,9 +157,57 @@ trait Viewable
     }
 
     /**
+     * Get the total number of views in the past weeks.
+     *
+     * @param  int  $weeks
+     * @return int
+     */
+    public function getViewsOfPastWeeks(int $weeks): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::pastWeeks($weeks));
+    }
+
+    /**
+     * Get the total number of views in the past months.
+     *
+     * @param  int  $months
+     * @return int
+     */
+    public function getViewsOfPastMonths(int $months): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::pastMonths($months));
+    }
+
+    /**
+     * Get the total number of views in the past years.
+     *
+     * @param  int  $years
+     * @return int
+     */
+    public function getViewsOfPastYears(int $years): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::pastYears($years));
+    }
+
+    /**
      * Get the total number of views in the past 'n' seconds.
      *
      * @param  int  $seconds
+     * @return int
+     */
+    public function getViewsOfSubSeconds(int $seconds): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subSeconds($seconds));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' days.
+     *
+     * @param  int  $days
      * @return int
      */
     public function getViewsOfSubDays(int $days): int
@@ -142,185 +215,6 @@ trait Viewable
         return app(ViewableService::class)
             ->getViewsCount($this, Period::subDays($days));
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // /**
-    //  * Get the total number of unique views upto the given date.
-    //  *
-    //  * @param  \DateTime  $uptoDateTime
-    //  * @return int
-    //  */
-    // public function getUniqueViewsUpto($uptoDateTime): int
-    // {
-    //     return app(ViewableService::class)->getUniqueViewsCount($this, null, $uptoDateTime);
-    // }
-
-    // /**
-    //  * Get the total number of unique views upto the given date.
-    //  *
-    //  * @param  \DateTime  $sinceDateTime
-    //  * @param  \DateTime  $uptoDateTime
-    //  * @return int
-    //  */
-    // public function getUniqueViewsBetween($sinceDateTime, $uptoDateTime): int
-    // {
-    //     return app(ViewableService::class)->getUniqueViewsCount($this, $sinceDateTime, $uptoDateTime);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' seconds.
-    //  *
-    //  * @param  int  $seconds
-    //  * @return int
-    //  */
-    // public function getViewsOfPastSeconds(int $seconds): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_SECONDS, $seconds);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' minutes.
-    //  *
-    //  * @param  int  $minutes
-    //  * @return int
-    //  */
-    // public function getViewsOfPastMinutes(int $minutes): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_MINUTES, $minutes);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' days.
-    //  *
-    //  * @param  int  $days
-    //  * @return int
-    //  */
-    // public function getViewsOfPastDays(int $days): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_DAYS, $days);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' weeks.
-    //  *
-    //  * @param  int  $weeks
-    //  * @return int
-    //  */
-    // public function getViewsOfPastWeeks(int $weeks): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_WEEKS, $weeks);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' months.
-    //  *
-    //  * @param  int  $months
-    //  * @return int
-    //  */
-    // public function getViewsOfPastMonths(int $months): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_MONTHS, $months);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' years.
-    //  *
-    //  * @param  int  $years
-    //  * @return int
-    //  */
-    // public function getViewsOfPastYears(int $years): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getViewsCountOfPast($this, PastType::PAST_YEARS, $years);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' seconds.
-    //  *
-    //  * @param  int  $seconds
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastSeconds(int $seconds): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_SECONDS, $seconds);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' minutes.
-    //  *
-    //  * @param  int  $minutes
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastMinutes(int $minutes): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_MINUTES, $minutes);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' days.
-    //  *
-    //  * @param  int  $days
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastDays(int $days): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_DAYS, $days);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' weeks.
-    //  *
-    //  * @param  int  $weeks
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastWeeks(int $weeks): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_WEEKS, $weeks);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' months.
-    //  *
-    //  * @param  int  $months
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastMonths(int $months): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_MONTHS, $months);
-    // }
-
-    // /**
-    //  * Get the total number of views in the past 'n' years.
-    //  *
-    //  * @param  int  $years
-    //  * @return int
-    //  */
-    // public function getUniqueViewsOfPastYears(int $years): int
-    // {
-    //     return app(ViewableService::class)
-    //         ->getUniqueViewsCountOfPast($this, PastType::PAST_YEARS, $years);
-    // }
 
     /**
      * Store a new view.

@@ -37,19 +37,19 @@ class Period
     const SUB_YEARS = 'SUB_YEARS';
 
     /**
-     * @var \DateTime
+     * @var \DateTime|null
      */
     protected $startDateTime;
 
     /**
-     * @var \DateTime
+     * @var \DateTime|null
      */
     protected $endDateTime;
 
     /**
      * @var bool
      */
-    protected $staticDateTimes = true;
+    protected $fixedDateTimes = true;
 
     /**
      * @var string
@@ -92,11 +92,21 @@ class Period
         return new static($startDateTime, $endDateTime);
     }
 
+    /**
+     * Get the start date time.
+     *
+     * @return \DateTime|null
+     */
     public function getStartDateTime()
     {
         return $this->startDateTime;
     }
 
+    /**
+     * Get the end date time.
+     *
+     * @return \DateTime|null
+     */
     public function getEndDateTime()
     {
         return $this->endDateTime;
@@ -122,23 +132,10 @@ class Period
         return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
     }
 
-    public function makeKey(): string
+    /** */
+    public function hasFixedDateTimes()
     {
-        if ($this->hasStaticDateTimes()) {
-            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
-        }
-
-        $subTypeExploded = explode('_', strtolower($this->subType));
-
-        $subType = $subTypeExploded[0];
-        $subValueType = $subTypeExploded[1];
-
-        return "{$subType}{$this->subValue}{$subValueType}|";
-    }
-
-    public function hasStaticDateTimes()
-    {
-        return $this->staticDateTimes;
+        return $this->fixedDateTimes;
     }
 
     public function setStartDateTime(DateTime $startDateTime)
@@ -155,11 +152,30 @@ class Period
         return $this;
     }
 
-    public function setStaticDateTimes(bool $status)
+    public function setfixedDateTimes(bool $status)
     {
-        $this->staticDateTimes = $status;
+        $this->fixedDateTimes = $status;
 
         return $this;
+    }
+
+    /**
+     * Make a unique key.
+     *
+     * @return string
+     */
+    public function makeKey(): string
+    {
+        if ($this->hasFixedDateTimes()) {
+            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
+        }
+
+        $subTypeExploded = explode('_', strtolower($this->subType));
+
+        $subType = $subTypeExploded[0];
+        $subValueType = $subTypeExploded[1];
+
+        return "{$subType}{$this->subValue}{$subValueType}|";
     }
 
     public function setSubType($subType)
@@ -259,7 +275,7 @@ class Period
 
         $period = new static($startDateTime);
 
-        return $period->setStaticDateTimes(false)
+        return $period->setfixedDateTimes(false)
             ->setSubType($pastType)
             ->setSubValue($subValue);
     }
@@ -280,7 +296,7 @@ class Period
 
         $period = new static($startDateTime);
 
-        return $period->setStaticDateTimes(false)
+        return $period->setfixedDateTimes(false)
             ->setSubType($subType)
             ->setSubValue($subValue);
     }
