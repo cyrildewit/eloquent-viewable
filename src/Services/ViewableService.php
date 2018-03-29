@@ -20,9 +20,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Ip;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
@@ -61,7 +61,7 @@ class ViewableService// implements ViewableServiceContract
      */
     public function __construct()
     {
-        $this->viewsCountCacheRepository = app(ViewsCountCacheRepository::class);
+        $this->cache = app(CacheRepository::class);
         $this->crawlerDetector = app(CrawlerDetector::class);
         $this->ipRepository = app(Ip::class);
     }
