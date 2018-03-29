@@ -31,7 +31,7 @@ use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableSe
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewableService // implements ViewableServiceContract
+class ViewableService implements ViewableServiceContract
 {
     /**
      * The cache repository instance.
