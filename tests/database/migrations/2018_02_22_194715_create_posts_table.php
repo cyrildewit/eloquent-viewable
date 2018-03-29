@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Eloquent Visitable.
+ * This file is part of Eloquent Viewable.
  *
  * (c) Cyril de Wit <github@cyrildewit.nl>
  *

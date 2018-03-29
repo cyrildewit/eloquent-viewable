@@ -54,12 +54,12 @@ class Period
     /**
      * @var string
      */
-    protected $pastType;
+    protected $subType;
 
     /**
-     * @var string
+     * @var int
      */
-    protected $subType;
+    protected $subValue;
 
     /**
      * Create a new Period instance.
@@ -70,8 +70,10 @@ class Period
      */
     public function __construct(DateTime $startDateTime = null, DateTime $endDateTime = null)
     {
-        if ($startDateTime > $endDateTime) {
-            throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime($startDateTime, $endDateTime);
+        if ($startDateTime instanceof DateTime && $endDateTime instanceof DateTime) {
+            if ($startDateTime > $endDateTime) {
+                throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime($startDateTime, $endDateTime);
+            }
         }
 
         $this->startDateTime = $startDateTime;
@@ -90,25 +92,88 @@ class Period
         return new static($startDateTime, $endDateTime);
     }
 
-    /**
-     * @return
-     */
-    public static function past(string $pastType, int $number)
+    public function getStartDateTime()
     {
-        // $this->staticDateTimes = false;
-        // $this->pastType = $pastType;
+        return $this->startDateTime;
+    }
 
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($pastType, 'PAST_')));
-        $today = Carbon::today();
+    public function getEndDateTime()
+    {
+        return $this->endDateTime;
+    }
 
-        if (! is_callable([$today::today(), $subTypeMethod])) {
-            return false;
+    /**
+     * Get the DateTime string of the start date time.
+     *
+     * @return string
+     */
+    public function getStartDateTimeString(): string
+    {
+        return $this->startDateTime !== null ? $this->startDateTime->toDateTimeString() : '';
+    }
+
+    /**
+     * Get the DateTime string of the start date time.
+     *
+     * @return string
+     */
+    public function getEndDateTimeString(): string
+    {
+        return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
+    }
+
+    public function makeKey(): string
+    {
+        if ($this->hasStaticDateTimes()) {
+            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
         }
 
-        $startDateTime = $today->$subTypeMethod($number);
-        $endDateTime = null;
+        $subTypeExploded = explode('_', strtolower($this->subType));
 
-        return new static($startDateTime, $endDateTime);
+        $subType = $subTypeExploded[0];
+        $subValueType = $subTypeExploded[1];
+
+        return "{$subType}{$this->subValue}{$subValueType}|";
+    }
+
+    public function hasStaticDateTimes()
+    {
+        return $this->staticDateTimes;
+    }
+
+    public function setStartDateTime(DateTime $startDateTime)
+    {
+        $this->startDateTime = $startDateTime;
+
+        return $this;
+    }
+
+    public function setEndDateTime(DateTime $startDateTime)
+    {
+        $this->endDateTime = $endDateTime;
+
+        return $this;
+    }
+
+    public function setStaticDateTimes(bool $status)
+    {
+        $this->staticDateTimes = $status;
+
+        return $this;
+    }
+
+    public function setSubType($subType)
+    {
+        $this->subType = $subType;
+
+        return $this;
+    }
+
+    public function setSubValue($subValue)
+    {
+        $this->subValue = $subValue;
+
+        return $this;
     }
 
     /**
@@ -124,15 +189,7 @@ class Period
      */
     public static function pastWeeks(int $weeks)
     {
-        $this->staticDateTimes = false;
-        $this->pastType = self::PAST_WEEKS;
-
-        $today = Carbon::today();
-
-        $startDateTime = $today->copy()->subWeeks($weeks);
-        $endDateTime = $today->copy();
-
-        return new static($startDateTime, $endDateTime);
+        return self::past(self::PAST_WEEKS, $weeks);
     }
 
     /**
@@ -140,15 +197,7 @@ class Period
      */
     public static function pastMonths(int $months)
     {
-        $this->staticDateTimes = false;
-        $this->pastType = self::PAST_MONTHS;
-
-        $today = Carbon::today();
-
-        $startDateTime = $today->copy()->subMonths($months);
-        $endDateTime = $today->copy();
-
-        return new static($startDateTime, $endDateTime);
+        return self::past(self::PAST_MONTHS, $months);
     }
 
     /**
@@ -156,40 +205,83 @@ class Period
      */
     public static function pastYears(int $years)
     {
-        $this->staticDateTimes = false;
-        $this->pastType = self::PAST_YEARS;
-
-        $today = Carbon::today();
-
-        $startDateTime = $today->copy()->subYears($years);
-        $endDateTime = $today->copy();
-
-        return new static($startDateTime, $endDateTime);
+        return self::past(self::PAST_YEARS, $years);
     }
 
     public static function subSeconds(int $seconds)
     {
-        $this->staticDateTimes = false;
-        $this->pastType = self::SUB_SECONDS;
-
-        $now = Carbon::now();
-
-        $startDateTime = $now->copy()->subSeconds($seconds);
-        $endDateTime = $now->copy();
-
-        return new static($startDateTime, $endDateTime);
+        return self::sub(self::SUB_SECONDS, $seconds);
     }
 
     public static function subMinutes(int $minutes)
     {
-        $this->staticDateTimes = false;
-        $this->pastType = self::SUB_MINUTES;
+        return self::sub(self::SUB_MINUTES, $minutes);
+    }
 
+    public static function subHours(int $hours)
+    {
+        return self::sub(self::SUB_HOURS, $hours);
+    }
+
+    public static function subDays(int $days)
+    {
+        return self::sub(self::SUB_DAYS, $days);
+    }
+
+    public static function subWeeks(int $weeks)
+    {
+        return self::sub(self::SUB_WEEKS, $weeks);
+    }
+
+    public static function subMonths(int $months)
+    {
+        return self::sub(self::SUB_MONTHS, $months);
+    }
+
+    public static function subYears(int $years)
+    {
+        return self::sub(self::SUB_YEARS, $years);
+    }
+
+    /**
+     * @return
+     */
+    public static function past(string $pastType, int $subValue)
+    {
+        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($pastType, 'PAST_')));
+        $today = Carbon::today();
+
+        if (! is_callable([$today, $subTypeMethod])) {
+            return false;
+        }
+
+        $startDateTime = $today->$subTypeMethod($subValue);
+
+        $period = new static($startDateTime);
+
+        return $period->setStaticDateTimes(false)
+            ->setSubType($pastType)
+            ->setSubValue($subValue);
+    }
+
+    /**
+     * @return
+     */
+    public static function sub(string $subType, int $subValue)
+    {
+        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'SUB_')));
         $now = Carbon::now();
 
-        $startDateTime = $now->copy()->subMinutes($minutes);
-        $endDateTime = $now->copy();
+        if (! is_callable([$now, $subTypeMethod])) {
+            return false;
+        }
 
-        return new static($startDateTime, $endDateTime);
+        $startDateTime = $now->$subTypeMethod($subValue);
+
+        $period = new static($startDateTime);
+
+        return $period->setStaticDateTimes(false)
+            ->setSubType($subType)
+            ->setSubValue($subValue);
     }
 }

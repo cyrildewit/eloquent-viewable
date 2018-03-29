@@ -16,11 +16,11 @@ namespace CyrildeWit\EloquentViewable\Cache;
 use Illuminate\Contracts\Cache\Repository;
 
 /**
- * ViewsCountCacheRepository.
+ * Class ViewsAnalyticsRepository.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewsCountCacheRepository
+class ViewsAnalyticsCacheRepository
 {
     /**
      * The cache repository instance.
@@ -37,7 +37,7 @@ class ViewsCountCacheRepository
     protected $cacheKey;
 
     /**
-     * Create a new ViewsCountCacheRepository instance.
+     * Create a new ViewsAnalyticsCacheRepository instance.
      *
      * @return void
      */
@@ -53,7 +53,7 @@ class ViewsCountCacheRepository
      * @param  string  $key
      * @return bool
      */
-    public function has($key): bool
+    public function hasViewsCount($key): bool
     {
         return $this->cache->has("{$this->cacheKey}.{$key}");
     }
@@ -64,7 +64,7 @@ class ViewsCountCacheRepository
      * @param  string  $key
      * @return mixed
      */
-    public function get($key)
+    public function getViewsCount($key)
     {
         return $this->cache->get("{$this->cacheKey}.{$key}");
     }
@@ -77,7 +77,7 @@ class ViewsCountCacheRepository
      * @param  \DateTimeInterface|\DateInterval|float|int  $minutes
      * @return void
      */
-    public function put($key, int $viewsCount, $minutes = null)
+    public function putViewsCount($key, int $viewsCount, $minutes = null)
     {
         $minutes = $minutes ?? config('eloquent-viewable.cache.cache_views_count.default_lifetime_in_minutes', 10);
 
