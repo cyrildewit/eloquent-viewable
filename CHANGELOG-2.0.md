@@ -52,4 +52,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Removed `TestCase` class from `tests` directory ([504d484](https://github.com/cyrildewit/eloquent-viewable/commit/a44ddda5d597bb1d0fe57a154efae988a514a7f9))
 - Removed `ViewViewableTest` class from `tests/TestCases` directory ([504d484](https://github.com/cyrildewit/eloquent-viewable/commit/a44ddda5d597bb1d0fe57a154efae988a514a7f9))
 
-[Unreleased]: https://github.com/cyrildewit/laravel-page-visits-counter/compare/v1.0.5...2.0
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v1.0.5...2.0
