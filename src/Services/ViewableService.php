@@ -89,7 +89,9 @@ class ViewableService// implements ViewableServiceContract
 
         // Check cache if wanted
         if ($cachingEnabled && $cachingViewsCountEnabled) {
-            if (! is_null($cachedViewsCount = $this->cache->get($cacheKey))) {
+            $cachedViewsCount = $this->cache->get($cacheKey);
+
+            if ($cachedViewsCount !== null) {
                 return $cachedViewsCount;
             }
         }
@@ -99,7 +101,8 @@ class ViewableService// implements ViewableServiceContract
 
         // Cache the counted views
         if ($cachingEnabled) {
-            $this->cache->put($cacheKey, $viewsCount);
+            $lifetime = config('eloquent-viewable.cache.cache_views_count.lifetime_in_minutes', 60);
+            $this->cache->put($cacheKey, $viewsCount, $lifetime);
         }
 
         return $viewsCount;
