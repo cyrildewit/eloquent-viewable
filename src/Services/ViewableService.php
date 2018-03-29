@@ -34,11 +34,11 @@ use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableSe
 class ViewableService// implements ViewableServiceContract
 {
     /**
-     * ViewsCountCacheRepository instance.
+     * The cache repository instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Cache\ViewsCountCacheRepository
+     * @var \Illuminate\Contracts\Cache\Repository
      */
-    protected $viewsCountCacheRepository;
+    protected $cache;
 
     /**
      * CrawlerDetect instance.
@@ -89,7 +89,7 @@ class ViewableService// implements ViewableServiceContract
 
         // Check cache if wanted
         if ($cachingEnabled && $cachingViewsCountEnabled) {
-            if (! is_null($cachedViewsCount = $this->viewsCountCacheRepository->get($cacheKey))) {
+            if (! is_null($cachedViewsCount = $this->cache->get($cacheKey))) {
                 return $cachedViewsCount;
             }
         }
@@ -99,7 +99,7 @@ class ViewableService// implements ViewableServiceContract
 
         // Cache the counted views
         if ($cachingEnabled) {
-            $this->viewsCountCacheRepository->put($cacheKey, $viewsCount);
+            $this->cache->put($cacheKey, $viewsCount);
         }
 
         return $viewsCount;
