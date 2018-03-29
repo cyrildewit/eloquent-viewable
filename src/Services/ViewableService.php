@@ -18,11 +18,11 @@ use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Ip;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
@@ -31,7 +31,7 @@ use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableSe
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewableService// implements ViewableServiceContract
+class ViewableService // implements ViewableServiceContract
 {
     /**
      * The cache repository instance.

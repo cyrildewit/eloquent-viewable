@@ -14,10 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Traits;
 
 use DateTime;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Enums\PastType;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Observers\ViewableObserver;

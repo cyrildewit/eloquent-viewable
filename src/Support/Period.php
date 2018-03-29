@@ -132,7 +132,6 @@ class Period
         return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
     }
 
-    /** */
     public function hasFixedDateTimes()
     {
         return $this->fixedDateTimes;
