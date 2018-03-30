@@ -62,7 +62,7 @@ class ViewsAnalytics
 
         $viewsCountByType = View::where('viewable_type', $viewableType)->count();
 
-         // Cache the counted views
+        // Cache the counted views
         if ($cachingEnabled) {
             $this->cache->put($cacheKey, $viewsCountByType);
         }

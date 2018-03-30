@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 interface ViewableService
 {
-/**
+    /**
      * Get the views count based upon the given arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
