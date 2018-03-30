@@ -35,166 +35,166 @@ class ViewableTest extends TestCase
         Carbon::setTestNow();
     }
 
-   /** @test */
-   public function getViews_can_return_the_total_number_of_views()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViews_can_return_the_total_number_of_views()
+    {
+        $post = factory(Post::class)->create();
 
-       $post->addView();
-       $post->addView();
-       $post->addView();
+        $post->addView();
+        $post->addView();
+        $post->addView();
 
-       $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
-   }
+        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
+    }
 
-   /** @test */
-   public function getViews_can_return_the_total_number_of_views_since_startdatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViews_can_return_the_total_number_of_views_since_startdatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
 
-       $this->assertEquals(3, $post->getViews());
-       $this->assertEquals(2, $post->getViewsSince(Carbon::parse('2018-01-02 01:00:00')));
-   }
+        $this->assertEquals(3, $post->getViews());
+        $this->assertEquals(2, $post->getViewsSince(Carbon::parse('2018-01-02 01:00:00')));
+    }
 
-   /** @test */
-   public function getViews_can_return_the_total_number_of_views_upto_enddatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViews_can_return_the_total_number_of_views_upto_enddatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
 
-       $this->assertEquals(3, $post->getViews());
-       $this->assertEquals(2, $post->getViewsUpto(Carbon::parse('2018-01-02 01:00:00')));
-   }
+        $this->assertEquals(3, $post->getViews());
+        $this->assertEquals(2, $post->getViewsUpto(Carbon::parse('2018-01-02 01:00:00')));
+    }
 
-   /** @test */
-   public function getViews_can_return_the_total_number_of_views_between_startdatetime_and_enddatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViews_can_return_the_total_number_of_views_between_startdatetime_and_enddatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]); // start
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00')]);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00')]); // end
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]); // start
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00')]); // end
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00')]);
 
-       $this->assertEquals(6, $post->getViews());
-       $this->assertEquals(4, $post->getViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
-   }
+        $this->assertEquals(6, $post->getViews());
+        $this->assertEquals(4, $post->getViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
+    }
 
-   /** @test */
-   public function getUniqueViews_can_return_the_total_number_of_unique_views()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getUniqueViews_can_return_the_total_number_of_unique_views()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']); // start
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']); // start
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
-       $this->assertEquals(6, $post->getViews());
-       $this->assertEquals(4, $post->getUniqueViews());
-   }
+        $this->assertEquals(6, $post->getViews());
+        $this->assertEquals(4, $post->getUniqueViews());
+    }
 
-   /** @test */
-   public function getUniqueViews_can_return_the_total_number_of_unique_views_since_startdatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getUniqueViews_can_return_the_total_number_of_unique_views_since_startdatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']); // start
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']); // start
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
-       $this->assertEquals(6, $post->getViews());
-       $this->assertEquals(3, $post->getUniqueViewsSince(Carbon::parse('2018-01-04 01:00:00')));
-   }
+        $this->assertEquals(6, $post->getViews());
+        $this->assertEquals(3, $post->getUniqueViewsSince(Carbon::parse('2018-01-04 01:00:00')));
+    }
 
-   /** @test */
-   public function getViewsCount_can_return_the_total_number_of_unique_views_upto_enddatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViewsCount_can_return_the_total_number_of_unique_views_upto_enddatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']); // end
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']); // end
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
-       $this->assertEquals(6, $post->getViews());
-       $this->assertEquals(2, $post->getUniqueViewsUpto(Carbon::parse('2018-01-03 01:00:00')));
-   }
+        $this->assertEquals(6, $post->getViews());
+        $this->assertEquals(2, $post->getUniqueViewsUpto(Carbon::parse('2018-01-03 01:00:00')));
+    }
 
-   /** @test */
-   public function getViewsCount_can_return_the_total_number_of_unique_views_between_startdatetime_and_enddatetime()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViewsCount_can_return_the_total_number_of_unique_views_between_startdatetime_and_enddatetime()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']); // start
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']);
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']); // end
-       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']); // start
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']); // end
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
-       $this->assertEquals(6, $post->getViews());
-       $this->assertEquals(3, $post->getUniqueViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
-   }
+        $this->assertEquals(6, $post->getViews());
+        $this->assertEquals(3, $post->getUniqueViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
+    }
 
-   /** @test */
-   public function getViewsCount_can_return_the_total_number_of_views_from_the_cache()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function getViewsCount_can_return_the_total_number_of_views_from_the_cache()
+    {
+        $post = factory(Post::class)->create();
 
-       TestHelper::createNewView($post);
-       TestHelper::createNewView($post);
-       TestHelper::createNewView($post);
+        TestHelper::createNewView($post);
+        TestHelper::createNewView($post);
+        TestHelper::createNewView($post);
 
-       $this->assertEquals(3, $post->getViews());
+        $this->assertEquals(3, $post->getViews());
 
-       TestHelper::createNewView($post);
-       TestHelper::createNewView($post);
+        TestHelper::createNewView($post);
+        TestHelper::createNewView($post);
 
-       $this->assertEquals(3, $post->getViews());
-   }
+        $this->assertEquals(3, $post->getViews());
+    }
 
-   /** @test */
-   public function addView_can_save_a_view_to_a_model()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function addView_can_save_a_view_to_a_model()
+    {
+        $post = factory(Post::class)->create();
 
-       $post->addView();
+        $post->addView();
 
-       $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
-   }
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
 
-   /** @test */
-   public function addView_can_save_multiple_views_to_a_model()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function addView_can_save_multiple_views_to_a_model()
+    {
+        $post = factory(Post::class)->create();
 
-       $post->addView();
-       $post->addView();
-       $post->addView();
+        $post->addView();
+        $post->addView();
+        $post->addView();
 
-       $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
-   }
+        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
+    }
 
-   /** @test */
-   public function addView_does_not_save_views_of_bots_if_configured()
-   {
+    /** @test */
+    public function addView_does_not_save_views_of_bots_if_configured()
+    {
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, function () {
             return new class {
@@ -212,9 +212,9 @@ class ViewableTest extends TestCase
         $post->addView();
 
         $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
-   }
+    }
 
-     /** @test */
+    /** @test */
     public function addView_does_not_save_views_of_visitors_with_dnt_header()
     {
         $post = factory(Post::class)->create();
@@ -270,63 +270,61 @@ class ViewableTest extends TestCase
         $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
     }
 
-
-
-   /** @test */
-   public function removeViews_can_remove_all_views_from_a_model()
-   {
-       $post = factory(Post::class)->create();
+    /** @test */
+    public function removeViews_can_remove_all_views_from_a_model()
+    {
+        $post = factory(Post::class)->create();
 
         $post->addView();
         $post->addView();
         $post->addView();
 
-       $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
+        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
 
-       $post->removeViews();
+        $post->removeViews();
 
-       $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
-   }
+        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+    }
 
     /** @test */
     public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_descending_order()
     {
-       $postOne = factory(Post::class)->create();
-       $postTwo = factory(Post::class)->create();
-       $postThree = factory(Post::class)->create();
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
 
-       $postOne->addView();
         $postOne->addView();
         $postOne->addView();
+        $postOne->addView();
 
-       $postTwo->addView();
+        $postTwo->addView();
 
-       $postThree->addView();
-       $postThree->addView();
+        $postThree->addView();
+        $postThree->addView();
 
-       $posts = Post::orderByViewsCount()->pluck('id');
+        $posts = Post::orderByViewsCount()->pluck('id');
 
         $this->assertEquals(collect([1, 3, 2]), $posts);
     }
 
-   /** @test */
-   public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_ascending_order()
-   {
-       $postOne = factory(Post::class)->create();
-       $postTwo = factory(Post::class)->create();
-       $postThree = factory(Post::class)->create();
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_ascending_order()
+    {
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
 
-       $postOne->addView();
         $postOne->addView();
         $postOne->addView();
+        $postOne->addView();
 
-       $postTwo->addView();
+        $postTwo->addView();
 
-       $postThree->addView();
-       $postThree->addView();
+        $postThree->addView();
+        $postThree->addView();
 
-       $posts = Post::orderByViewsCount('asc')->pluck('id');
+        $posts = Post::orderByViewsCount('asc')->pluck('id');
 
         $this->assertEquals(collect([2, 3, 1]), $posts);
-   }
+    }
 }

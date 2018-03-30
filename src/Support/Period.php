@@ -281,7 +281,7 @@ class Period
         return self::subToday(self::PAST_YEARS, $years);
     }
 
-     /**
+    /**
      * Create a new Period instance with a start date time of now minus the given seconds.
      *
      * Start Date Time: Carbon::now()->subSeconds(2);
