@@ -16,14 +16,14 @@ Once installed you can do stuff like this:
 // Get the total number of views
 $post->getViews();
 
-// Get the total number of views since a specific date
-$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
-
-// Get the total number of views upto a specific date
-$post->getViewsUpto(Carbon::parse('2013-05-21 00:00:00'));
-
 // Get the total number of views between the given date range
 $post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+
+// Get the total number of views in the past x weeks (from today)
+$post->getViewsOfPastDays(13);
+
+// Get the total number of views in the past x hours
+$post->getViewsOfSubHours(4);
 
 // Store a new view in the database
 $post->addView();
@@ -31,18 +31,21 @@ $post->addView();
 
 ## Overview
 
-Eloquent Viewable is a powerful, flexible and easy to use Laravel package for adding a page view counter to your Eloquent models. It's designed to be flexible and useful for various projects.
+Eloquent Viewable is a powerful, flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed to be fast, flexible, and useful for various projects.
 
-This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use our trait for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
+This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would this package for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
 
 ### Features
 
 Here are some of the main features:
 
-* Store model views
-* Get the total number (unique) views
-* Get the total number (unique) views since a specific date
-* Get the total number (unique) views upto a specific date
+* Associate views with Eloquent models
+* Get the total number of (unique) views
+* Get the total number of (unique) views since a specific date
+* Get the total number of (unique) views upto a specific date
+* Get the total number of (unique) views between two dates
+* Get the total number of (unique) views in the past `days`, `weeks`, `months` and `years` from today
+* Get the total number of (unique) views in the past `seconds`, `minutes`, `hours`, `days`, `weeks`, `months` and `years` from now
 * Cache the retrieved views counts
 * Queue the views before saving them in the database to prevent slow requests
 
@@ -74,8 +77,8 @@ In this documentation, you will find some helpful information about the use of t
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| 2.x     | 5.5.x - 5.6.x | Active support | >= 7.0.0    |
-| 1.x     | 5.5.x - 5.6.x | Bug fixes only | >= 7.0.0    |
+| 2.0     | 5.5 - 5.6     | Active support | >= 7.0.0    |
+| 1.0     | 5.5 - 5.6     | Bug fixes only | >= 7.0.0    |
 
 ### Installation
 
@@ -102,7 +105,7 @@ You can publish the migration with:
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-After publishing the migration file you can create the `view` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'table_names->views' and change the value to something unique.
+After publishing the migration file you can create the `views` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'table_names->views' and change the value to something unique.
 
 ```winbatch
 php artisan migrate
