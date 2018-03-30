@@ -22,47 +22,37 @@ use Illuminate\Database\Eloquent\Builder;
  */
 interface ViewableService
 {
-    /**
+/**
      * Get the views count based upon the given arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \Carbon\Carbon|null  $sinceDateTime
-     * @param  \Carbon\Carbon|null  $uptoDateTime
+     * @param  \DateTime  $sinceDateTime
+     * @param  \DateTime  $uptoDateTime
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCount($viewable, $sinceDateTime = null, $uptoDateTime = null, bool $unique = false): int;
+    public function getViewsCount($viewable, $period = null, bool $unique = false);
 
     /**
      * Get the unique views count based upon the given arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \Carbon\Carbon|null  $sinceDateTime
-     * @param  \Carbon\Carbon|null  $uptoDateTime
+     * @param  \DateTime|null  $sinceDateTime
+     * @param  \DateTime|null  $uptoDateTime
      * @return int
      */
-    public function getUniqueViewsCount($viewable, $sinceDateTime = null, $uptoDateTime = null): int;
+    public function getUniqueViewsCount($viewable, $period = null): int;
 
     /**
-     * Get the views count of the past period.
+     * Count the views based upon the given arguments.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  string  $pastType
-     * @param  int  $pastValue
+     * @param  \DateTime  $startDateTime
+     * @param  \DateTime  $endDateTime
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCountOfPast($viewable, $pastType, int $pastValue, bool $unique = false): int;
-
-    /**
-     * Get the unique views count of the past period.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  string  $pastType
-     * @param  int  $pastValue
-     * @return int
-     */
-    public function getUniqueViewsCountOfPast($viewable, $pastType, int $pastValue);
+    public function countViews($viewable, $startDateTime = null, $endDateTime = null, bool $unique = false): int;
 
     /**
      * Store a new view.
