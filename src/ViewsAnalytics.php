@@ -13,18 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-// use Cookie;
-// use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use CyrildeWit\EloquentViewable\Models\View;
-// use Illuminate\Database\Eloquent\Builder;
-// use CyrildeWit\EloquentViewable\Support\Ip;
-// use CyrildeWit\EloquentViewable\Jobs\ProcessView;
-// use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Cache\ViewsAnalyticsCacheRepository;
-// use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
-// use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
  * Class ViewsAnalytics.
@@ -34,9 +26,9 @@ use CyrildeWit\EloquentViewable\Cache\ViewsAnalyticsCacheRepository;
 class ViewsAnalytics
 {
     /**
-     * ViewsAnalyticsCacheRepository instance.
+     * The cache repository instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Cache\ViewsAnalyticsCacheRepository
+     * @var \Illuminate\Contracts\Cache\Repository
      */
     protected $cache;
 
@@ -47,7 +39,7 @@ class ViewsAnalytics
      */
     public function __construct()
     {
-        $this->cache = app(ViewsAnalyticsCacheRepository::class);
+        $this->cache = app(CacheRepository::class);
     }
 
     /**
