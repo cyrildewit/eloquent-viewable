@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
