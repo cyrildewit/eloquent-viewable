@@ -13,8 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
 
+use Config;
+use Request;
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
@@ -97,6 +101,23 @@ class ViewableServiceTest extends TestCase
 
        $this->assertEquals(6, $service->getViewsCount($post));
        $this->assertEquals(4, $service->getViewsCount($post, Period::create(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00'))));
+   }
+
+    /** @test */
+   public function getViewsCount_can_return_the_total_number_of_unique_views()
+   {
+       $service = $this->app->make(ViewableService::class);
+       $post = factory(Post::class)->create();
+
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00'), 'visitor' => 'visitor_one']);
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00'), 'visitor' => 'visitor_two']);
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00'), 'visitor' => 'visitor_two']);
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-04 01:00:00'), 'visitor' => 'visitor_three']); // start
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-05 01:00:00'), 'visitor' => 'visitor_four']);
+       TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
+
+       $this->assertEquals(6, $service->getViewsCount($post));
+       $this->assertEquals(4, $service->getViewsCount($post, null, true));
    }
 
    /** @test */
@@ -260,6 +281,92 @@ class ViewableServiceTest extends TestCase
    }
 
    /** @test */
+   public function addViewTo_does_not_save_views_of_bots_if_configured()
+   {
+        // Faking that the visitor is a bot
+        $this->app->bind(CrawlerDetector::class, function () {
+            return new class {
+                public function isRobot()
+                {
+                    return true;
+                }
+            };
+        });
+
+        $service = $this->app->make(ViewableService::class);
+        $post = factory(Post::class)->create();
+
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+
+        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+   }
+
+     /** @test */
+    public function addViewTo_does_not_save_views_of_visitors_with_dnt_header()
+    {
+        $service = $this->app->make(ViewableService::class);
+        $post = factory(Post::class)->create();
+
+        Config::set('eloquent-viewable.honor_dnt', true);
+        Request::instance()->headers->set('HTTP_DNT', 1);
+
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+
+        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
+    public function addViewTo_does_not_save_views_of_ignored_ip_addresses()
+    {
+        $post = factory(Post::class)->create();
+
+        Config::set('eloquent-viewable.ignored_ip_addresses', [
+            '127.20.22.6',
+            '10.10.30.40',
+        ]);
+
+        // Test ip address: 127.20.22.6
+        $this->app->bind(Ip::class, function ($app) {
+            return new class {
+                public function get()
+                {
+                    return '127.20.22.6';
+                }
+            };
+        });
+
+        $service = $this->app->make(ViewableService::class);
+
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+
+        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+
+        // Test ip address: 10.10.30.40
+        $this->app->bind(Ip::class, function ($app) {
+            return new class {
+                public function get()
+                {
+                    return '10.10.30.40';
+                }
+            };
+        });
+
+        $service = $this->app->make(ViewableService::class);
+
+        $service->addViewTo($post);
+        $service->addViewTo($post);
+
+        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+
+
+   /** @test */
    public function removeModelViews_can_remove_all_views_from_a_model()
    {
        $service = $this->app->make(ViewableService::class);
@@ -293,7 +400,7 @@ class ViewableServiceTest extends TestCase
        $service->addViewTo($postThree);
        $service->addViewTo($postThree);
 
-       $posts = $service->applyScopeOrderByViewsCount(Post::query())->get()->pluck('id');
+       $posts = $service->applyScopeOrderByViewsCount(Post::query())->pluck('id');
 
         $this->assertEquals(collect([1, 3, 2]), $posts);
     }
@@ -315,7 +422,7 @@ class ViewableServiceTest extends TestCase
        $service->addViewTo($postThree);
        $service->addViewTo($postThree);
 
-       $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'asc')->get()->pluck('id');
+       $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'asc')->pluck('id');
 
         $this->assertEquals(collect([2, 3, 1]), $posts);
    }
