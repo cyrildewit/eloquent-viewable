@@ -159,10 +159,7 @@ class Period
             return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
         }
 
-        $subTypeExploded = explode('_', strtolower($this->subType));
-
-        $subType = $subTypeExploded[0];
-        $subValueType = $subTypeExploded[1];
+        list($subType, $subValueType) = explode('_', strtolower($this->subType));
 
         return "{$subType}{$this->subValue}{$subValueType}|";
     }
@@ -233,106 +230,200 @@ class Period
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of today minus the given days.
+     *
+     * Start Date Time: Carbon::today()->subDays(2);
+     *
+     * @param  int  $days
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function pastDays(int $days)
+    public static function pastDays(int $days): Period
     {
-        return self::past(self::PAST_DAYS, $days);
+        return self::subToday(self::PAST_DAYS, $days);
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of today minus the given weeks.
+     *
+     * Start Date Time: Carbon::today()->subWeeks(2);
+     *
+     * @param  int  $weeks
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function pastWeeks(int $weeks)
     {
-        return self::past(self::PAST_WEEKS, $weeks);
+        return self::subToday(self::PAST_WEEKS, $weeks);
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of today minus the given months.
+     *
+     * Start Date Time: Carbon::today()->subMonths(2);
+     *
+     * @param  int  $months
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function pastMonths(int $months)
     {
-        return self::past(self::PAST_MONTHS, $months);
+        return self::subToday(self::PAST_MONTHS, $months);
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of today minus the given years.
+     *
+     * Start Date Time: Carbon::today()->subYears(2);
+     *
+     * @param  int  $years
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function pastYears(int $years)
     {
-        return self::past(self::PAST_YEARS, $years);
+        return self::subToday(self::PAST_YEARS, $years);
     }
 
+     /**
+     * Create a new Period instance with a start date time of now minus the given seconds.
+     *
+     * Start Date Time: Carbon::now()->subSeconds(2);
+     *
+     * @param  int  $seconds
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subSeconds(int $seconds)
     {
-        return self::sub(self::SUB_SECONDS, $seconds);
+        return self::subNow(self::SUB_SECONDS, $seconds);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given minutes.
+     *
+     * Start Date Time: Carbon::now()->subMinutes(2);
+     *
+     * @param  int  $minutes
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subMinutes(int $minutes)
     {
-        return self::sub(self::SUB_MINUTES, $minutes);
+        return self::subNow(self::SUB_MINUTES, $minutes);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given hours.
+     *
+     * Start Date Time: Carbon::now()->subHours(2);
+     *
+     * @param  int  $hours
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subHours(int $hours)
     {
-        return self::sub(self::SUB_HOURS, $hours);
+        return self::subNow(self::SUB_HOURS, $hours);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given days.
+     *
+     * Start Date Time: Carbon::now()->subDays(2);
+     *
+     * @param  int  $days
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subDays(int $days)
     {
-        return self::sub(self::SUB_DAYS, $days);
+        return self::subNow(self::SUB_DAYS, $days);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given weeks.
+     *
+     * Start Date Time: Carbon::now()->subWeeks(2);
+     *
+     * @param  int  $weeks
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subWeeks(int $weeks)
     {
-        return self::sub(self::SUB_WEEKS, $weeks);
+        return self::subNowsub(self::SUB_WEEKS, $weeks);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given months.
+     *
+     * Start Date Time: Carbon::now()->subMonths(2);
+     *
+     * @param  int  $months
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subMonths(int $months)
     {
-        return self::sub(self::SUB_MONTHS, $months);
+        return self::subNow(self::SUB_MONTHS, $months);
     }
 
+    /**
+     * Create a new Period instance with a start date time of now minus the given years.
+     *
+     * Start Date Time: Carbon::now()->suYears(2);
+     *
+     * @param  int  $years
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
     public static function subYears(int $years)
     {
-        return self::sub(self::SUB_YEARS, $years);
+        return self::subNow(self::SUB_YEARS, $years);
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of today minus the given subType.
+     *
+     * Start Date Time: Carbon::today()->sub<subType>(<subValue>);
+     *
+     * @param  string  $subType
+     * @param  int  $subValue
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function past(string $pastType, int $subValue)
+    public static function subToday(string $subType, int $subValue)
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($pastType, 'PAST_')));
+        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'PAST_')));
         $today = Carbon::today();
 
-        if (! is_callable([$today, $subTypeMethod])) {
-            return false;
-        }
-
-        $startDateTime = $today->$subTypeMethod($subValue);
-
-        $period = new static($startDateTime);
-
-        return $period->setfixedDateTimes(false)
-            ->setSubType($pastType)
-            ->setSubValue($subValue);
+        return self::sub($today, $subTypeMethod, $subType, $subValue);
     }
 
     /**
-     * @return
+     * Create a new Period instance with a start date time of now minus the given subType.
+     *
+     * Start Date Time: Carbon::now()->sub<subType>(<subValue>);
+     *
+     * @param  string  $subType
+     * @param  int  $subValue
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function sub(string $subType, int $subValue)
+    public static function subNow(string $subType, int $subValue)
     {
         $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'SUB_')));
         $now = Carbon::now();
 
-        if (! is_callable([$now, $subTypeMethod])) {
+        return self::sub($now, $subTypeMethod, $subType, $subValue);
+    }
+
+    /**
+     * Create a new Period instance with a start date time of startDateTime minus the given subType.
+     *
+     * Start Date Time: <startDateTime>->sub<subType>(<subValue>);
+     *
+     * @param  \DateTime  $startDateTime
+     * @param  string  $subTypeMethod
+     * @param  string  $subType
+     * @param  int  $subValue
+     * @return \CyrildeWit\EloquentViewable\Support\Period
+     */
+    public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
+    {
+        if (! is_callable([$startDateTime, $subTypeMethod])) {
             return false;
         }
 
-        $startDateTime = $now->$subTypeMethod($subValue);
+        $startDateTime = $startDateTime->$subTypeMethod($subValue);
 
         $period = new static($startDateTime);
 
