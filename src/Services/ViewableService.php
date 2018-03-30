@@ -137,9 +137,9 @@ class ViewableService implements ViewableServiceContract
 
         // Apply the following date filters
         if ($startDateTime && ! $endDateTime) {
-            $query->where('viewed_at', '>', $startDateTime);
+            $query->where('viewed_at', '>=', $startDateTime);
         } elseif (! $startDateTime && $endDateTime) {
-            $query->where('viewed_at', '<', $endDateTime);
+            $query->where('viewed_at', '<=', $endDateTime);
         } elseif ($startDateTime && $endDateTime) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
