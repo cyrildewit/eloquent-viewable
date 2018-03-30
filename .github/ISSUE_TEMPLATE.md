@@ -15,7 +15,6 @@
 
 [What you expected to happen]
 
-
 #### Actual behavior:
 
 [What actually happened]
