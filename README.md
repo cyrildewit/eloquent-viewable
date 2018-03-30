@@ -61,10 +61,10 @@ In this documentation, you will find some helpful information about the use of t
     * [Version Information](#version-information)
     * [Installation](#installation)
 2. [Usage](#usage)
-    * [Prepare Viewable Model](#prepare-viewable-model)
-    * [Saving new views](#saving-new-vies)
+    * [Preparing your models](#preparing-your-models)
+    * [Saving views](#saving-vies)
     * [Retrieving views counts](#retrieving-views-counts)
-    * [Scopes](#scopes)
+    * [Order models by views count](#order-models-by-views-count)
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
     * [Extending](#extending)
@@ -121,7 +121,7 @@ php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewa
 
 In the following sections, you will find information about the usage of this package.
 
-### Prepare Viewable Model
+### Preparing your models
 
 First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them. After adding the trait to your model, you can optionally implement the `ViewableContract`.
 
@@ -142,7 +142,7 @@ class Article extends Model implements ViewableContract
 
 **Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#list-of-propertiesmethods-that-the-trait-adds)!
 
-### Saving new views
+### Saving views
 
 After adding the trait to your model, some methods will be available. `addView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
 
@@ -207,7 +207,7 @@ $post->getUniqueViewsOfPastMonths(4);
 $post->getUniqueViewsOfPastYears(5);
 ```
 
-### Scopes
+### Order models by views count
 
 #### Retrieve Viewable models by views count
 
