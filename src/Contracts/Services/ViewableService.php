@@ -44,17 +44,6 @@ interface ViewableService
     public function getUniqueViewsCount($viewable, $period = null): int;
 
     /**
-     * Count the views based upon the given arguments.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \DateTime  $startDateTime
-     * @param  \DateTime  $endDateTime
-     * @param  bool  $unique
-     * @return int
-     */
-    public function countViews($viewable, $startDateTime = null, $endDateTime = null, bool $unique = false): int;
-
-    /**
      * Store a new view.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
