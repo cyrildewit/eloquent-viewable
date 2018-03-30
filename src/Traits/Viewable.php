@@ -191,7 +191,7 @@ trait Viewable
     }
 
     /**
-     * Get the total number of views in the past days.
+     * Get the total number of unique views in the past days.
      *
      * @param  int  $seconds
      * @return int
@@ -203,7 +203,7 @@ trait Viewable
     }
 
     /**
-     * Get the total number of views in the past weeks.
+     * Get the total number of unique views in the past weeks.
      *
      * @param  int  $weeks
      * @return int
@@ -215,7 +215,7 @@ trait Viewable
     }
 
     /**
-     * Get the total number of views in the past months.
+     * Get the total number of unique views in the past months.
      *
      * @param  int  $months
      * @return int
@@ -227,7 +227,7 @@ trait Viewable
     }
 
     /**
-     * Get the total number of views in the past years.
+     * Get the total number of unique views in the past years.
      *
      * @param  int  $years
      * @return int
@@ -251,6 +251,30 @@ trait Viewable
     }
 
     /**
+     * Get the total number of views in the past 'n' minutes.
+     *
+     * @param  int  $minutes
+     * @return int
+     */
+    public function getViewsOfSubMinutes(int $minutes): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subMinutes($minutes));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' hours.
+     *
+     * @param  int  $hours
+     * @return int
+     */
+    public function getViewsOfSubHours(int $hours): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subHours($hours));
+    }
+
+    /**
      * Get the total number of views in the past 'n' days.
      *
      * @param  int  $days
@@ -260,6 +284,126 @@ trait Viewable
     {
         return app(ViewableService::class)
             ->getViewsCount($this, Period::subDays($days));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' weeks.
+     *
+     * @param  int  $weeks
+     * @return int
+     */
+    public function getViewsOfSubWeeks(int $weeks): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subWeeks($weeks));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' months.
+     *
+     * @param  int  $months
+     * @return int
+     */
+    public function getViewsOfSubMonths(int $months): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subMonths($months));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' years.
+     *
+     * @param  int  $years
+     * @return int
+     */
+    public function getViewsOfSubYears(int $years): int
+    {
+        return app(ViewableService::class)
+            ->getViewsCount($this, Period::subYears($years));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' seconds.
+     *
+     * @param  int  $seconds
+     * @return int
+     */
+    public function getUniqueViewsOfSubSeconds(int $seconds): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subSeconds($seconds));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' minutes.
+     *
+     * @param  int  $minutes
+     * @return int
+     */
+    public function getUniqueViewsOfSubMinutes(int $minutes): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subMinutes($minutes));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' hours.
+     *
+     * @param  int  $hours
+     * @return int
+     */
+    public function getUniqueViewsOfSubHours(int $hours): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subHours($hours));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' days.
+     *
+     * @param  int  $days
+     * @return int
+     */
+    public function getUniqueViewsOfSubDays(int $days): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subDays($days));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' weeks.
+     *
+     * @param  int  $weeks
+     * @return int
+     */
+    public function getUniqueViewsOfSubWeeks(int $weeks): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subWeeks($weeks));
+    }
+
+    /**
+     * Get the total number of unique views in the past 'n' months.
+     *
+     * @param  int  $months
+     * @return int
+     */
+    public function getUniqueViewsOfSubMonths(int $months): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subMonths($months));
+    }
+
+    /**
+     * Get the total number of views in the past 'n' years.
+     *
+     * @param  int  $years
+     * @return int
+     */
+    public function getUniqueViewsOfSubYears(int $years): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this, Period::subYears($years));
     }
 
     /**
