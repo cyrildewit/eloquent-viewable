@@ -11,18 +11,18 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Support;
 
 use Illuminate\Support\Collection;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
- * Class ViewsAnalytics.
+ * Class ViewsHelper.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewsAnalytics
+class ViewsHelper
 {
     /**
      * The cache repository instance.
