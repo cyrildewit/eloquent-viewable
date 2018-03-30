@@ -237,7 +237,7 @@ class Period
      * @param  int  $days
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function pastDays(int $days): Period
+    public static function pastDays(int $days): self
     {
         return self::subToday(self::PAST_DAYS, $days);
     }
@@ -263,7 +263,7 @@ class Period
      * @param  int  $months
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function pastMonths(int $months)
+    public static function pastMonths(int $months): self
     {
         return self::subToday(self::PAST_MONTHS, $months);
     }
@@ -276,7 +276,7 @@ class Period
      * @param  int  $years
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function pastYears(int $years)
+    public static function pastYears(int $years): self
     {
         return self::subToday(self::PAST_YEARS, $years);
     }
@@ -289,7 +289,7 @@ class Period
      * @param  int  $seconds
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subSeconds(int $seconds)
+    public static function subSeconds(int $seconds): self
     {
         return self::subNow(self::SUB_SECONDS, $seconds);
     }
@@ -302,7 +302,7 @@ class Period
      * @param  int  $minutes
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subMinutes(int $minutes)
+    public static function subMinutes(int $minutes): self
     {
         return self::subNow(self::SUB_MINUTES, $minutes);
     }
@@ -315,7 +315,7 @@ class Period
      * @param  int  $hours
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subHours(int $hours)
+    public static function subHours(int $hours): self
     {
         return self::subNow(self::SUB_HOURS, $hours);
     }
@@ -328,7 +328,7 @@ class Period
      * @param  int  $days
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subDays(int $days)
+    public static function subDays(int $days): self
     {
         return self::subNow(self::SUB_DAYS, $days);
     }
@@ -341,7 +341,7 @@ class Period
      * @param  int  $weeks
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subWeeks(int $weeks)
+    public static function subWeeks(int $weeks): self
     {
         return self::subNowsub(self::SUB_WEEKS, $weeks);
     }
@@ -354,7 +354,7 @@ class Period
      * @param  int  $months
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subMonths(int $months)
+    public static function subMonths(int $months): self
     {
         return self::subNow(self::SUB_MONTHS, $months);
     }
@@ -367,7 +367,7 @@ class Period
      * @param  int  $years
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subYears(int $years)
+    public static function subYears(int $years): self
     {
         return self::subNow(self::SUB_YEARS, $years);
     }
@@ -381,7 +381,7 @@ class Period
      * @param  int  $subValue
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subToday(string $subType, int $subValue)
+    public static function subToday(string $subType, int $subValue): self
     {
         $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'PAST_')));
         $today = Carbon::today();
@@ -398,7 +398,7 @@ class Period
      * @param  int  $subValue
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function subNow(string $subType, int $subValue)
+    public static function subNow(string $subType, int $subValue): self
     {
         $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'SUB_')));
         $now = Carbon::now();
@@ -417,7 +417,7 @@ class Period
      * @param  int  $subValue
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
+    public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue): self
     {
         if (! is_callable([$startDateTime, $subTypeMethod])) {
             return false;
