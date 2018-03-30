@@ -247,7 +247,7 @@ class ViewableServiceTest extends TestCase
    }
 
    /** @test */
-   public function it_can_add_multiple_new_views_to_a_model()
+   public function addViewTo_can_save_multiple_views_to_a_model()
    {
        $service = $this->app->make(ViewableService::class);
        $post = factory(Post::class)->create();
@@ -257,5 +257,66 @@ class ViewableServiceTest extends TestCase
        $service->addViewTo($post);
 
        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
+   }
+
+   /** @test */
+   public function removeModelViews_can_remove_all_views_from_a_model()
+   {
+       $service = $this->app->make(ViewableService::class);
+       $post = factory(Post::class)->create();
+
+       $service->addViewTo($post);
+       $service->addViewTo($post);
+       $service->addViewTo($post);
+
+       $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
+
+       $service->removeModelViews($post);
+
+       $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
+   }
+
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_descending_order()
+    {
+        $service = $this->app->make(ViewableService::class);
+       $postOne = factory(Post::class)->create();
+       $postTwo = factory(Post::class)->create();
+       $postThree = factory(Post::class)->create();
+
+       $service->addViewTo($postOne);
+       $service->addViewTo($postOne);
+       $service->addViewTo($postOne);
+
+       $service->addViewTo($postTwo);
+
+       $service->addViewTo($postThree);
+       $service->addViewTo($postThree);
+
+       $posts = $service->applyScopeOrderByViewsCount(Post::query())->get()->pluck('id');
+
+        $this->assertEquals(collect([1, 3, 2]), $posts);
+    }
+
+   /** @test */
+   public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_ascending_order()
+   {
+       $service = $this->app->make(ViewableService::class);
+       $postOne = factory(Post::class)->create();
+       $postTwo = factory(Post::class)->create();
+       $postThree = factory(Post::class)->create();
+
+       $service->addViewTo($postOne);
+       $service->addViewTo($postOne);
+       $service->addViewTo($postOne);
+
+       $service->addViewTo($postTwo);
+
+       $service->addViewTo($postThree);
+       $service->addViewTo($postThree);
+
+       $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'asc')->get()->pluck('id');
+
+        $this->assertEquals(collect([2, 3, 1]), $posts);
    }
 }
