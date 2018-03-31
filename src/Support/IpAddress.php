@@ -20,7 +20,7 @@ use Request;
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class Ip
+class IpAddress
 {
     /**
      * Get the visitor's ip address.

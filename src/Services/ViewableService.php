@@ -18,7 +18,7 @@ use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Support\Ip;
+use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
@@ -48,9 +48,9 @@ class ViewableService implements ViewableServiceContract
     protected $crawlerDetector;
 
     /**
-     * Ip instance.
+     * IpAddress instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Support\Ip
+     * @var \CyrildeWit\EloquentViewable\Support\IpAddress
      */
     protected $ipRepository;
 
@@ -63,7 +63,7 @@ class ViewableService implements ViewableServiceContract
     {
         $this->cache = app(CacheRepository::class);
         $this->crawlerDetector = app(CrawlerDetector::class);
-        $this->ipRepository = app(Ip::class);
+        $this->ipRepository = app(IpAddress::class);
     }
 
     /**

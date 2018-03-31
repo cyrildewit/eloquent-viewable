@@ -16,10 +16,10 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Traits;
 use Config;
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
@@ -240,7 +240,7 @@ class ViewableTest extends TestCase
         ]);
 
         // Test ip address: 127.20.22.6
-        $this->app->bind(Ip::class, function ($app) {
+        $this->app->bind(IpAddress::class, function ($app) {
             return new class {
                 public function get()
                 {
@@ -255,7 +255,7 @@ class ViewableTest extends TestCase
         $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
 
         // Test ip address: 10.10.30.40
-        $this->app->bind(Ip::class, function ($app) {
+        $this->app->bind(IpAddress::class, function ($app) {
             return new class {
                 public function get()
                 {

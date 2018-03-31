@@ -16,11 +16,11 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
 use Config;
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Support\Ip;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
@@ -330,7 +330,7 @@ class ViewableServiceTest extends TestCase
         ]);
 
         // Test ip address: 127.20.22.6
-        $this->app->bind(Ip::class, function ($app) {
+        $this->app->bind(IpAddress::class, function ($app) {
             return new class {
                 public function get()
                 {
