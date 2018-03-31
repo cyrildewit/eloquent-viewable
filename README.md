@@ -22,7 +22,7 @@ $post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016
 // Get the total number of views in the past x weeks (from today)
 $post->getViewsOfPastDays(13);
 
-// Get the total number of views in the past x hours
+// Get the total number of views in the past x hours (from now)
 $post->getViewsOfSubHours(4);
 
 // Store a new view in the database
@@ -58,7 +58,7 @@ In this documentation, you will find some helpful information about the use of t
 ### Table of contents
 
 1. [Getting Started](#getting-started)
-    * [Version Information](#version-information)
+    * [Requirements](#requirements)
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Preparing your models](#preparing-your-models)
@@ -73,18 +73,22 @@ In this documentation, you will find some helpful information about the use of t
 
 ## Getting Started
 
-### Version Information
+### Requirements
 
-| Version | Illuminate    | Status         | PHP Version |
-|---------|---------------|----------------|-------------|
-| 2.0     | 5.5 - 5.6     | Active support | >= 7.0.0    |
-| 1.0     | 5.5 - 5.6     | Bug fixes only | >= 7.0.0    |
+The Eloquent Viewable package requires **PHP 7+** and **Laravel 5.5+**.
+
+Lumen is not supported!
+
+#### Version information
+
+| Version | Illuminate | Status         | PHP Version |
+|---------|------------|----------------|-------------|
+| 2.0     | 5.5 - 5.6  | Active support | >= 7.0.0    |
+| 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
 ### Installation
 
-Before you can use this package you have to install it with composer.
-
-You can install the package via composer:
+You can install this package via composer using:
 
 ```winbatch
 composer require cyrildewit/eloquent-viewable
@@ -93,6 +97,8 @@ composer require cyrildewit/eloquent-viewable
 Optionally, you can add the service provider in the `config/app.php` file. Otherwise this can be done via automatic package discovery.
 
 ```php
+// config/app.php
+
 'providers' => [
     // ...
     CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
@@ -105,7 +111,7 @@ You can publish the migration with:
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-After publishing the migration file you can create the `views` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'table_names->views' and change the value to something unique.
+After publishing the migration file you can create the `views` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'models->view->table_name' and change the value to something unique.
 
 ```winbatch
 php artisan migrate
@@ -123,16 +129,13 @@ In the following sections, you will find information about the usage of this pac
 
 ### Preparing your models
 
-First add the `CyrildeWit\EloquentViewable\Traits\Viewable` trait to your viewable Eloquent model(s). The trait will add some core functionality to your model to get the page views count and store them. After adding the trait to your model, you can optionally implement the `ViewableContract`.
-
-Here's an example of an Eloquent model:
+To make an Eloquent model viewable just add the `Viewable` trait to your model definition. This trait provides various methods to allow you to save views, retrieve views counts and order your items by views count.
 
 ```php
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Traits\Viewable;
-use CyrildeWit\EloquentViewable\Contracts\Traits\Viewable as ViewableContract;
 
-class Article extends Model implements ViewableContract
+class Post extends Model
 {
     use Viewable;
 
@@ -144,13 +147,15 @@ class Article extends Model implements ViewableContract
 
 ### Saving views
 
-After adding the trait to your model, some methods will be available. `addView()` is one of them. It will simply store a new page view in the database. The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
+Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
+
+The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
 
 ```php
 $post->addView();
 ```
 
-Let's assume where are handling the page views of a post. `$post` contains an instance of our Eloquent model `App\Models\Post`.
+A `PostController` might look something like this:
 
 ```php
 // ...
@@ -167,38 +172,74 @@ public function show(Post $post)
 
 ### Retrieving views counts
 
-When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file.
+<!-- When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file. -->
+
+#### Normal views count
 
 ```php
-// Retrieve the total (unique) views
+// Retrieve the total number of views
 $post->getViews();
+
+// Retrieve the total number of views that are stored after the given date
+$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+
+// Retrieve the total number of views that are stored before the given date
+$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+
+// Retrieve the total number of views that are stored between the two given dates
+$post->getViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+```
+
+```php
+// Retrieve the total number of unique views
 $post->getUniqueViews();
 
-// Retrieve the total (unique) views that are stored after the given date
-$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+// Retrieve the total number of unique views that are stored after the given date
 $post->getUniqueViewsSince(Carbon::parse('2007-05-21 12:23:00'));
 
-// Retrieve the total (unique) views that are stored before the given date
-$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+// Retrieve the total number of unique views that are stored before the given date
 $post->getUniqueViewsSince(Carbon::parse('2013-05-21 00:00:00'));
 
-// Retrieve the total (unique) views that are stored between the two given dates
-$post->getViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+// Retrieve the total number of unique views that are stored between the two given dates
 $post->getUniqueViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
 ```
 
-You can use the following methods to retrieve the total number of views in the past seconds, minutes, days, weeks, months and years.
+#### Views count in the past from today
+
+Get the total number of (unique) views in the past `days`, `weeks`, `months` and `years` from today.
+
+For example: `Carbon::today()->subDays(2)`.
 
 ```php
-// Normal
+$post->getViewsOfPastDays(2);
+$post->getViewsOfPastWeeks(2);
+$post->getViewsOfPastMonths(4);
+$post->getViewsOfPastYears(5);
+```
+
+```php
+$post->getUniqueViewsOfPastDays(2);
+$post->getUniqueViewsOfPastWeeks(2);
+$post->getUniqueViewsOfPastMonths(4);
+$post->getUniqueViewsOfPastYears(5);
+```
+
+#### Views count in the past from now
+
+Get the total number of (unique) views in the past `seconds`, `minutes`, `hours`, `days`, `weeks`, `months` and `years` from today.
+
+For example: `Carbon::now()->subDays(2)`.
+
+```php
 $post->getViewsOfPastSeconds(30);
 $post->getViewsOfPastMinutes(15);
 $post->getViewsOfPastDays(2);
 $post->getViewsOfPastWeeks(2);
 $post->getViewsOfPastMonths(4);
 $post->getViewsOfPastYears(5);
+```
 
-// Unique
+```php
 $post->getUniqueViewsOfPastSeconds(30);
 $post->getUniqueViewsOfPastMinutes(15);
 $post->getUniqueViewsOfPastDays(2);
@@ -248,35 +289,6 @@ $this->app->singleton(
     \App\Services\CustomViewableService::class
 );
 ```
-
-## Under the hood
-
-### List of properties/methods that the trait adds to your model
-
-* `public function views();`
-* `public function getViews();`
-* `public function getViewsSince();`
-* `public function getViewsUpto();`
-* `public function getViewsBetween();`
-* `public function getUniqueViews();`
-* `public function getUniqueViewsSince();`
-* `public function getUniqueViewsUpto();`
-* `public function getUniqueViewsBetween();`
-* `public function getViewsOfPastSeconds($seconds);`
-* `public function getViewsOfPastMinutes();`
-* `public function getViewsOfPastDays();`
-* `public function getViewsOfPastWeeks();`
-* `public function getViewsOfPastMonths();`
-* `public function getViewsOfPastYears();`
-* `public function getUniqueViewsOfPastSeconds();`
-* `public function getUniqueViewsOfPastMinutes();`
-* `public function getUniqueViewsOfPastDays();`
-* `public function getUniqueViewsOfPastWeeks();`
-* `public function getUniqueViewsOfPastMonths();`
-* `public function getUniqueViewsOfPastYears();`
-* `public addView()`
-* `public removeViews()`
-* `public scopeOrderByViews()`
 
 ## Changelog
 
