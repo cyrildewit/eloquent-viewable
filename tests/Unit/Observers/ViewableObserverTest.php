@@ -33,15 +33,15 @@ class ViewableObserverTest extends TestCase
         $post->addView();
         $post->addView();
 
-        $this->assertEquals(3, View::where('viewable_id', $post->getKey())->count());
+        $this->assertEquals(3, View::count());
 
         $post->delete();
 
-        $this->assertEquals(0, View::where('viewable_id', $post->getKey())->count());
+        $this->assertEquals(0, View::count());
     }
 
     /** @test */
-    public function it_does_not_removes_all_views_when_deleted_if_removeViewsOnDelte_was_false()
+    public function it_does_not_removes_all_views_when_deleted_if_removeViewsOnDelete_was_false()
     {
         $post = factory(Post::class)->create();
         $post->removeViewsOnDelete = false;
@@ -50,10 +50,10 @@ class ViewableObserverTest extends TestCase
         $post->addView();
         $post->addView();
 
-        $this->assertEquals(3, View::where('viewable_id', $post->getKey())->count());
+        $this->assertEquals(3, View::count());
 
         $post->delete();
 
-        $this->assertEquals(3, View::where('viewable_id', $post->getKey())->count());
+        $this->assertEquals(3, View::count());
     }
 }
