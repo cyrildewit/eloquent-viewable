@@ -17,13 +17,16 @@ Once installed you can do stuff like this:
 $post->getViews();
 
 // Get the total number of views between the given date range
-$post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+$post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
 
-// Get the total number of views in the past x weeks (from today)
-$post->getViewsOfPastDays(13);
+// Get the total number of views between the given date range
+$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 
-// Get the total number of views in the past x hours (from now)
-$post->getViewsOfSubHours(4);
+// Get the total number of views in the past 6 weeks (from today)
+$post->getViews(Period::pastWeeks(6));
+
+// Get the total number of views in the past 2 hours (from now)
+$post->getViews(Period::subHours(2));
 
 // Store a new view in the database
 $post->addView();
@@ -172,22 +175,59 @@ public function show(Post $post)
 
 ### Retrieving views counts
 
-<!-- When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file. -->
+After adding the `Viewable` trait to your model, you will be able to call `getViews()` and `getUniqueViews()` on your viewable model. It accepts an optional Period instance.
 
-#### Normal views count
+```php
+/**
+ * Get the total number of views.
+ *
+ * @param  \CyrildeWit\EloquentViewable\Support\Period
+ * @return int
+ */
+public function getViews($period = null): int;
+
+/**
+ * Get the total number of unique views.
+ *
+ * @param  \CyrildeWit\EloquentViewable\Support\Period
+ * @return int
+ */
+public function getUniqueViews($period = null) : int;
+```
+
+#### Period class
+
+```php
+
+```
+
+#### Examples
+
+##### Normal views
 
 ```php
 // Retrieve the total number of views
 $post->getViews();
 
 // Retrieve the total number of views that are stored after the given date
-$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+$post->getViews(Period::since(Carbon::parse('2007-05-21 12:23:00')));
 
 // Retrieve the total number of views that are stored before the given date
-$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+$post->getViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
 
 // Retrieve the total number of views that are stored between the two given dates
-$post->getViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
+```
+
+##### Unique Views
+
+
+#### Normal views count
+
+```php
+
+
+
 ```
 
 ```php
