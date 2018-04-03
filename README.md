@@ -267,6 +267,58 @@ $post->getUniqueViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
 $post->getUniqueViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 ```
 
+```php
+$post->getViews(Period::pastDays(5));
+
+$post->getViews(Period::pastWeeks(6));
+
+$post->getViews(Period::pastMonths(8));
+
+$post->getViews(Period::pastYears(3));
+```
+
+```php
+$post->getUniqueViews(Period::pastDays(5));
+
+$post->getUniqueViews(Period::pastWeeks(6));
+
+$post->getUniqueViews(Period::pastMonths(8));
+
+$post->getUniqueViews(Period::pastYears(3));
+```
+
+```php
+$post->getViews(Period::subSeconds(30));
+
+$post->getViews(Period::subMinutes(15));
+
+$post->getViews(Period::subHours(8));
+
+$post->getViews(Period::subDays(5));
+
+$post->getViews(Period::subWeeks(6));
+
+$post->getViews(Period::subMonths(8));
+
+$post->getViews(Period::subYears(3));
+```
+
+```php
+$post->getUniqueViews(Period::subSeconds(30));
+
+$post->getUniqueViews(Period::subMinutes(15));
+
+$post->getUniqueViews(Period::subHours(8));
+
+$post->getUniqueViews(Period::subDays(5));
+
+$post->getUniqueViews(Period::subWeeks(6));
+
+$post->getUniqueViews(Period::subMonths(8));
+
+$post->getUniqueViews(Period::subYears(3));
+```
+
 ### Order models by views count
 
 #### Retrieve Viewable models by views count
