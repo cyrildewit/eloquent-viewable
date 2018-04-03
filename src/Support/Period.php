@@ -118,7 +118,7 @@ class Period
      */
     public static function upto(DateTime $endDateTime = null): self
     {
-        return new static($endDateTime);
+        return new static(null, $endDateTime);
     }
 
     /**
