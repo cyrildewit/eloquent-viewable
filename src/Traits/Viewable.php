@@ -69,7 +69,7 @@ trait Viewable
     public function getUniqueViews($period = null) : int
     {
         return app(ViewableService::class)
-            ->getViewsCount($this, $period);
+            ->getUniqueViewsCount($this, $period);
     }
 
     /**
