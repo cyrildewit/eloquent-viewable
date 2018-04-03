@@ -122,7 +122,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function getViewsCount_can_return_the_total_number_of_unique_views_upto_enddatetime()
+    public function getUniqueViews_can_return_the_total_number_of_unique_views_upto_enddatetime()
     {
         $post = factory(Post::class)->create();
 
@@ -138,7 +138,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function getViewsCount_can_return_the_total_number_of_unique_views_between_startdatetime_and_enddatetime()
+    public function getUniqueViews_can_return_the_total_number_of_unique_views_between_startdatetime_and_enddatetime()
     {
         $post = factory(Post::class)->create();
 
@@ -154,21 +154,31 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function getViewsCount_can_return_the_total_number_of_views_from_the_cache()
+    public function getViews_can_return_the_total_number_of_views()
     {
         $post = factory(Post::class)->create();
 
-        TestHelper::createNewView($post);
-        TestHelper::createNewView($post);
-        TestHelper::createNewView($post);
+        $post->addView();
+        $post->addView();
+        $post->addView();
 
-        $this->assertEquals(3, $post->getViews());
-
-        TestHelper::createNewView($post);
-        TestHelper::createNewView($post);
-
-        $this->assertEquals(3, $post->getViews());
+        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
     }
+
+
+    /** @test */
+    public function getViews_can_return_the_total_number_of_views_since_startdatetime()
+    {
+        $post = factory(Post::class)->create();
+
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
+        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
+
+        $this->assertEquals(3, $post->getViews());
+        $this->assertEquals(2, $post->getViewsSince(Carbon::parse('2018-01-02 01:00:00')));
+    }
+
 
     /** @test */
     public function addView_can_save_a_view_to_a_model()
