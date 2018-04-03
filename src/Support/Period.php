@@ -100,6 +100,28 @@ class Period
     }
 
     /**
+     * Create a new Period instance with only a start date time.
+     *
+     * @param  \Datetime  $startDateTime
+     * @return CyrildeWit\EloquentViewable\Period
+     */
+    public static function since(DateTime $startDateTime = null): self
+    {
+        return new static($startDateTime);
+    }
+
+    /**
+     * Create a new Period instance with only a end date time.
+     *
+     * @param  \Datetime  $endDateTime
+     * @return CyrildeWit\EloquentViewable\Period
+     */
+    public static function upto(DateTime $endDateTime = null): self
+    {
+        return new static($endDateTime);
+    }
+
+    /**
      * Get the start date time.
      *
      * @return \DateTime|null
@@ -251,7 +273,7 @@ class Period
      * @param  int  $weeks
      * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function pastWeeks(int $weeks)
+    public static function pastWeeks(int $weeks): self
     {
         return self::subToday(self::PAST_WEEKS, $weeks);
     }
