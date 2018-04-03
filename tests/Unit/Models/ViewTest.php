@@ -38,12 +38,12 @@ class ViewTest extends TestCase
     }
 
     /** @test */
-    public function it_has_viewable_relationship()
+    public function it_can_belong_to_viewable_model()
     {
         $post = factory(Post::class)->create();
 
         $post->addView();
 
-        $this->assertInstanceOf(Post::class, View::where('viewable_id', $post->getKey())->firstOrFail()->viewable);
+        $this->assertInstanceOf(Post::class, View::first()->viewable);
     }
 }
