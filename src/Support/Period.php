@@ -122,137 +122,6 @@ class Period
     }
 
     /**
-     * Get the start date time.
-     *
-     * @return \DateTime|null
-     */
-    public function getStartDateTime()
-    {
-        return $this->startDateTime;
-    }
-
-    /**
-     * Get the end date time.
-     *
-     * @return \DateTime|null
-     */
-    public function getEndDateTime()
-    {
-        return $this->endDateTime;
-    }
-
-    /**
-     * Check if the period has fixed date times.
-     *
-     * @return bool
-     */
-    public function hasFixedDateTimes(): bool
-    {
-        return $this->fixedDateTimes;
-    }
-
-    /**
-     * Get the DateTime string of the start date time.
-     *
-     * @return string
-     */
-    public function getStartDateTimeString(): string
-    {
-        return $this->startDateTime !== null ? $this->startDateTime->toDateTimeString() : '';
-    }
-
-    /**
-     * Get the DateTime string of the start date time.
-     *
-     * @return string
-     */
-    public function getEndDateTimeString(): string
-    {
-        return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
-    }
-
-    /**
-     * Make a unique key.
-     *
-     * @return string
-     */
-    public function makeKey(): string
-    {
-        if ($this->hasFixedDateTimes()) {
-            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
-        }
-
-        list($subType, $subValueType) = explode('_', strtolower($this->subType));
-
-        return "{$subType}{$this->subValue}{$subValueType}|";
-    }
-
-    /**
-     * Set the start date time.
-     *
-     * @param  \DateTime  $startDateTime
-     * @return $this
-     */
-    public function setStartDateTime(DateTime $startDateTime)
-    {
-        $this->startDateTime = $startDateTime;
-
-        return $this;
-    }
-
-    /**
-     * Set the end date time.
-     *
-     * @param  \DateTime  $endDateTime
-     * @return $this
-     */
-    public function setEndDateTime(DateTime $endDateTime)
-    {
-        $this->endDateTime = $endDateTime;
-
-        return $this;
-    }
-
-    /**
-     * Set the fixedDateTimes property.
-     *
-     * @param  bool  $status
-     * @return $this
-     */
-    public function setfixedDateTimes(bool $status)
-    {
-        $this->fixedDateTimes = $status;
-
-        return $this;
-    }
-
-    /**
-     * Set the sub type.
-     *
-     * @param  string  $subType
-     * @return $this
-     */
-    public function setSubType(string $subType)
-    {
-        $this->subType = $subType;
-
-        return $this;
-    }
-
-    /**
-     * Set the sub value.
-     *
-     * @param  string  $subValue
-     * @return $this
-     */
-    public function setSubValue($subValue)
-    {
-        $this->subValue = $subValue;
-
-        return $this;
-    }
-
-    /**
      * Create a new Period instance with a start date time of today minus the given days.
      *
      * Start Date Time: Carbon::today()->subDays(2);
@@ -453,5 +322,136 @@ class Period
         return $period->setfixedDateTimes(false)
             ->setSubType($subType)
             ->setSubValue($subValue);
+    }
+
+    /**
+     * Get the start date time.
+     *
+     * @return \DateTime|null
+     */
+    public function getStartDateTime()
+    {
+        return $this->startDateTime;
+    }
+
+    /**
+     * Get the end date time.
+     *
+     * @return \DateTime|null
+     */
+    public function getEndDateTime()
+    {
+        return $this->endDateTime;
+    }
+
+    /**
+     * Check if the period has fixed date times.
+     *
+     * @return bool
+     */
+    public function hasFixedDateTimes(): bool
+    {
+        return $this->fixedDateTimes;
+    }
+
+    /**
+     * Get the DateTime string of the start date time.
+     *
+     * @return string
+     */
+    public function getStartDateTimeString(): string
+    {
+        return $this->startDateTime !== null ? $this->startDateTime->toDateTimeString() : '';
+    }
+
+    /**
+     * Get the DateTime string of the start date time.
+     *
+     * @return string
+     */
+    public function getEndDateTimeString(): string
+    {
+        return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
+    }
+
+    /**
+     * Make a unique key.
+     *
+     * @return string
+     */
+    public function makeKey(): string
+    {
+        if ($this->hasFixedDateTimes()) {
+            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
+        }
+
+        list($subType, $subValueType) = explode('_', strtolower($this->subType));
+
+        return "{$subType}{$this->subValue}{$subValueType}|";
+    }
+
+    /**
+     * Set the start date time.
+     *
+     * @param  \DateTime  $startDateTime
+     * @return $this
+     */
+    public function setStartDateTime(DateTime $startDateTime)
+    {
+        $this->startDateTime = $startDateTime;
+
+        return $this;
+    }
+
+    /**
+     * Set the end date time.
+     *
+     * @param  \DateTime  $endDateTime
+     * @return $this
+     */
+    public function setEndDateTime(DateTime $endDateTime)
+    {
+        $this->endDateTime = $endDateTime;
+
+        return $this;
+    }
+
+    /**
+     * Set the fixedDateTimes property.
+     *
+     * @param  bool  $status
+     * @return $this
+     */
+    public function setfixedDateTimes(bool $status)
+    {
+        $this->fixedDateTimes = $status;
+
+        return $this;
+    }
+
+    /**
+     * Set the sub type.
+     *
+     * @param  string  $subType
+     * @return $this
+     */
+    public function setSubType(string $subType)
+    {
+        $this->subType = $subType;
+
+        return $this;
+    }
+
+    /**
+     * Set the sub value.
+     *
+     * @param  string  $subValue
+     * @return $this
+     */
+    public function setSubValue($subValue)
+    {
+        $this->subValue = $subValue;
+
+        return $this;
     }
 }
