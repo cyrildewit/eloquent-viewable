@@ -95,7 +95,7 @@ return [
 
         ],
 
-        'cache_analytics_views_count' => [
+        'cache_view_tracker_counts' => [
 
             'enabled' => true,
             'lifetime_in_minutes' => 10,
