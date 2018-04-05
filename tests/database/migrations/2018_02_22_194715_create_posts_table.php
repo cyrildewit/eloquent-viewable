@@ -16,7 +16,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
 /*
- * This is the Post factory.
+ * CreatePostsTable class.
  *
  * @var \Illuminate\Database\Eloquent\Factory  $factory
  */
