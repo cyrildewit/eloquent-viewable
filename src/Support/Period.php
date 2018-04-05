@@ -236,7 +236,7 @@ class Period
      */
     public static function subWeeks(int $weeks): self
     {
-        return self::subNowsub(self::SUB_WEEKS, $weeks);
+        return self::subNow(self::SUB_WEEKS, $weeks);
     }
 
     /**
