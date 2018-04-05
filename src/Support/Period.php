@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable\Support;
 
 use DateTime;
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
  * Class Period.
