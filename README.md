@@ -393,7 +393,7 @@ public function getViewsInPastDays(int $days)
 // ...
 ```
 
-#### resources/views/post/index.blade.php
+#### resources/views/post/show.blade.php
 
 ```html
 <!-- ... -->
