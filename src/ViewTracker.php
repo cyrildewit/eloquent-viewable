@@ -11,18 +11,18 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Support;
+namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\Collection;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
- * Class ViewsHelper.
+ * Class ViewTracker.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class ViewsHelper
+class ViewTracker
 {
     /**
      * The cache repository instance.
@@ -50,10 +50,10 @@ class ViewsHelper
     public function getViewsCountByType(string $viewableType): int
     {
         $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
-        $cachingAnalytisViewsCountEnabled = config('eloquent-viewable.cache.cache_analytics_views_count.enabled', true);
-        $cacheKey = strtolower(str_replace('\\', '-', $viewableType));
+        $cachingViewTrackerCountsEnabled = config('eloquent-viewable.cache.cache_view_tracker_counts.enabled', true);
+        $cacheKey = $this->createViewsCountByTypeKey($viewableType);
 
-        if ($cachingEnabled && $cachingAnalytisViewsCountEnabled) {
+        if ($cachingEnabled && $cachingViewTrackerCountsEnabled) {
             if (! is_null($viewsCountByType = $this->cache->get($cacheKey))) {
                 return $viewsCountByType;
             }
@@ -63,7 +63,8 @@ class ViewsHelper
 
         // Cache the counted views
         if ($cachingEnabled) {
-            $this->cache->put($cacheKey, $viewsCountByType);
+            $lifetime = config('eloquent-viewable.cache.cache_view_tracker_counts.lifetime_in_minutes', 60);
+            $this->cache->put($cacheKey, $viewsCountByType, $lifetime);
         }
 
         return $viewsCountByType;
@@ -88,5 +89,19 @@ class ViewsHelper
         }
 
         return $viewsCountTypes;
+    }
+
+    /**
+     * Create a cache key for a views count by type.
+     *
+     * @param  string  $viewableType
+     * @return string
+     */
+    protected function createViewsCountByTypeKey(string $viewableType): string
+    {
+        $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
+        $suffix = strtolower(str_replace('\\', '-', $viewableType));
+
+        return "{$cacheKey}.{$suffix}";
     }
 }

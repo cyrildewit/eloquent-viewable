@@ -17,6 +17,7 @@ use Config;
 use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
@@ -57,7 +58,7 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
 
         $this->assertEquals(3, $post->getViews());
-        $this->assertEquals(2, $post->getViewsSince(Carbon::parse('2018-01-02 01:00:00')));
+        $this->assertEquals(2, $post->getViews(Period::since(Carbon::parse('2018-01-02 01:00:00'))));
     }
 
     /** @test */
@@ -70,7 +71,7 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
 
         $this->assertEquals(3, $post->getViews());
-        $this->assertEquals(2, $post->getViewsUpto(Carbon::parse('2018-01-02 01:00:00')));
+        $this->assertEquals(2, $post->getViews(Period::upto(Carbon::parse('2018-01-02 01:00:00'))));
     }
 
     /** @test */
@@ -86,7 +87,7 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00')]);
 
         $this->assertEquals(6, $post->getViews());
-        $this->assertEquals(4, $post->getViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
+        $this->assertEquals(4, $post->getViews(Period::create(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00'))));
     }
 
     /** @test */
@@ -118,7 +119,7 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
         $this->assertEquals(6, $post->getViews());
-        $this->assertEquals(3, $post->getUniqueViewsSince(Carbon::parse('2018-01-04 01:00:00')));
+        $this->assertEquals(3, $post->getUniqueViews(Period::since(Carbon::parse('2018-01-04 01:00:00'))));
     }
 
     /** @test */
@@ -134,7 +135,7 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
         $this->assertEquals(6, $post->getViews());
-        $this->assertEquals(2, $post->getUniqueViewsUpto(Carbon::parse('2018-01-03 01:00:00')));
+        $this->assertEquals(2, $post->getUniqueViews(Period::upto(Carbon::parse('2018-01-03 01:00:00'))));
     }
 
     /** @test */
@@ -150,35 +151,25 @@ class ViewableTest extends TestCase
         TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-06 01:00:00'), 'visitor' => 'visitor_one']);
 
         $this->assertEquals(6, $post->getViews());
-        $this->assertEquals(3, $post->getUniqueViewsBetween(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00')));
+        $this->assertEquals(3, $post->getUniqueViews(Period::create(Carbon::parse('2018-01-02 01:00:00'), Carbon::parse('2018-01-05 01:00:00'))));
     }
 
     /** @test */
-    public function getViews_can_return_the_total_number_of_views()
+    public function getViews_can_return_the_total_number_of_views_from_the_cache()
     {
         $post = factory(Post::class)->create();
 
         $post->addView();
         $post->addView();
         $post->addView();
-
-        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
-    }
-
-
-    /** @test */
-    public function getViews_can_return_the_total_number_of_views_since_startdatetime()
-    {
-        $post = factory(Post::class)->create();
-
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-01 01:00:00')]);
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-02 01:00:00')]);
-        TestHelper::createNewView($post, ['viewed_at' => Carbon::parse('2018-01-03 01:00:00')]);
 
         $this->assertEquals(3, $post->getViews());
-        $this->assertEquals(2, $post->getViewsSince(Carbon::parse('2018-01-02 01:00:00')));
-    }
 
+        $post->addView();
+        $post->addView();
+
+        $this->assertEquals(3, $post->getViews());
+    }
 
     /** @test */
     public function addView_can_save_a_view_to_a_model()

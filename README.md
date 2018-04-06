@@ -17,13 +17,16 @@ Once installed you can do stuff like this:
 $post->getViews();
 
 // Get the total number of views between the given date range
-$post->getViewsBetween(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+$post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
 
-// Get the total number of views in the past x weeks (from today)
-$post->getViewsOfPastDays(13);
+// Get the total number of views between the given date range
+$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 
-// Get the total number of views in the past x hours (from now)
-$post->getViewsOfSubHours(4);
+// Get the total number of views in the past 6 weeks (from today)
+$post->getViews(Period::pastWeeks(6));
+
+// Get the total number of views in the past 2 hours (from now)
+$post->getViews(Period::subHours(2));
 
 // Store a new view in the database
 $post->addView();
@@ -68,8 +71,8 @@ In this documentation, you will find some helpful information about the use of t
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
     * [Extending](#extending)
-4. [Under the hood](#under-the-hood)
-    * [List of properties/methods that the trait adds to your model](#list-of-propertiesmethods-that-the-trait-adds-to-your-model)
+4. [Recipes](#recipes)
+    * [Creating helper methods for frequently used period formats](#creating-helper-methods-for-frequently-used-period-formats)
 
 ## Getting Started
 
@@ -143,8 +146,6 @@ class Post extends Model
 }
 ```
 
-**Tip!** To see which properties and methods this trait adds to your model look at the bottom of this documentation or [click here](#list-of-propertiesmethods-that-the-trait-adds)!
-
 ### Saving views
 
 Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
@@ -172,80 +173,150 @@ public function show(Post $post)
 
 ### Retrieving views counts
 
-<!-- When retrieving views counts from the database, the values will be stored in the cache for a while. You can configure this in the config file. -->
-
-#### Normal views count
+After adding the `Viewable` trait to your model, you will be able to call `getViews()` and `getUniqueViews()` on your viewable model. Both methods accepts an optional `Period` instance.
 
 ```php
-// Retrieve the total number of views
+/**
+ * Get the total number of views.
+ *
+ * @param  \CyrildeWit\EloquentViewable\Support\Period
+ * @return int
+ */
+public function getViews($period = null): int;
+
+/**
+ * Get the total number of unique views.
+ *
+ * @param  \CyrildeWit\EloquentViewable\Support\Period
+ * @return int
+ */
+public function getUniqueViews($period = null) : int;
+```
+
+#### Period class
+
+_Be aware that the following code is't valid PHP syntax!_
+
+```php
+// Create a new Period instance.
+Period::create(DateTime $startDateTime = null, DateTime $endDateTime = null);
+
+// Create a new Period instance with only a start date time.
+Period::since(DateTime $startDateTime = null);
+
+// Create a new Period instance with only a end date time.
+Period::upto(DateTime $endDateTime = null);
+```
+
+```php
+// Period instance with a start date time of today minus the given days.
+Period::pastDays(int $days);
+
+// Period instance with a start date time of today minus the given weeks.
+Period::pastWeeks(int $weeks);
+
+// Period instance with a start date time of today minus the given months.
+Period::pastMonths(int $months);
+
+// Period instance with a start date time of today minus the given years.
+Period::pastYears(int $years);
+```
+
+```php
+// Period instance with a start date time of now minus the given seconds.
+Period::subSeconds(int $seconds);
+
+//Period instance with a start date time of now minus the given minutes.
+Period::subMinutes(int $minutes);
+
+// Period instance with a start date time of now minus the given hours.
+Period::subHours(int $hours);
+
+// Period instance with a start date time of now minus the given days.
+Period::subDays(int $days);
+
+// Period instance with a start date time of now minus the given weeks.
+Period::subWeeks(int $weeks);
+
+// Period instance with a start date time of now minus the given months.
+Period::subMonths(int $months);
+
+// Period instance with a start date time of now minus the given years.
+Period::subYears(int $years);
+```
+
+#### Examples
+
+```php
 $post->getViews();
 
-// Retrieve the total number of views that are stored after the given date
-$post->getViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+$post->getViews(Period::since(Carbon::parse('2007-05-21 12:23:00')));
 
-// Retrieve the total number of views that are stored before the given date
-$post->getViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+$post->getViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
 
-// Retrieve the total number of views that are stored between the two given dates
-$post->getViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
+$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 ```
 
 ```php
-// Retrieve the total number of unique views
 $post->getUniqueViews();
 
-// Retrieve the total number of unique views that are stored after the given date
-$post->getUniqueViewsSince(Carbon::parse('2007-05-21 12:23:00'));
+$post->getUniqueViews(Period::since(Carbon::parse('2007-05-21 12:23:00')));
 
-// Retrieve the total number of unique views that are stored before the given date
-$post->getUniqueViewsSince(Carbon::parse('2013-05-21 00:00:00'));
+$post->getUniqueViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
 
-// Retrieve the total number of unique views that are stored between the two given dates
-$post->getUniqueViewsSince(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00'));
-```
-
-#### Views count in the past from today
-
-Get the total number of (unique) views in the past `days`, `weeks`, `months` and `years` from today.
-
-For example: `Carbon::today()->subDays(2)`.
-
-```php
-$post->getViewsOfPastDays(2);
-$post->getViewsOfPastWeeks(2);
-$post->getViewsOfPastMonths(4);
-$post->getViewsOfPastYears(5);
+$post->getUniqueViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 ```
 
 ```php
-$post->getUniqueViewsOfPastDays(2);
-$post->getUniqueViewsOfPastWeeks(2);
-$post->getUniqueViewsOfPastMonths(4);
-$post->getUniqueViewsOfPastYears(5);
-```
+$post->getViews(Period::pastDays(5));
 
-#### Views count in the past from now
+$post->getViews(Period::pastWeeks(6));
 
-Get the total number of (unique) views in the past `seconds`, `minutes`, `hours`, `days`, `weeks`, `months` and `years` from today.
+$post->getViews(Period::pastMonths(8));
 
-For example: `Carbon::now()->subDays(2)`.
-
-```php
-$post->getViewsOfPastSeconds(30);
-$post->getViewsOfPastMinutes(15);
-$post->getViewsOfPastDays(2);
-$post->getViewsOfPastWeeks(2);
-$post->getViewsOfPastMonths(4);
-$post->getViewsOfPastYears(5);
+$post->getViews(Period::pastYears(3));
 ```
 
 ```php
-$post->getUniqueViewsOfPastSeconds(30);
-$post->getUniqueViewsOfPastMinutes(15);
-$post->getUniqueViewsOfPastDays(2);
-$post->getUniqueViewsOfPastWeeks(2);
-$post->getUniqueViewsOfPastMonths(4);
-$post->getUniqueViewsOfPastYears(5);
+$post->getUniqueViews(Period::pastDays(5));
+
+$post->getUniqueViews(Period::pastWeeks(6));
+
+$post->getUniqueViews(Period::pastMonths(8));
+
+$post->getUniqueViews(Period::pastYears(3));
+```
+
+```php
+$post->getViews(Period::subSeconds(30));
+
+$post->getViews(Period::subMinutes(15));
+
+$post->getViews(Period::subHours(8));
+
+$post->getViews(Period::subDays(5));
+
+$post->getViews(Period::subWeeks(6));
+
+$post->getViews(Period::subMonths(8));
+
+$post->getViews(Period::subYears(3));
+```
+
+```php
+$post->getUniqueViews(Period::subSeconds(30));
+
+$post->getUniqueViews(Period::subMinutes(15));
+
+$post->getUniqueViews(Period::subHours(8));
+
+$post->getUniqueViews(Period::subDays(5));
+
+$post->getUniqueViews(Period::subWeeks(6));
+
+$post->getUniqueViews(Period::subMonths(8));
+
+$post->getUniqueViews(Period::subYears(3));
 ```
 
 ### Order models by views count
@@ -288,6 +359,52 @@ $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\Services\ViewableService::class,
     \App\Services\CustomViewableService::class
 );
+```
+
+## Recipes
+
+### Creating helper methods for frequently used period formats
+
+#### App\Models\Post
+
+```php
+// ...
+
+public function getViewsSince(DateTime $sinceDateTime)
+{
+    return $this->getViews(Period::since($sinceDateTime));
+}
+
+public function getViewsUpto(DateTime $uptoDateTime)
+{
+    return $this->getViews(Period::upto($uptoDateTime));
+}
+
+public function getViewsBetween(DateTime $sinceDateTime, DateTime $uptoDateTime)
+{
+    return $this->getViews(Period::create($sinceDateTime, $uptoDateTime));
+}
+
+public function getViewsInPastDays(int $days)
+{
+    return $this->getViews(Period::pastDays($days));
+}
+
+// ...
+```
+
+#### resources/views/post/show.blade.php
+
+```html
+<!-- ... -->
+
+Page views since 2014: {{ $post->getViewsSince(Carbon::create(2014)) }}
+Page views upto 2016: {{ $post->getViewsUpto(Carbon::create(2016)) }}
+Page views between 2016 - 2018: {{ $post->getViewsBetween(Carbon::create(2016), Carbon::create(2018)) }}
+
+Page views in the past 5 days: {{ $post->getViewsInPastDays(5) }}
+
+<!-- ... -->
 ```
 
 ## Changelog
