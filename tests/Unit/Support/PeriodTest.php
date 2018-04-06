@@ -225,6 +225,42 @@ class PeriodTest extends TestCase
     }
 
     /** @test */
+    public function static_sub_returns_null_if_subTypeMethod_is_not_callable()
+    {
+        $period = Period::sub(Carbon::now(), 'random', 'unkown', 5);
+
+        $this->assertNull($period);
+    }
+
+    /** @test */
+    public function setStartDateTime_can_set_a_new_start_date_time()
+    {
+        Carbon::setTestNow(Carbon::now());
+
+        $period = Period::create();
+
+        $this->assertNull($period->getStartDateTime());
+
+        $period->setStartDateTime(Carbon::now());
+
+        $this->assertEquals($period->getStartDateTime(), Carbon::now());
+    }
+
+    /** @test */
+    public function setEndDateTime_can_set_a_new_start_date_time()
+    {
+        Carbon::setTestNow(Carbon::now());
+
+        $period = Period::create();
+
+        $this->assertNull($period->getEndDateTime());
+
+        $period->setEndDateTime(Carbon::now());
+
+        $this->assertEquals($period->getEndDateTime(), Carbon::now());
+    }
+
+    /** @test */
     public function makeKey_generates_right_keys()
     {
         $keyOne = Period::create()->makeKey();
