@@ -308,12 +308,12 @@ class Period
      * @param  string  $subTypeMethod
      * @param  string  $subType
      * @param  int  $subValue
-     * @return \CyrildeWit\EloquentViewable\Support\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period|null
      */
-    public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue): self
+    public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
     {
         if (! is_callable([$startDateTime, $subTypeMethod])) {
-            return false;
+            return null;
         }
 
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
