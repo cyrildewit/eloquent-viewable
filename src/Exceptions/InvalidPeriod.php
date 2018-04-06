@@ -25,7 +25,7 @@ use Exception;
 class InvalidPeriod extends Exception
 {
     /**
-     * Execute the job.
+     * Start date time cannot be after end eate time.
      *
      * @param  \DateTime  $startDateTime
      * @param  \DateTime  $endDateTime
