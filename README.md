@@ -196,7 +196,7 @@ public function getUniqueViews($period = null) : int;
 
 #### Period class
 
-_Be aware that the following code is't valid PHP syntax!_
+_Be aware that the following code isn't valid PHP syntax!_
 
 ```php
 // Create a new Period instance.
@@ -337,10 +337,10 @@ $sortedPosts = Post::orderByViewsCount('asc')->get();
 use CyrildeWit\EloquentViewable\ViewTracker;
 
 // Get the total number of views of one type
-app(ViewTracker::class)->getViewsCountByType(Post::class);
+ViewTracker::getViewsCountByType(Post::class);
 
 // Get the total number of views of multiple types
-app(ViewTracker::class)->getViewsCountByTypes([Post::class, Location::class, Hotel::class]);
+ViewTracker::getViewsCountByTypes([Post::class, Location::class, Hotel::class]);
 ```
 
 ## Configuration
@@ -355,10 +355,11 @@ If you want to extend or replace one of the core classes with your own implement
 
 * `CyrildeWit\Eloquent\Viewable\Models\View`
 * `CyrildeWit\Eloquent\Viewable\Services\ViewableService`
+* `CyrildeWit\Eloquent\Viewable\CrawlerDetector\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-#### Replace model class with custom implementation
+#### Replace `View` model with custom implementation
 
 ```php
 $this->app->bind(
@@ -367,12 +368,21 @@ $this->app->bind(
 );
 ```
 
-#### Replace service class with custom implementation
+#### Replace `ViewableService` service with custom implementation
 
 ```php
 $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\Services\ViewableService::class,
     \App\Services\CustomViewableService::class
+);
+```
+
+#### Replace `CrawlerDetectAdapter` class with custom implementation
+
+```php
+$this->app->singleton(
+    \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector::class,
+    \App\Services\CrawlerDetector\CustomAdapter::class
 );
 ```
 
