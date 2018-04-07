@@ -16,7 +16,7 @@ Once installed you can do stuff like this:
 // Get the total number of views
 $post->getViews();
 
-// Get the total number of views between the given date range
+// Get the total number of views since the given date
 $post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
 
 // Get the total number of views between the given date range
@@ -68,6 +68,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Saving views](#saving-vies)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
+    * [ViewTracker helper](#viewtracker-helper)
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
     * [Extending](#extending)
@@ -202,10 +203,10 @@ _Be aware that the following code is't valid PHP syntax!_
 Period::create(DateTime $startDateTime = null, DateTime $endDateTime = null);
 
 // Create a new Period instance with only a start date time.
-Period::since(DateTime $startDateTime = null);
+Period::since(DateTime $startDateTime);
 
 // Create a new Period instance with only a end date time.
-Period::upto(DateTime $endDateTime = null);
+Period::upto(DateTime $endDateTime);
 ```
 
 ```php
@@ -326,6 +327,20 @@ $post->getUniqueViews(Period::subYears(3));
 ```php
 $sortedPosts = Post::orderByViewsCount()->get();
 $sortedPosts = Post::orderByViewsCount('asc')->get();
+```
+
+### ViewTracker helper
+
+#### Get views by viewable type
+
+```php
+use CyrildeWit\EloquentViewable\ViewTracker;
+
+// Get the total number of views of one type
+app(ViewTracker::class)->getViewsCountByType(Post::class);
+
+// Get the total number of views of multiple types
+app(ViewTracker::class)->getViewsCountByTypes([Post::class, Location::class, Hotel::class]);
 ```
 
 ## Configuration
