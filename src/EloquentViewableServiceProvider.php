@@ -14,10 +14,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
+use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
+use CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**
@@ -77,12 +79,16 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->app->bind(ViewContract::class, View::class);
         $this->app->singleton(ViewableServiceContract::class, ViewableService::class);
 
-        $this->app->bind(CrawlerDetector::class, function ($app) {
-            return new CrawlerDetector(
+        $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
+            $detector = new CrawlerDetect(
                 $app['request']->headers->all(),
                 $app['request']->server('HTTP_USER_AGENT')
             );
+
+            return new CrawlerDetectAdapter($detector);
         });
+
+        $this->app->singleton(CrawlerDetector::class, CrawlerDetectAdapter::class);
     }
 
     /**

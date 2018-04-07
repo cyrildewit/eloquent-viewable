@@ -21,9 +21,9 @@ use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
-use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**
@@ -41,9 +41,9 @@ class ViewableService implements ViewableServiceContract
     protected $cache;
 
     /**
-     * CrawlerDetect instance.
+     * The crawler detector instance.
      *
-     * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
+     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector
      */
     protected $crawlerDetector;
 
@@ -170,7 +170,7 @@ class ViewableService implements ViewableServiceContract
         $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
 
         // If ignore bots is true and the current viewer is a bot, return false
-        if ($ignoreBots && $this->crawlerDetector->isRobot()) {
+        if ($ignoreBots && $this->crawlerDetector->isBot()) {
             return false;
         }
 

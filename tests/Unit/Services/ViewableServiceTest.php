@@ -21,9 +21,9 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
-use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
 
 /**
  * Class ViewableServiceTest.
@@ -286,7 +286,7 @@ class ViewableServiceTest extends TestCase
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, function () {
             return new class {
-                public function isRobot()
+                public function isBot()
                 {
                     return true;
                 }

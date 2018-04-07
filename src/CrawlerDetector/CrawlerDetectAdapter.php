@@ -11,16 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Support;
+namespace CyrildeWit\EloquentViewable\CrawlerDetector;
 
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector;
 
 /**
- * Class CrawlerDetector.
+ * Class CrawlerDetectAdapter.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class CrawlerDetector
+class CrawlerDetectAdapter implements Detector
 {
     /**
      * CrawlerDetect instance.
@@ -32,21 +33,20 @@ class CrawlerDetector
     /**
      * Create a new CrawlerDetector instance.
      *
-     * @param  array  $headers
-     * @param  string  $agent
+     * @param  \Jaybizzle\CrawlerDetect\CrawlerDetect  $detector
      * @return void
      */
-    public function __construct(array $headers, $agent)
+    public function __construct(CrawlerDetect $detector)
     {
-        $this->detector = new CrawlerDetect($headers, $agent);
+        $this->detector = $detector;
     }
 
     /**
-     * Check if current request is from a bot.
+     * Determine if the current user is crawler.
      *
      * @return bool
      */
-    public function isRobot()
+    public function isBot()
     {
         return $this->detector->isCrawler();
     }
