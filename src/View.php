@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Models;
+namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * Class View.

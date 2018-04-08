@@ -11,15 +11,15 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Traits;
+namespace CyrildeWit\EloquentViewable;
 
 use DateTime;
 use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
-use CyrildeWit\EloquentViewable\Observers\ViewableObserver;
-use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
+use CyrildeWit\EloquentViewable\ViewableObserver;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * Trait Viewable.

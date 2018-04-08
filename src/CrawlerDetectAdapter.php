@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\CrawlerDetector;
+namespace CyrildeWit\EloquentViewable;
 
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
 /**
  * Class CrawlerDetectAdapter.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-class CrawlerDetectAdapter implements Detector
+class CrawlerDetectAdapter implements CrawlerDetector
 {
     /**
      * CrawlerDetect instance.

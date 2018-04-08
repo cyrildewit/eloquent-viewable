@@ -15,11 +15,11 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
-use CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter;
-use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
+use CyrildeWit\EloquentViewable\CrawlerDetectAdapter;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**

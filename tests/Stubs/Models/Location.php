@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Traits\Viewable;
+use CyrildeWit\EloquentViewable\Viewable;
 
 /**
  * Location class.

@@ -18,7 +18,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\View;
 
 /**
  * Class ProcessView.
@@ -30,14 +30,14 @@ class ProcessView implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @var \CyrildeWit\EloquentViewable\Models\View
+     * @var \CyrildeWit\EloquentViewable\View
      */
     public $view;
 
     /**
      * Create a new job instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\Models\View  $view
+     * @param  \CyrildeWit\EloquentViewable\View  $view
      * @return void
      */
     public function __construct(View $view)

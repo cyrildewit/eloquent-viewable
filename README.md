@@ -137,7 +137,7 @@ To make an Eloquent model viewable just add the `Viewable` trait to your model d
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Traits\Viewable;
+use CyrildeWit\EloquentViewable\Viewable;
 
 class Post extends Model
 {
@@ -353,7 +353,7 @@ When calling the `->addView()` method on your model, it will save a new view in 
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
-* `CyrildeWit\Eloquent\Viewable\Models\View`
+* `CyrildeWit\Eloquent\Viewable\View`
 * `CyrildeWit\Eloquent\Viewable\Services\ViewableService`
 * `CyrildeWit\Eloquent\Viewable\CrawlerDetector\CrawlerDetectAdapter`
 
@@ -363,7 +363,7 @@ _**Note:** Don't forget that all custom classes must implement their original in
 
 ```php
 $this->app->bind(
-    \CyrildeWit\EloquentViewable\Contracts\Models\View::class,
+    \CyrildeWit\EloquentViewable\Contracts\View::class,
     \App\Models\CustomView::class
 );
 ```
@@ -381,7 +381,7 @@ $this->app->singleton(
 
 ```php
 $this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector::class,
+    \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
     \App\Services\CrawlerDetector\CustomAdapter::class
 );
 ```

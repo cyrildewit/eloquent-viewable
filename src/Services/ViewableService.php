@@ -22,8 +22,8 @@ use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use CyrildeWit\EloquentViewable\Contracts\Models\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
 
 /**

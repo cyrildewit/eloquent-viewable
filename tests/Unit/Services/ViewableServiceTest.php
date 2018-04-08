@@ -16,14 +16,14 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
 use Config;
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector as CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
 /**
  * Class ViewableServiceTest.

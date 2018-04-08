@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+namespace CyrildeWit\EloquentViewable\Contracts;
 
 /**
- * Interface Detector.
+ * Interface CrawlerDetector.
  *
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
-interface Detector
+interface CrawlerDetector
 {
     /**
      * Determine if the current user is crawler.
