@@ -53,8 +53,11 @@ class ViewTracker
         $cachingViewTrackerCountsEnabled = config('eloquent-viewable.cache.cache_view_tracker_counts.enabled', true);
         $cacheKey = $this->createViewsCountByTypeKey($viewableType);
 
+        // Check cache if wanted
         if ($cachingEnabled && $cachingViewTrackerCountsEnabled) {
-            if (! is_null($viewsCountByType = $this->cache->get($cacheKey))) {
+            $viewsCountByType = $this->cache->get($cacheKey);
+
+            if ($viewsCountByType !== null) {
                 return $viewsCountByType;
             }
         }
