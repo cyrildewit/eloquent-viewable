@@ -13,12 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use DateTime;
 use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Services\ViewableService;
-use CyrildeWit\EloquentViewable\ViewableObserver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**

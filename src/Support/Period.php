@@ -313,7 +313,7 @@ class Period
     public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
     {
         if (! is_callable([$startDateTime, $subTypeMethod])) {
-            return null;
+            return;
         }
 
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
