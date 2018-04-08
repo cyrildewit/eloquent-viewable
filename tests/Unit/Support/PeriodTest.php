@@ -13,18 +13,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
 
-use Config;
-use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
-use CyrildeWit\EloquentViewable\Support\IpAddress;
-use CyrildeWit\EloquentViewable\Support\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
-use CyrildeWit\EloquentViewable\Services\ViewableService;
 
 /**
  * Class PeriodTest.
@@ -276,10 +269,10 @@ class PeriodTest extends TestCase
 
         $startDateTime = Carbon::today();
         $keyFour = Period::sub($startDateTime, 'subYears', Period::PAST_YEARS, 5)->makeKey();
-        $this->assertEquals("past5years|", $keyFour);
+        $this->assertEquals('past5years|', $keyFour);
 
         $startDateTime = Carbon::now();
         $keyFive = Period::sub($startDateTime, 'subYears', Period::SUB_YEARS, 5)->makeKey();
-        $this->assertEquals("sub5years|", $keyFive);
+        $this->assertEquals('sub5years|', $keyFive);
     }
 }

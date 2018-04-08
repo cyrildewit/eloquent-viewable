@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\Collection;
-use CyrildeWit\EloquentViewable\View;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
