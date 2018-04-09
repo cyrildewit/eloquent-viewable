@@ -353,9 +353,9 @@ When calling the `->addView()` method on your model, it will save a new view in 
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
-* `CyrildeWit\Eloquent\Viewable\View`
-* `CyrildeWit\Eloquent\Viewable\Services\ViewableService`
-* `CyrildeWit\Eloquent\Viewable\CrawlerDetector\CrawlerDetectAdapter`
+* `CyrildeWit\EloquentViewable\View`
+* `CyrildeWit\EloquentViewable\ViewableService`
+* `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
@@ -372,7 +372,7 @@ $this->app->bind(
 
 ```php
 $this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\Services\ViewableService::class,
+    \CyrildeWit\EloquentViewable\Contracts\ViewableService::class,
     \App\Services\CustomViewableService::class
 );
 ```

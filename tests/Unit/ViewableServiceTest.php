@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
+namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use Config;
 use Request;
@@ -19,10 +19,10 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
+use CyrildeWit\EloquentViewable\ViewableService;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
-use CyrildeWit\EloquentViewable\Services\ViewableService;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
 /**

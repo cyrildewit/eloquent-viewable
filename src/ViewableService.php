@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Services;
+namespace CyrildeWit\EloquentViewable;
 
 use Cookie;
 use Request;
@@ -24,7 +24,7 @@ use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
+use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**
  * Class ViewableService.
@@ -43,7 +43,7 @@ class ViewableService implements ViewableServiceContract
     /**
      * The crawler detector instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector\Detector
+     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
      */
     protected $crawlerDetector;
 

@@ -15,10 +15,10 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use CyrildeWit\EloquentViewable\Services\ViewableService;
+use CyrildeWit\EloquentViewable\ViewableService;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableServiceContract;
+use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**
  * Class EloquentViewableServiceProvider.
@@ -27,13 +27,6 @@ use CyrildeWit\EloquentViewable\Contracts\Services\ViewableService as ViewableSe
  */
 class EloquentViewableServiceProvider extends ServiceProvider
 {
-    /**
-     * Indicates if loading of the provider is deferred.
-     *
-     * @var bool
-     */
-    protected $defer = false;
-
     /**
      * Perform post-registration booting of services.
      *

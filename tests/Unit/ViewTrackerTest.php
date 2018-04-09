@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit\Services;
+namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use CyrildeWit\EloquentViewable\ViewTracker;
 use CyrildeWit\EloquentViewable\Tests\TestCase;

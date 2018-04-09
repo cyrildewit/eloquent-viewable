@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Contracts\Services;
+namespace CyrildeWit\EloquentViewable\Contracts;
 
 use Illuminate\Database\Eloquent\Builder;
 
