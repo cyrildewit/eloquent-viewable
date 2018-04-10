@@ -217,14 +217,6 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    // /** @test */
-    // public function static_sub_returns_null_if_subTypeMethod_is_not_callable()
-    // {
-    //     $period = Period::sub(Carbon::now(), 'random', 'unkown', 5);
-
-    //     $this->assertNull($period);
-    // }
-
     /** @test */
     public function setStartDateTime_can_set_a_new_start_date_time()
     {
