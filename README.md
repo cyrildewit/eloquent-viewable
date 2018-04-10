@@ -6,6 +6,8 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/laravel-page-view-counter)
 [![license](https://img.shields.io/github/license/cyrildewit/laravel-page-view-counter.svg?style=flat-square)](https://github.com/cyrildewit/laravel-page-view-counter/blob/master/LICENSE.md)
 
+> *Announcement:* Eloquent Viewable v2.0 will be released on May 28, 2018! See the [readme](https://github.com/cyrildewit/laravel-page-view-counter/blob/2.0/README.md) and [upgrade guide](https://github.com/cyrildewit/laravel-page-view-counter/blob/2.0/UPGRADING.md) for more information!
+
 This Laravel package allows you to store page views of different Eloquent models into the databse.
 
 Once installed you can do stuff like this:
