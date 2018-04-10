@@ -8,7 +8,7 @@
 [![Built For Laravel](https://img.shields.io/badge/built%20for-laravel-blue.svg?style=flat-square)](http://laravel.com)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
-This Laravel >= 5.5 package allows you to add a view counter to your Eloquent models.
+This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
 
