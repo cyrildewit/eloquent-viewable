@@ -4,7 +4,15 @@
 
 ## Upgrading from 1.0.5 to 2.0.0
 
-_This section is still in progress!_
+The package has been renamed from `Laravel Page View Counter` to `Eloquent Viewable`.
+
+### PHP
+
+While `v1.0.5` already required PHP 7.0 and higher, it is now added to the composer.json file.
+
+### License
+
+The license has been changed from `MIT` to `Apache 2.0`.
 
 ### Require the new composer package
 
@@ -34,12 +42,12 @@ Schema::table('page-visits', function (Blueprint $table) {
 });
 ```
 
-## Update the config file
+### Update the config file
 
 First you have to publish the new config file with:
 
 ```winbatch
-php artisan vendor:publish --provider="CyrildeWit\PageViewCounter\PageViewCounterServiceProvider" --tag="config"
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
 Read this config file and update the fields if needed!
@@ -83,3 +91,7 @@ class Post extends Model
 - Find all usages of `getUniquePageViewsFrom(<DateTime>)`and replace it with `getUniqueViews(Period::since(<DateTime>))`.
 - Find all usages of `getUniquePageViewsBefore(<DateTime>)`and replace it with `getUniqueViews(Period::upto(<DateTime>))`.
 - Find all usages of `getUniquePageViewsBetween(<DateTime>)`and replace it with `getUniqueViews(Period::create(<DateTime>, <DateTime>))`.
+
+### DateTransformer
+
+The DateTransformers feature has been removed from v2.0.0.
