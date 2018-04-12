@@ -432,6 +432,10 @@ Page views in the past 5 days: {{ $post->getViewsInPastDays(5) }}
 <!-- ... -->
 ```
 
+## Upgrading
+
+Please see [UPGRADING](UPGRADING.md) for detailed upgrade guide.
+
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG-2.0.md) for more information on what has changed recently.
