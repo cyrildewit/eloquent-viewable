@@ -31,30 +31,21 @@ class ViewTracker
     protected $cache;
 
     /**
-     * Create a new ViewsAnalytics instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->cache = app(CacheRepository::class);
-    }
-
-    /**
      * Get the total number of views of a viewable type.
      *
      * @param  string  $viewableType
      * @return int
      */
-    public function getViewsCountByType(string $viewableType): int
+    public static function getViewsCountByType(string $viewableType): int
     {
+        $cache = app(CacheRepository::class);
         $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
         $cachingViewTrackerCountsEnabled = config('eloquent-viewable.cache.cache_view_tracker_counts.enabled', true);
-        $cacheKey = $this->createViewsCountByTypeKey($viewableType);
+        $cacheKey = static::createViewsCountByTypeKey($viewableType);
 
         // Check cache if wanted
         if ($cachingEnabled && $cachingViewTrackerCountsEnabled) {
-            $viewsCountByType = $this->cache->get($cacheKey);
+            $viewsCountByType = $cache->get($cacheKey);
 
             if ($viewsCountByType !== null) {
                 return $viewsCountByType;
@@ -66,7 +57,7 @@ class ViewTracker
         // Cache the counted views
         if ($cachingEnabled) {
             $lifetime = config('eloquent-viewable.cache.cache_view_tracker_counts.lifetime_in_minutes', 60);
-            $this->cache->put($cacheKey, $viewsCountByType, $lifetime);
+            $cache->put($cacheKey, $viewsCountByType, $lifetime);
         }
 
         return $viewsCountByType;
@@ -78,7 +69,7 @@ class ViewTracker
      * @param  array|Illuminate\Support\Collection  Collection of viewable models.
      * @return array|Illuminate\Support\Collection
      */
-    public function getViewsCountByTypes($viewableTypes)
+    public static function getViewsCountByTypes($viewableTypes)
     {
         $viewsCountTypes = Collection::make([]);
         $viewableTypes = Collection::make($viewableTypes);
@@ -86,7 +77,7 @@ class ViewTracker
         foreach ($viewableTypes as $viewableType) {
             $viewsCountTypes->put(
                 $viewableType,
-                $this->getViewsCountByType($viewableType)
+                static::getViewsCountByType($viewableType)
             );
         }
 
@@ -99,7 +90,7 @@ class ViewTracker
      * @param  string  $viewableType
      * @return string
      */
-    protected function createViewsCountByTypeKey(string $viewableType): string
+    protected static function createViewsCountByTypeKey(string $viewableType): string
     {
         $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
         $suffix = strtolower(str_replace('\\', '-', $viewableType));

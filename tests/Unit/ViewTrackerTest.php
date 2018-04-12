@@ -37,7 +37,6 @@ class ViewTrackerTest extends TestCase
     /** @test */
     public function getViewsCountByType_can_give_us_the_number_of_views_of_the_given_class_type()
     {
-        $tracker = $this->app->make(ViewTracker::class);
         $post = factory(Post::class)->create();
         $location = factory(Location::class)->create();
 
@@ -48,8 +47,8 @@ class ViewTrackerTest extends TestCase
         TestHelper::createNewView($location);
         TestHelper::createNewView($location);
 
-        $this->assertEquals(3, $tracker->getViewsCountByType(Post::class));
-        $this->assertEquals(2, $tracker->getViewsCountByType(Location::class));
+        $this->assertEquals(3, ViewTracker::getViewsCountByType(Post::class));
+        $this->assertEquals(2, ViewTracker::getViewsCountByType(Location::class));
     }
 
     /** @test */
@@ -69,7 +68,7 @@ class ViewTrackerTest extends TestCase
         $this->assertEquals(collect([
             Post::class => 3,
             Location::class => 2,
-        ]), $tracker->getViewsCountByTypes([Post::class, Location::class]));
+        ]), ViewTracker::getViewsCountByTypes([Post::class, Location::class]));
     }
 
     /** @test */
@@ -86,13 +85,13 @@ class ViewTrackerTest extends TestCase
         TestHelper::createNewView($location);
         TestHelper::createNewView($location);
 
-        $this->assertEquals(3, $tracker->getViewsCountByType(Post::class));
-        $this->assertEquals(2, $tracker->getViewsCountByType(Location::class));
+        $this->assertEquals(3, ViewTracker::getViewsCountByType(Post::class));
+        $this->assertEquals(2, ViewTracker::getViewsCountByType(Location::class));
 
         TestHelper::createNewView($post);
         TestHelper::createNewView($location);
 
-        $this->assertEquals(3, $tracker->getViewsCountByType(Post::class));
-        $this->assertEquals(2, $tracker->getViewsCountByType(Location::class));
+        $this->assertEquals(3, ViewTracker::getViewsCountByType(Post::class));
+        $this->assertEquals(2, ViewTracker::getViewsCountByType(Location::class));
     }
 }
