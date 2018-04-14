@@ -42,7 +42,7 @@ class CrawlerDetectorTest extends TestCase
     }
 
     /** @test */
-    public function isBot_returns_if_the_visitor_is_a_bot()
+    public function isBot_returns_true_if_the_visitor_is_a_bot()
     {
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, function () {
