@@ -451,4 +451,4 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## License
 
-The Apache 2.0 license. Please see [License File](LICENSE.md) for more information.
+Eloquent Viewable is licensed under The Apache 2.0 license. See [License File](LICENSE.md) for more information.
