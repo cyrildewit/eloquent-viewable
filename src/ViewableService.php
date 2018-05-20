@@ -92,7 +92,7 @@ class ViewableService implements ViewableServiceContract
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
         }
 
