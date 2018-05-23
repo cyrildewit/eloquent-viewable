@@ -245,10 +245,10 @@ class ViewableService implements ViewableServiceContract
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
 
-        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.id")
-            ->selectRaw("{$viewable->getTable()}.*, count({$viewModel->getTable()}.{$viewModel->getKeyName()}) as aggregate")
+        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
+            ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
             ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->orderBy('aggregate', $direction);
+            ->orderBy('numOfViews', $direction);
     }
 
     /**
