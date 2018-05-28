@@ -1,6 +1,6 @@
 {
     "name": "cyrildewit/eloquent-viewable",
-    "description": "Simple package for adding a page view counter to your viewable Eloquent models",
+    "description": "Simple package that allows you to associate views with Eloquent models",
     "type": "library",
     "license": "Apache-2.0",
     "homepage": "https://github.com/cyrildewit/eloquent-viewable",
