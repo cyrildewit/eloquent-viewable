@@ -364,7 +364,7 @@ class ViewableServiceTest extends TestCase
         $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
     }
 
-        /** @test */
+    /** @test */
     public function addViewWithExpiryDateTo_can_save_a_view_to_a_model()
     {
         $post = factory(Post::class)->create();
