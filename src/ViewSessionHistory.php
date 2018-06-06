@@ -50,7 +50,7 @@ class ViewSessionHistory
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \DateTime  $expiryDateTime
      */
-    public function pushViewable($viewable, $expiryDateTime)
+    public function push($viewable, $expiryDateTime)
     {
         $baseKey = $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
 
@@ -59,10 +59,7 @@ class ViewSessionHistory
         // Check if the viewable model has been viewed, otherwise don't add it
         // to the session
         if (! $this->isViewableViewed($baseKey, $viewable->getKey())) {
-            $this->session->push($baseKey, [
-                'viewable_id' => $viewable->getKey(),
-                'expires_at' => $expiryDateTime,
-            ]);
+            $this->session->push($baseKey, $this->createRecord($viewable, $expiryDateTime));
 
             return true;
         }
@@ -71,12 +68,27 @@ class ViewSessionHistory
     }
 
     /**
+     * Create a history record from the given viewable model and expiry date.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \DateTime  $expiryDateTime
+     * @return array
+     */
+    protected function createRecord($viewable, $expiryDateTime)
+    {
+        return [
+            'viewable_id' => $viewable->getKey(),
+            'expires_at' => $expiryDateTime,
+        ];
+    }
+
+    /**
      * Determine if the given model has been visited.
      *
      * @param  string  $key
      * @return bool
      */
-    protected function isViewableViewed(string $key, $viewableId)
+    protected function isViewableViewed(string $key, int $viewableId)
     {
         $viewHistory = $this->session->get($key, []);
 
@@ -98,14 +110,14 @@ class ViewSessionHistory
     protected function removeExpiredViews(string $key)
     {
         $currentTime = Carbon::now();
-        $history = $this->session->get($key, []);
+        $viewHistory = $this->session->get($key, []);
 
-        foreach ($history as $item) {
+        foreach ($viewHistory as $record) {
             // Less thatn or equal to
-            if ($item['expires_at']->lte($currentTime)) {
-                $itemId = array_search($item['viewable_id'], array_column($item, 'viewable_id'));
+            if ($record['expires_at']->lte($currentTime)) {
+                $recordId = array_search($item['viewable_id'], array_column($item, 'viewable_id'));
 
-                $this->session->pull($key.$itemId);
+                $this->session->pull($key.$recordId);
             }
         }
     }
