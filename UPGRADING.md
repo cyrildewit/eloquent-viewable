@@ -1,6 +1,31 @@
 # Upgrade Guide
 
+- [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-2.0.0-to-2.1.0)
 - [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-1.0.5-to-2.0.0)
+
+## Upgrading from 2.0.0 to 2.1.0
+
+### Update config file
+
+If you have published the config file of this package, you will have to copy the following snippet to your config file:
+
+```php
+/*
+|--------------------------------------------------------------------------
+| Session Configuration
+|--------------------------------------------------------------------------
+*/
+'session' => [
+
+    /*
+     * Everthing will be stored under the following key.
+     */
+    'key' => 'cyrildewit.eloquent-viewable.session',
+
+],
+```
+
+Take a look at the [original file](https://github.com/cyrildewit/eloquent-viewable/blob/2.1/publishable/config/eloquent-viewable.php) to find the right location.
 
 ## Upgrading from 1.0.5 to 2.0.0
 
