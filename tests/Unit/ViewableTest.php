@@ -272,6 +272,28 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
+    public function addViewWithExpiryDate_can_save_a_view_to_a_model()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
+    public function addViewWithExpiryDate_does_not_save_views_to_a_model_if_not_expired()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
     public function removeViews_can_remove_all_views_from_a_model()
     {
         $post = factory(Post::class)->create();
