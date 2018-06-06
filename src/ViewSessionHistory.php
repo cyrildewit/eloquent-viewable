@@ -52,14 +52,13 @@ class ViewSessionHistory
      */
     public function push($viewable, $expiryDateTime)
     {
-        $baseKey = $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+        $baseKey = $this->createBaseKey($viewable);
+        $uniqueKey = $this->createUniqueKey($viewable);
 
-        $this->removeExpiredViews($baseKey);
+        $this->forgetExpiredViews($baseKey);
 
-        // Check if the viewable model has been viewed, otherwise don't add it
-        // to the session
-        if (! $this->isViewableViewed($baseKey, $viewable->getKey())) {
-            $this->session->push($baseKey, $this->createRecord($viewable, $expiryDateTime));
+        if (! $this->isViewableViewed($uniqueKey)) {
+            $this->session->put($uniqueKey, $this->createRecord($viewable, $expiryDateTime));
 
             return true;
         }
@@ -88,17 +87,9 @@ class ViewSessionHistory
      * @param  string  $key
      * @return bool
      */
-    protected function isViewableViewed(string $key, int $viewableId)
+    protected function isViewableViewed(string $uniqueKey)
     {
-        $viewHistory = $this->session->get($key, []);
-
-        foreach ($viewHistory as $record) {
-            if ($record['viewable_id'] === $viewableId) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->session->has($uniqueKey);
     }
 
     /**
@@ -107,7 +98,7 @@ class ViewSessionHistory
      * @param  string  $key
      * @return void
      */
-    protected function removeExpiredViews(string $key)
+    protected function forgetExpiredViews(string $key)
     {
         $currentTime = Carbon::now();
         $viewHistory = $this->session->get($key, []);
@@ -115,10 +106,20 @@ class ViewSessionHistory
         foreach ($viewHistory as $record) {
             // Less thatn or equal to
             if ($record['expires_at']->lte($currentTime)) {
-                $recordId = array_search($item['viewable_id'], array_column($item, 'viewable_id'));
+                $recordId = array_search($record['viewable_id'], array_column($record, 'viewable_id'));
 
                 $this->session->pull($key.$recordId);
             }
         }
+    }
+
+    protected function createBaseKey($viewable)
+    {
+        return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+    }
+
+    protected function createUniqueKey($viewable)
+    {
+        return $this->createBaseKey($viewable).'.'.$viewable->getKey();
     }
 }
