@@ -50,7 +50,7 @@ class ViewSessionHistory
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \DateTime  $expiryDateTime
      */
-    public function push($viewable, $expiryDateTime)
+    public function push($viewable, $expiryDateTime): bool
     {
         $baseKey = $this->createBaseKey($viewable);
         $uniqueKey = $this->createUniqueKey($viewable);
@@ -73,7 +73,7 @@ class ViewSessionHistory
      * @param  \DateTime  $expiryDateTime
      * @return array
      */
-    protected function createRecord($viewable, $expiryDateTime)
+    protected function createRecord($viewable, $expiryDateTime): array
     {
         return [
             'viewable_id' => $viewable->getKey(),
@@ -87,7 +87,7 @@ class ViewSessionHistory
      * @param  string  $key
      * @return bool
      */
-    protected function isViewableViewed(string $uniqueKey)
+    protected function isViewableViewed(string $uniqueKey): bool
     {
         return $this->session->has($uniqueKey);
     }
@@ -113,12 +113,24 @@ class ViewSessionHistory
         }
     }
 
-    protected function createBaseKey($viewable)
+    /**
+     * Create a base key from the given viewable model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @return string
+     */
+    protected function createBaseKey($viewable): string
     {
         return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
     }
 
-    protected function createUniqueKey($viewable)
+    /**
+     * Create a unique key from the given viewable model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @return string
+     */
+    protected function createUniqueKey($viewable): string
     {
         return $this->createBaseKey($viewable).'.'.$viewable->getKey();
     }
