@@ -236,7 +236,7 @@ class ViewableService implements ViewableServiceContract
      */
     public function addViewWithExpiryDateTo($viewable, $expiryDateTime)
     {
-        if ($this->viewSessionHistory->pushViewable($viewable, $expiryDateTime)) {
+        if ($this->viewSessionHistory->push($viewable, $expiryDateTime)) {
             return $this->addViewTo($viewable);
         }
 
