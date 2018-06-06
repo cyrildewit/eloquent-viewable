@@ -55,6 +55,13 @@ class ViewableService implements ViewableServiceContract
     protected $ipRepository;
 
     /**
+     * The view session history instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     */
+    protected $viewSessionHistory;
+
+    /**
      * Create a new ViewableService instance.
      *
      * @return void
@@ -64,6 +71,7 @@ class ViewableService implements ViewableServiceContract
         $this->cache = app(CacheRepository::class);
         $this->crawlerDetector = app(CrawlerDetector::class);
         $this->ipRepository = app(IpAddress::class);
+        $this->viewSessionHistory = app(ViewSessionHistory::class);
     }
 
     /**
@@ -217,6 +225,22 @@ class ViewableService implements ViewableServiceContract
         $view->save();
 
         return true;
+    }
+
+    /**
+     * Store a new view.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \DateTime  $expiryDateTime
+     * @return bool
+     */
+    public function addViewWithExpiryDateTo($viewable, $expiryDateTime)
+    {
+        if ($this->viewSessionHistory->pushViewable($viewable, $expiryDateTime)) {
+            return $this->addViewTo($viewable);
+        }
+
+        return false;
     }
 
     /**
