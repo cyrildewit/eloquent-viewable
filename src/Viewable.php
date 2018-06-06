@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use DateTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
@@ -76,6 +77,17 @@ trait Viewable
     public function addView(): bool
     {
         return app(ViewableService::class)->addViewTo($this);
+    }
+
+    /**
+     * Store a new view with an expiry date.
+     *
+     * @param  \DateTime  $expiresAt
+     * @return bool
+     */
+    public function addViewWithExpiryDate($expiresAt): bool
+    {
+        return app(ViewableService::class)->addViewWithExpiryDateTo($this, $expiresAt);
     }
 
     /**
