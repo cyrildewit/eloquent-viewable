@@ -79,6 +79,17 @@ trait Viewable
     }
 
     /**
+     * Store a new view with an expiry date.
+     *
+     * @param  \DateTime  $expiresAt
+     * @return bool
+     */
+    public function addViewWithExpiryDate($expiresAt): bool
+    {
+        return app(ViewableService::class)->addViewWithExpiryDateTo($this, $expiresAt);
+    }
+
+    /**
      * Get the total number of views.
      *
      * @return void
