@@ -1,7 +1,7 @@
 # Upgrade Guide
 
-- [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-2.0.0-to-2.1.0)
-- [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-1.0.5-to-2.0.0)
+- [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-200-to-210)
+- [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-105-to-200)
 
 ## Upgrading from 2.0.0 to 2.1.0
 
