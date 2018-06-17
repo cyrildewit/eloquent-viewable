@@ -98,6 +98,8 @@ class Post extends Model
 
 #### Change `->addPageViewThatExpiresAt()` to `->addView()`
 
+**Note:** this feature has been made available again in `v2.1.0`! See the [README](README.md)!
+
 - Find all usages of `addPageViewThatExpiresAt(<DateTime>)` and replace it with `addView()`.
 
 #### Change all `->getPageViews<suffix>()` to `->getViews()`
