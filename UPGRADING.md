@@ -51,7 +51,7 @@ composer require cyrildewit/eloquent-viewable
 
 Replace `CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class` with `CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class` in providers.
 
-### Update the migrations
+### Update database tables
 
 If your app is in development, you can publish the new migration file with:
 
@@ -59,13 +59,7 @@ If your app is in development, you can publish the new migration file with:
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-Otherwise you have to create the following migration for yourself:
-
-```php
-Schema::table('page-visits', function (Blueprint $table) {
-    $table->string('ip_address')->nullable();
-});
-```
+Otherwise you can use the `update_views_table ` migration to upgrade. It can be found at [resources/database/](resources/database/migrations/2018_06_07_311156_update_views_table.php).
 
 ### Update the config file
 
