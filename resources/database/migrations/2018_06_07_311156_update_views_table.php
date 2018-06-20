@@ -14,7 +14,6 @@ class UpdateViewsTable extends Migration
     public function up()
     {
         try {
-
             Schema::rename('page-views', 'views');
 
             Schema::table('views', function (Blueprint $table) {
@@ -28,7 +27,6 @@ class UpdateViewsTable extends Migration
                 $table->renameColumn('visitable_type', 'viewable_type');
                 $table->renameColumn('ip_address', 'visitor');
             });
-
         } catch (\Exception $e) {
             dd($e);
         }
@@ -42,7 +40,6 @@ class UpdateViewsTable extends Migration
     public function down()
     {
         try {
-
             Schema::table('views', function (Blueprint $table) {
                 $table->renameColumn('visitor', 'ip_address');
                 $table->renameColumn('viewable_type', 'visitable_type');
@@ -58,7 +55,6 @@ class UpdateViewsTable extends Migration
             });
 
             Schema::rename('views', 'page-views');
-
         } catch (\Exception $e) {
             dd($e);
         }
