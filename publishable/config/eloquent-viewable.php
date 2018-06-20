@@ -67,7 +67,7 @@ return [
         /*
          * Determine if this package should cache data.
          */
-        'enabled' => true,
+        'enabled' => false,
 
         /*
          * Everthing will be cached under the following key.
