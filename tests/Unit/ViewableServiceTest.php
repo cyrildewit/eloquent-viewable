@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use Config;
 use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
+use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\ViewableService;
@@ -174,6 +174,7 @@ class ViewableServiceTest extends TestCase
     /** @test */
     public function getViewsCount_can_return_the_total_number_of_views_from_the_cache()
     {
+        Config::set('eloquent-viewable.cache.enabled', true);
         $service = $this->app->make(ViewableService::class);
         $post = factory(Post::class)->create();
 
