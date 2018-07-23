@@ -82,7 +82,7 @@ class ViewSessionHistory
     }
 
     /**
-     * Determine if the given model has been visited.
+     * Determine if the given model has been viewed.
      *
      * @param  string  $key
      * @return bool
