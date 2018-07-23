@@ -1,9 +1,10 @@
 # Upgrade Guide
 
+- [Upgrading from 2.1.0 to 2.2.0](#upgrading-from-210-to-220)
 - [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-200-to-210)
 - [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-105-to-200)
 
-## Upgrading from 2.0.0 to 2.1.0
+## Upgrading from 2.1.0 to 2.2.0
 
 ### Update config file
 
@@ -26,6 +27,10 @@ If you have published the config file of this package, you will have to copy the
 ```
 
 Take a look at the [original file](https://github.com/cyrildewit/eloquent-viewable/blob/2.1/publishable/config/eloquent-viewable.php) to find the right location.
+
+## Upgrading from 2.0.0 to 2.1.0
+
+There are no manual changes needed.
 
 ## Upgrading from 1.0.5 to 2.0.0
 
