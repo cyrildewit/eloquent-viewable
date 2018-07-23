@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.2.0] (2018-07-23)
+
 ### Added
 
 - Add the ability to add a delay between views from the same session ([#73](https://github.com/cyrildewit/eloquent-viewable/pull/73))
+
+### Changed
+
+- Caching is now turned off as default
+
+## [v2.1.0] (2018-06-06)
+
+This release accidentally contains no updates.
 
 ## [v2.0.0] (2018-05-28)
 
@@ -34,5 +44,7 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...HEAD
+[v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0
+[v2.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v1.0.5...v2.0.0
