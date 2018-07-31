@@ -336,8 +336,15 @@ $post->getUniqueViews(Period::subYears(3));
 #### Retrieve Viewable models by views count
 
 ```php
-$sortedPosts = Post::orderByViewsCount()->get();
+$sortedPosts = Post::orderByViewsCount()->get(); // desc
 $sortedPosts = Post::orderByViewsCount('asc')->get();
+```
+
+#### Retrieve Viewable models by unique views count
+
+```php
+$sortedPosts = Post::orderByUniqueViewsCount()->get(); // desc
+$sortedPosts = Post::orderByUniqueViewsCount('asc')->get();
 ```
 
 ### ViewTracker helper
