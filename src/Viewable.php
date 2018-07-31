@@ -110,4 +110,16 @@ trait Viewable
     {
         return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction);
     }
+
+    /**
+     * Retrieve records sorted by views count.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeOrderByUniqueViewsCount(Builder $query, string $direction = 'desc'): Builder
+    {
+        return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction, true);
+    }
 }
