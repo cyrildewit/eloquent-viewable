@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.3.0] (2018-07-23)
+
+### Added
+
+- Added `orderByUniqueViews` scope to `Viewable` trait
+
 ## [v2.2.0] (2018-07-23)
 
 ### Added
@@ -44,7 +50,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...HEAD
+[v2.3.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v1.0.5...v2.0.0
