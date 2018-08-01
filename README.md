@@ -7,6 +7,8 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
+> **Note:** This is an unstable branch!
+
 This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
