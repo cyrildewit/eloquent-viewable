@@ -19,6 +19,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 /**
  * Class ViewTracker.
  *
+ * @deprecated 3.0.0 This class will be replaced with Views class.
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
 class ViewTracker
