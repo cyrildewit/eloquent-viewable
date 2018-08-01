@@ -105,6 +105,8 @@ trait Viewable
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
      * @return \Illuminate\Database\Eloquent\Builder
+     *
+     * @deprecated 3.0.0 Use new scopeOrderByViews()
      */
     public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder
     {
@@ -117,6 +119,8 @@ trait Viewable
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
      * @return \Illuminate\Database\Eloquent\Builder
+     *
+     * @deprecated 3.0.0 Use new scopeOrderByUniqueViews()
      */
     public function scopeOrderByUniqueViewsCount(Builder $query, string $direction = 'desc'): Builder
     {
