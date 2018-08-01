@@ -33,7 +33,7 @@ $post->addView();
 
 ## Overview
 
-Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide a full history.
+Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide you a full history of the views.
 
 <!--
 Want to know how many people viewed this post on March 12, 2018?
