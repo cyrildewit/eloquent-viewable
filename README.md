@@ -5,7 +5,6 @@
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
 [![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Built For Laravel](https://img.shields.io/badge/built%20for-laravel-blue.svg?style=flat-square)](http://laravel.com)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
 This Laravel >= 5.5 package allows you to associate views with Eloquent models.
@@ -65,7 +64,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Preparing your models](#preparing-your-models)
-    * [Saving views](#saving-views)
+    * [Storing views](#storing-views)
     * [Saving views with expiry date](#saving-views-with-expiry-date)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
@@ -88,6 +87,7 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
+| 3.0     | 5.5 - 5.6  | Active support | >= 7.0.0    |
 | 2.0     | 5.5 - 5.6  | Active support | >= 7.0.0    |
 | 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
@@ -147,8 +147,10 @@ class Post extends Model
     // ...
 }
 ```
+<!--
+After adding the trait to your model definition,  -->
 
-### Saving views
+### Storing views
 
 Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
 
@@ -469,4 +471,6 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## License
 
-Eloquent Viewable is licensed under The Apache 2.0 license. See [License File](LICENSE.md) for more information.
+GNU General Public License v3.0
+
+See [COPYING](COPYING) for more information.
