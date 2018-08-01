@@ -262,6 +262,7 @@ class ViewableService implements ViewableServiceContract
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
+     * @param  bool  $unique
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc', bool $unique = false): Builder
