@@ -35,6 +35,8 @@ class ViewTracker
      *
      * @param  string  $viewableType
      * @return int
+     *
+     * @deprecated 3.0.0 Use new Views class
      */
     public static function getViewsCountByType(string $viewableType): int
     {
@@ -68,6 +70,8 @@ class ViewTracker
      *
      * @param  array|Illuminate\Support\Collection  Collection of viewable models.
      * @return array|Illuminate\Support\Collection
+     *
+     * @deprecated 3.0.0 Use new Views class
      */
     public static function getViewsCountByTypes($viewableTypes)
     {
