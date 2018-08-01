@@ -262,12 +262,20 @@ class ViewableService implements ViewableServiceContract
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
+     * @param  bool  $unique
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder
+    public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc', bool $unique = false): Builder
     {
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
+
+        if ($unique) {
+            return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
+                ->selectRaw("{$viewable->getTable()}.*, count(distinct visitor) as numOfUniqueViews")
+                ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
+                ->orderBy('numOfUniqueViews', $direction);
+        }
 
         return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
