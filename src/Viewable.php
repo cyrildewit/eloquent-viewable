@@ -100,29 +100,25 @@ trait Viewable
     }
 
     /**
-     * Retrieve records sorted by views count.
+     * Retrieve records sorted by views.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
      * @return \Illuminate\Database\Eloquent\Builder
-     *
-     * @deprecated 3.0.0 Use new scopeOrderByViews()
      */
-    public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc'): Builder
     {
         return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction);
     }
 
     /**
-     * Retrieve records sorted by views count.
+     * Retrieve records sorted by unqiue views.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
      * @return \Illuminate\Database\Eloquent\Builder
-     *
-     * @deprecated 3.0.0 Use new scopeOrderByUniqueViews()
      */
-    public function scopeOrderByUniqueViewsCount(Builder $query, string $direction = 'desc'): Builder
+    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc'): Builder
     {
         return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction, true);
     }
