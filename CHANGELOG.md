@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased v3.0.0]
 
-## Changed
+### Changed
 
 - Remove IP address as fallback for visitor cookie when it doesn't exists
 
