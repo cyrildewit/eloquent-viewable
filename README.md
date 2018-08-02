@@ -81,7 +81,7 @@ In this documentation, you will find some helpful information about the use of t
 2. [Usage](#usage)
     * [Preparing your models](#preparing-your-models)
     * [Storing views](#storing-views)
-    * [Saving views with expiry date](#saving-views-with-expiry-date)
+    * [Storing views with expiry date](#storing-views-with-expiry-date)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
@@ -192,7 +192,7 @@ public function show(Post $post)
 
 **Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
 
-### Saving views with expiry date
+### Storing views with expiry date
 
 If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` on your viewable model.
 
