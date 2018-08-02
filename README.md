@@ -84,7 +84,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Saving views with expiry date](#saving-views-with-expiry-date)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
-    * [ViewTracker helper](#viewtracker-helper)
+    * [`Views` helper](#views-helper)
 3. [Configuration](#configuration)
     * [Queue the ProcessView job](#queue-the-processview-job)
     * [Extending](#extending)
@@ -163,6 +163,7 @@ class Post extends Model
     // ...
 }
 ```
+
 <!--
 After adding the trait to your model definition,  -->
 
@@ -365,18 +366,69 @@ $sortedPosts = Post::orderByUniqueViewsCount()->get(); // desc
 $sortedPosts = Post::orderByUniqueViewsCount('asc')->get();
 ```
 
-### ViewTracker helper
+### `Views` helper
+
+#### Saving views
+
+__Optional way.__
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::create($post)->addView();
+```
+
+#### Retrieving views counts
+
+__Optional way.__
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::create($post)->getViews();
+```
 
 #### Get views by viewable type
 
+To get the total number of views by a viewable type, you can use one of following methods.
+
 ```php
-use CyrildeWit\EloquentViewable\ViewTracker;
+use CyrildeWit\EloquentViewable\Views;
 
-// Get the total number of views of one type
-ViewTracker::getViewsCountByType(Post::class);
+Views::getViewsByType($post);
+Views::getViewsByType(Post::class);
+Views::getViewsByType('App\Post');
+```
 
-// Get the total number of views of multiple types
-ViewTracker::getViewsCountByTypes([Post::class, Location::class, Hotel::class]);
+#### Get most viewed viewables by type
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+// Get top 10 most viewed by type
+Views::getMostViewedByType($post, 10);
+Views::getMostViewedByType(Post::class, 10);
+Views::getMostViewedByType('App\Post', 10);
+
+// Get top 10 lowest viewed by type
+Views::getLowestViewedByType($post, 10);
+Views::getLowestViewedByType(Post::class, 10);
+Views::getLowestViewedByType('App\Post', 10);
+```
+
+#### Get the views count of viewables per period
+
+Don't confuse this method with the `Period` class!
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::getViewsPerPeriod('minute', 30); // per 30 minutes
+Views::getViewsPerPeriod('hour', 12); // per 12 hours
+Views::getViewsPerPeriod('day'); // per day
+Views::getViewsPerPeriod('week', 2); // per 2 weeks
+Views::getViewsPerPeriod('month'); // per month
+Views::getViewsPerPeriod('year'); // per month
 ```
 
 ## Configuration
