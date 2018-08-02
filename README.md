@@ -71,7 +71,9 @@ Feature requests are very welcome! Create an issue with [Feature Request] as pre
 
 ## Documentation
 
-In this documentation, you will find some helpful information about the use of this Laravel package. If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at `github@cyrildewit.nl`.
+In this documentation, you will find some helpful information about the use of this Laravel package.
+
+<!--If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at `github@cyrildewit.nl`.-->
 
 ### Table of contents
 
