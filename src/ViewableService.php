@@ -195,13 +195,12 @@ class ViewableService implements ViewableServiceContract
         }
 
         $visitorCookie = Cookie::get($cookieName);
-        $visitor = $visitorCookie ?? $this->ipRepository->get();
 
         // Create a new View model instance
         $view = app(ViewContract::class)->create([
             'viewable_id' => $viewable->getKey(),
             'viewable_type' => $viewable->getMorphClass(),
-            'visitor' => $visitor,
+            'visitor' => $visitorCookie,
             'viewed_at' => Carbon::now(),
         ]);
 
