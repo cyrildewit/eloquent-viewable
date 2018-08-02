@@ -202,6 +202,20 @@ $post->addViewWithExpiryDate(Carbon::now()->addHours(2));
 
 This method will add a new view to your model and it will add a record in the user's session. If you call this method multiple times, you will see that views count will not increment. After the current date time has passed the expiry date, a new view will be stored.
 
+### Storing views under a tag
+
+In some cases you might want to have multiple counters for a viewable model. This can be easily achieved by passing an additional argument to the `addView` method.
+
+```php
+$post->addView('customTag');
+```
+
+And with expiry date:
+
+```php
+$post->addViewWithExpiryDate(Carbon::now()->addHours(2), 'customTag')
+```
+
 ### Retrieving views counts
 
 After adding the `Viewable` trait to your model, you will be able to call `getViews()` and `getUniqueViews()` on your viewable model. Both methods accepts an optional `Period` instance.
@@ -375,6 +389,27 @@ use CyrildeWit\EloquentViewable\Views;
 
 Views::create($post)->addView();
 ```
+
+#### Saving views with expiry date
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2));
+```
+
+#### Saving views with a custom tag
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+// addView method
+Views::create($post)->addView('customTag');
+
+// addViewWithExpiryDate method
+Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2), 'customTag');
+```
+
 
 #### Retrieving views counts
 
