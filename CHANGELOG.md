@@ -56,6 +56,7 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
+[Unreleased v3.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/2.x...3.0
 [Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...HEAD
 [v2.3.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0
