@@ -82,6 +82,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Preparing your models](#preparing-your-models)
     * [Storing views](#storing-views)
     * [Storing views with expiry date](#storing-views-with-expiry-date)
+    * [Storing views under a tag](#storing-views-under-a-tag)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
@@ -398,7 +399,7 @@ use CyrildeWit\EloquentViewable\Views;
 Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2));
 ```
 
-#### Saving views with a custom tag
+#### Saving views under a tag
 
 ```php
 use CyrildeWit\EloquentViewable\Views;
