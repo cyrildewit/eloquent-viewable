@@ -311,7 +311,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_descending_order()
+    public function applyScopeOrderByViews_can_order_viewables_by_views_in_descending_order()
     {
         $postOne = factory(Post::class)->create();
         $postTwo = factory(Post::class)->create();
@@ -332,7 +332,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function applyScopeOrderByViewsCount_can_order_viewables_by_views_in_ascending_order()
+    public function applyScopeOrderByViews_can_order_viewables_by_views_in_ascending_order()
     {
         $postOne = factory(Post::class)->create();
         $postTwo = factory(Post::class)->create();
@@ -353,7 +353,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_descending_order()
+    public function applyScopeOrderByUniqueViews_can_order_viewables_by_unique_views_in_descending_order()
     {
         $postOne = factory(Post::class)->create();
         $postTwo = factory(Post::class)->create();
@@ -374,7 +374,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_ascending_order()
+    public function applyScopeOrderByUniqueViews_can_order_viewables_by_unique_views_in_ascending_order()
     {
         $postOne = factory(Post::class)->create();
         $postTwo = factory(Post::class)->create();
