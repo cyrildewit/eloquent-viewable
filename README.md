@@ -370,8 +370,6 @@ $sortedPosts = Post::orderByUniqueViewsCount('asc')->get();
 
 #### Saving views
 
-__Optional way.__
-
 ```php
 use CyrildeWit\EloquentViewable\Views;
 
@@ -379,8 +377,6 @@ Views::create($post)->addView();
 ```
 
 #### Retrieving views counts
-
-__Optional way.__
 
 ```php
 use CyrildeWit\EloquentViewable\Views;
