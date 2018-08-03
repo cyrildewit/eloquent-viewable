@@ -48,7 +48,7 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        return app(Views::class)->countViewsByType($viewableType, $period);
+        return app(self::class)->countViewsByType($viewableType, $period);
     }
 
     /**
@@ -64,7 +64,7 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        return app(Views::class)->countViewsByType($viewableType, $period, true);
+        return app(self::class)->countViewsByType($viewableType, $period, true);
     }
 
     /**
