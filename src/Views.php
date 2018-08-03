@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\View;
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Support\Period;
 
@@ -45,7 +44,6 @@ class Views
      */
     public static function getViewsByType($viewableType, $period = null): int
     {
-
         if ($viewableType instanceof Model) {
             $viewableType = $viewableType->getMorphClass();
         }
@@ -70,7 +68,7 @@ class Views
     }
 
     /**
-     * Count the views of a specific viewable type
+     * Count the views of a specific viewable type.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period
