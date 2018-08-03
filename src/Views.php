@@ -25,7 +25,7 @@ class Views
 {
     protected $viewable;
 
-    public function __construct($viewable)
+    public function __construct($viewable = null)
     {
         $this->viewable = $viewable;
     }
@@ -48,7 +48,7 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        return $this->countViewsByType($viewableType, $period);
+        return app(Views::class)->countViewsByType($viewableType, $period);
     }
 
     /**
@@ -64,7 +64,7 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        return $this->countViewsByType($viewableType, $period, true);
+        return app(Views::class)->countViewsByType($viewableType, $period, true);
     }
 
     /**
