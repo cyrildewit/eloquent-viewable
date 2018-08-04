@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
+use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 /**
@@ -54,8 +55,8 @@ class ViewsTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
-        $post->addView();
-        $post->addView();
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
 
         $this->assertEquals(1, Views::getUniqueViewsByType($post));
     }
@@ -65,8 +66,8 @@ class ViewsTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
-        $post->addView();
-        $post->addView();
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
 
         $this->assertEquals(1, Views::getUniqueViewsByType(Post::class));
     }
