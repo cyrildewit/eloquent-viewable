@@ -23,6 +23,9 @@ use CyrildeWit\EloquentViewable\Support\Period;
  */
 class Views
 {
+    /**
+     * Viewable model instance.
+     */
     protected $viewable;
 
     /**
@@ -77,6 +80,16 @@ class Views
         }
 
         return (new static)->countViewsByType($viewableType, $period, true);
+    }
+
+    /**
+     * Store a new view.
+     *
+     * @return bool
+     */
+    public function addView(): bool
+    {
+        return app(ViewableService::class)->addViewTo($this->viewable);
     }
 
     /**
