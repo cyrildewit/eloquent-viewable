@@ -25,12 +25,24 @@ class Views
 {
     protected $viewable;
 
+    /**
+     * Create a new Views instance.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @return void
+     */
     public function __construct($viewable = null)
     {
         $this->viewable = $viewable;
     }
 
-    public static function create($viewable, string $tag): self
+    /**
+     * Create a new Views instance.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @return self
+     */
+    public static function create($viewable = null): self
     {
         return new static($viewable);
     }
