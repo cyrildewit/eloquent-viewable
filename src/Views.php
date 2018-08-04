@@ -83,6 +83,17 @@ class Views
     }
 
     /**
+     * Get the total number of views.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Support\Period
+     * @return int
+     */
+    public function getViews($period = null): int
+    {
+        return app(ViewableService::class)->getViewsCount($this->viewable, $period);
+    }
+
+    /**
      * Store a new view.
      *
      * @return bool
