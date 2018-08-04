@@ -70,14 +70,4 @@ class ViewsTest extends TestCase
 
         $this->assertEquals(1, Views::getUniqueViewsByType(Post::class));
     }
-
-    // /** @test */
-    // public function it_can_belong_to_viewable_model()
-    // {
-    //     $post = factory(Post::class)->create();
-
-    //     $post->addView();
-
-    //     $this->assertInstanceOf(Post::class, View::first()->viewable);
-    // }
 }
