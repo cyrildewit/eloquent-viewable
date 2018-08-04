@@ -389,8 +389,6 @@ $this->app->singleton(
 #### App\Post
 
 ```php
-// ...
-
 public function getViewsSince(DateTime $sinceDateTime)
 {
     return $this->getViews(Period::since($sinceDateTime));
@@ -410,8 +408,6 @@ public function getViewsInPastDays(int $days)
 {
     return $this->getViews(Period::pastDays($days));
 }
-
-// ...
 ```
 
 #### resources/views/post/show.blade.php
