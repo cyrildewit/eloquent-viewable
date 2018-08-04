@@ -23,33 +23,19 @@ $post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
 // Get the total number of views between the given date range
 $post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
 
-// Get the total number of views in the past 6 weeks (from today)
-$post->getViews(Period::pastWeeks(6));
-
-// Get the total number of views in the past 2 hours (from now)
-$post->getViews(Period::subHours(2));
+// Get the total number of unique views
+$post->getUniqueViews();
 
 // Store a new view in the database
 $post->addView();
+
+// Store a new view in the database
+$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
 ```
 
 ## Overview
 
 Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide you a full history of the views.
-
-<!--
-Want to know how many people viewed this post on March 12, 2018?
-
-```php
-$post->getViews(Period::create(Carbon::parse('2018-03-12 00:00:00'), Carbon::parse('2018-03-13 00:00:00')));
-```
-
-Want to know how many unique views your post has?
-
-```php
-$post->getUniqueViews();
-```
--->
 
 This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would this package for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
 
@@ -84,7 +70,6 @@ In this documentation, you will find some helpful information about the use of t
     * [Preparing your models](#preparing-your-models)
     * [Storing views](#storing-views)
     * [Storing views with expiry date](#storing-views-with-expiry-date)
-    * [Storing views under a tag](#storing-views-under-a-tag)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
@@ -149,8 +134,6 @@ php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewa
 
 ## Usage
 
-In the following sections, you will find information about the usage of this package.
-
 ### Preparing your models
 
 To make an Eloquent model viewable just add the `Viewable` trait to your model definition. This trait provides various methods to allow you to save views, retrieve views counts and order your items by views count.
@@ -197,27 +180,13 @@ public function show(Post $post)
 
 ### Storing views with expiry date
 
-If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` on your viewable model.
+If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` method on your viewable model.
 
 ```php
 $post->addViewWithExpiryDate(Carbon::now()->addHours(2));
 ```
 
 This method will add a new view to your model and it will add a record in the user's session. If you call this method multiple times, you will see that views count will not increment. After the current date time has passed the expiry date, a new view will be stored.
-
-### Storing views under a tag
-
-In some cases you might want to have multiple counters for a viewable model. This can be easily achieved by passing an additional argument to the `addView` method.
-
-```php
-$post->addView('customTag');
-```
-
-And with expiry date:
-
-```php
-$post->addViewWithExpiryDate(Carbon::now()->addHours(2), 'customTag')
-```
 
 ### Retrieving views counts
 
@@ -293,132 +262,43 @@ Period::subMonths(int $months);
 Period::subYears(int $years);
 ```
 
-#### Examples
-
-```php
-$post->getViews();
-
-$post->getViews(Period::since(Carbon::parse('2007-05-21 12:23:00')));
-
-$post->getViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
-
-$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
-```
-
-```php
-$post->getUniqueViews();
-
-$post->getUniqueViews(Period::since(Carbon::parse('2007-05-21 12:23:00')));
-
-$post->getUniqueViews(Period::upto(Carbon::parse('2013-05-21 00:00:00')));
-
-$post->getUniqueViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
-```
-
-```php
-$post->getViews(Period::pastDays(5));
-
-$post->getViews(Period::pastWeeks(6));
-
-$post->getViews(Period::pastMonths(8));
-
-$post->getViews(Period::pastYears(3));
-```
-
-```php
-$post->getUniqueViews(Period::pastDays(5));
-
-$post->getUniqueViews(Period::pastWeeks(6));
-
-$post->getUniqueViews(Period::pastMonths(8));
-
-$post->getUniqueViews(Period::pastYears(3));
-```
-
-```php
-$post->getViews(Period::subSeconds(30));
-
-$post->getViews(Period::subMinutes(15));
-
-$post->getViews(Period::subHours(8));
-
-$post->getViews(Period::subDays(5));
-
-$post->getViews(Period::subWeeks(6));
-
-$post->getViews(Period::subMonths(8));
-
-$post->getViews(Period::subYears(3));
-```
-
-```php
-$post->getUniqueViews(Period::subSeconds(30));
-
-$post->getUniqueViews(Period::subMinutes(15));
-
-$post->getUniqueViews(Period::subHours(8));
-
-$post->getUniqueViews(Period::subDays(5));
-
-$post->getUniqueViews(Period::subWeeks(6));
-
-$post->getUniqueViews(Period::subMonths(8));
-
-$post->getUniqueViews(Period::subYears(3));
-```
-
 ### Order models by views count
+
+The viewable trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
 
 #### Retrieve Viewable models by views count
 
 ```php
-$sortedPosts = Post::orderByViewsCount()->get(); // desc
-$sortedPosts = Post::orderByViewsCount('asc')->get();
+Post::orderByViews()->get(); // descending
+Post::orderByViews('asc')->get(); // ascending
 ```
 
 #### Retrieve Viewable models by unique views count
 
 ```php
-$sortedPosts = Post::orderByUniqueViewsCount()->get(); // desc
-$sortedPosts = Post::orderByUniqueViewsCount('asc')->get();
+Post::orderByUniqueViews()->get(); // descending
+Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
 ### `Views` helper
 
+Namespace: `use CyrildeWit\EloquentViewable\Views`.
+
 #### Saving views
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 Views::create($post)->addView();
 ```
 
 #### Saving views with expiry date
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2));
 ```
-
-#### Saving views under a tag
-
-```php
-use CyrildeWit\EloquentViewable\Views;
-
-// addView method
-Views::create($post)->addView('customTag');
-
-// addViewWithExpiryDate method
-Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2), 'customTag');
-```
-
 
 #### Retrieving views counts
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 Views::create($post)->getViews();
 ```
 
@@ -427,8 +307,6 @@ Views::create($post)->getViews();
 To get the total number of views by a viewable type, you can use one of following methods.
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 Views::getViewsByType($post);
 Views::getViewsByType(Post::class);
 Views::getViewsByType('App\Post');
@@ -437,8 +315,6 @@ Views::getViewsByType('App\Post');
 #### Get most viewed viewables by type
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 // Get top 10 most viewed by type
 Views::getMostViewedByType($post, 10);
 Views::getMostViewedByType(Post::class, 10);
@@ -455,8 +331,6 @@ Views::getLowestViewedByType('App\Post', 10);
 Don't confuse this method with the `Period` class!
 
 ```php
-use CyrildeWit\EloquentViewable\Views;
-
 Views::getViewsPerPeriod('minute', 30); // per 30 minutes
 Views::getViewsPerPeriod('hour', 12); // per 12 hours
 Views::getViewsPerPeriod('day'); // per day
@@ -486,7 +360,7 @@ _**Note:** Don't forget that all custom classes must implement their original in
 ```php
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
-    \App\Models\CustomView::class
+    \App\CustomView::class
 );
 ```
 
@@ -512,11 +386,9 @@ $this->app->singleton(
 
 ### Creating helper methods for frequently used period formats
 
-#### App\Models\Post
+#### App\Post
 
 ```php
-// ...
-
 public function getViewsSince(DateTime $sinceDateTime)
 {
     return $this->getViews(Period::since($sinceDateTime));
@@ -536,22 +408,16 @@ public function getViewsInPastDays(int $days)
 {
     return $this->getViews(Period::pastDays($days));
 }
-
-// ...
 ```
 
 #### resources/views/post/show.blade.php
 
 ```html
-<!-- ... -->
-
 Page views since 2014: {{ $post->getViewsSince(Carbon::create(2014)) }}
 Page views upto 2016: {{ $post->getViewsUpto(Carbon::create(2016)) }}
 Page views between 2016 - 2018: {{ $post->getViewsBetween(Carbon::create(2016), Carbon::create(2018)) }}
 
 Page views in the past 5 days: {{ $post->getViewsInPastDays(5) }}
-
-<!-- ... -->
 ```
 
 ## Upgrading
