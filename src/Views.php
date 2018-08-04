@@ -90,7 +90,20 @@ class Views
      */
     public function getViews($period = null): int
     {
-        return app(ViewableService::class)->getViewsCount($this->viewable, $period);
+        return app(ViewableService::class)
+            ->getViewsCount($this->viewable, $period);
+    }
+
+    /**
+     * Get the total number of unique views.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Support\Period
+     * @return int
+     */
+    public function getUniqueViews($period = null): int
+    {
+        return app(ViewableService::class)
+            ->getUniqueViewsCount($this->viewable, $period);
     }
 
     /**
@@ -101,6 +114,18 @@ class Views
     public function addView(): bool
     {
         return app(ViewableService::class)->addViewTo($this->viewable);
+    }
+
+    /**
+     * Store a new view with an expiry date.
+     *
+     * @param  \DateTime  $expiresAt
+     * @return bool
+     */
+    public function addViewWithExpiryDate($expiresAt): bool
+    {
+        return app(ViewableService::class)
+            ->addViewWithExpiryDateTo($this->viewable, $expiresAt);
     }
 
     /**
