@@ -25,6 +25,8 @@ class Views
 {
     /**
      * Viewable model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
      */
     protected $viewable;
 
@@ -80,6 +82,13 @@ class Views
         }
 
         return (new static)->countViewsByType($viewableType, $period, true);
+    }
+
+    public static function getMostViewedByType($viewableType, int $limit = 10)
+    {
+        return app(ViewableService::class)
+            ->applyScopeOrderByViewsCount($this->viewable->query(), 'desc')
+            ->take($limit)->count();
     }
 
     /**
