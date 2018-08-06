@@ -83,6 +83,14 @@ class Views
     }
 
     /**
+     *
+     */
+    public static function getViewsPerPeriod()
+    {
+
+    }
+
+    /**
      * Get the total number of views.
      *
      * @param  \CyrildeWit\EloquentViewable\Support\Period
