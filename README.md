@@ -391,7 +391,7 @@ If you want to get a collection of unique views per period, you can call the sta
 
 It has the same parameter signature as the static `getViewsPerPeriod` method.
 
-See the section here above for how you can use this method.
+See the section here above for information about how you can use this method.
 
 ## Configuration
 
