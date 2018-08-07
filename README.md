@@ -334,6 +334,8 @@ Views::getMostViewedByType($post, 10);
 
 #### Get least viewed viewables by type
 
+Please note that this method does the same as `Post::orderByViews('asc')->take(10);`.
+
 ```php
 // Get top 10 least viewed by type
 Views::getleastViewedByType(Post::class, 10);
