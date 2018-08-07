@@ -304,26 +304,43 @@ Views::create($post)->getViews();
 
 #### Get views by viewable type
 
-To get the total number of views by a viewable type, you can use one of following methods.
+If you want to know how many views a specific viewable type has, you can use the static `getViewsByType` method on the `Views` class.
 
 ```php
-Views::getViewsByType($post);
 Views::getViewsByType(Post::class);
 Views::getViewsByType('App\Post');
 ```
 
+You can also pass an instance of an Eloquent model. It will get the fully qualified class name by calling the `getMorphClass` method on the model.
+
+```php
+Views::getViewsByType($post);
+```
+
 #### Get most viewed viewables by type
+
+To get a collection of Eloquent models sorted by most views and type, you can use the provided static `getMostViewedByType` method. It accepts a limit as second argument.
+
+Please note that this method does the same as `Post::orderByViews()->take(10);`.
 
 ```php
 // Get top 10 most viewed by type
-Views::getMostViewedByType($post, 10);
 Views::getMostViewedByType(Post::class, 10);
 Views::getMostViewedByType('App\Post', 10);
 
-// Get top 10 lowest viewed by type
-Views::getLowestViewedByType($post, 10);
-Views::getLowestViewedByType(Post::class, 10);
-Views::getLowestViewedByType('App\Post', 10);
+// and by passing an instance of an eloquent model
+Views::getMostViewedByType($post, 10);
+```
+
+#### Get least viewed viewables by type
+
+```php
+// Get top 10 least viewed by type
+Views::getleastViewedByType(Post::class, 10);
+Views::getleastViewedByType('App\Post', 10);
+
+// and by passing an instance of an eloquent model
+Views::getleastViewedByType($post, 10);
 ```
 
 #### Get the views count of viewables per period
