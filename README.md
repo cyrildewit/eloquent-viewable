@@ -347,16 +347,51 @@ Views::getleastViewedByType($post, 10);
 
 #### Get the views count of viewables per period
 
-Don't confuse this method with the `Period` class!
+If you want to get a collection of views per period, you can call the static `getViewsPerPeriod` method on the `Views` class.
+
+The parameter signature looks like this:
 
 ```php
-Views::getViewsPerPeriod('minute', 30); // per 30 minutes
-Views::getViewsPerPeriod('hour', 12); // per 12 hours
-Views::getViewsPerPeriod('day'); // per day
-Views::getViewsPerPeriod('week', 2); // per 2 weeks
-Views::getViewsPerPeriod('month'); // per month
-Views::getViewsPerPeriod('year'); // per month
+getViewsPerPeriod(string $dimension, $period, $viewableType = null): Collection;
 ```
+
+The first argument should be one of the following options:
+
+* minute
+* hour
+* day
+* week
+* month
+* year
+
+The second argument should be an instance of `\CyrildeWit\EloquentViewable\Support\Period`. More information about this class can be found [here](period-class).
+
+The third argument is optional. It can be used to get only the views of a specific type. For example `App\Post`. It should be a fully qualified class name that can be retrieved using the `getMorphClass` method on an Eloquent model.
+
+##### Example
+
+The following code example will return the total number of views per week and between two weeks ago and today. In this example the of today is `2018-07-08 00:00:00`.
+
+```php
+Views::getViewsPerPeriod('week', Period::pastWeeks(2))
+```
+
+Result:
+
+```text
+[
+    ['week' => '31', 'views' => 526],
+    ['week' => '32', 'views' => 630]
+]
+```
+
+#### Get the unique views count of viewables per period
+
+If you want to get a collection of unique views per period, you can call the static `getUniqueViewsPerPeriod` method on the `Views` class.
+
+It has the same parameter signature as the static `getViewsPerPeriod` method.
+
+See the section here above for how you can use this method.
 
 ## Configuration
 
