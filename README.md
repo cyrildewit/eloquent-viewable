@@ -366,7 +366,7 @@ The first argument should be one of the following options:
 
 The second argument should be an instance of `\CyrildeWit\EloquentViewable\Support\Period`. More information about this class can be found [here](period-class).
 
-The third argument is optional. It can be used to get only the views of a specific type. For example `App\Post`. It should be a fully qualified class name that can be retrieved using the `getMorphClass` method on an Eloquent model.
+The third argument is optional. It can be used to get only the views of a specific type. For example `App\Post`. It should be a fully qualified class name. You can retrieve it using the `getMorphClass` method on an Eloquent model.
 
 ##### Example
 
