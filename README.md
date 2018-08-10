@@ -568,11 +568,13 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Credits
 
+* **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
+
+See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who participated in this project.
+
 * [Cyril de Wit](https://github.com/cyrildewit)
 * [All Contributors](../../contributors)
 
 ## License
 
-GNU General Public License v3.0
-
-See [COPYING](COPYING) for more information.
+This project is licensed under the GNU General Public license v3.0 - see the [COPYING](COPYING) file for details.
