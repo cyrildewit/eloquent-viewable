@@ -13,13 +13,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Add support for Laravel 5.7
 
-### Deprecated
-
-- Deprecated the `CyrildeWit\Support\IpAddress` class
-- Deprecated the `CyrildeWit\Viewtracker` class
-- Deprecated the `scopeOrderByViewsCount` method in the `Viewable` trait
-- Deprecated the `scopeOrderByUniqueViewsCount` method in the `Viewable` trait
-
 ## [v2.3.0] (2018-07-23)
 
 ### Added
