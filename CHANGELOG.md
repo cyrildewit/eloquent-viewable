@@ -1,4 +1,4 @@
-# Release Notes for 2.x.x
+# Release Notes
 
 All notable changes to `Eloquent Viewable` will be documented in this file.
 
@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v2.4.0] (2018-09-11)
+
+### Changed
+
+- Add support for Laravel 5.7
 
 ### Deprecated
 
@@ -57,7 +63,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...HEAD
+[v2.4.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.0.0...v2.1.0
