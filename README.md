@@ -470,6 +470,4 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## License
 
-GNU General Public License v3.0
-
-See [COPYING](COPYING) for more information.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
