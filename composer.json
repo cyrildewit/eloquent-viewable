@@ -73,7 +73,5 @@
                 "CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider"
             ]
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }
