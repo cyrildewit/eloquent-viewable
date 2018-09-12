@@ -14,10 +14,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Jobs;
 
 use Config;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Queue;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * Class ProcessViewTest.
@@ -36,25 +38,6 @@ class ProcessViewTest extends TestCase
 
         $post->addView();
 
-        Queue::assertPushed(ProcessView::class, function ($job) {
-            return $job->view->id === 1;
-        });
-    }
-
-    /** @test */
-    public function it_gets_pushed_to_the_queue_when_saving_a_view_and_saves_it_in_the_database()
-    {
-        Queue::fake();
-
-        $post = factory(Post::class)->create();
-        Config::set('eloquent-viewable.jobs.store_new_view.enabled', true);
-
-        $post->addView();
-
-        Queue::assertPushed(ProcessView::class, function ($job) {
-            return $job->view->id === 1;
-        });
-
-        $this->assertEquals(1, $post->getViews());
+        Queue::assertPushed(ProcessView::class);
     }
 }
