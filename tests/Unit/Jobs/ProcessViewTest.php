@@ -14,12 +14,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Jobs;
 
 use Config;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Queue;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * Class ProcessViewTest.
