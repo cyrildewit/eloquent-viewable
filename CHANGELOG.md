@@ -13,11 +13,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.4.0] (2018-09-11)
+
+### Changed
+
+- Add support for Laravel 5.7
+
+### Deprecated
+
+- Deprecated the `CyrildeWit\Support\IpAddress` class
+- Deprecated the `CyrildeWit\Viewtracker` class
+- Deprecated the `scopeOrderByViewsCount` method in the `Viewable` trait
+- Deprecated the `scopeOrderByUniqueViewsCount` method in the `Viewable` trait
+
 ## [v2.3.0] (2018-07-23)
 
 ### Added
 
-- Add `orderByUniqueViews` scope to `Viewable` trait
+- Add `orderByUniqueViewsCount` scope to `Viewable` trait
 
 ## [v2.2.0] (2018-07-23)
 
@@ -56,8 +69,9 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased v3.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/2.x...3.0
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...HEAD
+[Unreleased v3.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...3.0
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...HEAD
+[v2.4.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.0.0...v2.1.0
