@@ -196,13 +196,11 @@ class ViewableService implements ViewableServiceContract
 
         $visitorCookie = Cookie::get($cookieName);
 
-        // Create a new View model instance
-        $view = app(ViewContract::class)->create([
-            'viewable_id' => $viewable->getKey(),
-            'viewable_type' => $viewable->getMorphClass(),
-            'visitor' => $visitorCookie,
-            'viewed_at' => Carbon::now(),
-        ]);
+        $view = app(ViewContract::class);
+        $view->viewable_id = $viewable->getKey();
+        $view->viewable_type = $viewable->getMorphClass();
+        $view->visitor = $visitorCookie;
+        $view->viewed_at = Carbon::now();
 
         // If queuing is enabled, dispatch the job
         $configStoreNewView = config('eloquent-viewable.jobs.store_new_view');
