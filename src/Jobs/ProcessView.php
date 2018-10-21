@@ -15,7 +15,6 @@ namespace CyrildeWit\EloquentViewable\Jobs;
 
 use Illuminate\Bus\Queueable;
 use CyrildeWit\EloquentViewable\View;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,7 +26,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
  */
 class ProcessView implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable;
 
     /**
      * @var \CyrildeWit\EloquentViewable\View
