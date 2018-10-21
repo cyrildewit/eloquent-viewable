@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.4.3] (2018-10-21)
+
+### Fixed
+
+- Data too long for column `visitor`
+
 ## [v2.4.2] (2018-10-21)
 
 ### Fixed
