@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.4.2] (2018-10-21)
+
+### Fixed
+
+- ProcessView job is always failing
+
 ## [v2.4.0] (2018-09-11)
 
 ### Changed
