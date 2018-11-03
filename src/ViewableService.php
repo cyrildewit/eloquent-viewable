@@ -241,12 +241,12 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
-     * Remove all views from a viewable model.
+     * Remove all views of a viewable model.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return void
      */
-    public function removeModelViews($viewable)
+    public function deleteViewsFor($viewable)
     {
         app(ViewContract::class)->where([
             'viewable_id' => $viewable->getKey(),
