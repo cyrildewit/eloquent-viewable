@@ -1,8 +1,17 @@
 # Upgrade Guide
 
+- [Upgrading from 2.4.2 to 2.4.3](#upgrading-from-242-to-243)
 - [Upgrading from 2.1.0 to 2.2.0](#upgrading-from-210-to-220)
 - [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-200-to-210)
 - [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-105-to-200)
+
+## Upgrading from 2.4.2 to 2.4.3
+
+Run the following migration to update the `visitor` column.
+
+```php
+$table->text('visitor');
+```
 
 ## Upgrading from 2.1.0 to 2.2.0
 

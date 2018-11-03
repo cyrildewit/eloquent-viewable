@@ -18,6 +18,7 @@ use Request;
 /**
  * Class Ip.
  *
+ * @deprecated 3.0.0 This class will be removed.
  * @author Cyril de Wit <github@cyrildewit.nl>
  */
 class IpAddress

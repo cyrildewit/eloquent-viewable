@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.4.3] (2018-10-21)
+
+### Fixed
+
+- Data too long for column `visitor`
+
+## [v2.4.2] (2018-10-21)
+
+### Fixed
+
+- ProcessView job is always failing
+
+## [v2.4.1] (2018-09-12)
+
+### Fixed
+
+- View is saved before ProcessViews job is ran
+
 ## [v2.4.0] (2018-09-11)
 
 ### Changed
@@ -69,8 +87,10 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased v3.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...3.0
 [Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...HEAD
+[v2.4.3]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.2...v2.4.3
+[v2.4.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.1...v2.4.2
+[v2.4.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.4.0...v2.4.1
 [v2.4.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.1.0...v2.2.0

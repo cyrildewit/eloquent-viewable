@@ -89,11 +89,11 @@ Lumen is not supported!
 
 #### Version information
 
-| Version | Illuminate | Status                                    | PHP Version |
-|---------|------------|-------------------------------------------|-------------|
-| 3.0     | 5.5 - 5.7  | _Under Development_                       | >= 7.0.0    |
-| 2.0     | 5.5 - 5.7  | New features, bugfixes and security fixes | >= 7.0.0    |
-| 1.0     | 5.5 - 5.6  | Bugfixes and security fixes               | >= 7.0.0    |
+| Version | Illuminate | Status         | PHP Version |
+|---------|------------|----------------|-------------|
+| 3.0     | 5.5 - 5.7  | _In Development_ | >= 7.1.0    |
+| 2.0     | 5.5 - 5.7  | Active support | >= 7.0.0    |
+| 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
 ### Installation
 
