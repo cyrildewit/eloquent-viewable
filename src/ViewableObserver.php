@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
+
 /**
  * Class ViewableObserver.
  *
@@ -22,7 +24,7 @@ class ViewableObserver
 {
     protected $viewableService;
 
-    public function __construct(ViewableService $viewableService)
+    public function __construct(ViewableServiceContract $viewableService)
     {
         $this->viewableService = $viewableService;
     }
