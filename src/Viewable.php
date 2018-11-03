@@ -90,16 +90,6 @@ trait Viewable
     }
 
     /**
-     * Get the total number of views.
-     *
-     * @return void
-     */
-    public function removeViews()
-    {
-        app(ViewableService::class)->removeModelViews($this);
-    }
-
-    /**
      * Retrieve records sorted by views.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
