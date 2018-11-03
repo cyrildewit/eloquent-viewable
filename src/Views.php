@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**
  * Class Views.
@@ -86,7 +87,7 @@ class Views
 
     public static function getMostViewedByType($viewableType, int $limit = 10)
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->applyScopeOrderByViewsCount($this->viewable->query(), 'desc')
             ->take($limit)->count();
     }
@@ -99,7 +100,7 @@ class Views
      */
     public function getViews($period = null): int
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->getViewsCount($this->viewable, $period);
     }
 
@@ -111,7 +112,7 @@ class Views
      */
     public function getUniqueViews($period = null): int
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->getUniqueViewsCount($this->viewable, $period);
     }
 
@@ -122,7 +123,7 @@ class Views
      */
     public function addView(): bool
     {
-        return app(ViewableService::class)->addViewTo($this->viewable);
+        return app(ViewableServiceContract::class)->addViewTo($this->viewable);
     }
 
     /**
@@ -133,7 +134,7 @@ class Views
      */
     public function addViewWithExpiryDate($expiresAt): bool
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->addViewWithExpiryDateTo($this->viewable, $expiresAt);
     }
 
