@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**
  * Trait Viewable.
@@ -52,7 +53,7 @@ trait Viewable
      */
     public function getViews($period = null): int
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->getViewsCount($this, $period);
     }
 
@@ -64,7 +65,7 @@ trait Viewable
      */
     public function getUniqueViews($period = null) : int
     {
-        return app(ViewableService::class)
+        return app(ViewableServiceContract::class)
             ->getUniqueViewsCount($this, $period);
     }
 
@@ -75,7 +76,7 @@ trait Viewable
      */
     public function addView(): bool
     {
-        return app(ViewableService::class)->addViewTo($this);
+        return app(ViewableServiceContract::class)->addViewTo($this);
     }
 
     /**
@@ -86,7 +87,7 @@ trait Viewable
      */
     public function addViewWithExpiryDate($expiresAt): bool
     {
-        return app(ViewableService::class)->addViewWithExpiryDateTo($this, $expiresAt);
+        return app(ViewableServiceContract::class)->addViewWithExpiryDateTo($this, $expiresAt);
     }
 
     /**
@@ -98,7 +99,7 @@ trait Viewable
      */
     public function scopeOrderByViews(Builder $query, string $direction = 'desc'): Builder
     {
-        return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction);
+        return app(ViewableServiceContract::class)->applyScopeOrderByViewsCount($query, $direction);
     }
 
     /**
@@ -110,6 +111,6 @@ trait Viewable
      */
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc'): Builder
     {
-        return app(ViewableService::class)->applyScopeOrderByViewsCount($query, $direction, true);
+        return app(ViewableServiceContract::class)->applyScopeOrderByViewsCount($query, $direction, true);
     }
 }
