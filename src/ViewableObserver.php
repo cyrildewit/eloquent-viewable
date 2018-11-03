@@ -20,6 +20,13 @@ namespace CyrildeWit\EloquentViewable;
  */
 class ViewableObserver
 {
+    protected $viewableService;
+
+    public function __construct(ViewableService $viewableService)
+    {
+        $this->viewableService = $viewableService;
+    }
+
     /**
      * Handle the deleted event for the model.
      *
@@ -32,7 +39,7 @@ class ViewableObserver
             return;
         }
 
-        $viewable->removeViews();
+        $this->viewableService->deleteViewsFor($viewable);
     }
 
     /**
