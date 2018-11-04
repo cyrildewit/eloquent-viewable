@@ -15,7 +15,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use Request;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;

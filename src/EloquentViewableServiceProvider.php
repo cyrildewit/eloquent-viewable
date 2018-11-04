@@ -17,6 +17,7 @@ use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**

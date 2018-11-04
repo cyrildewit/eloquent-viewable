@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Models\View;
 
 /**
  * TestHelper class.
@@ -27,7 +27,7 @@ class TestHelper
      * Helper function to create a view.
      *
      * @param  array  $data
-     * @return \CyrildeWit\EloquentViewable\View
+     * @return \CyrildeWit\EloquentViewable\Models\View
      */
     public static function createNewView($model, $data = [])
     {

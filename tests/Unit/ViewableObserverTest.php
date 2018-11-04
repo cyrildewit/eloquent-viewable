@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
