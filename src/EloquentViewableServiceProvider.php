@@ -68,6 +68,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->bind(ViewContract::class, View::class);
         $this->app->singleton(ViewableServiceContract::class, ViewableService::class);
+        $this->app->bind(Views::class);
 
         $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
             $detector = new CrawlerDetect(
