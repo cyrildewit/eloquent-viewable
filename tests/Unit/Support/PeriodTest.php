@@ -244,27 +244,4 @@ class PeriodTest extends TestCase
 
         $this->assertEquals($period->getEndDateTime(), Carbon::now());
     }
-
-    /** @test */
-    public function makeKey_generates_right_keys()
-    {
-        $keyOne = Period::create()->makeKey();
-        $this->assertEquals('|', $keyOne);
-
-        $startDateTime = Carbon::now();
-        $keyTwo = Period::create($startDateTime)->makeKey();
-        $this->assertEquals("{$startDateTime->toDateTimeString()}|", $keyTwo);
-
-        $endDateTime = Carbon::now();
-        $keyThree = Period::create(null, $endDateTime)->makeKey();
-        $this->assertEquals("|{$endDateTime->toDateTimeString()}", $keyThree);
-
-        $startDateTime = Carbon::today();
-        $keyFour = Period::sub($startDateTime, 'subYears', Period::PAST_YEARS, 5)->makeKey();
-        $this->assertEquals('past5years|', $keyFour);
-
-        $startDateTime = Carbon::now();
-        $keyFive = Period::sub($startDateTime, 'subYears', Period::SUB_YEARS, 5)->makeKey();
-        $this->assertEquals('sub5years|', $keyFive);
-    }
 }

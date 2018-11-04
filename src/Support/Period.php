@@ -376,19 +376,23 @@ class Period
     }
 
     /**
-     * Make a unique key.
+     * Get the sub type.
      *
      * @return string
      */
-    public function makeKey(): string
+    public function getSubType()
     {
-        if ($this->hasFixedDateTimes()) {
-            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
-        }
+        return $this->subType;
+    }
 
-        list($subType, $subValueType) = explode('_', strtolower($this->subType));
-
-        return "{$subType}{$this->subValue}{$subValueType}|";
+    /**
+     * Get the sub value.
+     *
+     * @return string
+     */
+    public function getSubValue()
+    {
+        return $this->subValue;
     }
 
     /**
