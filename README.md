@@ -175,6 +175,8 @@ public function show(Post $post)
 
 **Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
 
+**Note:** The option `ignore_bots` is by default `true`, so when a bot has made a view, we won't store it. This is important to know, because Postman is for example a crawler. So viewing a API route that calls this method using Postman will do nothing.
+
 ### Saving views with expiry date
 
 If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` on your viewable model.
