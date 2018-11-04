@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -58,6 +58,7 @@ class View extends Model implements ViewContract
     /**
      * Get all of the owning viewable models.
      *
+     * @todo rename to subject? A view has a subject?
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo
      */
     public function viewable(): MorphTo

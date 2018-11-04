@@ -68,6 +68,7 @@ class Views
     /**
      * Save a new record of the made view.
      *
+     * @todo rethink about the behaviour of this method
      * @return bool
      */
     public function record(): bool

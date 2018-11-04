@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Jobs;
 
 use Illuminate\Bus\Queueable;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,14 +29,14 @@ class ProcessView implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable;
 
     /**
-     * @var \CyrildeWit\EloquentViewable\View
+     * @var \CyrildeWit\EloquentViewable\Models\View
      */
     public $view;
 
     /**
      * Create a new job instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\View  $view
+     * @param  \CyrildeWit\EloquentViewable\Models\View  $view
      * @return void
      */
     public function __construct(View $view)
