@@ -13,10 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
-use DateTime;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
  * Class Key.
