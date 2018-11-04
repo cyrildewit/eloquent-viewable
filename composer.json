@@ -54,7 +54,10 @@
     "autoload": {
         "psr-4": {
             "CyrildeWit\\EloquentViewable\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
