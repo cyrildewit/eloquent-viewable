@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Jobs;
 
 use Illuminate\Bus\Queueable;
-use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use CyrildeWit\EloquentViewable\Models\View;
 
 /**
  * Class ProcessView.

@@ -13,9 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use DateTime;
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
 
 /**

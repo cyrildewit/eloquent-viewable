@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 /**
