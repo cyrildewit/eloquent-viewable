@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use DateTime;
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
@@ -25,157 +26,90 @@ use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceCont
 class Views
 {
     /**
-     * Viewable model instance.
+     * The subject that has been viewed.
      *
      * @var \Illuminate\Database\Eloquent\Model
      */
-    protected $viewable;
+    protected $subject;
 
     /**
-     * Create a new Views instance.
+     * The delay that should be made before a new view can be recorded.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @var \DateTime
+     */
+    protected $sessionDelay = null;
+
+    /**
+     * The viewable service instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\ViewableService
+     */
+    protected $viewableService;
+
+    /**
+     * The view session history instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     */
+    protected $viewSessionHistory;
+
+    /**
+     * Create a new views instance.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\ViewableService
      * @return void
      */
-    public function __construct($viewable = null)
+    public function __construct(ViewableServiceContract $viewableService, ViewSessionHistory $viewSessionHistory)
     {
-        $this->viewable = $viewable;
+        $this->viewableService = $viewableService;
+        $this->viewSessionHistory = $viewSessionHistory;
     }
 
     /**
-     * Create a new Views instance.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @return self
-     */
-    public static function create($viewable = null): self
-    {
-        return new static($viewable);
-    }
-
-    /**
-     * Get the total number of views of a viewable type.
-     *
-     * @param string|Illuminate\Database\Eloquent\Model  $viewableType
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public static function getViewsByType($viewableType, $period = null): int
-    {
-        if ($viewableType instanceof Model) {
-            $viewableType = $viewableType->getMorphClass();
-        }
-
-        return (new static)->countViewsByType($viewableType, $period);
-    }
-
-    /**
-     * Get the total number of unique views of a viewable type.
-     *
-     * @param string|Illuminate\Database\Eloquent\Model  $viewableType
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public static function getUniqueViewsByType($viewableType, $period = null): int
-    {
-        if ($viewableType instanceof Model) {
-            $viewableType = $viewableType->getMorphClass();
-        }
-
-        return (new static)->countViewsByType($viewableType, $period, true);
-    }
-
-    public static function getMostViewedByType($viewableType, int $limit = 10)
-    {
-        return app(ViewableServiceContract::class)
-            ->applyScopeOrderByViewsCount($this->viewable->query(), 'desc')
-            ->take($limit)->count();
-    }
-
-    /**
-     * Get the total number of views.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public function getViews($period = null): int
-    {
-        return app(ViewableServiceContract::class)
-            ->getViewsCount($this->viewable, $period);
-    }
-
-    /**
-     * Get the total number of unique views.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public function getUniqueViews($period = null): int
-    {
-        return app(ViewableServiceContract::class)
-            ->getUniqueViewsCount($this->viewable, $period);
-    }
-
-    /**
-     * Store a new view.
+     * Save a new record of the made view.
      *
      * @return bool
      */
-    public function addView(): bool
+    public function record(): bool
     {
-        return app(ViewableServiceContract::class)->addViewTo($this->viewable);
+        $subject = $this->subject;
+        $sessionDelay = $this->sessionDelay;
+
+        if ($sessionDelay) {
+            if (! $this->viewSessionHistory->push($subject, $sessionDelay)) {
+                return $this->viewableService->addViewTo($subject);
+            } else {
+                return false;
+            }
+        }
+
+        return $this->viewableService->addViewTo($subject);
     }
 
     /**
-     * Store a new view with an expiry date.
+     * Set a new subject.
      *
-     * @param  \DateTime  $expiresAt
-     * @return bool
+     * @param  \Illuminate\Database\Eloquent\Model
+     * @return $this
      */
-    public function addViewWithExpiryDate($expiresAt): bool
+    public function setSubject(Model $subject)
     {
-        return app(ViewableServiceContract::class)
-            ->addViewWithExpiryDateTo($this->viewable, $expiresAt);
+        $this->subject = $subject;
+
+        return $this;
     }
 
     /**
-     * Count the views of a specific viewable type.
+     * Set a delay in the session.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @param  bool  $unique
-     * @return int
+     * @param
+     * @return $this
      */
-    protected function countViewsByType($viewableType, $period, bool $unique = false)
+    public function delayInSession($delay) // = null, means using config
     {
-        // Use inserted period, otherwise create an empty one
-        $period = $period ?? Period::create();
+        // default maybe?
+        $this->sessionDelay = $delay;
 
-        $startDateTime = $period->getStartDateTime();
-        $endDateTime = $period->getEndDateTime();
-
-        // Create new Query Builder instance of the views table
-        $query = View::where('viewable_type', $viewableType);
-
-        // Apply the following date filters
-        if ($startDateTime && ! $endDateTime) {
-            $query->where('viewed_at', '>=', $startDateTime);
-        } elseif (! $startDateTime && $endDateTime) {
-            $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime && $endDateTime) {
-            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
-        }
-
-        // Count all the views
-        if (! $unique) {
-            $viewsCount = $query->count();
-        }
-
-        // Count only the unique views
-        if ($unique) {
-            $viewsCount = $query->distinct('visitor')->count('visitor');
-        }
-
-        return $viewsCount;
+        return $this;
     }
 }
