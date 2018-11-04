@@ -57,7 +57,7 @@ interface ViewableService
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return void
      */
-    public function removeModelViews($viewable);
+    public function deleteViewsFor($viewable);
 
     /**
      * Retrieve records sorted by views count.
