@@ -31,11 +31,25 @@ class Views
     protected $subject;
 
     /**
-     * The delay that should be made before a new view can be recorded.
+     * The delay that should be finished before a new view can be recorded.
      *
-     * @var \DateTime
+     * @var \DateTime|null
      */
     protected $sessionDelay = null;
+
+    /**
+     * The period that the current query should scoped to.
+     *
+     * @var CyrildeWit\EloquentViewable\Period|null
+     */
+    protected $period = null;
+
+    /**
+     * The tag under which view will be saved.
+     *
+     * @var string|null
+     */
+    protected $tag = null;
 
     /**
      * The viewable service instance.
@@ -64,6 +78,17 @@ class Views
     }
 
     /**
+     * Get the views count of the subject.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Support\Period
+     * @return int
+     */
+    public function getViews($period = null): int
+    {
+        return $this->viewableService->getViewsCount($this->subject, $this->period);
+    }
+
+    /**
      * Save a new record of the made view.
      *
      * @todo rethink about the behaviour of this method
@@ -89,9 +114,9 @@ class Views
      * Set a new subject.
      *
      * @param  \Illuminate\Database\Eloquent\Model
-     * @return $this
+     * @return self
      */
-    public function setSubject(Model $subject)
+    public function setSubject(Model $subject): self
     {
         $this->subject = $subject;
 
@@ -99,15 +124,40 @@ class Views
     }
 
     /**
-     * Set a delay in the session.
+     * Set the delay in the session.
      *
      * @param
-     * @return $this
+     * @return self
      */
-    public function delayInSession($delay) // = null, means using config
+    public function delayInSession($delay): self
     {
-        // default maybe?
         $this->sessionDelay = $delay;
+
+        return $this;
+    }
+
+    /**
+     * Set the period.
+     *
+     * @param \CyrildeWit\EloquentViewable\Period
+     * @return self
+     */
+    public function period($period): self
+    {
+        $this->period = $period;
+
+        return $this;
+    }
+
+    /**
+     * Set the tag.
+     *
+     * @param  string
+     * @return self
+     */
+    public function tag($tag): self
+    {
+        $this->tag = $tag;
 
         return $this;
     }
