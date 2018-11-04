@@ -31,18 +31,25 @@ class Views
     protected $subject;
 
     /**
-     * The delay that should be finished before a new view can be recorded.
-     *
-     * @var \DateTime|null
-     */
-    protected $sessionDelay = null;
-
-    /**
      * The period that the current query should scoped to.
      *
      * @var CyrildeWit\EloquentViewable\Period|null
      */
     protected $period = null;
+
+    /**
+     * Determine if only unique views should be returned.
+     *
+     * @var bool
+     */
+    protected $unique = false;
+
+    /**
+     * The delay that should be finished before a new view can be recorded.
+     *
+     * @var \DateTime|null
+     */
+    protected $sessionDelay = null;
 
     /**
      * The tag under which view will be saved.
@@ -85,7 +92,7 @@ class Views
      */
     public function getViews($period = null): int
     {
-        return $this->viewableService->getViewsCount($this->subject, $this->period);
+        return $this->viewableService->getViewsCount($this->subject, $this->period, $this->unique, $this->tag);
     }
 
     /**
@@ -96,18 +103,15 @@ class Views
      */
     public function record(): bool
     {
-        $subject = $this->subject;
-        $sessionDelay = $this->sessionDelay;
-
-        if ($sessionDelay) {
-            if (! $this->viewSessionHistory->push($subject, $sessionDelay)) {
-                return $this->viewableService->addViewTo($subject);
-            } else {
-                return false;
+        if ($this->sessionDelay) {
+            if (! $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
+                return $this->viewableService->addViewTo($this->subject, $this->tag);
             }
+
+            return false;
         }
 
-        return $this->viewableService->addViewTo($subject);
+        return $this->viewableService->addViewTo($this->subject, $this->tag);
     }
 
     /**

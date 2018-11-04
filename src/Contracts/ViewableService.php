@@ -31,7 +31,7 @@ interface ViewableService
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCount($viewable, $period = null, bool $unique = false);
+    public function getViewsCount($viewable, $period = null, bool $unique = false, $tag = null);
 
     /**
      * Get the unique views count based upon the given arguments.
@@ -49,7 +49,7 @@ interface ViewableService
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($viewable): bool;
+    public function addViewTo($viewable, $tag): bool;
 
     /**
      * Remove all views from a viewable model.

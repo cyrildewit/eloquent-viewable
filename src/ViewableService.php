@@ -83,7 +83,7 @@ class ViewableService implements ViewableServiceContract
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCount($viewable, $period = null, bool $unique = false)
+    public function getViewsCount($viewable, $period = null, bool $unique = false, $tag = null)
     {
         // Retrieve configuration
         $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
@@ -171,7 +171,7 @@ class ViewableService implements ViewableServiceContract
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($viewable): bool
+    public function addViewTo($viewable, $tag): bool
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);

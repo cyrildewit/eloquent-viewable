@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Illuminate\Contracts\Session\Session;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class ViewSessionHistory.
@@ -64,6 +65,16 @@ class ViewSessionHistory
         }
 
         return false;
+    }
+
+    /**
+     * Check if the subject has already been viewed.
+     */
+    public function has(Model $subject)
+    {
+        $uniqueKey = $this->createUniqueKey($viewable);
+
+        return $this->isViewableViewed();
     }
 
     /**

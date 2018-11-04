@@ -70,6 +70,26 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_record_a_view_under_a_tag()
+    {
+        views($this->post)
+            ->tag('customTag')
+            ->record();
+
+        $this->assertEquals(1, View::where('tag', 'customTag')->count());
+    }
+
+    // /** @test */
+    // public function it_can_record_a_view_under_multiple_tag()
+    // {
+    //     views($this->post)
+    //         ->tag('firstTag', 'secondTag')
+    //         ->record();
+
+    //     $this->assertEquals(1, View::count());
+    // }
+
+    /** @test */
     public function it_can_get_the_views_count()
     {
         TestHelper::createNewView($this->post);
