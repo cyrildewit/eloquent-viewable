@@ -18,6 +18,7 @@ use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestHelper;
 
 /**
  * Class ViewsTest.
@@ -45,7 +46,17 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delay_a_view_in_the_session()
+    public function it_can_record_multiple_views()
+    {
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(3, View::count());
+    }
+
+    /** @test */
+    public function it_can_record_a_view_with_a_session_delay()
     {
         views($this->post)
             ->delayInSession(Carbon::now()->addMinutes(10))
@@ -56,5 +67,15 @@ class ViewsTest extends TestCase
             ->record();
 
         $this->assertEquals(1, View::count());
+    }
+
+    /** @test */
+    public function it_can_get_the_views_count()
+    {
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
+
+        $this->assertEquals(3, views($this->post)->getViews());
     }
 }
