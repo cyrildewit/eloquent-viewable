@@ -390,7 +390,7 @@ class ViewableServiceTest extends TestCase
     }
 
     /** @test */
-    public function removeModelViews_can_remove_all_views_from_a_model()
+    public function deleteViewsFor_can_remove_all_views_from_a_model()
     {
         $service = $this->app->make(ViewableService::class);
         $post = factory(Post::class)->create();
@@ -401,7 +401,7 @@ class ViewableServiceTest extends TestCase
 
         $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
 
-        $service->removeModelViews($post);
+        $service->deleteViewsFor($post);
 
         $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
     }

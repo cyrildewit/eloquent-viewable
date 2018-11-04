@@ -295,22 +295,6 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function removeViews_can_remove_all_views_from_a_model()
-    {
-        $post = factory(Post::class)->create();
-
-        $post->addView();
-        $post->addView();
-        $post->addView();
-
-        $this->assertEquals(3, View::where('viewable_type', $post->getMorphClass())->count());
-
-        $post->removeViews();
-
-        $this->assertEquals(0, View::where('viewable_type', $post->getMorphClass())->count());
-    }
-
-    /** @test */
     public function applyScopeOrderByViews_can_order_viewables_by_views_in_descending_order()
     {
         $postOne = factory(Post::class)->create();
