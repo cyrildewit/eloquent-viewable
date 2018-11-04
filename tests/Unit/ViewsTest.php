@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
@@ -26,49 +27,35 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
  */
 class ViewsTest extends TestCase
 {
-    /** @test */
-    public function getViewsByType_can_return_views_from_model_instance()
+    /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
+    protected $post;
+
+    public function setUp()
     {
-        $post = factory(Post::class)->create();
+        parent::setUp();
 
-        $post->addView();
-        $post->addView();
-        $post->addView();
-
-        $this->assertEquals(3, Views::getViewsByType($post));
+        $this->post = factory(Post::class)->create();
     }
 
     /** @test */
-    public function getViewsByType_can_return_views_from_namespace()
+    public function it_can_record_a_view()
     {
-        $post = factory(Post::class)->create();
+        views($this->post)->record();
 
-        $post->addView();
-        $post->addView();
-        $post->addView();
-
-        $this->assertEquals(3, Views::getViewsByType(Post::class));
+        $this->assertEquals(1, View::count());
     }
 
     /** @test */
-    public function getUniqueViewsByType_can_return_views_from_model_instance()
+    public function it_can_delay_a_view_in_the_session()
     {
-        $post = factory(Post::class)->create();
+        views($this->post)
+            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->record();
 
-        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
+        views($this->post)
+            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->record();
 
-        $this->assertEquals(1, Views::getUniqueViewsByType($post));
-    }
-
-    /** @test */
-    public function getUniqueViewsByType_can_return_views_from_namespace()
-    {
-        $post = factory(Post::class)->create();
-
-        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($post, ['visitor' => 'visitor_one']);
-
-        $this->assertEquals(1, Views::getUniqueViewsByType(Post::class));
+        $this->assertEquals(1, View::count());
     }
 }
