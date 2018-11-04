@@ -18,6 +18,7 @@ use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
@@ -77,13 +78,13 @@ class ViewableService implements ViewableServiceContract
     /**
      * Get the views count based upon the given arguments.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \Illuminate\Database\Eloquent\Model  $subject
      * @param  \DateTime  $sinceDateTime
      * @param  \DateTime  $uptoDateTime
      * @param  bool  $unique
      * @return int
      */
-    public function getViewsCount($viewable, $period = null, bool $unique = false, $tag = null)
+    public function getViewsCount($subject, $period = null, bool $unique = false, $tag = null)
     {
         // Retrieve configuration
         $cachingEnabled = config('eloquent-viewable.cache.enabled', true);
@@ -93,7 +94,7 @@ class ViewableService implements ViewableServiceContract
         $period = $period ?? Period::create();
 
         // Make a unique key for caching
-        $cacheKey = $this->createCacheDateTimesKey($viewable, $period, $unique);
+        $cacheKey = Key::createForCache($subject, $period, $unique);
 
         // Check cache if wanted
         if ($cachingEnabled && $cachingViewsCountEnabled) {
@@ -105,7 +106,7 @@ class ViewableService implements ViewableServiceContract
         }
 
         // Count the views again
-        $viewsCount = $this->countViews($viewable, $period->getStartDateTime(), $period->getEndDateTime(), $unique);
+        $viewsCount = $this->countViews($subject, $period->getStartDateTime(), $period->getEndDateTime(), $unique);
 
         // Cache the counted views
         if ($cachingEnabled) {
@@ -171,7 +172,7 @@ class ViewableService implements ViewableServiceContract
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($viewable, $tag): bool
+    public function addViewTo($viewable, $tag = null): bool
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
@@ -200,6 +201,7 @@ class ViewableService implements ViewableServiceContract
         $view->viewable_id = $viewable->getKey();
         $view->viewable_type = $viewable->getMorphClass();
         $view->visitor = $visitorCookie;
+        $view->tag = $tag;
         $view->viewed_at = Carbon::now();
 
         // If queuing is enabled, dispatch the job
@@ -278,26 +280,5 @@ class ViewableService implements ViewableServiceContract
             ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
             ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->orderBy('numOfViews', $direction);
-    }
-
-    /**
-     * Create a views count cache key.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
-     * @param  bool  $unique
-     * @return string
-     */
-    protected function createCacheDateTimesKey($viewable, $period, bool $unique): string
-    {
-        $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
-
-        $viewableId = $viewable->getKey();
-        $viewableType = strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
-
-        $typeKey = $unique ? 'unique' : 'normal';
-        $periodKey = $period->makeKey();
-
-        return "{$cacheKey}.{$viewableType}.{$viewableId}.{$typeKey}.{$periodKey}";
     }
 }
