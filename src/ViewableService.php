@@ -176,7 +176,7 @@ class ViewableService implements ViewableServiceContract
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
-        $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
+        $cookieName = config('eloquent-viewable.visitor_cookie_key', 'eloquent_viewable');
 
         // If ignore bots is true and the current viewer is a bot, return false
         if ($ignoreBots && $this->crawlerDetector->isBot()) {

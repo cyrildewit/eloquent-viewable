@@ -12,7 +12,7 @@ declare(strict_types=1);
  */
 
 Route::middleware(['web'])->group(function () {
-    $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
+    $cookieName = config('eloquent-viewable.visitor_cookie_key', 'eloquent_viewable');
 
     if (Cookie::get($cookieName) == false) {
         Cookie::queue($cookieName, str_random(80), 2628000);
