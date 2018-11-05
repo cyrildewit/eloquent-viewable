@@ -11,7 +11,6 @@ return [
     'models' => [
 
         /*
-         *
          * Here you can configure the default `View` model.
          */
         'view' => [
@@ -95,13 +94,6 @@ return [
 
         ],
 
-        'cache_view_tracker_counts' => [
-
-            'enabled' => true,
-            'lifetime_in_minutes' => 10,
-
-        ],
-
     ],
 
     /*
@@ -124,29 +116,34 @@ return [
     | Ignore Bots
     |--------------------------------------------------------------------------
     |
-    | If you want to ignore bots, you can specify that here.
+    | If you want to ignore bots, you can specify that here. The default
+    | service that determines if a visitor is a crawler is a package
+    | by JayBizzle called CrawlerDetect.
     |
     */
     'ignore_bots' => true,
 
     /*
     |--------------------------------------------------------------------------
-    | Honor
+    | Do Not Track Header
     |--------------------------------------------------------------------------
     |
     | If you want to honor the DNT header, you can specify that here.
-    | More information at: developer.mozilla.org/en-US/docs/Web/HTTP/Headers/DNT
     |
     */
     'honor_dnt' => false,
 
     /*
     |--------------------------------------------------------------------------
-    | Cookie Name
+    | Cookies
     |--------------------------------------------------------------------------
+    |
+    | This package binds visitors to views using a cookie. If you want to
+    | give this cookie a custom name, you can specify that here.
+    |
     */
 
-    'cookie_name' => 'eloquent_viewable',
+    'visitor_cookie_key' => 'eloquent_viewable',
 
     /*
     |--------------------------------------------------------------------------
