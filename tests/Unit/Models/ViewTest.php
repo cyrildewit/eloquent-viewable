@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Models;
 
-use Config;
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
@@ -25,16 +25,51 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
  */
 class ViewTest extends TestCase
 {
-    /** @test */
-    public function it_can_save_views_with_a_custom_connection()
+    protected function tearDown()
     {
-        $post = factory(Post::class)->create();
+        Carbon::setTestNow();
+    }
 
-        Config::set('eloquent-viewable.models.view.connection', 'sqlite');
+    /** @test */
+    public function it_can_have_a_custom_connection_through_config_file()
+    {
+        config(['eloquent-viewable.models.view.connection', 'sqlite']);
 
-        $post->addView();
+        $this->assertEquals('sqlite', (new View)->getConnection()->getName());
+    }
 
-        $this->assertInstanceOf(Post::class, View::where('viewable_id', $post->getKey())->firstOrFail()->viewable);
+    /** @test */
+    public function it_can_fill_visitor()
+    {
+        $view = new View([
+            'visitor' => 'uniqueString'
+        ]);
+
+        $this->assertEquals('uniqueString', $view->getAttribute('visitor'));
+    }
+
+    /** @test */
+    public function it_can_fill_visitor_with_null()
+    {
+        $view = new View([
+            'visitor' => null,
+        ]);
+
+        $this->assertNull($view->getAttribute('visitor'));
+    }
+
+    // public function it_can_fill_tag();
+
+    /** @test */
+    public function it_can_fill_viewed_at()
+    {
+        Carbon::setTestNow($now = Carbon::create(2018, 1, 12));
+
+        $view = new View([
+            'viewed_at' => $now,
+        ]);
+
+        $this->assertEquals('2018-01-12', $view->viewed_at->format('Y-m-d'));
     }
 
     /** @test */
@@ -42,7 +77,10 @@ class ViewTest extends TestCase
     {
         $post = factory(Post::class)->create();
 
-        $post->addView();
+        $view = factory(View::class)->create([
+            'viewable_id' => $post->getKey(),
+            'viewable_type' => $post->getMorphClass(),
+        ]);
 
         $this->assertInstanceOf(Post::class, View::first()->viewable);
     }
