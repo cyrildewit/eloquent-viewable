@@ -42,7 +42,7 @@ class ViewTest extends TestCase
     public function it_can_fill_visitor()
     {
         $view = new View([
-            'visitor' => 'uniqueString'
+            'visitor' => 'uniqueString',
         ]);
 
         $this->assertEquals('uniqueString', $view->getAttribute('visitor'));
