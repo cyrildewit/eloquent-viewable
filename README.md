@@ -73,9 +73,9 @@ In this documentation, you will find some helpful information about the use of t
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
-3. [Configuration](#configuration)
-    * [Queue the ProcessView job](#queue-the-processview-job)
-    * [Extending](#extending)
+3. [Extending](#extending)
+    * [Using your own model](#using-your-own-model)
+    * [Using a custom crawler detector](#using-a-custom-crawler-detector)
 4. [Recipes](#recipes)
     * [Creating helper methods for frequently used period formats](#creating-helper-methods-for-frequently-used-period-formats)
 
@@ -438,7 +438,7 @@ $this->app->singleton(
 );
 ```
 
-## Recipes
+## Tips &amp; Tricks
 
 ### Creating helper methods for frequently used period formats
 
