@@ -16,8 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Support\IpAddress;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
 
 /**
  * Class CreateViewRecord.
@@ -54,7 +52,7 @@ class CreateViewRecord
 
     public function execute(array $data)
     {
-        if(! $this->shouldContinue()) {
+        if (! $this->shouldContinue()) {
             return;
         }
 
