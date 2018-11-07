@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;

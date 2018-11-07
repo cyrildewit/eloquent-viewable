@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Http\Request;
-use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 
 /**
  * Class CreateViewRecord.
