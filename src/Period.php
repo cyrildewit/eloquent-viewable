@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Support;
+namespace CyrildeWit\EloquentViewable;
 
 use DateTime;
 use Carbon\Carbon;
