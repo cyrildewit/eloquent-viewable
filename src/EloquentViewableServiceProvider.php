@@ -17,7 +17,6 @@ use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
 
 /**
  * Class EloquentViewableServiceProvider.
@@ -67,7 +66,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function registerContracts()
     {
         $this->app->bind(ViewContract::class, View::class);
-        $this->app->singleton(ViewServiceContract::class, ViewService::class);
+        // $this->app->singleton(ViewServiceContract::class, ViewService::class);
         $this->app->bind(Views::class);
 
         $this->app->bind(CrawlerDetectAdapter::class, function ($app) {

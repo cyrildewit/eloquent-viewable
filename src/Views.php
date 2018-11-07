@@ -72,7 +72,6 @@ class Views
     /**
      * Create a new views instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\ViewServiceContract
      * @return void
      */
     public function __construct(
