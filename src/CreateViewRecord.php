@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Http\Request;
-use CyrildeWit\EloquentViewable\Support\IpAddress;
+use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
@@ -38,9 +38,9 @@ class CreateViewRecord
 
     // Illuminate\Http\Request
     protected $request;
-    protected $ipRepository;
+    protected $ipAddressResolver;
 
-    public function __construct(CreateView $createView, Request $request, CrawlerDetector $crawlerDetector, IpAddress $ipRepository)
+    public function __construct(CreateView $createView, Request $request, CrawlerDetector $crawlerDetector, IpAddressResolver $ipAddressResolver)
     {
         $this->ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $this->honorDnt = config('eloquent-viewable.honor_dnt', false);
@@ -49,7 +49,7 @@ class CreateViewRecord
         $this->createView = $createView;
         $this->request = $request;
         $this->crawlerDetector = $crawlerDetector;
-        $this->ipRepository = $ipRepository;
+        $this->ipAddressResolver = $ipAddressResolver;
     }
 
     public function execute(array $data)
@@ -84,11 +84,16 @@ class CreateViewRecord
             return false;
         }
 
-        if ($this->ignoredIpAddresses->contains($this->ipRepository->get())) {
+        if ($this->ignoredIpAddresses->contains($this->resolveIpAddress())) {
             return false;
         }
 
         return true;
+    }
+
+    protected function resolveIpAddress()
+    {
+        return $this->ipAddressResolver->resolve();
     }
 
     protected function getVisitorCookie()
