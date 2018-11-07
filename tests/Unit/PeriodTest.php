@@ -32,11 +32,11 @@ class PeriodTest extends TestCase
     }
 
     /** @test */
-    public function it_can_instantiate_helper()
+    public function it_can_instantiate_class()
     {
-        $helper = $this->app->make(Period::class);
+        $period = $this->app->make(Period::class);
 
-        $this->assertInstanceOf(Period::class, $helper);
+        $this->assertInstanceOf(Period::class, $period);
     }
 
     /** @test */
@@ -49,6 +49,18 @@ class PeriodTest extends TestCase
 
         $this->assertEquals($period->getStartDateTime(), $startDateTime);
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
+    }
+
+    /** @test */
+    public function it_can_construct_a_new_period_instance_with_strings_as_arguments()
+    {
+        $startDateTime = '2018-07-16';
+        $endDateTime = '2018-12-23';
+
+        $period = new Period('2018-07-16', '2018-12-23');
+
+        $this->assertEquals($period->getStartDateTime(), Carbon::parse($startDateTime));
+        $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
     }
 
     /** @test */
