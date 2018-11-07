@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
+use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 /**
@@ -24,35 +25,42 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
  */
 class ViewableObserverTest extends TestCase
 {
-    /** @test */
-    public function it_removes_all_views_when_deleted()
-    {
-        $post = factory(Post::class)->create();
+    /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
+    protected $post;
 
-        $post->addView();
-        $post->addView();
-        $post->addView();
+    public function setUp()
+    {
+        parent::setUp();
+
+        $this->post = factory(Post::class)->create();
+    }
+
+    /** @test */
+    public function it_can_destroy_all_views_when_viewable_gets_deleted()
+    {
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
 
         $this->assertEquals(3, View::count());
 
-        $post->delete();
+        $this->post->delete();
 
         $this->assertEquals(0, View::count());
     }
 
     /** @test */
-    public function it_does_not_removes_all_views_when_deleted_if_removeViewsOnDelete_was_false()
+    public function it_does_not_destroy_all_views_when_viewable_gets_deleted_and_removeViewsOnDelete_is_set_to_false()
     {
-        $post = factory(Post::class)->create();
-        $post->removeViewsOnDelete = false;
+        $this->post->removeViewsOnDelete = false;
 
-        $post->addView();
-        $post->addView();
-        $post->addView();
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
+        TestHelper::createNewView($this->post);
 
         $this->assertEquals(3, View::count());
 
-        $post->delete();
+        $this->post->delete();
 
         $this->assertEquals(3, View::count());
     }

@@ -13,23 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
-use Request;
+use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class Ip.
- *
- * @deprecated 3.0.0 This class will be removed.
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
-class IpAddress
+class ViewsCountCacher
 {
-    /**
-     * Get the visitor's ip address.
-     *
-     * @return bool
-     */
-    public function get()
-    {
-        return Request::ip();
-    }
+
 }

@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
+use CyrildeWit\EloquentViewable\Period;
+use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
 
 /**
  * Class Views.
@@ -35,7 +36,7 @@ class Views
      *
      * @var CyrildeWit\EloquentViewable\Period|null
      */
-    protected $period = null;
+    public $period = null;
 
     /**
      * Determine if only unique views should be returned.
@@ -61,7 +62,7 @@ class Views
     /**
      * The viewable service instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Contracts\ViewableService
+     * @var \CyrildeWit\EloquentViewable\Contracts\ViewService
      */
     protected $viewableService;
 
@@ -73,15 +74,27 @@ class Views
     protected $viewSessionHistory;
 
     /**
+     * The create view record instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\CreateViewRecord
+     */
+    protected $createViewRecord;
+
+    /**
      * Create a new views instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\ViewableService
+     * @param  \CyrildeWit\EloquentViewable\Contracts\ViewServiceContract
      * @return void
      */
-    public function __construct(ViewableServiceContract $viewableService, ViewSessionHistory $viewSessionHistory)
+    public function __construct(
+        ViewServiceContract $viewableService,
+        ViewSessionHistory $viewSessionHistory,
+        CreateViewRecord $createViewRecord
+    )
     {
         $this->viewableService = $viewableService;
         $this->viewSessionHistory = $viewSessionHistory;
+        $this->createViewRecord = $createViewRecord;
     }
 
     /**
@@ -101,17 +114,61 @@ class Views
      * @todo rethink about the behaviour of this method
      * @return bool
      */
-    public function record(): bool
+    public function record()//: bool
     {
-        if ($this->sessionDelay) {
-            if (! $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
-                return $this->viewableService->addViewTo($this->subject, $this->tag);
-            }
-
+        if ($this->sessionDelay && $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
             return false;
         }
 
-        return $this->viewableService->addViewTo($this->subject, $this->tag);
+        return $this->createViewRecord->execute([
+            'subject' => $this->subject,
+            'tag' => $this->tag,
+        ]);
+    }
+
+    /**
+     * Count the views.
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        // Use given period, otherwise create an empty one
+        $period = $this->period ?? Period::create();
+
+        // Create new Query Builder instance of the views relationship
+        $query = $this->subject->views();
+
+        $startDateTime = $period->getStartDateTime();
+        $endDateTime = $period->getEndDateTime();
+
+        // Apply period to query
+        if ($startDateTime && ! $endDateTime) {
+            $query->where('viewed_at', '>=', $startDateTime);
+        } elseif (! $startDateTime && $endDateTime) {
+            $query->where('viewed_at', '<=', $endDateTime);
+        } elseif ($startDateTime && $endDateTime) {
+            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
+        }
+
+        // Count only the unique views
+        if ($this->unique) {
+            $viewsCount = $query->distinct('visitor')->count('visitor');
+        } else {
+            $viewsCount = $query->count();
+        }
+
+        return $viewsCount;
+    }
+
+    /**
+     * Destroy all views of the subject.
+     *
+     * @return void
+     */
+    public function destroy()
+    {
+        $this->subject->views()->delete();
     }
 
     /**
@@ -143,7 +200,7 @@ class Views
     /**
      * Set the period.
      *
-     * @param \CyrildeWit\EloquentViewable\Period
+     * @param  \CyrildeWit\EloquentViewable\Period
      * @return self
      */
     public function period($period): self
