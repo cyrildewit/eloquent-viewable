@@ -13,9 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
 
 /**
  * Class ViewableObserver.

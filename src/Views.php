@@ -13,10 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Period;
-use CyrildeWit\EloquentViewable\Contracts\ViewService as ViewServiceContract;
-
 /**
  * Class Views.
  *
@@ -82,8 +78,7 @@ class Views
     public function __construct(
         ViewSessionHistory $viewSessionHistory,
         CreateViewRecord $createViewRecord
-    )
-    {
+    ) {
         $this->viewSessionHistory = $viewSessionHistory;
         $this->createViewRecord = $createViewRecord;
     }
