@@ -60,13 +60,6 @@ class Views
     protected $tag = null;
 
     /**
-     * The viewable service instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\ViewService
-     */
-    protected $viewableService;
-
-    /**
      * The view session history instance.
      *
      * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
@@ -87,25 +80,31 @@ class Views
      * @return void
      */
     public function __construct(
-        ViewServiceContract $viewableService,
         ViewSessionHistory $viewSessionHistory,
         CreateViewRecord $createViewRecord
     )
     {
-        $this->viewableService = $viewableService;
         $this->viewSessionHistory = $viewSessionHistory;
         $this->createViewRecord = $createViewRecord;
     }
 
-    /**
-     * Get the views count of the subject.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public function getViews($period = null): int
+    public function countByType($viewableType)
     {
-        return $this->viewableService->getViewsCount($this->subject, $this->period, $this->unique, $this->tag);
+        // Use given period, otherwise create an empty one
+        $period = $this->period ?? Period::create();
+
+        $query = View::where('viewable_type', $viewableType);
+
+        $query = $this->applyPeriodToQuery($query, $period);
+
+        // Count only the unique views
+        if ($this->unique) {
+            $viewsCount = $query->distinct('visitor')->count('visitor');
+        } else {
+            $viewsCount = $query->count();
+        }
+
+        return $viewsCount;
     }
 
     /**
@@ -139,17 +138,7 @@ class Views
         // Create new Query Builder instance of the views relationship
         $query = $this->subject->views();
 
-        $startDateTime = $period->getStartDateTime();
-        $endDateTime = $period->getEndDateTime();
-
-        // Apply period to query
-        if ($startDateTime && ! $endDateTime) {
-            $query->where('viewed_at', '>=', $startDateTime);
-        } elseif (! $startDateTime && $endDateTime) {
-            $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime && $endDateTime) {
-            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
-        }
+        $query = $this->applyPeriodToQuery($query, $period);
 
         // Count only the unique views
         if ($this->unique) {
@@ -174,10 +163,10 @@ class Views
     /**
      * Set a new subject.
      *
-     * @param  \Illuminate\Database\Eloquent\Model
+     * @param  \Illuminate\Database\Eloquent\Model|null
      * @return self
      */
-    public function setSubject(Model $subject): self
+    public function setSubject($subject): self
     {
         $this->subject = $subject;
 
@@ -221,5 +210,22 @@ class Views
         $this->tag = $tag;
 
         return $this;
+    }
+
+    protected function applyPeriodToQuery($query, $period)
+    {
+        $startDateTime = $period->getStartDateTime();
+        $endDateTime = $period->getEndDateTime();
+
+        // Apply period to query
+        if ($startDateTime && ! $endDateTime) {
+            $query->where('viewed_at', '>=', $startDateTime);
+        } elseif (! $startDateTime && $endDateTime) {
+            $query->where('viewed_at', '<=', $endDateTime);
+        } elseif ($startDateTime && $endDateTime) {
+            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
+        }
+
+        return $query;
     }
 }

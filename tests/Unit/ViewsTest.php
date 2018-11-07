@@ -20,6 +20,7 @@ use CyrildeWit\EloquentViewable\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
 /**
  * Class ViewsTest.
@@ -127,5 +128,21 @@ class ViewsTest extends TestCase
         views($this->post)->destroy();
 
         $this->assertEquals(0, views($this->post)->count());
+    }
+
+    /** @test */
+    public function it_can_count_the_views_by_type()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $apartment = factory(Apartment::class)->create();
+
+        TestHelper::createNewView($postOne);
+        TestHelper::createNewView($postTwo);
+        TestHelper::createNewView($postTwo);
+        TestHelper::createNewView($apartment);
+        TestHelper::createNewView($apartment);
+
+        $this->assertEquals(3, views()->countByType(Post::class));
     }
 }

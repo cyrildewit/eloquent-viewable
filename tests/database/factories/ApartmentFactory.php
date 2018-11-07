@@ -12,14 +12,14 @@ declare(strict_types=1);
  */
 
 use Faker\Generator as Faker;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Location;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
 /*
- * This is the Location factory.
+ * This is the Apartment factory.
  *
  * @var \Illuminate\Database\Eloquent\Factory  $factory
  */
-$factory->define(Location::class, function (Faker $faker) {
+$factory->define(Apartment::class, function (Faker $faker) {
     return [
         'name' => $faker->title,
         'description' => $faker->paragraph,

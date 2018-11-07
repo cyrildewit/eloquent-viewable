@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
 
-/**
- * Post class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class Post extends Model
 {
     use Viewable;

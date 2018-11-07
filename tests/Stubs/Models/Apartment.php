@@ -16,12 +16,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
 
-/**
- * Location class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
-class Location extends Model
+class Apartment extends Model
 {
     use Viewable;
 
@@ -30,7 +25,7 @@ class Location extends Model
      *
      * @var string
      */
-    protected $table = 'locations';
+    protected $table = 'apartments';
     /**
      * The attributes that aren't mass assignable.
      *
