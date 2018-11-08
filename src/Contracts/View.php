@@ -15,11 +15,6 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-/**
- * Interface View.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 interface View
 {
     /**

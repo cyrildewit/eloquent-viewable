@@ -18,10 +18,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
- * Class Period.
- *
  * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
- * @author Cyril de Wit <github@cyrildewit.nl>
  */
 class Period
 {

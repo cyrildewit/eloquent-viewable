@@ -19,11 +19,6 @@ use CyrildeWit\EloquentViewable\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
-/**
- * Class PeriodTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class PeriodTest extends TestCase
 {
     protected function tearDown()

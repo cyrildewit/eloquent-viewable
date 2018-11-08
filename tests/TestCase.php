@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-/**
- * This is the abstract test case class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 abstract class TestCase extends Orchestra
 {
     /**

@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-/**
- * Interface Viewable.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 interface Viewable
 {
     /**

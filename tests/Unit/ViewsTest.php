@@ -22,11 +22,6 @@ use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
-/**
- * Class ViewsTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewsTest extends TestCase
 {
     /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */

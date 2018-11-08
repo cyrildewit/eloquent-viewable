@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
-/**
- * Class CrawlerDetectAdapter.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class CrawlerDetectAdapter implements CrawlerDetector
 {
     /**

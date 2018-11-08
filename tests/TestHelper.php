@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 
-/**
- * TestHelper class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class TestHelper
 {
     /**

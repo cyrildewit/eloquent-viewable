@@ -17,11 +17,6 @@ use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 
-/**
- * Class CreateViewRecord.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class CreateViewRecord
 {
     protected $ignoreBots;

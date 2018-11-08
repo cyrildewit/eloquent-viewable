@@ -13,11 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-/**
- * Interface CrawlerDetector.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 interface CrawlerDetector
 {
     /**

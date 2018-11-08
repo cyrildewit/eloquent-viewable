@@ -18,11 +18,6 @@ use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
-/**
- * Class EloquentViewableServiceProvider.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class EloquentViewableServiceProvider extends ServiceProvider
 {
     /**

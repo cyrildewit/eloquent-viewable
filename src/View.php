@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
-/**
- * Class View.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class View extends Model implements ViewContract
 {
     /**

@@ -17,10 +17,7 @@ use DateTime;
 use Exception;
 
 /**
- * Class InvalidPeriod.
- *
  * @see https://github.com/spatie/laravel-analytics/blob/master/src/Exceptions/InvalidPeriod.php
- * @author Cyril de Wit <github@cyrildewit.nl>
  */
 class InvalidPeriod extends Exception
 {

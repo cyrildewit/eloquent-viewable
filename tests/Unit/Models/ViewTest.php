@@ -18,11 +18,6 @@ use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
-/**
- * Class ViewableObserverTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewTest extends TestCase
 {
     protected function tearDown()

@@ -15,11 +15,6 @@ namespace CyrildeWit\EloquentViewable\Support;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class Key.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class Key
 {
     /**

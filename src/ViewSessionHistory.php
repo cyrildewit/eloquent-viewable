@@ -17,11 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Session\Session;
 
-/**
- * Class ViewSessionHistory.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewSessionHistory
 {
     /**

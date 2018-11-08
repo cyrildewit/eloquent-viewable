@@ -15,11 +15,6 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class ViewableObserver.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewableObserver
 {
     /**

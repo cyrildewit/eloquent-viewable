@@ -13,11 +13,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-/**
- * Class Views.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class Views
 {
     /**

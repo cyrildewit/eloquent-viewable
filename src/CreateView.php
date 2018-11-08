@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
-/**
- * Class CreateView.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class CreateView
 {
     public function execute(array $data): ViewContract
