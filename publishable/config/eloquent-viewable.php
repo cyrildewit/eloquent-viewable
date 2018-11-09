@@ -67,7 +67,7 @@ return [
         /*
          * Determine if this package should cache data.
          */
-        'enabled' => true,
+        'enabled' => false,
 
         /*
          * Everthing will be cached under the following key.
@@ -101,6 +101,21 @@ return [
             'lifetime_in_minutes' => 10,
 
         ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'session' => [
+
+        /*
+         * Everthing will be stored under the following key.
+         */
+        'key' => 'cyrildewit.eloquent-viewable.session',
 
     ],
 

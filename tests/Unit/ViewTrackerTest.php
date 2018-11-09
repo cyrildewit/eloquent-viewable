@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
+use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\ViewTracker;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
@@ -74,6 +75,7 @@ class ViewTrackerTest extends TestCase
     /** @test */
     public function getViewsCountByType_can_give_us_the_number_of_views_of_the_given_class_type_from_the_cache()
     {
+        Config::set('eloquent-viewable.cache.enabled', true);
         $tracker = $this->app->make(ViewTracker::class);
         $post = factory(Post::class)->create();
         $location = factory(Location::class)->create();

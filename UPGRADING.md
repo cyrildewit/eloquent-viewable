@@ -1,6 +1,45 @@
 # Upgrade Guide
 
-- [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-1.0.5-to-2.0.0)
+- [Upgrading from 2.4.2 to 2.4.3](#upgrading-from-242-to-243)
+- [Upgrading from 2.1.0 to 2.2.0](#upgrading-from-210-to-220)
+- [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-200-to-210)
+- [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-105-to-200)
+
+## Upgrading from 2.4.2 to 2.4.3
+
+Run the following migration to update the `visitor` column.
+
+```php
+$table->text('visitor');
+```
+
+## Upgrading from 2.1.0 to 2.2.0
+
+### Update config file
+
+If you have published the config file of this package, you will have to copy the following snippet to your config file:
+
+```php
+/*
+|--------------------------------------------------------------------------
+| Session Configuration
+|--------------------------------------------------------------------------
+*/
+'session' => [
+
+    /*
+     * Everthing will be stored under the following key.
+     */
+    'key' => 'cyrildewit.eloquent-viewable.session',
+
+],
+```
+
+Take a look at the [original file](https://github.com/cyrildewit/eloquent-viewable/blob/2.1/publishable/config/eloquent-viewable.php) to find the right location.
+
+## Upgrading from 2.0.0 to 2.1.0
+
+There are no manual changes needed.
 
 ## Upgrading from 1.0.5 to 2.0.0
 
@@ -26,7 +65,7 @@ composer require cyrildewit/eloquent-viewable
 
 Replace `CyrildeWit\PageViewCounter\PageViewCounterServiceProvider::class` with `CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class` in providers.
 
-### Update the migrations
+### Update database tables
 
 If your app is in development, you can publish the new migration file with:
 
@@ -34,13 +73,7 @@ If your app is in development, you can publish the new migration file with:
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-Otherwise you have to create the following migration for yourself:
-
-```php
-Schema::table('page-visits', function (Blueprint $table) {
-    $table->string('ip_address')->nullable();
-});
-```
+Otherwise you can use the `update_views_table ` migration to upgrade. It can be found at [resources/database/](resources/database/migrations/2018_06_07_311156_update_views_table.php).
 
 ### Update the config file
 
@@ -78,6 +111,8 @@ class Post extends Model
 - Find all usages of `addPageView()` and replace it with `addView()`.
 
 #### Change `->addPageViewThatExpiresAt()` to `->addView()`
+
+**Note:** this feature has been made available again in `v2.1.0`! See the [README](README.md)!
 
 - Find all usages of `addPageViewThatExpiresAt(<DateTime>)` and replace it with `addView()`.
 

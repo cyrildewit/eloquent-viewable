@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use Config;
 use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
+use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\ViewableService;
@@ -174,6 +174,7 @@ class ViewableServiceTest extends TestCase
     /** @test */
     public function getViewsCount_can_return_the_total_number_of_views_from_the_cache()
     {
+        Config::set('eloquent-viewable.cache.enabled', true);
         $service = $this->app->make(ViewableService::class);
         $post = factory(Post::class)->create();
 
@@ -365,6 +366,30 @@ class ViewableServiceTest extends TestCase
     }
 
     /** @test */
+    public function addViewWithExpiryDateTo_can_save_a_view_to_a_model()
+    {
+        $post = factory(Post::class)->create();
+        $service = $this->app->make(ViewableService::class);
+
+        $service->addViewWithExpiryDateTo($post, Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
+    public function addViewWithExpiryDate_does_not_save_views_to_a_model_if_not_expired()
+    {
+        $post = factory(Post::class)->create();
+        $service = $this->app->make(ViewableService::class);
+
+        $service->addViewWithExpiryDateTo($post, Carbon::now()->addDays(5));
+        $service->addViewWithExpiryDateTo($post, Carbon::now()->addDays(5));
+        $service->addViewWithExpiryDateTo($post, Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
     public function removeModelViews_can_remove_all_views_from_a_model()
     {
         $service = $this->app->make(ViewableService::class);
@@ -421,6 +446,50 @@ class ViewableServiceTest extends TestCase
         $service->addViewTo($postThree);
 
         $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'asc')->pluck('id');
+
+        $this->assertEquals(collect([2, 3, 1]), $posts);
+    }
+
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_descending_order()
+    {
+        $service = $this->app->make(ViewableService::class);
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'desc', true)->pluck('id');
+
+        $this->assertEquals(collect([1, 3, 2]), $posts);
+    }
+
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_ascending_order()
+    {
+        $service = $this->app->make(ViewableService::class);
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $posts = $service->applyScopeOrderByViewsCount(Post::query(), 'asc', true)->pluck('id');
 
         $this->assertEquals(collect([2, 3, 1]), $posts);
     }

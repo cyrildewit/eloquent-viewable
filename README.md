@@ -5,7 +5,6 @@
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
 [![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Built For Laravel](https://img.shields.io/badge/built%20for-laravel-blue.svg?style=flat-square)](http://laravel.com)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
 This Laravel >= 5.5 package allows you to associate views with Eloquent models.
@@ -65,7 +64,8 @@ In this documentation, you will find some helpful information about the use of t
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Preparing your models](#preparing-your-models)
-    * [Saving views](#saving-vies)
+    * [Storing views](#storing-views)
+    * [Saving views with expiry date](#saving-views-with-expiry-date)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [ViewTracker helper](#viewtracker-helper)
@@ -87,7 +87,8 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
-| 2.0     | 5.5 - 5.6  | Active support | >= 7.0.0    |
+| 3.0     | 5.5 - 5.7  | _In Development_ | >= 7.1.0    |
+| 2.0     | 5.5 - 5.7  | Active support | >= 7.0.0    |
 | 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
 ### Installation
@@ -146,8 +147,10 @@ class Post extends Model
     // ...
 }
 ```
+<!--
+After adding the trait to your model definition,  -->
 
-### Saving views
+### Storing views
 
 Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
 
@@ -171,6 +174,18 @@ public function show(Post $post)
 ```
 
 **Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
+
+**Note:** The option `ignore_bots` is by default `true`, so when a bot has made a view, we won't store it. This is important to know, because Postman is for example a crawler. So viewing a API route that calls this method using Postman will do nothing.
+
+### Saving views with expiry date
+
+If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` on your viewable model.
+
+```php
+$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
+```
+
+This method will add a new view to your model and it will add a record in the user's session. If you call this method multiple times, you will see that views count will not increment. After the current date time has passed the expiry date, a new view will be stored.
 
 ### Retrieving views counts
 
@@ -325,8 +340,15 @@ $post->getUniqueViews(Period::subYears(3));
 #### Retrieve Viewable models by views count
 
 ```php
-$sortedPosts = Post::orderByViewsCount()->get();
+$sortedPosts = Post::orderByViewsCount()->get(); // desc
 $sortedPosts = Post::orderByViewsCount('asc')->get();
+```
+
+#### Retrieve Viewable models by unique views count
+
+```php
+$sortedPosts = Post::orderByUniqueViewsCount()->get(); // desc
+$sortedPosts = Post::orderByUniqueViewsCount('asc')->get();
 ```
 
 ### ViewTracker helper
@@ -347,7 +369,7 @@ ViewTracker::getViewsCountByTypes([Post::class, Location::class, Hotel::class]);
 
 ### Queue the ProcessView job
 
-When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that you that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
+When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
 
 ### Extending
 
@@ -451,4 +473,4 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## License
 
-Eloquent Viewable is licensed under The Apache 2.0 license. See [License File](LICENSE.md) for more information.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

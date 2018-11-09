@@ -55,6 +55,13 @@ class ViewableService implements ViewableServiceContract
     protected $ipRepository;
 
     /**
+     * The view session history instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     */
+    protected $viewSessionHistory;
+
+    /**
      * Create a new ViewableService instance.
      *
      * @return void
@@ -64,6 +71,7 @@ class ViewableService implements ViewableServiceContract
         $this->cache = app(CacheRepository::class);
         $this->crawlerDetector = app(CrawlerDetector::class);
         $this->ipRepository = app(IpAddress::class);
+        $this->viewSessionHistory = app(ViewSessionHistory::class);
     }
 
     /**
@@ -92,7 +100,7 @@ class ViewableService implements ViewableServiceContract
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
         }
 
@@ -189,13 +197,11 @@ class ViewableService implements ViewableServiceContract
         $visitorCookie = Cookie::get($cookieName);
         $visitor = $visitorCookie ?? $this->ipRepository->get();
 
-        // Create a new View model instance
-        $view = app(ViewContract::class)->create([
-            'viewable_id' => $viewable->getKey(),
-            'viewable_type' => $viewable->getMorphClass(),
-            'visitor' => $visitor,
-            'viewed_at' => Carbon::now(),
-        ]);
+        $view = app(ViewContract::class);
+        $view->viewable_id = $viewable->getKey();
+        $view->viewable_type = $viewable->getMorphClass();
+        $view->visitor = $visitor;
+        $view->viewed_at = Carbon::now();
 
         // If queuing is enabled, dispatch the job
         $configStoreNewView = config('eloquent-viewable.jobs.store_new_view');
@@ -220,6 +226,22 @@ class ViewableService implements ViewableServiceContract
     }
 
     /**
+     * Store a new view.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \DateTime  $expiryDateTime
+     * @return bool
+     */
+    public function addViewWithExpiryDateTo($viewable, $expiryDateTime)
+    {
+        if ($this->viewSessionHistory->push($viewable, $expiryDateTime)) {
+            return $this->addViewTo($viewable);
+        }
+
+        return false;
+    }
+
+    /**
      * Remove all views from a viewable model.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
@@ -238,17 +260,25 @@ class ViewableService implements ViewableServiceContract
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
+     * @param  bool  $unique
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder
+    public function applyScopeOrderByViewsCount(Builder $query, string $direction = 'desc', bool $unique = false): Builder
     {
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
 
-        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.id")
-            ->selectRaw("{$viewable->getTable()}.*, count({$viewModel->getTable()}.{$viewModel->getKeyName()}) as aggregate")
+        if ($unique) {
+            return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
+                ->selectRaw("{$viewable->getTable()}.*, count(distinct visitor) as numOfUniqueViews")
+                ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
+                ->orderBy('numOfUniqueViews', $direction);
+        }
+
+        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
+            ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
             ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->orderBy('aggregate', $direction);
+            ->orderBy('numOfViews', $direction);
     }
 
     /**

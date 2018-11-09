@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use Config;
 use Request;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
+use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
@@ -157,6 +157,7 @@ class ViewableTest extends TestCase
     /** @test */
     public function getViews_can_return_the_total_number_of_views_from_the_cache()
     {
+        Config::set('eloquent-viewable.cache.enabled', true);
         $post = factory(Post::class)->create();
 
         $post->addView();
@@ -272,6 +273,28 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
+    public function addViewWithExpiryDate_can_save_a_view_to_a_model()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
+    public function addViewWithExpiryDate_does_not_save_views_to_a_model_if_not_expired()
+    {
+        $post = factory(Post::class)->create();
+
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+        $post->addViewWithExpiryDate(Carbon::now()->addDays(5));
+
+        $this->assertEquals(1, View::where('viewable_type', $post->getMorphClass())->count());
+    }
+
+    /** @test */
     public function removeViews_can_remove_all_views_from_a_model()
     {
         $post = factory(Post::class)->create();
@@ -325,6 +348,48 @@ class ViewableTest extends TestCase
         $postThree->addView();
 
         $posts = Post::orderByViewsCount('asc')->pluck('id');
+
+        $this->assertEquals(collect([2, 3, 1]), $posts);
+    }
+
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_descending_order()
+    {
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $posts = Post::orderByUniqueViewsCount()->pluck('id');
+
+        $this->assertEquals(collect([1, 3, 2]), $posts);
+    }
+
+    /** @test */
+    public function applyScopeOrderByViewsCount_can_order_viewables_by_unique_views_in_ascending_order()
+    {
+        $postOne = factory(Post::class)->create();
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $posts = Post::orderByUniqueViewsCount('asc')->pluck('id');
 
         $this->assertEquals(collect([2, 3, 1]), $posts);
     }
