@@ -14,23 +14,23 @@ This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 Once installed you can do stuff like this:
 
 ```php
-// Get the total number of views
-$post->getViews();
+// Return total views count
+$post->views()->count();
 
-// Get the total number of views since the given date
-$post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
+// Return total views count that have been made since 20 February 2017
+$post->views()->period(Period::since('2017-02-20'))->count();
 
-// Get the total number of views between the given date range
-$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
+// Return total views count that have been made between 2014 and 216
+$post->views()->period(Period::create('2014', '2016'))->count();
 
-// Get the total number of unique views
-$post->getUniqueViews();
+// Return total unique views count (based on visitor cookie)
+$post->views()->unique()->count();
 
-// Store a new view in the database
-$post->addView();
+// Record a new view
+$post->views()->record();
 
-// Store a new view in the database
-$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
+// Record a new view with session delay between views
+$post->views()->sessionDelay(now()->addHours(2));
 ```
 
 ## Overview
