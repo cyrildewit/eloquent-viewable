@@ -30,12 +30,12 @@ $post->views()->unique()->count();
 $post->views()->record();
 
 // Record a new view with session delay between views
-$post->views()->sessionDelay(now()->addHours(2));
+$post->views()->sessionDelay(now()->addHours(2))->record();
 ```
 
 ## Overview
 
-Eloquent Vieable allows you to associate views with Eloquent models. It's designed with simplicity, performance and 
+Eloquent Vieable allows you to associate views with Eloquent models. It's designed with simplicity, performance and
 
 Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide you a full history of the views.
 
@@ -46,22 +46,15 @@ This package is not built with the intent to collect analytical data. It is made
 Here are some of the main features:
 
 * Associate views with Eloquent models
-* Get the total number of (unique) views
-* Get the total number of (unique) views since a specific date
-* Get the total number of (unique) views upto a specific date
-* Get the total number of (unique) views between two dates
-* Get the total number of (unique) views in the past `days`, `weeks`, `months` and `years` from today
-* Get the total number of (unique) views in the past `seconds`, `minutes`, `hours`, `days`, `weeks`, `months` and `years` from now
-* Cache the retrieved views counts
-* Queue the views before saving them in the database to prevent slow requests
-
-Feature requests are very welcome! Create an issue with [Feature Request] as prefix or send a pull request.
+* Get total views count
+* Get views count of a specific period
+* Get unique views count
+* Smart views count cacher helper
 
 ## Documentation
 
 In this documentation, you will find some helpful information about the use of this Laravel package.
 
-<!--If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at `github@cyrildewit.nl`.-->
 
 ### Table of contents
 
@@ -85,7 +78,7 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-The Eloquent Viewable package requires **PHP 7+** and **Laravel 5.5+**.
+This package requires **PHP 7+** and **Laravel 5.5+**.
 
 Lumen is not supported!
 
@@ -99,13 +92,36 @@ Lumen is not supported!
 
 ### Installation
 
-You can install this package via composer using:
+First, you need to install the package via Composer:
 
 ```winbatch
 composer require cyrildewit/eloquent-viewable
 ```
 
-Optionally, you can add the service provider in the `config/app.php` file. Otherwise this can be done via automatic package discovery.
+<!-- #### Perform publishing -->
+
+Secondly, if you want to make some basic changes like giving the `views` table a different name or creating the table on a different connection, you can configure that by publishing the config file with:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
+```
+
+Alternatively, if you want to make bigger changes in the migrations, you can publish them using:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
+```
+
+Finally, you need to run the `migrate` command:
+
+```winbatch
+php artisan migrate
+```
+
+#### Register service provider manualy
+
+Add the following provider to your application's providers list.
+
 
 ```php
 // config/app.php
@@ -116,23 +132,7 @@ Optionally, you can add the service provider in the `config/app.php` file. Other
 ];
 ```
 
-You can publish the migration with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
-```
-
-After publishing the migration file you can create the `views` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'models->view->table_name' and change the value to something unique.
-
-```winbatch
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
-```
+*Note:* this can be done via automatic package discovery!
 
 ## Usage
 
