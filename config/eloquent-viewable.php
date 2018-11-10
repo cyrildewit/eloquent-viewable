@@ -16,7 +16,7 @@ return [
         'view' => [
 
             'table_name' => 'views',
-            'connection' => null,
+            'connection' => env('DB_CONNECTION', 'mysql'),
 
         ],
 
