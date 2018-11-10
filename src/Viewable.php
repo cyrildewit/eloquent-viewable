@@ -37,4 +37,36 @@ trait Viewable
     {
         return $this->morphMany(app(ViewContract::class), 'viewable');
     }
+    
+    /**
+     * Get the total views count.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Period|null
+     * @return int
+     */
+    public function getViewsCount($period = null): int
+    {
+        return views($this)->this->period($period)->count();
+    }
+    
+    /**
+     * Get the total views count.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Period|null
+     * @return int
+     */
+    public function getUniqueViewsCount($period = null): int
+    {
+        return views($this)->period($period)->unique()->count();
+    }
+    
+    /**
+     * Record a view.
+     *
+     * @return
+     */
+    public function recordView()
+    {
+        return view($this)->record();
+    }
 }
