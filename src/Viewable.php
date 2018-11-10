@@ -37,7 +37,7 @@ trait Viewable
     {
         return $this->morphMany(app(ViewContract::class), 'viewable');
     }
-    
+
     /**
      * Get the total views count.
      *
@@ -48,7 +48,7 @@ trait Viewable
     {
         return views($this)->this->period($period)->count();
     }
-    
+
     /**
      * Get the total views count.
      *
@@ -59,7 +59,7 @@ trait Viewable
     {
         return views($this)->period($period)->unique()->count();
     }
-    
+
     /**
      * Record a view.
      *
