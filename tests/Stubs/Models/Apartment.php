@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\HasViews;
+use CyrildeWit\EloquentViewable\HasViewsTrait;
 
-class Apartment extends Model
+class Apartment extends Model // implements HasViews
 {
-    use Viewable;
+    use HasViewsTrait;
 
     /**
      * The table associated with the model.
