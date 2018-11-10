@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+
 class Views
 {
     /**
@@ -125,7 +128,7 @@ class Views
         $period = $this->period ?? Period::create();
 
         // Create new Query Builder instance of the views relationship
-        $query = $this->subject->views();
+        $query = $this->morphViews();
 
         $query = $this->applyPeriodToQuery($query, $period);
 
@@ -146,7 +149,7 @@ class Views
      */
     public function destroy()
     {
-        $this->subject->views()->delete();
+        $this->morphViews()->delete();
     }
 
     /**
@@ -201,7 +204,17 @@ class Views
         return $this;
     }
 
-    protected function applyPeriodToQuery($query, $period)
+    /**
+     * Get a collection of all the views the model has.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
+     */
+    private function morphViews()
+    {
+        return $this->subject->morphMany(app(ViewContract::class), 'viewable');
+    }
+
+    private function applyPeriodToQuery($query, $period)
     {
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
