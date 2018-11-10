@@ -17,6 +17,7 @@ use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use Illuminate\Support\Facades\Schema;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
@@ -27,10 +28,14 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // $this->registerConsoleCommands();
+        // $this->registerMiddleware();
+        $this->registerMigrations();
+        $this->registerPublishing();
+
         $this->registerContracts();
         $this->registerRoutes();
-        $this->registerPublishes();
+        // $this->registerPublishing();
+        // $this->registerMigrations();
     }
 
     /**
@@ -41,6 +46,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfig();
+        // $this->registerConsoleCommands();
     }
 
     /**
@@ -87,32 +93,30 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register the package's migrations.
+     *
+     * @return void
+     */
+    protected function registerMigrations()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->loadMigrationsFrom(__DIR__.'/../migrations');
+        }
+    }
+
+    /**
      * Setup the resource publishing groups for Eloquent Viewable.
      *
      * @return void
      */
-    protected function registerPublishes()
+    protected function registerPublishing()
     {
-        // If the application is not running in the console, stop with executing
-        // this method.
-        if (! $this->app->runningInConsole()) {
-            return;
-        }
-
-        $config = $this->app->config['eloquent-viewable'];
-
-        $this->publishes([
-            __DIR__.'/../publishable/config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
-        ], 'config');
-
-        // Publish the `CreateViewsTable` migration if it doesn't exists
-        if (! class_exists('CreateViewsTable')) {
-            $timestamp = date('Y_m_d_His', time());
-            $viewsTableName = snake_case($config['models']['view']['table_name']);
+        if ($this->app->runningInConsole()) {
+            $config = $this->app->config['eloquent-viewable'];
 
             $this->publishes([
-                __DIR__.'/../publishable/database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_{$viewsTableName}_table.php"),
-            ], 'migrations');
+                __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
+            ], 'config');
         }
     }
 
@@ -124,7 +128,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function mergeConfig()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../publishable/config/eloquent-viewable.php',
+            __DIR__.'/../config/eloquent-viewable.php',
             'eloquent-viewable'
         );
     }
