@@ -83,6 +83,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
+
+            $this->publishes([
+                __DIR__.'/../migrations/2018_11_10_125700_create_views_table.php' => $this->app->databasePath('migrations/2018_11_10_125700_create_views_table.php'),
+            ], 'migrations');
         }
     }
 }
