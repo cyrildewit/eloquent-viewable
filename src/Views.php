@@ -27,7 +27,7 @@ class Views
      *
      * @var CyrildeWit\EloquentViewable\Period|null
      */
-    public $period = null;
+    protected $period = null;
 
     /**
      * Determine if only unique views should be returned.
