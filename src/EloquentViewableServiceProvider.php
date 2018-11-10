@@ -27,11 +27,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->registerMiddleware();
+        // $this->registerMiddleware();
         $this->registerMigrations();
         $this->registerPublishing();
-
-        $this->registerContracts();
     }
 
     /**
@@ -41,30 +39,12 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfig();
-        // $this->registerConsoleCommands();
-    }
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/eloquent-viewable.php',
+            'eloquent-viewable'
+        );
 
-    /**
-     * Register the artisan commands.
-     *
-     * @return void
-     */
-    protected function registerConsoleCommands()
-    {
-        //
-    }
-
-    /**
-     * Register the model bindings.
-     *
-     * @return void
-     */
-    protected function registerContracts()
-    {
         $this->app->bind(ViewContract::class, View::class);
-        // $this->app->singleton(ViewServiceContract::class, ViewService::class);
-        $this->app->bind(Views::class);
 
         $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
             $detector = new CrawlerDetect(
@@ -76,16 +56,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(CrawlerDetector::class, CrawlerDetectAdapter::class);
-    }
-
-    /**
-     * Register the required routes for Eloquent Viewable.
-     *
-     * @return void
-     */
-    protected function registerMiddleware()
-    {
-        // $this->loadRoutesFrom(__DIR__.'/../routes/eloquent-viewable.php');
     }
 
     /**
@@ -114,18 +84,5 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
         }
-    }
-
-    /**
-     * Merge the user's config file.
-     *
-     * @return void
-     */
-    protected function mergeConfig()
-    {
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/eloquent-viewable.php',
-            'eloquent-viewable'
-        );
     }
 }
