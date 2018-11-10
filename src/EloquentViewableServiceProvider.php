@@ -17,7 +17,6 @@ use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use Illuminate\Support\Facades\Schema;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
@@ -28,14 +27,11 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // $this->registerMiddleware();
+        $this->registerMiddleware();
         $this->registerMigrations();
         $this->registerPublishing();
 
         $this->registerContracts();
-        $this->registerRoutes();
-        // $this->registerPublishing();
-        // $this->registerMigrations();
     }
 
     /**
@@ -87,9 +83,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerRoutes()
+    protected function registerMiddleware()
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes/eloquent-viewable.php');
+        // $this->loadRoutesFrom(__DIR__.'/../routes/eloquent-viewable.php');
     }
 
     /**
