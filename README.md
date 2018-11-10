@@ -158,7 +158,7 @@ class Post extends Model implements HasViews
 To make a view record, you can call the `recordView` method on your model.
 
 ```php
-$post->recordView();
+$post->views()->record();
 ```
 
 The best place where you should place it is inside your controller. For example:
@@ -167,7 +167,7 @@ The best place where you should place it is inside your controller. For example:
 // PostController.php
 public function show(Post $post)
 {
-    $post->recordView();
+    $post->views()->record();
 
     return view('post.show', compact('post'));
 }
@@ -178,39 +178,40 @@ public function show(Post $post)
 
 ### Recording views with session delays
 
-Adding a delay between view records is easiliy achievable by calling
-
-If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` method on your viewable model.
+Setting a delay between view record is easiliy achievable by providing a `sessionDelay` call with the delay as argument:
 
 ```php
-$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
+$post->views()
+     ->sessionDelay(now()->addMinutes(90))
+     ->record();
 ```
 
-This method will add a new view to your model and it will add a record in the user's session. If you call this method multiple times, you will see that views count will not increment. After the current date time has passed the expiry date, a new view will be stored.
+The `sessionDelay` method accepts an instance of Carbon..... an integer. an datetime object.
+
+#### How it works
+
+When recording a view with a session delay, this package will also save a snapshot of the view in his session with an  expiry date. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database.
 
 ### Retrieving views counts
 
-After adding the `Viewable` trait to your model, you will be able to call `getViews()` and `getUniqueViews()` on your viewable model. Both methods accepts an optional `Period` instance.
+#### Get total views count
 
 ```php
-/**
- * Get the total number of views.
- *
- * @param  \CyrildeWit\EloquentViewable\Support\Period
- * @return int
- */
-public function getViews($period = null): int;
-
-/**
- * Get the total number of unique views.
- *
- * @param  \CyrildeWit\EloquentViewable\Support\Period
- * @return int
- */
-public function getUniqueViews($period = null) : int;
+$post->views()->count();
 ```
 
-#### Period class
+#### Get views count of a specific period
+
+```php
+use CyrildeWit\EloquentViewable\Period;
+
+// Get views count from 2017 to 2018 for example
+$post->views()
+     ->period(Period::create('2017', '2018'))
+     ->count();
+```
+
+The `Period` class that comes with this package provides many handy features. The API looks as follows:
 
 _Be aware that the following code isn't valid PHP syntax!_
 
@@ -260,6 +261,16 @@ Period::subMonths(int $months);
 
 // Period instance with a start date time of now minus the given years.
 Period::subYears(int $years);
+```
+
+#### Get total unique views count
+
+If you only want to retrieve the unique views count, can you simply call the `unique` method.
+
+```php
+$post->views()
+     ->unique()
+     ->count();
 ```
 
 ### Order models by views count
