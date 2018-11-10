@@ -27,9 +27,9 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
-        $this->destroyPackageMigrations();
-        $this->publishPackageMigrations();
-        $this->migratePackageTables();
+        // $this->destroyPackageMigrations();
+        // $this->publishPackageMigrations();
+        // $this->migratePackageTables();
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
     }
@@ -43,8 +43,8 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
             \Orchestra\Database\ConsoleServiceProvider::class,
+            \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
         ];
     }
 
@@ -68,7 +68,7 @@ abstract class TestCase extends Orchestra
      */
     protected function destroyPackageMigrations()
     {
-        File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
+        // File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
     }
 
     /**
@@ -78,9 +78,11 @@ abstract class TestCase extends Orchestra
      */
     protected function migratePackageTables()
     {
-        $this->loadMigrationsFrom([
-            '--realpath' => database_path('migrations'),
-        ]);
+        // $this->loadMigrationsFrom([
+        //     '--realpath' => database_path('migrations'),
+        // ]);
+
+        // $this->loadMigrationsFrom(__DIR__.'/database/migrations');
     }
 
     /**
@@ -90,9 +92,7 @@ abstract class TestCase extends Orchestra
      */
     protected function migrateUnitTestTables()
     {
-        $this->loadMigrationsFrom([
-            '--realpath' => realpath(__DIR__.'/database/migrations'),
-        ]);
+        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
     }
 
     /**
