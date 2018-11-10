@@ -62,16 +62,19 @@ In this documentation, you will find some helpful information about the use of t
     * [Requirements](#requirements)
     * [Installation](#installation)
 2. [Usage](#usage)
-    * [Preparing your models](#preparing-your-models)
-    * [Storing views](#storing-views)
+    * [Preparing your model](#preparing-your-model)
+    * [Recording views](#storing-views)
     * [Storing views with expiry date](#storing-views-with-expiry-date)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
-3. [Extending](#extending)
+3. [Optomizing](#optimizing)
+    * [Queuing views](#queueing-views)
+    * [Caching view counts](#caching-view-counts)
+4. [Extending](#extending)
     * [Using your own model](#using-your-own-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
-4. [Recipes](#recipes)
+5. [Recipes](#recipes)
     * [Creating helper methods for frequently used period formats](#creating-helper-methods-for-frequently-used-period-formats)
 
 ## Getting Started
@@ -98,8 +101,6 @@ First, you need to install the package via Composer:
 composer require cyrildewit/eloquent-viewable
 ```
 
-<!-- #### Perform publishing -->
-
 Secondly, if you want to make some basic changes like giving the `views` table a different name or creating the table on a different connection, you can configure that by publishing the config file with:
 
 ```winbatch
@@ -118,10 +119,9 @@ Finally, you need to run the `migrate` command:
 php artisan migrate
 ```
 
-#### Register service provider manualy
+#### Register service provider manually
 
-Add the following provider to your application's providers list.
-
+If you like to register packages manually, you can add the following provider to your application's providers list.
 
 ```php
 // config/app.php
@@ -136,53 +136,49 @@ Add the following provider to your application's providers list.
 
 ## Usage
 
-### Preparing your models
+### Preparing your model
 
-To make an Eloquent model viewable just add the `Viewable` trait to your model definition. This trait provides various methods to allow you to save views, retrieve views counts and order your items by views count.
+To associate views with a model, the model must implement the following interface and trait.
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\HasViews;
+use CyrildeWit\EloquentViewable\HasViewsTrait;
 
-class Post extends Model
+class Post extends Model implements HasViews
 {
-    use Viewable;
+    use HasViewsTrait;
 
     // ...
 }
 ```
 
-<!--
-After adding the trait to your model definition,  -->
+### Recording views
 
-### Storing views
-
-Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
-
-The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
+To make a view record, you can call the `recordView` method on your model.
 
 ```php
-$post->addView();
+$post->recordView();
 ```
 
-A `PostController` might look something like this:
+The best place where you should place it is inside your controller. For example:
 
 ```php
-// ...
+// PostController.php
 public function show(Post $post)
 {
-    $post->addView();
+    $post->recordView();
 
-    return view('blog.post', compact('post'));
+    return view('post.show', compact('post'));
 }
 // ...
 ```
 
-**Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
+**Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
 
-**Note:** The option `ignore_bots` is by default `true`, so when a bot has made a view, we won't store it. This is important to know, because Postman is for example a crawler. So viewing a API route that calls this method using Postman will do nothing.
+### Recording views with session delays
 
-### Saving views with expiry date
+Adding a delay between view records is easiliy achievable by calling
 
 If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` method on your viewable model.
 
