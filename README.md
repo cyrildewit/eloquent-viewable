@@ -141,32 +141,38 @@ To associate views with a model, the model must implement the following interfac
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\HasViews;
-use CyrildeWit\EloquentViewable\HasViewsTrait;
+use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Post extends Model implements HasViews
+class Post extends Model implements ViewableContract
 {
-    use HasViewsTrait;
+    use Viewable;
 
     // ...
 }
 ```
 
+The `Viewable` trait also adds a shortcut for `views($model)`:
+
+```php
+$model->views()->doSomething();
+```
+
 ### Recording views
 
-To make a view record, you can call the `record` method.
+To make a view record, you can call the `record` method on the fluent `Views` instance.
 
 ```php
 views($post)->record();
 ```
 
-The best place where you should place it is inside your controller. For example:
+The best place where you should record a visitors's view would be inside your controller. For example:
 
 ```php
 // PostController.php
 public function show(Post $post)
 {
-    $post->views()->record();
+    views($post)->record();
 
     return view('post.show', compact('post'));
 }
@@ -177,26 +183,34 @@ public function show(Post $post)
 
 ### Recording views with session delays
 
-Setting a delay between view record is easiliy achievable by providing a `sessionDelay` call with the delay as argument:
+You may use the `sessionDelay` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
 
 ```php
-$post->views()
-     ->sessionDelay(now()->addMinutes(90))
-     ->record();
+views($post)
+    ->sessionDelay($minutes)
+    ->record();
 ```
 
-The `sessionDelay` method accepts an instance of Carbon..... an integer. an datetime object.
+Instead of passing the number of minutes as an integer, you could also pass a `DateTime` instance.
+
+```php
+$expiresAt = now()->addHours(3);
+
+views($post)
+    ->sessionDelay($expiresAt)
+    ->record();
+```
 
 #### How it works
 
-When recording a view with a session delay, this package will also save a snapshot of the view in his session with an  expiry date. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database.
+When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session with an expiration date time. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database or not.
 
 ### Retrieving views counts
 
 #### Get total views count
 
 ```php
-$post->views()->count();
+views($post)->count();
 ```
 
 #### Get views count of a specific period
@@ -204,77 +218,73 @@ $post->views()->count();
 ```php
 use CyrildeWit\EloquentViewable\Period;
 
-// Get views count from 2017 to 2018 for example
+// Example: get views count since 2017 upto 2018
 $post->views()
      ->period(Period::create('2017', '2018'))
      ->count();
 ```
 
-The `Period` class that comes with this package provides many handy features. The API looks as follows:
+The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as follows:
 
-_Be aware that the following code isn't valid PHP syntax!_
+##### Between two datetimes
 
 ```php
-// Create a new Period instance.
-Period::create(DateTime $startDateTime = null, DateTime $endDateTime = null);
+$startDateTime = Carbon::createFromDate(2017, 4, 12);
+$endDateTime = '2017-06-12';
 
-// Create a new Period instance with only a start date time.
-Period::since(DateTime $startDateTime);
-
-// Create a new Period instance with only a end date time.
-Period::upto(DateTime $endDateTime);
+Period::create($startDateTime, $endDateTime);
 ```
 
+##### Since a datetime
+
 ```php
-// Period instance with a start date time of today minus the given days.
+Period::since(Carbon::create(2017));
+```
+
+##### Upto a datetime
+
+```php
+Period::upto(Carbon::createFromDate(2018, 6, 1));
+```
+
+##### Since past
+
+Uses `Carbon::today()` as start datetime minus the given unit.
+
+```php
 Period::pastDays(int $days);
-
-// Period instance with a start date time of today minus the given weeks.
 Period::pastWeeks(int $weeks);
-
-// Period instance with a start date time of today minus the given months.
 Period::pastMonths(int $months);
-
-// Period instance with a start date time of today minus the given years.
 Period::pastYears(int $years);
 ```
 
+##### Since sub
+
+Uses `Carbon::now()` as start datetime minus the given unit.
+
 ```php
-// Period instance with a start date time of now minus the given seconds.
 Period::subSeconds(int $seconds);
-
-//Period instance with a start date time of now minus the given minutes.
 Period::subMinutes(int $minutes);
-
-// Period instance with a start date time of now minus the given hours.
 Period::subHours(int $hours);
-
-// Period instance with a start date time of now minus the given days.
 Period::subDays(int $days);
-
-// Period instance with a start date time of now minus the given weeks.
 Period::subWeeks(int $weeks);
-
-// Period instance with a start date time of now minus the given months.
 Period::subMonths(int $months);
-
-// Period instance with a start date time of now minus the given years.
 Period::subYears(int $years);
 ```
 
 #### Get total unique views count
 
-If you only want to retrieve the unique views count, can you simply call the `unique` method.
+If you only want to retrieve the unique views count, can you simply add the `unique` method to the chain.
 
 ```php
-$post->views()
-     ->unique()
-     ->count();
+views($post)
+    ->unique()
+    ->count();
 ```
 
 ### Order models by views count
 
-The viewable trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
+The `Viewable` trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
 
 #### Retrieve Viewable models by views count
 
@@ -290,31 +300,9 @@ Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-### `Views` helper
+### Get views count of viewable type
 
-Namespace: `use CyrildeWit\EloquentViewable\Views`.
-
-#### Saving views
-
-```php
-Views::create($post)->addView();
-```
-
-#### Saving views with expiry date
-
-```php
-Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2));
-```
-
-#### Retrieving views counts
-
-```php
-Views::create($post)->getViews();
-```
-
-#### Get views by viewable type
-
-If you want to know how many views a specific viewable type has, you can use the static `getViewsByType` method on the `Views` class.
+If you want to know how many views a specific viewable type has, you can use the `getViewsCountByType` method on the `Views` class.
 
 ```php
 Views::getViewsByType(Post::class);
