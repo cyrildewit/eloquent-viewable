@@ -31,15 +31,16 @@ $post->views()->record();
 
 // Record a new view with session delay between views
 $post->views()->sessionDelay(now()->addHours(2))->record();
+
+// Alternatively, you can use the helper function
+views($post)->doSomething();
 ```
 
 ## Overview
 
-Eloquent Vieable allows you to associate views with Eloquent models. It's designed with simplicity, performance and
+Eloquent Vieable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))`.
 
-Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide you a full history of the views.
-
-This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would this package for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
+This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use this package for models like: Post, Video, Profile and Hotel, but of course, you can use this package as you want.
 
 ### Features
 
@@ -55,7 +56,6 @@ Here are some of the main features:
 
 In this documentation, you will find some helpful information about the use of this Laravel package.
 
-
 ### Table of contents
 
 1. [Getting Started](#getting-started)
@@ -64,11 +64,12 @@ In this documentation, you will find some helpful information about the use of t
 2. [Usage](#usage)
     * [Preparing your model](#preparing-your-model)
     * [Recording views](#storing-views)
-    * [Storing views with expiry date](#storing-views-with-expiry-date)
+    * [Recording views with session delays](#recording-views-with-session-delays)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
     * [`Views` helper](#views-helper)
-3. [Optomizing](#optimizing)
+    * [Preparing your model](#preparing-your-model)
+3. [Optimizing](#optimizing)
     * [Queuing views](#queueing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
@@ -107,7 +108,7 @@ Secondly, if you want to make some basic changes like giving the `views` table a
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
-Alternatively, if you want to make bigger changes in the migrations, you can publish them using:
+Alternatively, if you want to make bigger changes to the migrations, you can publish them using:
 
 ```winbatch
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
@@ -121,7 +122,7 @@ php artisan migrate
 
 #### Register service provider manually
 
-If you like to register packages manually, you can add the following provider to your application's providers list.
+If you prefer to register packages manually, you can add the following provider to your application's providers list.
 
 ```php
 // config/app.php
@@ -131,8 +132,6 @@ If you like to register packages manually, you can add the following provider to
     CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
 ];
 ```
-
-*Note:* this can be done via automatic package discovery!
 
 ## Usage
 
@@ -155,10 +154,10 @@ class Post extends Model implements HasViews
 
 ### Recording views
 
-To make a view record, you can call the `recordView` method on your model.
+To make a view record, you can call the `record` method.
 
 ```php
-$post->views()->record();
+views($post)->record();
 ```
 
 The best place where you should place it is inside your controller. For example:
