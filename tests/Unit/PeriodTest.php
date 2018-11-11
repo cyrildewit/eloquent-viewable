@@ -15,7 +15,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Support;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
-use CyrildeWit\EloquentViewable\Period;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
@@ -146,6 +146,15 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subYears(2));
         $this->assertNull($period->getEndDateTime());
     }
+
+    // /** @test */
+    // public function static_sub_returns_null_when_subTypeMethod_is_not_callable()
+    // {
+    //     Carbon::setTestNow(Carbon::now());
+
+    //     $period = Period::sub(Carbon::now(), 'subSecondds', Period::SUB_SECONDS, 2);
+    //     $this->assertNull($period->getEndDateTime());
+    // }
 
     /** @test */
     public function static_subSeconds_can_construct_a_new_period_instance()
