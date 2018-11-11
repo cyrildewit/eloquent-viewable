@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 interface View
 {
     /**
-     * Get all of the owning viewable models.
+     * Get the viewable model to which this View belongs.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo
      */

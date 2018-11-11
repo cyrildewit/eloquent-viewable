@@ -48,9 +48,8 @@ class View extends Model implements ViewContract
     }
 
     /**
-     * Get all of the owning viewable models.
+     * Get the viewable model to which this View belongs.
      *
-     * @todo rename to subject? A view has a subject?
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo
      */
     public function viewable(): MorphTo
