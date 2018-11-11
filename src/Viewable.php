@@ -73,9 +73,9 @@ trait Viewable
      *
      * @return bool
      */
-    public function addView(): bool
+    public function addView($ip = ''): bool
     {
-        return app(ViewableService::class)->addViewTo($this);
+        return app(ViewableService::class)->addViewTo($this, $ip);
     }
 
     /**
