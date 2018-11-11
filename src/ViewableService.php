@@ -171,7 +171,7 @@ class ViewableService implements ViewableServiceContract
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($viewable): bool
+    public function addViewTo($viewable, $ip = ''): bool
     {
         $ignoreBots = config('eloquent-viewable.ignore_bots', true);
         $honorToDnt = config('eloquent-viewable.honor_dnt', false);
@@ -190,12 +190,12 @@ class ViewableService implements ViewableServiceContract
 
         $ignoredIpAddresses = Collection::make(config('eloquent-viewable.ignored_ip_addresses', []));
 
-        if ($ignoredIpAddresses->contains($this->ipRepository->get())) {
+        if ($ignoredIpAddresses->contains($this->ipRepository->get($ip))) {
             return false;
         }
 
         $visitorCookie = Cookie::get($cookieName);
-        $visitor = $visitorCookie ?? $this->ipRepository->get();
+        $visitor = $visitorCookie ?? $this->ipRepository->get($ip);
 
         $view = app(ViewContract::class);
         $view->viewable_id = $viewable->getKey();
