@@ -343,7 +343,6 @@ Views::getleastViewedByType($post, 10);
 
 ### Queuing views
 
-
 ### Caching view counts
 
 ### Extending
@@ -351,6 +350,7 @@ Views::getleastViewedByType($post, 10);
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
+* `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
 * `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
@@ -361,6 +361,15 @@ _**Note:** Don't forget that all custom classes must implement their original in
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
     \App\CustomView::class
+);
+```
+
+#### Replace `IpAddressResolver` class with custom implementation
+
+```php
+$this->app->singleton(
+    \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver::class,
+    \App\Resolvers\IpAddressResolver::class
 );
 ```
 
