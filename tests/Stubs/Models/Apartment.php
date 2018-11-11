@@ -15,9 +15,9 @@ namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
-use CyrildeWit\EloquentViewable\Contracts\HasViews;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Apartment extends Model // implements HasViews
+class Apartment extends Model // implements ViewableContract
 {
     use Viewable;
 

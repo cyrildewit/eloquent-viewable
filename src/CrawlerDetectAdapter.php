@@ -23,7 +23,7 @@ class CrawlerDetectAdapter implements CrawlerDetector
      *
      * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
      */
-    protected $detector;
+    private $detector;
 
     /**
      * Create a new CrawlerDetector instance.

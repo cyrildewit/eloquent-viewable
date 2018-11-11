@@ -30,7 +30,7 @@ trait Viewable
      *
      * @return \CyrildeWit\EloquentViewable\Views
      */
-    public function views()
+    public function views(): Views
     {
         return views($this);
     }

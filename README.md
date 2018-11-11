@@ -216,7 +216,7 @@ views($post)->count();
 #### Get views count of a specific period
 
 ```php
-use CyrildeWit\EloquentViewable\Period;
+use CyrildeWit\EloquentViewable\Support\Period;
 
 // Example: get views count since 2017 upto 2018
 $post->views()

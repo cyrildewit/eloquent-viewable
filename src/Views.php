@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
@@ -28,7 +29,7 @@ class Views
     /**
      * The period that the current query should scoped to.
      *
-     * @var CyrildeWit\EloquentViewable\Period|null
+     * @var \CyrildeWit\EloquentViewable\Support\Period|null
      */
     protected $period = null;
 

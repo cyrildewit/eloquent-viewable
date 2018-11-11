@@ -67,7 +67,7 @@ class CreateViewRecord
     protected function shouldContinue()
     {
         // If ignore bots is true and the current viewer is a bot, return false
-        if ($this->ignoreBots && $this->crawlerDetector->isBot()) {
+        if ($this->ignoreBots && $this->crawlerDetector->isCrawler()) {
             return false;
         }
 

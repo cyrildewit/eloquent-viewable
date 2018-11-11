@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Support;
 
 use DateTime;
 use Carbon\Carbon;
@@ -71,7 +71,7 @@ class Period
      *
      * @param  \Datetime|string|null  $startDateTime
      * @param  \Datetime|string|null  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public function __construct($startDateTime = null, $endDateTime = null)
     {
@@ -95,7 +95,7 @@ class Period
      *
      * @param  \Datetime|string|null  $startDateTime
      * @param  \Datetime|string|null  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function create($startDateTime = null, $endDateTime = null): self
     {
