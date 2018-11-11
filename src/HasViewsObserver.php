@@ -15,7 +15,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Model;
 
-class HasViewsObserver
+class ViewableObserver
 {
     /**
      * Handle the deleted event for the model.

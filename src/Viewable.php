@@ -20,9 +20,9 @@ trait Viewable
      *
      * @return void
      */
-    public static function bootHasViewsTrait()
+    public static function bootViewable()
     {
-        static::observe(HasViewsObserver::class);
+        static::observe(ViewableObserver::class);
     }
 
     /**
