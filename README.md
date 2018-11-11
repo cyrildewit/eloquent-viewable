@@ -67,16 +67,12 @@ In this documentation, you will find some helpful information about the use of t
     * [Recording views with session delays](#recording-views-with-session-delays)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
-    * [`Views` helper](#views-helper)
-    * [Preparing your model](#preparing-your-model)
-3. [Optimizing](#optimizing)
+3. [Advanced Usage](#advanced-usage)
     * [Queuing views](#queueing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
     * [Using your own model](#using-your-own-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
-5. [Recipes](#recipes)
-    * [Creating helper methods for frequently used period formats](#creating-helper-methods-for-frequently-used-period-formats)
 
 ## Getting Started
 
@@ -155,7 +151,7 @@ class Post extends Model implements ViewableContract
 The `Viewable` trait also adds a shortcut for `views($model)`:
 
 ```php
-$model->views()->doSomething();
+$post->views()->doSomething();
 ```
 
 ### Recording views
@@ -343,66 +339,18 @@ Views::getleastViewedByType('App\Post', 10);
 Views::getleastViewedByType($post, 10);
 ```
 
-#### Get the views count of viewables per period
+## Advanced Usage
 
-If you want to get a collection of views per period, you can call the static `getViewsPerPeriod` method on the `Views` class.
+### Queuing views
 
-The parameter signature looks like this:
 
-```php
-getViewsPerPeriod(string $dimension, $period, $viewableType = null): Collection;
-```
-
-The first argument should be one of the following options:
-
-* minute
-* hour
-* day
-* week
-* month
-* year
-
-The second argument should be an instance of `\CyrildeWit\EloquentViewable\Support\Period`. More information about this class can be found [here](period-class).
-
-The third argument is optional. It can be used to get only the views of a specific type. For example `App\Post`. It should be a fully qualified class name. You can retrieve it using the `getMorphClass` method on an Eloquent model.
-
-##### Example
-
-The following code example will return the total number of views per week and between two weeks ago and today. In this example the of today is `2018-07-08 00:00:00`.
-
-```php
-Views::getViewsPerPeriod('week', Period::pastWeeks(2))
-```
-
-Result:
-
-```text
-[
-    ['week' => '31', 'views' => 526],
-    ['week' => '32', 'views' => 630]
-]
-```
-
-#### Get the unique views count of viewables per period
-
-If you want to get a collection of unique views per period, you can call the static `getUniqueViewsPerPeriod` method on the `Views` class.
-
-It has the same parameter signature as the static `getViewsPerPeriod` method.
-
-See the section here above for information about how you can use this method.
-
-## Configuration
-
-### Queue the ProcessView job
-
-When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
+### Caching view counts
 
 ### Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
-* `CyrildeWit\EloquentViewable\ViewableService`
 * `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
@@ -416,15 +364,6 @@ $this->app->bind(
 );
 ```
 
-#### Replace `ViewableService` service with custom implementation
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\ViewableService::class,
-    \App\Services\CustomViewableService::class
-);
-```
-
 #### Replace `CrawlerDetectAdapter` class with custom implementation
 
 ```php
@@ -432,44 +371,6 @@ $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
     \App\Services\CrawlerDetector\CustomAdapter::class
 );
-```
-
-## Tips &amp; Tricks
-
-### Creating helper methods for frequently used period formats
-
-#### App\Post
-
-```php
-public function getViewsSince(DateTime $sinceDateTime)
-{
-    return $this->getViews(Period::since($sinceDateTime));
-}
-
-public function getViewsUpto(DateTime $uptoDateTime)
-{
-    return $this->getViews(Period::upto($uptoDateTime));
-}
-
-public function getViewsBetween(DateTime $sinceDateTime, DateTime $uptoDateTime)
-{
-    return $this->getViews(Period::create($sinceDateTime, $uptoDateTime));
-}
-
-public function getViewsInPastDays(int $days)
-{
-    return $this->getViews(Period::pastDays($days));
-}
-```
-
-#### resources/views/post/show.blade.php
-
-```html
-Page views since 2014: {{ $post->getViewsSince(Carbon::create(2014)) }}
-Page views upto 2016: {{ $post->getViewsUpto(Carbon::create(2016)) }}
-Page views between 2016 - 2018: {{ $post->getViewsBetween(Carbon::create(2016), Carbon::create(2018)) }}
-
-Page views in the past 5 days: {{ $post->getViewsInPastDays(5) }}
 ```
 
 ## Upgrading
