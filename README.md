@@ -38,7 +38,7 @@ views($post)->doSomething();
 
 ## Overview
 
-Eloquent Vieable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))`.
+Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))`.
 
 This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use this package for models like: Post, Video, Profile and Hotel, but of course, you can use this package as you want.
 
