@@ -37,11 +37,11 @@ class CrawlerDetectAdapter implements CrawlerDetector
     }
 
     /**
-     * Determine if the current user is crawler.
+     * Determine if the current user is a crawler.
      *
      * @return bool
      */
-    public function isBot()
+    public function isCrawler()
     {
         return $this->detector->isCrawler();
     }
