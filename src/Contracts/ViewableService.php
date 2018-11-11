@@ -49,7 +49,7 @@ interface ViewableService
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    public function addViewTo($viewable): bool;
+    public function addViewTo($viewable, $ip = ''): bool;
 
     /**
      * Remove all views from a viewable model.
