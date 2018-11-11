@@ -29,8 +29,12 @@ class TrackVisitorMiddleware
         $response = $next($request);
 
         $cookieName = config('eloquent-viewable.visitor_cookie_key');
-        $uniqueId = str_random(80);
+        $uniqueString = str_random(80);
 
-        return $response->withCookie(cookie()->forever($cookieName, $uniqueId));
+        if (! $request->hasCookie($cookieName)) {
+            $response->cookie(cookie()->forever($cookieName, $uniqueString));
+        }
+
+        return $response;
     }
 }

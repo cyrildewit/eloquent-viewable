@@ -16,7 +16,7 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-interface Viewable
+interface HasViews
 {
     /**
      * Get the value of the model's primary key.

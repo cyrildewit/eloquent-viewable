@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\HasViews;
-use CyrildeWit\EloquentViewable\HasViewsTrait;
+use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\HasViews;
 
 class Post extends Model implements HasViews
 {
-    use HasViewsTrait;
+    use Viewable;
 
     /**
      * The table associated with the model.

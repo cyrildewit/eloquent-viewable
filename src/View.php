@@ -34,17 +34,23 @@ class View extends Model implements ViewContract
     public $timestamps = false;
 
     /**
-     * Create a new View instance.
+     * Get the table associated with the model.
      *
-     * @param  array  $attributes
-     * @return void
+     * @return string
      */
-    public function __construct(array $attributes = [])
+    public function getTable(): string
     {
-        parent::__construct($attributes);
+        return config('eloquent-viewable.models.view.table_name', parent::getTable());
+    }
 
-        $this->setTable(config('eloquent-viewable.models.view.table_name', 'views'));
-        $this->setConnection(config('eloquent-viewable.models.view.connection', null));
+    /**
+     * Get the current connection name for the model.
+     *
+     * @return string
+     */
+    public function getConnectionName()
+    {
+        return config('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
     /**
