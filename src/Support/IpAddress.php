@@ -28,8 +28,12 @@ class IpAddress
      *
      * @return bool
      */
-    public function get()
+    public function get($ip = '')
     {
-        return Request::ip();
+        if(empty($ip)){
+          return Request::ip();
+        } else {
+          return $ip;
+        }
     }
 }
