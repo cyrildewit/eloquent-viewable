@@ -18,7 +18,7 @@ interface IpAddressResolver
     /**
      * Resolve the IP address.
      *
-     * @return  string
+     * @return string
      */
     public function resolve(): string;
 }

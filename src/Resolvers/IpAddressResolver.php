@@ -19,7 +19,9 @@ use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolver
 class IpAddressResolver implements IpAddressResolverContract
 {
     /**
-     * {@inheritdoc}
+     * Resolve the IP address.
+     *
+     * @return string
      */
     public function resolve(): string
     {
