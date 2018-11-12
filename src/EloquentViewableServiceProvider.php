@@ -15,8 +15,10 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
 use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\HeaderResolver as HeaderResolverContract;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
 
@@ -59,6 +61,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
         $this->app->singleton(IpAddressResolverContract::class, IpAddressResolver::class);
+        $this->app->singleton(HeaderResolverContract::class, HeaderResolver::class);
     }
 
     /**

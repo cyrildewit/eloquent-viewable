@@ -13,14 +13,18 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 class Views
 {
     /**
-     * The subject that has been viewed.
+     * The subject where we are applying actions to.
      *
      * @var \Illuminate\Database\Eloquent\Model
      */
@@ -55,6 +59,13 @@ class Views
     protected $tag = null;
 
     /**
+     * Used IP Address instead of the provided one by the resolver.
+     *
+     * @var string
+     */
+    protected $overriddenIpAddress;
+
+    /**
      * The view session history instance.
      *
      * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
@@ -62,11 +73,32 @@ class Views
     protected $viewSessionHistory;
 
     /**
-     * The create view record instance.
+     * The visitor cookie repository instance.
      *
-     * @var \CyrildeWit\EloquentViewable\CreateViewRecord
+     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
      */
-    protected $createViewRecord;
+    protected $visitorCookieRepository;
+
+    /**
+     * The crawler detector instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
+     */
+    protected $crawlerDetector;
+
+    /**
+     * The IP Address resolver instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver
+     */
+    protected $ipAddressResolver;
+
+    /**
+     * The request header resolver instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\HeaderResolver
+     */
+    protected $headerResolver;
 
     /**
      * Create a new views instance.
@@ -75,10 +107,16 @@ class Views
      */
     public function __construct(
         ViewSessionHistory $viewSessionHistory,
-        CreateViewRecord $createViewRecord
+        VisitorCookieRepository $visitorCookieRepository,
+        CrawlerDetector $crawlerDetector,
+        IpAddressResolver $ipAddressResolver,
+        HeaderResolver $headerResolver
     ) {
         $this->viewSessionHistory = $viewSessionHistory;
-        $this->createViewRecord = $createViewRecord;
+        $this->visitorCookieRepository = $visitorCookieRepository;
+        $this->crawlerDetector = $crawlerDetector;
+        $this->ipAddressResolver = $ipAddressResolver;
+        $this->headerResolver = $headerResolver;
     }
 
     public function countByType($viewableType)
@@ -108,14 +146,19 @@ class Views
      */
     public function record()//: bool
     {
-        if ($this->sessionDelay && $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
+        if (! $this->shouldRecord()) {
             return false;
         }
 
-        return $this->createViewRecord->execute([
-            'subject' => $this->subject,
-            'tag' => $this->tag,
-        ]);
+        $view = app(ViewContract::class);
+        $view->viewable_id = $this->subject->getKey();
+        $view->viewable_type = $this->subject->getMorphClass();
+        $view->visitor = $this->getVisitorCookie();
+        $view->tag = $this->tag;
+        $view->viewed_at = Carbon::now();
+        $view->save();
+
+        return $view;
     }
 
     /**
@@ -230,5 +273,59 @@ class Views
         }
 
         return $query;
+    }
+
+    private function shouldRecord()
+    {
+        // If ignore bots is true and the current viewer is a bot, return false
+        if (config('eloquent-viewable.ignore_bots') && $this->crawlerDetector->isCrawler()) {
+            return false;
+        }
+
+        // If we honor to the DNT header and the current request contains the
+        // DNT header, return false
+        if (config('eloquent-viewable.honor_dnt', false) && $this->requestHasDoNotTrackHeader()) {
+            return false;
+        }
+
+        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->resolveIpAddress())) {
+            return false;
+        }
+
+        if ($this->sessionDelay && $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Resolve the visitor's IP Address.
+     *
+     * @return string
+     */
+    private function resolveIpAddress(): string
+    {
+        return $this->overriddenIpAddress ?? $this->ipAddressResolver->resolve();
+    }
+
+    /**
+     * Determine if the request has a Do Not Track header.
+     *
+     * @return string
+     */
+    private function requestHasDoNotTrackHeader(): string
+    {
+        return 1 === (int) $this->$this->headerResolver->resolve('HTTP_DNT');
+    }
+
+    /**
+     * Determine if the request has a Do Not Track header.
+     *
+     * @return string|null
+     */
+    private function getVisitorCookie()
+    {
+        return $this->visitorCookieRepository->get();
     }
 }
