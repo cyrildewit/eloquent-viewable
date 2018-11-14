@@ -59,6 +59,13 @@ class Views
     protected $tag = null;
 
     /**
+     * Determine if the views count should be cached.
+     *
+     * @var string|null
+     */
+    protected $shouldCache = false;
+
+    /**
      * Used IP Address instead of the provided one by the resolver.
      *
      * @var string
@@ -119,12 +126,12 @@ class Views
         $this->headerResolver = $headerResolver;
     }
 
-    public function countByType($viewableType)
+    public function countByType(string $viewableType)
     {
         // Use given period, otherwise create an empty one
         $period = $this->period ?? Period::create();
 
-        $query = View::where('viewable_type', $viewableType);
+        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
 
         $query = $this->applyPeriodToQuery($query, $period);
 
@@ -153,7 +160,7 @@ class Views
         $view = app(ViewContract::class);
         $view->viewable_id = $this->subject->getKey();
         $view->viewable_type = $this->subject->getMorphClass();
-        $view->visitor = $this->getVisitorCookie();
+        $view->visitor = $this->resolveVisitorId();
         $view->tag = $this->tag;
         $view->viewed_at = Carbon::now();
         $view->save();
@@ -249,6 +256,18 @@ class Views
     }
 
     /**
+     * Cache the current views count.
+     *
+     * @return self
+     */
+    public function cache()
+    {
+        $this->shouldCache = true;
+
+        return $this;
+    }
+
+    /**
      * Get a collection of all the views the model has.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
@@ -320,11 +339,11 @@ class Views
     }
 
     /**
-     * Determine if the request has a Do Not Track header.
+     * Resolve the visitor's unique ID.
      *
      * @return string|null
      */
-    private function getVisitorCookie()
+    private function resolveVisitorId()
     {
         return $this->visitorCookieRepository->get();
     }
