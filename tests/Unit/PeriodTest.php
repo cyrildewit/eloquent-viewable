@@ -19,11 +19,6 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
-/**
- * Class PeriodTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class PeriodTest extends TestCase
 {
     protected function tearDown()
@@ -32,11 +27,11 @@ class PeriodTest extends TestCase
     }
 
     /** @test */
-    public function it_can_instantiate_helper()
+    public function it_can_instantiate_class()
     {
-        $helper = $this->app->make(Period::class);
+        $period = $this->app->make(Period::class);
 
-        $this->assertInstanceOf(Period::class, $helper);
+        $this->assertInstanceOf(Period::class, $period);
     }
 
     /** @test */
@@ -49,6 +44,18 @@ class PeriodTest extends TestCase
 
         $this->assertEquals($period->getStartDateTime(), $startDateTime);
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
+    }
+
+    /** @test */
+    public function it_can_construct_a_new_period_instance_with_strings_as_arguments()
+    {
+        $startDateTime = '2018-07-16';
+        $endDateTime = '2018-12-23';
+
+        $period = new Period('2018-07-16', '2018-12-23');
+
+        $this->assertEquals($period->getStartDateTime(), Carbon::parse($startDateTime));
+        $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
     }
 
     /** @test */
@@ -139,6 +146,15 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subYears(2));
         $this->assertNull($period->getEndDateTime());
     }
+
+    // /** @test */
+    // public function static_sub_returns_null_when_subTypeMethod_is_not_callable()
+    // {
+    //     Carbon::setTestNow(Carbon::now());
+
+    //     $period = Period::sub(Carbon::now(), 'subSecondds', Period::SUB_SECONDS, 2);
+    //     $this->assertNull($period->getEndDateTime());
+    // }
 
     /** @test */
     public function static_subSeconds_can_construct_a_new_period_instance()
@@ -243,28 +259,5 @@ class PeriodTest extends TestCase
         $period->setEndDateTime(Carbon::now());
 
         $this->assertEquals($period->getEndDateTime(), Carbon::now());
-    }
-
-    /** @test */
-    public function makeKey_generates_right_keys()
-    {
-        $keyOne = Period::create()->makeKey();
-        $this->assertEquals('|', $keyOne);
-
-        $startDateTime = Carbon::now();
-        $keyTwo = Period::create($startDateTime)->makeKey();
-        $this->assertEquals("{$startDateTime->toDateTimeString()}|", $keyTwo);
-
-        $endDateTime = Carbon::now();
-        $keyThree = Period::create(null, $endDateTime)->makeKey();
-        $this->assertEquals("|{$endDateTime->toDateTimeString()}", $keyThree);
-
-        $startDateTime = Carbon::today();
-        $keyFour = Period::sub($startDateTime, 'subYears', Period::PAST_YEARS, 5)->makeKey();
-        $this->assertEquals('past5years|', $keyFour);
-
-        $startDateTime = Carbon::now();
-        $keyFive = Period::sub($startDateTime, 'subYears', Period::SUB_YEARS, 5)->makeKey();
-        $this->assertEquals('sub5years|', $keyFive);
     }
 }

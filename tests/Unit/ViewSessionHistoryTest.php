@@ -19,11 +19,6 @@ use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\ViewSessionHistory;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
-/**
- * Class ViewSessionHistoryTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewSessionHistoryTest extends TestCase
 {
     protected function tearDown()

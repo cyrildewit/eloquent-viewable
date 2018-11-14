@@ -13,14 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
+use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-/**
- * Interface Viewable.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 interface Viewable
 {
     /**
@@ -42,7 +38,7 @@ interface Viewable
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function views(): MorphMany;
+    public function views(): Views;
 
     /**
      * Get the total number of unique views.
@@ -50,28 +46,28 @@ interface Viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period
      * @return int
      */
-    public function getUniqueViews($period = null) : int;
+    // public function getUniqueViews($period = null) : int;
 
-    /**
-     * Store a new view.
-     *
-     * @return bool
-     */
-    public function addView() : bool;
+    // /**
+    //  * Store a new view.
+    //  *
+    //  * @return bool
+    //  */
+    // public function addView() : bool;
 
-    /**
-     * Get the total number of views.
-     *
-     * @return void
-     */
-    public function removeViews();
+    // /**
+    //  * Get the total number of views.
+    //  *
+    //  * @return void
+    //  */
+    // public function removeViews();
 
-    /**
-     * Retrieve records sorted by views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder;
+    // /**
+    //  * Retrieve records sorted by views count.
+    //  *
+    //  * @param  \Illuminate\Database\Eloquent\Builder  $query
+    //  * @param  string  $direction
+    //  * @return \Illuminate\Database\Eloquent\Builder
+    //  */
+    // public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder;
 }

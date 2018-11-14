@@ -13,14 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-
-interface View
+interface IpAddressResolver
 {
     /**
-     * Get the viewable model to which this View belongs.
+     * Resolve the IP address.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
+     * @return string
      */
-    public function viewable(): MorphTo;
+    public function resolve(): string;
 }

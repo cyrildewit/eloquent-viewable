@@ -11,14 +11,8 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Contracts;
+namespace CyrildeWit\EloquentViewable\Support;
 
-interface CrawlerDetector
+class ViewsCountCacher
 {
-    /**
-     * Determine if the current user is a crawler.
-     *
-     * @return bool
-     */
-    public function isCrawler();
 }

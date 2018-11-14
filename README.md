@@ -14,52 +14,47 @@ This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 Once installed you can do stuff like this:
 
 ```php
-// Get the total number of views
-$post->getViews();
+// Return total views count
+$post->views()->count();
 
-// Get the total number of views since the given date
-$post->getViews(Period::since(Carbon::parse('2014-02-23 00:00:00')));
+// Return total views count that have been made since 20 February 2017
+$post->views()->period(Period::since('2017-02-20'))->count();
 
-// Get the total number of views between the given date range
-$post->getViews(Period::create(Carbon::parse('2014-00-00 00:00:00'), Carbon::parse('2016-00-00 00:00:00')));
+// Return total views count that have been made between 2014 and 216
+$post->views()->period(Period::create('2014', '2016'))->count();
 
-// Get the total number of unique views
-$post->getUniqueViews();
+// Return total unique views count (based on visitor cookie)
+$post->views()->unique()->count();
 
-// Store a new view in the database
-$post->addView();
+// Record a new view
+$post->views()->record();
 
-// Store a new view in the database
-$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
+// Record a new view with session delay between views
+$post->views()->sessionDelay(now()->addHours(2))->record();
+
+// Alternatively, you can use the helper function
+views($post)->doSomething();
 ```
 
 ## Overview
 
-Eloquent Viewable is a flexible and easy to use Laravel package to associate views with Eloquent Models. It's designed for large and small projects. Instead of having a simple counter that increments by each view, this package will provide you a full history of the views.
+Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))`.
 
-This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would this package for models like: Post, Video, Course and Hotel, but of course, you can use this package as you want.
+This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use this package for models like: Post, Video, Profile and Hotel, but of course, you can use this package as you want.
 
 ### Features
 
 Here are some of the main features:
 
 * Associate views with Eloquent models
-* Get the total number of (unique) views
-* Get the total number of (unique) views since a specific date
-* Get the total number of (unique) views upto a specific date
-* Get the total number of (unique) views between two dates
-* Get the total number of (unique) views in the past `days`, `weeks`, `months` and `years` from today
-* Get the total number of (unique) views in the past `seconds`, `minutes`, `hours`, `days`, `weeks`, `months` and `years` from now
-* Cache the retrieved views counts
-* Queue the views before saving them in the database to prevent slow requests
-
-Feature requests are very welcome! Create an issue with [Feature Request] as prefix or send a pull request.
+* Get total views count
+* Get views count of a specific period
+* Get unique views count
+* Smart views count cacher helper
 
 ## Documentation
 
 In this documentation, you will find some helpful information about the use of this Laravel package.
-
-<!--If you have any questions about this package or if you discover any security-related issues, then feel free to get in touch with me at `github@cyrildewit.nl`.-->
 
 ### Table of contents
 
@@ -67,23 +62,23 @@ In this documentation, you will find some helpful information about the use of t
     * [Requirements](#requirements)
     * [Installation](#installation)
 2. [Usage](#usage)
-    * [Preparing your models](#preparing-your-models)
-    * [Storing views](#storing-views)
-    * [Storing views with expiry date](#storing-views-with-expiry-date)
+    * [Preparing your model](#preparing-your-model)
+    * [Recording views](#storing-views)
+    * [Recording views with session delays](#recording-views-with-session-delays)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
-    * [`Views` helper](#views-helper)
-3. [Configuration](#configuration)
-    * [Queue the ProcessView job](#queue-the-processview-job)
-    * [Extending](#extending)
-4. [Recipes](#recipes)
-    * [Creating helper methods for frequently used period formats](#creating-helper-methods-for-frequently-used-period-formats)
+3. [Advanced Usage](#advanced-usage)
+    * [Queuing views](#queueing-views)
+    * [Caching view counts](#caching-view-counts)
+4. [Extending](#extending)
+    * [Using your own model](#using-your-own-model)
+    * [Using a custom crawler detector](#using-a-custom-crawler-detector)
 
 ## Getting Started
 
 ### Requirements
 
-The Eloquent Viewable package requires **PHP 7+** and **Laravel 5.5+**.
+This package requires **PHP 7+** and **Laravel 5.5+**.
 
 Lumen is not supported!
 
@@ -97,13 +92,33 @@ Lumen is not supported!
 
 ### Installation
 
-You can install this package via composer using:
+First, you need to install the package via Composer:
 
 ```winbatch
 composer require cyrildewit/eloquent-viewable
 ```
 
-Optionally, you can add the service provider in the `config/app.php` file. Otherwise this can be done via automatic package discovery.
+Secondly, if you want to make some basic changes like giving the `views` table a different name or creating the table on a different connection, you can configure that by publishing the config file with:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
+```
+
+Alternatively, if you want to make bigger changes to the migrations, you can publish them using:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
+```
+
+Finally, you need to run the `migrate` command:
+
+```winbatch
+php artisan migrate
+```
+
+#### Register service provider manually
+
+If you prefer to register packages manually, you can add the following provider to your application's providers list.
 
 ```php
 // config/app.php
@@ -114,35 +129,18 @@ Optionally, you can add the service provider in the `config/app.php` file. Other
 ];
 ```
 
-You can publish the migration with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
-```
-
-After publishing the migration file you can create the `views` table by running the migrations. However, if you already have a table named `views`, you can change this name in the config. Search for 'models->view->table_name' and change the value to something unique.
-
-```winbatch
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
-```
-
 ## Usage
 
-### Preparing your models
+### Preparing your model
 
-To make an Eloquent model viewable just add the `Viewable` trait to your model definition. This trait provides various methods to allow you to save views, retrieve views counts and order your items by views count.
+To associate views with a model, the model must implement the following interface and trait.
 
 ```php
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Post extends Model
+class Post extends Model implements ViewableContract
 {
     use Viewable;
 
@@ -150,123 +148,139 @@ class Post extends Model
 }
 ```
 
-<!--
-After adding the trait to your model definition,  -->
-
-### Storing views
-
-Adding a new view to a model can be achieved really easy by calling the `->addView()` method on your viewable model.
-
-The best place where you should put it is inside your controller. If you're following the CRUD standard, it would be the `@show` method.
+The `Viewable` trait also adds a shortcut for `views($model)`:
 
 ```php
-$post->addView();
+$post->views()->doSomething();
 ```
 
-A `PostController` might look something like this:
+### Recording views
+
+To make a view record, you can call the `record` method on the fluent `Views` instance.
 
 ```php
-// ...
+views($post)->record();
+```
+
+The best place where you should record a visitors's view would be inside your controller. For example:
+
+```php
+// PostController.php
 public function show(Post $post)
 {
-    $post->addView();
+    views($post)->record();
 
-    return view('blog.post', compact('post'));
+    return view('post.show', compact('post'));
 }
 // ...
 ```
 
-**Note:** If you want to queue this job, you can turn this on in the configuration! See the [Queue the ProcessView job](#queue-the-processview-job) section!
+**Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
 
-**Note:** The option `ignore_bots` is by default `true`, so when a bot has made a view, we won't store it. This is important to know, because Postman is for example a crawler. So viewing a API route that calls this method using Postman will do nothing.
+### Recording views with session delays
 
-### Saving views with expiry date
-
-If you want to add a delay between views from the same session, you can use the available `addViewWithExpiryDate` method on your viewable model.
+You may use the `sessionDelay` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
 
 ```php
-$post->addViewWithExpiryDate(Carbon::now()->addHours(2));
+views($post)
+    ->sessionDelay($minutes)
+    ->record();
 ```
 
-This method will add a new view to your model and it will add a record in the user's session. If you call this method multiple times, you will see that views count will not increment. After the current date time has passed the expiry date, a new view will be stored.
+Instead of passing the number of minutes as an integer, you could also pass a `DateTime` instance.
+
+```php
+$expiresAt = now()->addHours(3);
+
+views($post)
+    ->sessionDelay($expiresAt)
+    ->record();
+```
+
+#### How it works
+
+When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session with an expiration date time. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database or not.
 
 ### Retrieving views counts
 
-After adding the `Viewable` trait to your model, you will be able to call `getViews()` and `getUniqueViews()` on your viewable model. Both methods accepts an optional `Period` instance.
+#### Get total views count
 
 ```php
-/**
- * Get the total number of views.
- *
- * @param  \CyrildeWit\EloquentViewable\Support\Period
- * @return int
- */
-public function getViews($period = null): int;
-
-/**
- * Get the total number of unique views.
- *
- * @param  \CyrildeWit\EloquentViewable\Support\Period
- * @return int
- */
-public function getUniqueViews($period = null) : int;
+views($post)->count();
 ```
 
-#### Period class
-
-_Be aware that the following code isn't valid PHP syntax!_
+#### Get views count of a specific period
 
 ```php
-// Create a new Period instance.
-Period::create(DateTime $startDateTime = null, DateTime $endDateTime = null);
+use CyrildeWit\EloquentViewable\Support\Period;
 
-// Create a new Period instance with only a start date time.
-Period::since(DateTime $startDateTime);
-
-// Create a new Period instance with only a end date time.
-Period::upto(DateTime $endDateTime);
+// Example: get views count since 2017 upto 2018
+$post->views()
+     ->period(Period::create('2017', '2018'))
+     ->count();
 ```
 
+The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as follows:
+
+##### Between two datetimes
+
 ```php
-// Period instance with a start date time of today minus the given days.
+$startDateTime = Carbon::createFromDate(2017, 4, 12);
+$endDateTime = '2017-06-12';
+
+Period::create($startDateTime, $endDateTime);
+```
+
+##### Since a datetime
+
+```php
+Period::since(Carbon::create(2017));
+```
+
+##### Upto a datetime
+
+```php
+Period::upto(Carbon::createFromDate(2018, 6, 1));
+```
+
+##### Since past
+
+Uses `Carbon::today()` as start datetime minus the given unit.
+
+```php
 Period::pastDays(int $days);
-
-// Period instance with a start date time of today minus the given weeks.
 Period::pastWeeks(int $weeks);
-
-// Period instance with a start date time of today minus the given months.
 Period::pastMonths(int $months);
-
-// Period instance with a start date time of today minus the given years.
 Period::pastYears(int $years);
 ```
 
+##### Since sub
+
+Uses `Carbon::now()` as start datetime minus the given unit.
+
 ```php
-// Period instance with a start date time of now minus the given seconds.
 Period::subSeconds(int $seconds);
-
-//Period instance with a start date time of now minus the given minutes.
 Period::subMinutes(int $minutes);
-
-// Period instance with a start date time of now minus the given hours.
 Period::subHours(int $hours);
-
-// Period instance with a start date time of now minus the given days.
 Period::subDays(int $days);
-
-// Period instance with a start date time of now minus the given weeks.
 Period::subWeeks(int $weeks);
-
-// Period instance with a start date time of now minus the given months.
 Period::subMonths(int $months);
-
-// Period instance with a start date time of now minus the given years.
 Period::subYears(int $years);
+```
+
+#### Get total unique views count
+
+If you only want to retrieve the unique views count, can you simply add the `unique` method to the chain.
+
+```php
+views($post)
+    ->unique()
+    ->count();
 ```
 
 ### Order models by views count
 
-The viewable trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
+The `Viewable` trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
 
 #### Retrieve Viewable models by views count
 
@@ -282,31 +296,9 @@ Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-### `Views` helper
+### Get views count of viewable type
 
-Namespace: `use CyrildeWit\EloquentViewable\Views`.
-
-#### Saving views
-
-```php
-Views::create($post)->addView();
-```
-
-#### Saving views with expiry date
-
-```php
-Views::create($post)->addViewWithExpiryDate(Carbon::now()->addHours(2));
-```
-
-#### Retrieving views counts
-
-```php
-Views::create($post)->getViews();
-```
-
-#### Get views by viewable type
-
-If you want to know how many views a specific viewable type has, you can use the static `getViewsByType` method on the `Views` class.
+If you want to know how many views a specific viewable type has, you can use the `getViewsCountByType` method on the `Views` class.
 
 ```php
 Views::getViewsByType(Post::class);
@@ -347,66 +339,18 @@ Views::getleastViewedByType('App\Post', 10);
 Views::getleastViewedByType($post, 10);
 ```
 
-#### Get the views count of viewables per period
+## Advanced Usage
 
-If you want to get a collection of views per period, you can call the static `getViewsPerPeriod` method on the `Views` class.
+### Queuing views
 
-The parameter signature looks like this:
-
-```php
-getViewsPerPeriod(string $dimension, $period, $viewableType = null): Collection;
-```
-
-The first argument should be one of the following options:
-
-* minute
-* hour
-* day
-* week
-* month
-* year
-
-The second argument should be an instance of `\CyrildeWit\EloquentViewable\Support\Period`. More information about this class can be found [here](period-class).
-
-The third argument is optional. It can be used to get only the views of a specific type. For example `App\Post`. It should be a fully qualified class name. You can retrieve it using the `getMorphClass` method on an Eloquent model.
-
-##### Example
-
-The following code example will return the total number of views per week and between two weeks ago and today. In this example the of today is `2018-07-08 00:00:00`.
-
-```php
-Views::getViewsPerPeriod('week', Period::pastWeeks(2))
-```
-
-Result:
-
-```text
-[
-    ['week' => '31', 'views' => 526],
-    ['week' => '32', 'views' => 630]
-]
-```
-
-#### Get the unique views count of viewables per period
-
-If you want to get a collection of unique views per period, you can call the static `getUniqueViewsPerPeriod` method on the `Views` class.
-
-It has the same parameter signature as the static `getViewsPerPeriod` method.
-
-See the section here above for information about how you can use this method.
-
-## Configuration
-
-### Queue the ProcessView job
-
-When calling the `->addView()` method on your model, it will save a new view in the database with some data. Because this can slow down your application, you can turn queuing on by changing the value of `store_new_view` under `jobs` in the configuration file. Make sure that your app is ready for queuing. If not, see the official [Laravel documentation](https://laravel.com/docs/5.6/queues) for more information!
+### Caching view counts
 
 ### Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
-* `CyrildeWit\EloquentViewable\ViewableService`
+* `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
 * `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
@@ -420,12 +364,12 @@ $this->app->bind(
 );
 ```
 
-#### Replace `ViewableService` service with custom implementation
+#### Replace `IpAddressResolver` class with custom implementation
 
 ```php
 $this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\ViewableService::class,
-    \App\Services\CustomViewableService::class
+    \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver::class,
+    \App\Resolvers\IpAddressResolver::class
 );
 ```
 
@@ -436,44 +380,6 @@ $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
     \App\Services\CrawlerDetector\CustomAdapter::class
 );
-```
-
-## Recipes
-
-### Creating helper methods for frequently used period formats
-
-#### App\Post
-
-```php
-public function getViewsSince(DateTime $sinceDateTime)
-{
-    return $this->getViews(Period::since($sinceDateTime));
-}
-
-public function getViewsUpto(DateTime $uptoDateTime)
-{
-    return $this->getViews(Period::upto($uptoDateTime));
-}
-
-public function getViewsBetween(DateTime $sinceDateTime, DateTime $uptoDateTime)
-{
-    return $this->getViews(Period::create($sinceDateTime, $uptoDateTime));
-}
-
-public function getViewsInPastDays(int $days)
-{
-    return $this->getViews(Period::pastDays($days));
-}
-```
-
-#### resources/views/post/show.blade.php
-
-```html
-Page views since 2014: {{ $post->getViewsSince(Carbon::create(2014)) }}
-Page views upto 2016: {{ $post->getViewsUpto(Carbon::create(2016)) }}
-Page views between 2016 - 2018: {{ $post->getViewsBetween(Carbon::create(2016), Carbon::create(2018)) }}
-
-Page views in the past 5 days: {{ $post->getViewsInPastDays(5) }}
 ```
 
 ## Upgrading

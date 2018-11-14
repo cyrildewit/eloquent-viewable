@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-/**
- * This is the abstract test case class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 abstract class TestCase extends Orchestra
 {
     /**
@@ -32,11 +27,10 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
-        $this->destroyPackageMigrations();
-        $this->publishPackageMigrations();
-        $this->migratePackageTables();
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
+
+        $this->artisan('migrate');
     }
 
     /**
@@ -48,44 +42,9 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
             \Orchestra\Database\ConsoleServiceProvider::class,
+            \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
         ];
-    }
-
-    /**
-     * Publish package migrations.
-     *
-     * @return void
-     */
-    protected function publishPackageMigrations()
-    {
-        $this->artisan('vendor:publish', [
-            '--force' => '',
-            '--tag' => 'migrations',
-        ]);
-    }
-
-    /**
-     * Delete all published migrations.
-     *
-     * @return void
-     */
-    protected function destroyPackageMigrations()
-    {
-        File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
-    }
-
-    /**
-     * Perform package database migrations.
-     *
-     * @return void
-     */
-    protected function migratePackageTables()
-    {
-        $this->loadMigrationsFrom([
-            '--realpath' => database_path('migrations'),
-        ]);
     }
 
     /**
@@ -95,9 +54,7 @@ abstract class TestCase extends Orchestra
      */
     protected function migrateUnitTestTables()
     {
-        $this->loadMigrationsFrom([
-            '--realpath' => realpath(__DIR__.'/database/migrations'),
-        ]);
+        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
     }
 
     /**

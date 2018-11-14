@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
-/**
- * Class View.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class View extends Model implements ViewContract
 {
     /**
@@ -39,24 +34,27 @@ class View extends Model implements ViewContract
     public $timestamps = false;
 
     /**
-     * Create a new View instance.
+     * Get the table associated with the model.
      *
-     * @param  array  $attributes
-     * @return void
+     * @return string
      */
-    public function __construct(array $attributes = [])
+    public function getTable(): string
     {
-        parent::__construct($attributes);
-
-        $this->setTable(config('eloquent-viewable.models.view.table_name', 'views'));
-
-        if ($connection = config('eloquent-viewable.models.view.connection', null)) {
-            $this->setConnection($connection);
-        }
+        return config('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
     /**
-     * Get all of the owning viewable models.
+     * Get the current connection name for the model.
+     *
+     * @return string
+     */
+    public function getConnectionName()
+    {
+        return config('eloquent-viewable.models.view.connection', parent::getConnectionName());
+    }
+
+    /**
+     * Get the viewable model to which this View belongs.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo
      */

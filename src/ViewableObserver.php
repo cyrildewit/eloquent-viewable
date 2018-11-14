@@ -13,35 +13,21 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
+use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class ViewableObserver.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewableObserver
 {
-    protected $viewableService;
-
-    public function __construct(ViewableServiceContract $viewableService)
-    {
-        $this->viewableService = $viewableService;
-    }
-
     /**
      * Handle the deleted event for the model.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return void
      */
-    public function deleted($viewable)
+    public function deleted(Model $viewable)
     {
-        if (! $this->removeViewsOnDelete($viewable)) {
-            return;
+        if ($this->removeViewsOnDelete($viewable)) {
+            app(Views::class)->setSubject($viewable)->destroy();
         }
-
-        $this->viewableService->deleteViewsFor($viewable);
     }
 
     /**
@@ -50,7 +36,7 @@ class ViewableObserver
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return bool
      */
-    private function removeViewsOnDelete($viewable): bool
+    private function removeViewsOnDelete(Model $viewable): bool
     {
         return $viewable->removeViewsOnDelete ?? true;
     }

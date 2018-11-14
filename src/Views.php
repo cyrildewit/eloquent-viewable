@@ -13,151 +13,276 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Contracts\ViewableService as ViewableServiceContract;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
-/**
- * Class Views.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class Views
 {
     /**
-     * Viewable model instance.
+     * The subject where we are applying actions to.
      *
      * @var \Illuminate\Database\Eloquent\Model
      */
-    protected $viewable;
+    protected $subject;
 
     /**
-     * Create a new Views instance.
+     * The period that the current query should scoped to.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @var \CyrildeWit\EloquentViewable\Support\Period|null
+     */
+    protected $period = null;
+
+    /**
+     * Determine if only unique views should be returned.
+     *
+     * @var bool
+     */
+    protected $unique = false;
+
+    /**
+     * The delay that should be finished before a new view can be recorded.
+     *
+     * @var \DateTime|null
+     */
+    protected $sessionDelay = null;
+
+    /**
+     * The tag under which view will be saved.
+     *
+     * @var string|null
+     */
+    protected $tag = null;
+
+    /**
+     * Determine if the views count should be cached.
+     *
+     * @var string|null
+     */
+    protected $shouldCache = false;
+
+    /**
+     * Used IP Address instead of the provided one by the resolver.
+     *
+     * @var string
+     */
+    protected $overriddenIpAddress;
+
+    /**
+     * The view session history instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     */
+    protected $viewSessionHistory;
+
+    /**
+     * The visitor cookie repository instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
+     */
+    protected $visitorCookieRepository;
+
+    /**
+     * The crawler detector instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
+     */
+    protected $crawlerDetector;
+
+    /**
+     * The IP Address resolver instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver
+     */
+    protected $ipAddressResolver;
+
+    /**
+     * The request header resolver instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Contracts\HeaderResolver
+     */
+    protected $headerResolver;
+
+    /**
+     * Create a new views instance.
+     *
      * @return void
      */
-    public function __construct($viewable = null)
+    public function __construct(
+        ViewSessionHistory $viewSessionHistory,
+        VisitorCookieRepository $visitorCookieRepository,
+        CrawlerDetector $crawlerDetector,
+        IpAddressResolver $ipAddressResolver,
+        HeaderResolver $headerResolver
+    ) {
+        $this->viewSessionHistory = $viewSessionHistory;
+        $this->visitorCookieRepository = $visitorCookieRepository;
+        $this->crawlerDetector = $crawlerDetector;
+        $this->ipAddressResolver = $ipAddressResolver;
+        $this->headerResolver = $headerResolver;
+    }
+
+    public function countByType(string $viewableType)
     {
-        $this->viewable = $viewable;
+        // Use given period, otherwise create an empty one
+        $period = $this->period ?? Period::create();
+
+        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
+
+        $query = $this->applyPeriodToQuery($query, $period);
+
+        // Count only the unique views
+        if ($this->unique) {
+            $viewsCount = $query->distinct('visitor')->count('visitor');
+        } else {
+            $viewsCount = $query->count();
+        }
+
+        return $viewsCount;
     }
 
     /**
-     * Create a new Views instance.
+     * Save a new record of the made view.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @todo rethink about the behaviour of this method
+     * @return bool
+     */
+    public function record()//: bool
+    {
+        if (! $this->shouldRecord()) {
+            return false;
+        }
+
+        $view = app(ViewContract::class);
+        $view->viewable_id = $this->subject->getKey();
+        $view->viewable_type = $this->subject->getMorphClass();
+        $view->visitor = $this->resolveVisitorId();
+        $view->tag = $this->tag;
+        $view->viewed_at = Carbon::now();
+        $view->save();
+
+        return $view;
+    }
+
+    /**
+     * Count the views.
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        // Use given period, otherwise create an empty one
+        $period = $this->period ?? Period::create();
+
+        // Create new Query Builder instance of the views relationship
+        $query = $this->morphViews();
+
+        $query = $this->applyPeriodToQuery($query, $period);
+
+        // Count only the unique views
+        if ($this->unique) {
+            $viewsCount = $query->distinct('visitor')->count('visitor');
+        } else {
+            $viewsCount = $query->count();
+        }
+
+        return $viewsCount;
+    }
+
+    /**
+     * Destroy all views of the subject.
+     *
+     * @return void
+     */
+    public function destroy()
+    {
+        $this->morphViews()->delete();
+    }
+
+    /**
+     * Set a new subject.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model|null
      * @return self
      */
-    public static function create($viewable = null): self
+    public function setSubject($subject): self
     {
-        return new static($viewable);
+        $this->subject = $subject;
+
+        return $this;
     }
 
     /**
-     * Get the total number of views of a viewable type.
+     * Set the delay in the session.
      *
-     * @param string|Illuminate\Database\Eloquent\Model  $viewableType
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
+     * @param
+     * @return self
      */
-    public static function getViewsByType($viewableType, $period = null): int
+    public function delayInSession($delay): self
     {
-        if ($viewableType instanceof Model) {
-            $viewableType = $viewableType->getMorphClass();
-        }
+        $this->sessionDelay = $delay;
 
-        return (new static)->countViewsByType($viewableType, $period);
+        return $this;
     }
 
     /**
-     * Get the total number of unique views of a viewable type.
+     * Set the period.
      *
-     * @param string|Illuminate\Database\Eloquent\Model  $viewableType
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
+     * @param  \CyrildeWit\EloquentViewable\Period
+     * @return self
      */
-    public static function getUniqueViewsByType($viewableType, $period = null): int
+    public function period($period): self
     {
-        if ($viewableType instanceof Model) {
-            $viewableType = $viewableType->getMorphClass();
-        }
+        $this->period = $period;
 
-        return (new static)->countViewsByType($viewableType, $period, true);
-    }
-
-    public static function getMostViewedByType($viewableType, int $limit = 10)
-    {
-        return app(ViewableServiceContract::class)
-            ->applyScopeOrderByViewsCount($this->viewable->query(), 'desc')
-            ->take($limit)->count();
+        return $this;
     }
 
     /**
-     * Get the total number of views.
+     * Set the tag.
      *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
+     * @param  string
+     * @return self
      */
-    public function getViews($period = null): int
+    public function tag($tag): self
     {
-        return app(ViewableServiceContract::class)
-            ->getViewsCount($this->viewable, $period);
+        $this->tag = $tag;
+
+        return $this;
     }
 
     /**
-     * Get the total number of unique views.
+     * Cache the current views count.
      *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
+     * @return self
      */
-    public function getUniqueViews($period = null): int
+    public function cache()
     {
-        return app(ViewableServiceContract::class)
-            ->getUniqueViewsCount($this->viewable, $period);
+        $this->shouldCache = true;
+
+        return $this;
     }
 
     /**
-     * Store a new view.
+     * Get a collection of all the views the model has.
      *
-     * @return bool
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function addView(): bool
+    private function morphViews()
     {
-        return app(ViewableServiceContract::class)->addViewTo($this->viewable);
+        return $this->subject->morphMany(app(ViewContract::class), 'viewable');
     }
 
-    /**
-     * Store a new view with an expiry date.
-     *
-     * @param  \DateTime  $expiresAt
-     * @return bool
-     */
-    public function addViewWithExpiryDate($expiresAt): bool
+    private function applyPeriodToQuery($query, $period)
     {
-        return app(ViewableServiceContract::class)
-            ->addViewWithExpiryDateTo($this->viewable, $expiresAt);
-    }
-
-    /**
-     * Count the views of a specific viewable type.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @param  bool  $unique
-     * @return int
-     */
-    protected function countViewsByType($viewableType, $period, bool $unique = false)
-    {
-        // Use inserted period, otherwise create an empty one
-        $period = $period ?? Period::create();
-
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        // Create new Query Builder instance of the views table
-        $query = View::where('viewable_type', $viewableType);
-
-        // Apply the following date filters
+        // Apply period to query
         if ($startDateTime && ! $endDateTime) {
             $query->where('viewed_at', '>=', $startDateTime);
         } elseif (! $startDateTime && $endDateTime) {
@@ -166,16 +291,60 @@ class Views
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
 
-        // Count all the views
-        if (! $unique) {
-            $viewsCount = $query->count();
+        return $query;
+    }
+
+    private function shouldRecord()
+    {
+        // If ignore bots is true and the current viewer is a bot, return false
+        if (config('eloquent-viewable.ignore_bots') && $this->crawlerDetector->isCrawler()) {
+            return false;
         }
 
-        // Count only the unique views
-        if ($unique) {
-            $viewsCount = $query->distinct('visitor')->count('visitor');
+        // If we honor to the DNT header and the current request contains the
+        // DNT header, return false
+        if (config('eloquent-viewable.honor_dnt', false) && $this->requestHasDoNotTrackHeader()) {
+            return false;
         }
 
-        return $viewsCount;
+        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->resolveIpAddress())) {
+            return false;
+        }
+
+        if ($this->sessionDelay && $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Resolve the visitor's IP Address.
+     *
+     * @return string
+     */
+    private function resolveIpAddress(): string
+    {
+        return $this->overriddenIpAddress ?? $this->ipAddressResolver->resolve();
+    }
+
+    /**
+     * Determine if the request has a Do Not Track header.
+     *
+     * @return string
+     */
+    private function requestHasDoNotTrackHeader(): string
+    {
+        return 1 === (int) $this->$this->headerResolver->resolve('HTTP_DNT');
+    }
+
+    /**
+     * Resolve the visitor's unique ID.
+     *
+     * @return string|null
+     */
+    private function resolveVisitorId()
+    {
+        return $this->visitorCookieRepository->get();
     }
 }

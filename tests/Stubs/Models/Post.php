@@ -15,13 +15,9 @@ namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-/**
- * Post class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
-class Post extends Model
+class Post extends Model implements ViewableContract
 {
     use Viewable;
 

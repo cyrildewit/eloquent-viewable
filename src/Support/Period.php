@@ -18,10 +18,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
- * Class Period.
- *
  * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
- * @author Cyril de Wit <github@cyrildewit.nl>
  */
 class Period
 {
@@ -72,12 +69,17 @@ class Period
     /**
      * Create a new Period instance.
      *
-     * @param  \Datetime  $startDateTime
-     * @param  \Datetime  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @param  \Datetime|string|null  $startDateTime
+     * @param  \Datetime|string|null  $endDateTime
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public function __construct(DateTime $startDateTime = null, DateTime $endDateTime = null)
+    public function __construct($startDateTime = null, $endDateTime = null)
     {
+        if (is_string($startDateTime) && is_string($endDateTime)) {
+            $startDateTime = Carbon::parse($startDateTime);
+            $endDateTime = Carbon::parse($endDateTime);
+        }
+
         if ($startDateTime instanceof DateTime && $endDateTime instanceof DateTime) {
             if ($startDateTime > $endDateTime) {
                 throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime($startDateTime, $endDateTime);
@@ -91,11 +93,11 @@ class Period
     /**
      * Create a new Period instance.
      *
-     * @param  \Datetime  $startDateTime
-     * @param  \Datetime  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @param  \Datetime|string|null  $startDateTime
+     * @param  \Datetime|string|null  $endDateTime
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
-    public static function create(DateTime $startDateTime = null, DateTime $endDateTime = null): self
+    public static function create($startDateTime = null, $endDateTime = null): self
     {
         return new static($startDateTime, $endDateTime);
     }
@@ -103,10 +105,10 @@ class Period
     /**
      * Create a new Period instance with only a start date time.
      *
-     * @param  \Datetime  $startDateTime
+     * @param  \Datetime|string|null  $startDateTime
      * @return CyrildeWit\EloquentViewable\Period
      */
-    public static function since(DateTime $startDateTime = null): self
+    public static function since($startDateTime = null): self
     {
         return new static($startDateTime);
     }
@@ -114,10 +116,10 @@ class Period
     /**
      * Create a new Period instance with only a end date time.
      *
-     * @param  \Datetime  $endDateTime
+     * @param  \Datetime|string|null  $endDateTime
      * @return CyrildeWit\EloquentViewable\Period
      */
-    public static function upto(DateTime $endDateTime = null): self
+    public static function upto($endDateTime = null): self
     {
         return new static(null, $endDateTime);
     }
@@ -376,19 +378,23 @@ class Period
     }
 
     /**
-     * Make a unique key.
+     * Get the sub type.
      *
      * @return string
      */
-    public function makeKey(): string
+    public function getSubType()
     {
-        if ($this->hasFixedDateTimes()) {
-            return "{$this->getStartDateTimeString()}|{$this->getEndDateTimeString()}";
-        }
+        return $this->subType;
+    }
 
-        list($subType, $subValueType) = explode('_', strtolower($this->subType));
-
-        return "{$subType}{$this->subValue}{$subValueType}|";
+    /**
+     * Get the sub value.
+     *
+     * @return string
+     */
+    public function getSubValue()
+    {
+        return $this->subValue;
     }
 
     /**

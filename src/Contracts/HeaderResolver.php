@@ -13,14 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-
-interface View
+interface HeaderResolver
 {
     /**
-     * Get the viewable model to which this View belongs.
+     * Resolve the header.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
+     * @return mixed
      */
-    public function viewable(): MorphTo;
+    public function resolve(string $name);
 }
