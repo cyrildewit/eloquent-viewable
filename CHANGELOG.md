@@ -7,9 +7,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased v3.0.0]
 
+### Added
+
+- Added `Views` class with facade
+- Added `IpAddressResolver` contract with implementation
+- Added `HeaderResolver` contract with implementation
+- Added `VisitorCookieRepository` class
+- Added global helper `views`
+
 ### Changed
 
+- The public views method on viewable models will now return an instance of the `Views` class
 - Remove IP address as fallback for visitor cookie when it doesn't exists
+- Changed the `isBot` method name to `isCrawler` in `CrawlerDetector` contract and updated the `CrawlerDetectAdapter`
+- Changed the visibility of the `$detector` property from `protected` to `private`
+- Add support for `5.7.*` of `illuminate/config` to `composer.json`
+- Moved config file from `publishable/config` to `config/`
+- Replace `create_views_table` stub with real migration file and load it inside the service provider
+- Allow strings to be passed to the constructor of the `Period` class
+- Extracted key generation logic from `Period` class to the `Key` class
+
+### Removed
+
+- Removed the `ViewTracker` class
+- Removed the `ViewableService` class
+- Removed the `ProcessView` job
+- Removed the `update_views_table` migration file from `resources/database/migrations`
 
 ## [Unreleased]
 
