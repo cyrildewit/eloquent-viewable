@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Cookie;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
@@ -31,21 +32,30 @@ class VisitorCookieRepository
     /**
      * Create a new view session history instance.
      */
-    public function __construct()
+    public function __construct(Request $request)
     {
-        $this->request = app(Request::class);
+        $this->request = $request;
         $this->key = config('eloquent-viewable.visitor_cookie_key');
     }
 
     public function get()
     {
-        $this->request->cookie($this->key);
+        if (! Cookie::has($this->key)) {
+            Cookie::queue($this->key, $uniqueString = $this->generateUniqueString(), $this->expirationInMinutes());
+
+            return $uniqueString;
+        }
+
+        return Cookie::get($this->key);
     }
 
-    public function generate()
+    private function generateUniqueString()
     {
-        if (! $this->get()) {
+        return str_random(80);
+    }
 
-        }
+    private function expirationInMinutes()
+    {
+        return 2628000; // aka 5 years
     }
 }
