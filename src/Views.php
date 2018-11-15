@@ -126,7 +126,13 @@ class Views
         $this->headerResolver = $headerResolver;
     }
 
-    public function countByType(string $viewableType)
+    /**
+     * Count the views for a viewable type.
+     *
+     * @param  string  $viewableType
+     * @return int
+     */
+    public function countByType(string $viewableType): int
     {
         // Use given period, otherwise create an empty one
         $period = $this->period ?? Period::create();
@@ -148,10 +154,9 @@ class Views
     /**
      * Save a new record of the made view.
      *
-     * @todo rethink about the behaviour of this method
      * @return bool
      */
-    public function record()//: bool
+    public function record(): bool
     {
         if (! $this->shouldRecord()) {
             return false;
@@ -163,9 +168,8 @@ class Views
         $view->visitor = $this->resolveVisitorId();
         $view->tag = $this->tag;
         $view->viewed_at = Carbon::now();
-        $view->save();
 
-        return $view;
+        return $view->save();
     }
 
     /**
@@ -263,6 +267,18 @@ class Views
     public function cache()
     {
         $this->shouldCache = true;
+
+        return $this;
+    }
+
+    /**
+     * Cache the current views count.
+     *
+     * @return self
+     */
+    public function overrideIpAddress(string $address)
+    {
+        $this->overriddenIpAddress = $address;
 
         return $this;
     }
