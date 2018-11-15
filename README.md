@@ -339,13 +339,23 @@ Views::getleastViewedByType('App\Post', 10);
 Views::getleastViewedByType($post, 10);
 ```
 
-## Advanced Usage
+### Advanced Usage
 
-### Queuing views
+#### Supplying your own visitor's IP Address
 
-### Caching view counts
+If you are using this package via a RESTful API, you might want to supply your own visitor's IP Address, otherwise this package will use the IP Address of the requester.
 
-### Extending
+```php
+views($post)
+    ->overrideIpAddress('Your IP Address')
+    ->record();
+```
+
+#### Queuing views
+
+#### Caching view counts
+
+#### Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
