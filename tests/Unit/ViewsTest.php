@@ -95,6 +95,16 @@ class ViewsTest extends TestCase
 
         $this->assertEquals(3, views($this->post)->count());
     }
+    
+    /** @test */
+    public function it_can_count_the_unique_views()
+    {
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_two']);
+
+        $this->assertEquals(2, views($this->post)->unique()->count());
+    }
 
     /** @test */
     public function it_can_count_the_views_of_a_period()
