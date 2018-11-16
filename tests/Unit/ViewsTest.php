@@ -85,6 +85,18 @@ class ViewsTest extends TestCase
 
     //     $this->assertEquals(1, View::count());
     // }
+    
+//     /** @test */
+//     public function it_does_not_record_a_view_when_visitor_is_a_crawler_and_ignore_crawlers_is_ture()
+//     {
+//         config(['eloquent-viewable.ignore_bots', true]);
+//         app()->bind(\)
+//         views($this->post)
+//             ->tag('customTag')
+//             ->record();
+
+//         $this->assertEquals(1, View::where('tag', 'customTag')->count());
+//     }
 
     /** @test */
     public function it_can_count_the_views()
