@@ -271,15 +271,15 @@ class ViewableService implements ViewableServiceContract
 
         if ($unique) {
             return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
-                ->selectRaw("{$viewable->getTable()}.*, count(distinct visitor) as numOfUniqueViews")
                 ->where("{$viewModel->getTable()}.viewable_type", DB::raw('"'.str_replace('\\', '\\\\', get_class($viewable)).'"'))
+                ->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewable->getTable()}.*, count(distinct visitor) as numOfUniqueViews")
                 ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
                 ->orderBy('numOfUniqueViews', $direction);
         }
 
         return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
             ->where("{$viewModel->getTable()}.viewable_type", DB::raw('"'.str_replace('\\', '\\\\', get_class($viewable)).'"'))
+            ->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewable->getTable()}.*, count(`{$viewModel->getConnection()->getTablePrefix()}{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
             ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->orderBy('numOfViews', $direction);
     }
