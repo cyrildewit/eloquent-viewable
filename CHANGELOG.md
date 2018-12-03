@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v2.5.0] (2018-12-03)
+
+### Fixed
+
+- `orderByViewsCount` scope doesn't adhere to connection prefix
+
 ## [v2.4.3] (2018-10-21)
 
 ### Fixed
