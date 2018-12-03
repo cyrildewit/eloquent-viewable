@@ -17,6 +17,7 @@ use Cookie;
 use Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Jobs\ProcessView;
@@ -271,12 +272,14 @@ class ViewableService implements ViewableServiceContract
         if ($unique) {
             return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
                 ->selectRaw("{$viewable->getTable()}.*, count(distinct visitor) as numOfUniqueViews")
+                ->where("{$viewModel->getTable()}.viewable_type", DB::raw('"'.str_replace('\\', '\\\\', get_class($viewable)).'"'))
                 ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
                 ->orderBy('numOfUniqueViews', $direction);
         }
 
         return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->selectRaw("{$viewable->getTable()}.*, count(`{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as numOfViews")
+            ->where("{$viewModel->getTable()}.viewable_type", DB::raw('"'.str_replace('\\', '\\\\', get_class($viewable)).'"'))
             ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->orderBy('numOfViews', $direction);
     }
