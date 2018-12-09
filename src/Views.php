@@ -260,6 +260,19 @@ class Views
     }
 
     /**
+     * Fetch only the unique views.
+     *
+     * @param  bool  $state
+     * @return self
+     */
+    public function unique(bool $state = true): self
+    {
+        $this->unique = $state;
+
+        return $this;
+    }
+
+    /**
      * Cache the current views count.
      *
      * @return self
