@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -31,6 +32,16 @@ abstract class TestCase extends Orchestra
         $this->registerPackageFactories();
 
         $this->artisan('migrate');
+    }
+
+    /**
+     * Clean up the testing environment before the next test.
+     *
+     * @return void
+     */
+    protected function tearDown()
+    {
+        Carbon::setTestNow();
     }
 
     /**
