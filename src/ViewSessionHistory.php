@@ -27,16 +27,20 @@ class ViewSessionHistory
     protected $session;
 
     /**
+     * The primary key under which history is stored.
+     *
      * @var string
      */
     protected $primaryKey;
 
     /**
      * Create a new view session history instance.
+     *
+     * @return void
      */
-    public function __construct()
+    public function __construct(Session $session)
     {
-        $this->session = app(Session::class);
+        $this->session = $session;
         $this->primaryKey = config('eloquent-viewable.session.key', 'cyrildewit.eloquent-viewable.session');
     }
 
@@ -46,15 +50,15 @@ class ViewSessionHistory
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @param  \DateTime  $expiryDateTime
      */
-    public function push($viewable, $expiryDateTime): bool
+    public function push($viewable, $delay): bool
     {
-        $baseKey = $this->createBaseKey($viewable);
-        $uniqueKey = $this->createUniqueKey($viewable);
+        $namespaceKey = $this->createNamespaceKey($viewable);
+        $viewableKey = $this->createViewableKey($viewable);
 
-        $this->forgetExpiredViews($baseKey);
+        $this->forgetExpiredViews($namespaceKey);
 
-        if (! $this->isViewableViewed($uniqueKey)) {
-            $this->session->put($uniqueKey, $this->createRecord($viewable, $expiryDateTime));
+        if (! $this->has($viewableKey)) {
+            $this->session->put($viewableKey, $this->createRecord($viewable, $delay));
 
             return true;
         }
@@ -63,13 +67,14 @@ class ViewSessionHistory
     }
 
     /**
-     * Check if the subject has already been viewed.
+     * Determine if the given model has been viewed.
+     *
+     * @param  string  $key
+     * @return bool
      */
-    public function has(Model $subject)
+    protected function has(string $viewableKey): bool
     {
-        $uniqueKey = $this->createUniqueKey($viewable);
-
-        return $this->isViewableViewed();
+        return $this->session->has($viewableKey);
     }
 
     /**
@@ -88,17 +93,6 @@ class ViewSessionHistory
     }
 
     /**
-     * Determine if the given model has been viewed.
-     *
-     * @param  string  $key
-     * @return bool
-     */
-    protected function isViewableViewed(string $uniqueKey): bool
-    {
-        return $this->session->has($uniqueKey);
-    }
-
-    /**
      * Remove all expired views from the session.
      *
      * @param  string  $key
@@ -110,7 +104,6 @@ class ViewSessionHistory
         $viewHistory = $this->session->get($key, []);
 
         foreach ($viewHistory as $record) {
-            // Less thatn or equal to
             if ($record['expires_at']->lte($currentTime)) {
                 $recordId = array_search($record['viewable_id'], array_column($record, 'viewable_id'));
 
