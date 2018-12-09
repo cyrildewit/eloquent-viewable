@@ -53,4 +53,22 @@ class ViewSessionHistoryTest extends TestCase
 
         $this->assertCount(1, Session::get($postBaseKey));
     }
+
+    /** @test */
+    public function it_can_forget_expired_views()
+    {
+        $post = factory(Post::class)->create();
+        $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $viewHistory = app(ViewSessionHistory::class);
+
+        $viewHistory->push($post, Carbon::today());
+        $viewHistory->push($post, Carbon::today()->addHours(1));
+        $viewHistory->push($post, Carbon::today()->addHours(2));
+
+        Carbon::setTestNow(Carbon::tomorrow());
+
+        $viewHistory->push($post, Carbon::today()->addHours(2));
+
+        $this->assertCount(1, Session::get($postNamespacKey));
+    }
 }
