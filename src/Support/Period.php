@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Support;
 
 use DateTime;
+use Exception;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
@@ -315,14 +316,14 @@ class Period
     public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
     {
         if (! is_callable([$startDateTime, $subTypeMethod])) {
-            return;
+            throw new Exception("Method `{$subTypeMethod}` is not callable on the given start date time instance.");
         }
 
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
 
         $period = new static($startDateTime);
 
-        return $period->setfixedDateTimes(false)
+        return $period->setFixedDateTimes(false)
             ->setSubType($subType)
             ->setSubValue($subValue);
     }
@@ -429,7 +430,7 @@ class Period
      * @param  bool  $status
      * @return $this
      */
-    public function setfixedDateTimes(bool $status)
+    public function setFixedDateTimes(bool $status)
     {
         $this->fixedDateTimes = $status;
 
