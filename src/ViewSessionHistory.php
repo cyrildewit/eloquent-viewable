@@ -118,7 +118,7 @@ class ViewSessionHistory
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return string
      */
-    protected function createBaseKey($viewable): string
+    protected function createNamespaceKey($viewable): string
     {
         return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
     }
@@ -129,8 +129,8 @@ class ViewSessionHistory
      * @param  \Illuminate\Database\Eloquent\Model  $viewable
      * @return string
      */
-    protected function createUniqueKey($viewable): string
+    protected function createViewableKey($viewable): string
     {
-        return $this->createBaseKey($viewable).'.'.$viewable->getKey();
+        return $this->createNamespaceKey($viewable).'.'.$viewable->getKey();
     }
 }
