@@ -15,11 +15,8 @@
         </testsuite>
     </testsuites>
     <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
+        <whitelist>
             <directory suffix=".php">./src</directory>
-            <exclude>
-                <file>./src/EloquentViewableServiceProvider.php</file>
-            </exclude>
         </whitelist>
     </filter>
     <php>
