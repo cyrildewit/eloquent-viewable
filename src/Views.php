@@ -362,9 +362,9 @@ class Views
      *
      * @return string
      */
-    private function requestHasDoNotTrackHeader(): string
+    private function requestHasDoNotTrackHeader(): bool
     {
-        return 1 === (int) $this->$this->headerResolver->resolve('HTTP_DNT');
+        return 1 === (int) $this->headerResolver->resolve('HTTP_DNT');
     }
 
     /**

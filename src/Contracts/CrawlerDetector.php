@@ -20,5 +20,5 @@ interface CrawlerDetector
      *
      * @return bool
      */
-    public function isCrawler();
+    public function isCrawler(): bool;
 }

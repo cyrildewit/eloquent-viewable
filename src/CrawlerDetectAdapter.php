@@ -41,7 +41,7 @@ class CrawlerDetectAdapter implements CrawlerDetector
      *
      * @return bool
      */
-    public function isCrawler()
+    public function isCrawler(): bool
     {
         return $this->detector->isCrawler();
     }

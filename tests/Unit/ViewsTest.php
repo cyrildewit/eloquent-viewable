@@ -17,11 +17,14 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Request;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
+use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 
 class ViewsTest extends TestCase
 {
@@ -108,9 +111,9 @@ class ViewsTest extends TestCase
     /** @test */
     public function it_can_count_the_views()
     {
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
 
         $this->assertEquals(3, views($this->post)->count());
     }
@@ -184,5 +187,74 @@ class ViewsTest extends TestCase
         TestHelper::createNewView($apartment, ['visitor' => 'visitor_one']);
 
         $this->assertEquals(2, app(Views::class)->unique()->countByType(Post::class));
+    }
+
+    /** @test */
+    public function it_does_not_record_bot_views()
+    {
+        // Faking that the visitor is a bot
+        $this->app->bind(CrawlerDetector::class, function () {
+            return new class implements CrawlerDetector {
+                public function isCrawler(): bool
+                {
+                    return true;
+                }
+            };
+        });
+
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(0, View::count());
+    }
+
+    /** @test */
+    public function it_does_not_record_views_from_visitors_with_dnt_header()
+    {
+        Config::set('eloquent-viewable.honor_dnt', true);
+        Request::instance()->headers->set('HTTP_DNT', 1);
+
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(0, View::count());
+    }
+
+    /** @test */
+    public function it_does_not_record_views_from_ignored_ip_addresses()
+    {
+        Config::set('eloquent-viewable.ignored_ip_addresses', [
+            '127.20.22.6',
+            '10.10.30.40',
+        ]);
+
+        // Test ip address: 127.20.22.6
+        $this->app->bind(IpAddressResolver::class, function ($app) {
+            return new class implements IpAddressResolver {
+                public function resolve(): string
+                {
+                    return '127.20.22.6';
+                }
+            };
+        });
+
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(0, View::count());
+
+        // Test ip address: 10.10.30.40
+        $this->app->bind(IpAddressResolver::class, function ($app) {
+            return new class implements IpAddressResolver {
+                public function resolve(): string
+                {
+                    return '10.10.30.40';
+                }
+            };
+        });
+
+        $this->assertEquals(0, View::count());
     }
 }
