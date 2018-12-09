@@ -97,6 +97,16 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_count_the_unique_views()
+    {
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($this->post, ['visitor' => 'visitor_two']);
+
+        $this->assertEquals(2, views($this->post)->unique()->count());
+    }
+
+    /** @test */
     public function it_can_count_the_views_of_a_period()
     {
         Carbon::setTestNow(Carbon::now());
@@ -108,9 +118,9 @@ class ViewsTest extends TestCase
         TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
         TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
 
-        $this->assertEquals(6, app(Views::class)->setSubject($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count());
-        $this->assertEquals(4, app(Views::class)->setSubject($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count());
-        $this->assertEquals(4, app(Views::class)->setSubject($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count());
+        $this->assertEquals(6, views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count());
+        $this->assertEquals(4, views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count());
+        $this->assertEquals(4, views($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count());
     }
 
     /** @test */
@@ -122,7 +132,7 @@ class ViewsTest extends TestCase
 
         views($this->post)->destroy();
 
-        $this->assertEquals(0, app(Views::class)->setSubject($this->post)->count());
+        $this->assertEquals(0, views($this->post)->count());
     }
 
     /** @test */
