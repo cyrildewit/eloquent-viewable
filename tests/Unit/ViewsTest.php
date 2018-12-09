@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
+use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
@@ -85,6 +86,24 @@ class ViewsTest extends TestCase
 
     //     $this->assertEquals(1, View::count());
     // }
+
+    /** @test */
+    public function it_can_record_a_view_with_a_custom_ip_address()
+    {
+        Config::set('eloquent-viewable.ignored_ip_addresses', [
+            '100.13.20.120',
+        ]);
+
+        views($this->post)
+            ->overrideIpAddress('128.42.77.5')
+            ->record();
+
+        views($this->post)
+            ->overrideIpAddress('100.13.20.120')
+            ->record();
+
+        $this->assertEquals(1, View::count());
+    }
 
     /** @test */
     public function it_can_count_the_views()
