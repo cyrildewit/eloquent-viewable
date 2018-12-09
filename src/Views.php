@@ -272,17 +272,17 @@ class Views
         return $this;
     }
 
-    /**
-     * Cache the current views count.
-     *
-     * @return self
-     */
-    public function cache()
-    {
-        $this->shouldCache = true;
+    // /**
+    //  * Cache the current views count.
+    //  *
+    //  * @return self
+    //  */
+    // public function cache()
+    // {
+    //     $this->shouldCache = true;
 
-        return $this;
-    }
+    //     return $this;
+    // }
 
     /**
      * Cache the current views count.

@@ -17,41 +17,41 @@ use Illuminate\Database\Eloquent\Model;
 
 class Key
 {
-    /**
-     * Create a views count cache key.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $subject
-     * @param  \CyrildeWit\subject\Support\Period  $period
-     * @param  bool  $unique
-     * @return string
-     */
-    public static function createForCache(Model $subject, $period, bool $unique): string
-    {
-        $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
+    // /**
+    //  * Create a views count cache key.
+    //  *
+    //  * @param  \Illuminate\Database\Eloquent\Model  $subject
+    //  * @param  \CyrildeWit\subject\Support\Period  $period
+    //  * @param  bool  $unique
+    //  * @return string
+    //  */
+    // public static function createForCache(Model $subject, $period, bool $unique): string
+    // {
+    //     $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
 
-        $subjectKey = $subject->getKey();
-        $subjectType = strtolower(str_replace('\\', '-', $subject->getMorphClass()));
+    //     $subjectKey = $subject->getKey();
+    //     $subjectType = strtolower(str_replace('\\', '-', $subject->getMorphClass()));
 
-        $typeKey = $unique ? 'unique' : 'normal';
-        $periodKey = static::createPeriodKey($period);
+    //     $typeKey = $unique ? 'unique' : 'normal';
+    //     $periodKey = static::createPeriodKey($period);
 
-        return "{$cacheKey}.{$subjectType}.{$subjectKey}.{$typeKey}.{$periodKey}";
-    }
+    //     return "{$cacheKey}.{$subjectType}.{$subjectKey}.{$typeKey}.{$periodKey}";
+    // }
 
-    /**
-     * Format a period class into a key.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return string
-     */
-    public static function createPeriodKey($period): string
-    {
-        if ($period->hasFixedDateTimes()) {
-            return "{$period->getStartDateTimeString()}|{$period->getEndDateTimeString()}";
-        }
+    // /**
+    //  * Format a period class into a key.
+    //  *
+    //  * @param  \CyrildeWit\EloquentViewable\Support\Period
+    //  * @return string
+    //  */
+    // public static function createPeriodKey($period): string
+    // {
+    //     if ($period->hasFixedDateTimes()) {
+    //         return "{$period->getStartDateTimeString()}|{$period->getEndDateTimeString()}";
+    //     }
 
-        list($subType, $subValueType) = explode('_', strtolower($period->getSubType()));
+    //     list($subType, $subValueType) = explode('_', strtolower($period->getSubType()));
 
-        return "{$subType}{$period->getSubValue()}{$subValueType}|";
-    }
+    //     return "{$subType}{$period->getSubValue()}{$subValueType}|";
+    // }
 }
