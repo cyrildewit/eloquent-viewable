@@ -27,6 +27,11 @@ class VisitorCookieRepository
      */
     protected $request;
 
+    /**
+     * The visitor cookie key.
+     *
+     * @var string
+     */
     protected $key;
 
     /**
@@ -49,12 +54,22 @@ class VisitorCookieRepository
         return Cookie::get($this->key);
     }
 
-    private function generateUniqueString()
+    /**
+     * Generate a unique visitor string.
+     *
+     * @return string
+     */
+    private function generateUniqueString(): string
     {
         return str_random(80);
     }
 
-    private function expirationInMinutes()
+    /**
+     * Get the expiration in minutes.
+     *
+     * @return int
+     */
+    private function expirationInMinutes(): int
     {
         return 2628000; // aka 5 years
     }
