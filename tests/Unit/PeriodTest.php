@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit\Support;
 
+use Exception;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -229,6 +230,14 @@ class PeriodTest extends TestCase
     }
 
     /** @test */
+    public function static_sub_will_thow_an_exception_if_subtype_method_is_not_callable()
+    {
+        $this->expectException(Exception::class);
+
+        $period = Period::sub(Carbon::now(), 'wrongMethod', Period::SUB_YEARS, 1);
+    }
+
+    /** @test */
     public function setStartDateTime_can_set_a_new_start_date_time()
     {
         Carbon::setTestNow(Carbon::now());
@@ -254,5 +263,45 @@ class PeriodTest extends TestCase
         $period->setEndDateTime(Carbon::now());
 
         $this->assertEquals($period->getEndDateTime(), Carbon::now());
+    }
+
+    /** @test */
+    public function hasFixedDateTimes_can_determine_if_datetimes_are_fixed()
+    {
+        $period = Period::pastDays(3);
+
+        $this->assertFalse($period->hasFixedDateTimes());
+    }
+
+    /** @test */
+    public function getStartDateTimeString_returns_start_date_time_as_string()
+    {
+        $period = Period::since($startDateTime = Carbon::parse('2019-03-12'));
+
+        $this->assertEquals($startDateTime->toDateTimeString(), $period->getStartDateTimeString());
+    }
+
+    /** @test */
+    public function getEndDateTimeString_returns_end_date_time_as_string()
+    {
+        $period = Period::upto($endDateTime = Carbon::parse('2019-03-12'));
+
+        $this->assertEquals($endDateTime->toDateTimeString(), $period->getEndDateTimeString());
+    }
+
+    /** @test */
+    public function getSubType_returns_sub_type()
+    {
+        $period = Period::pastDays(3);
+
+        $this->assertEquals(Period::PAST_DAYS, $period->getSubType());
+    }
+
+    /** @test */
+    public function getSubValue_returns_sub_type()
+    {
+        $period = Period::pastDays(3);
+
+        $this->assertEquals(3, $period->getSubValue());
     }
 }
