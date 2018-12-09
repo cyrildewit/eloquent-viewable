@@ -140,4 +140,20 @@ class ViewsTest extends TestCase
 
         $this->assertEquals(3, app(Views::class)->countByType(Post::class));
     }
+
+    /** @test */
+    public function it_can_count_the_unique_views_by_type()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $apartment = factory(Apartment::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($apartment, ['visitor' => 'visitor_three']);
+        TestHelper::createNewView($apartment, ['visitor' => 'visitor_one']);
+
+        $this->assertEquals(2, app(Views::class)->unique()->countByType(Post::class));
+    }
 }
