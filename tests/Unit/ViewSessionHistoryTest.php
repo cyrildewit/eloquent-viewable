@@ -21,11 +21,6 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class ViewSessionHistoryTest extends TestCase
 {
-    protected function tearDown()
-    {
-        // Carbon::setTestNow();
-    }
-
     /** @test */
     public function push_can_add_an_item()
     {

@@ -21,11 +21,6 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 class PeriodTest extends TestCase
 {
-    protected function tearDown()
-    {
-        Carbon::setTestNow();
-    }
-
     /** @test */
     public function it_can_instantiate_class()
     {
