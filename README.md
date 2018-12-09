@@ -412,7 +412,7 @@ See also the list of [contributors](https://github.com/cyrildewit/perceptor/grap
 
 **Helpful Resources:**
 
-* **Stidges** - [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel)
+* [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - **[Stidges](https://github.com/stidges)**
 
 ## Alternatives
 
