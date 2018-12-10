@@ -38,7 +38,7 @@ views($post)->doSomething();
 
 ## Overview
 
-Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))`.
+Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many peopele has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`.
 
 This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use this package for models like: Post, Video, Profile and Hotel, but of course, you can use this package as you want.
 
@@ -50,7 +50,10 @@ Here are some of the main features:
 * Get total views count
 * Get views count of a specific period
 * Get unique views count
-* Smart views count cacher helper
+* Get views count of a viewable type
+* Record views with session delays
+* Smart views count cacher
+* Ignore views from crawlers, ignored IP addresses or requests with DNT header
 
 ## Documentation
 
@@ -187,7 +190,7 @@ views($post)
     ->record();
 ```
 
-Instead of passing the number of minutes as an integer, you could also pass a `DateTime` instance.
+Instead of passing the number of minutes as an integer, you can also pass a `DateTime` instance.
 
 ```php
 $expiresAt = now()->addHours(3);
@@ -199,7 +202,7 @@ views($post)
 
 #### How it works
 
-When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session with an expiration date time. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database or not.
+When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session with an expiration datetime. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database or not.
 
 ### Retrieving views counts
 
@@ -215,9 +218,9 @@ views($post)->count();
 use CyrildeWit\EloquentViewable\Support\Period;
 
 // Example: get views count since 2017 upto 2018
-$post->views()
-     ->period(Period::create('2017', '2018'))
-     ->count();
+views($post)
+    ->period(Period::create('2017', '2018'))
+    ->count();
 ```
 
 The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as follows:
@@ -282,18 +285,24 @@ views($post)
 
 The `Viewable` trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
 
-#### Retrieve Viewable models by views count
+#### Retrieve viewable models by views count
 
 ```php
 Post::orderByViews()->get(); // descending
 Post::orderByViews('asc')->get(); // ascending
 ```
 
-#### Retrieve Viewable models by unique views count
+#### Retrieve viewable models by unique views count
 
 ```php
 Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
+```
+
+#### Retrieve viewable models by views count and period
+
+```php
+Post::orderByViews()->get();
 ```
 
 ### Get views count of viewable type
@@ -301,42 +310,14 @@ Post::orderByUniqueViews('asc')->get(); // ascending
 If you want to know how many views a specific viewable type has, you can use the `getViewsCountByType` method on the `Views` class.
 
 ```php
-Views::getViewsByType(Post::class);
-Views::getViewsByType('App\Post');
+views()->countByType(Post::class);
+views()->countByType('App\Post');
 ```
 
 You can also pass an instance of an Eloquent model. It will get the fully qualified class name by calling the `getMorphClass` method on the model.
 
 ```php
-Views::getViewsByType($post);
-```
-
-#### Get most viewed viewables by type
-
-To get a collection of Eloquent models sorted by most views and type, you can use the provided static `getMostViewedByType` method. It accepts a limit as second argument.
-
-Please note that this method does the same as `Post::orderByViews()->take(10);`.
-
-```php
-// Get top 10 most viewed by type
-Views::getMostViewedByType(Post::class, 10);
-Views::getMostViewedByType('App\Post', 10);
-
-// and by passing an instance of an eloquent model
-Views::getMostViewedByType($post, 10);
-```
-
-#### Get least viewed viewables by type
-
-Please note that this method does the same as `Post::orderByViews('asc')->take(10);`.
-
-```php
-// Get top 10 least viewed by type
-Views::getleastViewedByType(Post::class, 10);
-Views::getleastViewedByType('App\Post', 10);
-
-// and by passing an instance of an eloquent model
-Views::getleastViewedByType($post, 10);
+views()->countByType($post);
 ```
 
 ### Advanced Usage
