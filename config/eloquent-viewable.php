@@ -54,7 +54,8 @@ return [
     | Do Not Track Header
     |--------------------------------------------------------------------------
     |
-    | If you want to honor the DNT header, you can specify that here.
+    | If you want to honor the DNT header, you can specify that here. We won't
+    | record views from visitors with the Do Not Track header.
     |
     */
     'honor_dnt' => false,
