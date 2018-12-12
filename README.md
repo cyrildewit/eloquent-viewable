@@ -321,9 +321,9 @@ You can also pass an instance of an Eloquent model. It will get the fully qualif
 views()->countByType($post);
 ```
 
-### Advanced Usage
+## Advanced Usage
 
-#### Supplying your own visitor's IP Address
+### Supplying your own visitor's IP Address
 
 If you are using this package via a RESTful API, you might want to supply your own visitor's IP Address, otherwise this package will use the IP Address of the requester.
 
@@ -333,7 +333,7 @@ views($post)
     ->record();
 ```
 
-#### Queuing views
+### Queuing views
 
 If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
 
@@ -374,9 +374,9 @@ ProcessView::dispatch($post)
 
 **Note:** it's unnecessary if you are using the database as queue driver!
 
-#### Caching view counts
+### Caching view counts
 
-#### Extending
+## Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
@@ -386,7 +386,7 @@ If you want to extend or replace one of the core classes with your own implement
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-#### Replace `View` model with custom implementation
+### Replace `View` model with custom implementation
 
 ```php
 $this->app->bind(
@@ -395,7 +395,7 @@ $this->app->bind(
 );
 ```
 
-#### Replace `IpAddressResolver` class with custom implementation
+### Replace `IpAddressResolver` class with custom implementation
 
 ```php
 $this->app->singleton(
@@ -404,7 +404,7 @@ $this->app->singleton(
 );
 ```
 
-#### Replace `CrawlerDetectAdapter` class with custom implementation
+### Replace `CrawlerDetectAdapter` class with custom implementation
 
 ```php
 $this->app->singleton(
