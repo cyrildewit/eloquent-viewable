@@ -334,6 +334,45 @@ views($post)
 
 #### Queuing views
 
+If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
+
+An easy job that simply records a view for the given subject, would look like:
+
+```php
+namespace App\Jobs\ProcessView;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+
+class ProcessView implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable;
+
+    public $subject;
+
+    public function __construct($subject)
+    {
+        $this->subject = $subject;
+    }
+
+    public function handle()
+    {
+        views($this->subject)->record();
+    }
+}
+```
+
+You can now dispatch this job:
+
+```php
+ProcessView::dispatch($post)
+    ->delay(now()->addMinutes(30));
+```
+
+**Note:** it's unnecessary if you are using the database as queue driver!
+
 #### Caching view counts
 
 #### Extending
