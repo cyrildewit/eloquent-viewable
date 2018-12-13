@@ -161,12 +161,6 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
         $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
 
         if ($this->shouldCache) {
@@ -175,6 +169,12 @@ class Views
             if ($cachedViewsCount !== null) {
                 return $cachedViewsCount;
             }
+        }
+
+        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
         }
 
         if ($this->unique) {
@@ -220,10 +220,6 @@ class Views
     {
         $query = $this->viewable->views();
 
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
         $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique);
 
         if ($this->shouldCache) {
@@ -232,6 +228,10 @@ class Views
             if ($cachedViewsCount !== null) {
                 return $cachedViewsCount;
             }
+        }
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
         }
 
         if ($this->unique) {
