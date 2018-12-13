@@ -212,7 +212,7 @@ class Views
      * @param  \Illuminate\Database\Eloquent\Model|null
      * @return self
      */
-    public function setSubject(ViewableContract $subject): self
+    public function setSubject(ViewableContract $subject = null): self
     {
         $this->subject = $subject;
 
