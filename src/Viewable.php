@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Contracts\View;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+
 
 trait Viewable
 {
@@ -29,13 +31,13 @@ trait Viewable
     }
 
     /**
-     * Return an instance of the Views class.
+     * Get the views the model has.
      *
-     * @return \CyrildeWit\EloquentViewable\Views
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function views(): Views
+    public function views(): MorphMany
     {
-        return views($this);
+        return $this->morphMany(app(ViewContract::class), 'viewable');
     }
 
     /**
@@ -49,7 +51,7 @@ trait Viewable
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
         $viewable = $query->getModel();
-        $viewModel = app(View::class);
+        $viewModel = app(ViewContract::class);
 
         return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
             ->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewable->getTable()}.*, count(`{$viewModel->getConnection()->getTablePrefix()}{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as views_count")
