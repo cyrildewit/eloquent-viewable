@@ -220,7 +220,7 @@ class Views
     {
         $query = $this->viewable->views();
 
-        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique);
+        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->tag);
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
@@ -232,6 +232,10 @@ class Views
 
         if ($period = $this->period) {
             $query->withinPeriod($period);
+        }
+
+        if ($tag = $this->tag) {
+            $query->where('tag', $tag);
         }
 
         if ($this->unique) {
