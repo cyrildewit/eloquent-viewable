@@ -34,40 +34,29 @@ interface Viewable
     public function getMorphClass();
 
     /**
-     * Get a collection of all the views the model has.
+     * Return an instance of the Views class.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
     public function views(): Views;
 
     /**
-     * Get the total number of unique views.
+     * Scope a query to order records by views count.
      *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    // public function getUniqueViews($period = null) : int;
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder;
 
-    // /**
-    //  * Store a new view.
-    //  *
-    //  * @return bool
-    //  */
-    // public function addView() : bool;
-
-    // /**
-    //  * Get the total number of views.
-    //  *
-    //  * @return void
-    //  */
-    // public function removeViews();
-
-    // /**
-    //  * Retrieve records sorted by views count.
-    //  *
-    //  * @param  \Illuminate\Database\Eloquent\Builder  $query
-    //  * @param  string  $direction
-    //  * @return \Illuminate\Database\Eloquent\Builder
-    //  */
-    // public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder;
+    /**
+     * Scope a query to order records by unique views count.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder;
 }
