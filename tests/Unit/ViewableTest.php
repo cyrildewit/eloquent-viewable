@@ -163,4 +163,29 @@ class ViewableTest extends TestCase
 
         $this->assertEquals(collect([2, 3, 1]), Post::orderByViews('asc', Period::pastDays(10))->pluck('id'));
     }
+
+    /** @test */
+    public function it_can_be_ordered_by_unique_views_count_with_a_specific_period_in_ascending_order()
+    {
+        Carbon::setTestNow(Carbon::now());
+
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(2), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(8), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(5), 'visitor' => 'visitor_two']);
+        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_two']);
+
+        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(14), 'visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(18), 'visitor' => 'visitor_one']);
+
+        $this->assertEquals(collect([3, 2, 1]), Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'));
+    }
 }
