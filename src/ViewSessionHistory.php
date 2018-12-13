@@ -15,12 +15,8 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Illuminate\Contracts\Session\Session;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-/**
- * Class ViewSessionHistory.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewSessionHistory
 {
     /**
@@ -31,34 +27,38 @@ class ViewSessionHistory
     protected $session;
 
     /**
+     * The primary key under which history is stored.
+     *
      * @var string
      */
     protected $primaryKey;
 
     /**
      * Create a new view session history instance.
+     *
+     * @return void
      */
-    public function __construct()
+    public function __construct(Session $session)
     {
-        $this->session = app(Session::class);
+        $this->session = $session;
         $this->primaryKey = config('eloquent-viewable.session.key', 'cyrildewit.eloquent-viewable.session');
     }
 
     /**
      * Push a viewable model with an expiry date to the session.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \DateTime  $expiryDateTime
      */
-    public function push($viewable, $expiryDateTime): bool
+    public function push(ViewableContract $viewable, $delay): bool
     {
-        $baseKey = $this->createBaseKey($viewable);
-        $uniqueKey = $this->createUniqueKey($viewable);
+        $namespaceKey = $this->createNamespaceKey($viewable);
+        $viewableKey = $this->createViewableKey($viewable);
 
-        $this->forgetExpiredViews($baseKey);
+        $this->forgetExpiredViews($namespaceKey);
 
-        if (! $this->isViewableViewed($uniqueKey)) {
-            $this->session->put($uniqueKey, $this->createRecord($viewable, $expiryDateTime));
+        if (! $this->has($viewableKey)) {
+            $this->session->put($viewableKey, $this->createRecord($viewable, $delay));
 
             return true;
         }
@@ -67,29 +67,29 @@ class ViewSessionHistory
     }
 
     /**
-     * Create a history record from the given viewable model and expiry date.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
-     * @param  \DateTime  $expiryDateTime
-     * @return array
-     */
-    protected function createRecord($viewable, $expiryDateTime): array
-    {
-        return [
-            'viewable_id' => $viewable->getKey(),
-            'expires_at' => $expiryDateTime,
-        ];
-    }
-
-    /**
      * Determine if the given model has been viewed.
      *
      * @param  string  $key
      * @return bool
      */
-    protected function isViewableViewed(string $uniqueKey): bool
+    protected function has(string $viewableKey): bool
     {
-        return $this->session->has($uniqueKey);
+        return $this->session->has($viewableKey);
+    }
+
+    /**
+     * Create a history record from the given viewable model and expiry date.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
+     * @param  \DateTime  $expiryDateTime
+     * @return array
+     */
+    protected function createRecord(ViewableContract $viewable, $expiryDateTime): array
+    {
+        return [
+            'viewable_id' => $viewable->getKey(),
+            'expires_at' => $expiryDateTime,
+        ];
     }
 
     /**
@@ -104,7 +104,6 @@ class ViewSessionHistory
         $viewHistory = $this->session->get($key, []);
 
         foreach ($viewHistory as $record) {
-            // Less thatn or equal to
             if ($record['expires_at']->lte($currentTime)) {
                 $recordId = array_search($record['viewable_id'], array_column($record, 'viewable_id'));
 
@@ -116,10 +115,10 @@ class ViewSessionHistory
     /**
      * Create a base key from the given viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createBaseKey($viewable): string
+    protected function createNamespaceKey(ViewableContract $viewable): string
     {
         return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
     }
@@ -127,11 +126,11 @@ class ViewSessionHistory
     /**
      * Create a unique key from the given viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createUniqueKey($viewable): string
+    protected function createViewableKey(ViewableContract $viewable): string
     {
-        return $this->createBaseKey($viewable).'.'.$viewable->getKey();
+        return $this->createNamespaceKey($viewable).'.'.$viewable->getKey();
     }
 }

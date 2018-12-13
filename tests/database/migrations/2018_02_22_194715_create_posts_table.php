@@ -15,11 +15,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-/*
- * CreatePostsTable class.
- *
- * @var \Illuminate\Database\Eloquent\Factory  $factory
- */
 class CreatePostsTable extends Migration
 {
     /**

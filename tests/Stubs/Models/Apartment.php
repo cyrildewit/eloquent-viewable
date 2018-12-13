@@ -15,13 +15,9 @@ namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-/**
- * Location class.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
-class Location extends Model
+class Apartment extends Model implements ViewableContract
 {
     use Viewable;
 
@@ -30,7 +26,7 @@ class Location extends Model
      *
      * @var string
      */
-    protected $table = 'locations';
+    protected $table = 'apartments';
     /**
      * The attributes that aren't mass assignable.
      *

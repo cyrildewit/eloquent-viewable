@@ -11,24 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Support;
+namespace CyrildeWit\EloquentViewable\Resolvers;
 
-use Request;
+use Illuminate\Support\Facades\Request;
+use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
 
-/**
- * Class Ip.
- *
- * @deprecated 3.0.0 This class will be removed.
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
-class IpAddress
+class IpAddressResolver implements IpAddressResolverContract
 {
     /**
-     * Get the visitor's ip address.
+     * Resolve the IP address.
      *
-     * @return bool
+     * @return string
      */
-    public function get()
+    public function resolve(): string
     {
         return Request::ip();
     }

@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-interface CrawlerDetector
+interface HeaderResolver
 {
     /**
-     * Determine if the current user is a crawler.
+     * Resolve the header.
      *
-     * @return bool
+     * @return mixed
      */
-    public function isCrawler(): bool;
+    public function resolve(string $name);
 }

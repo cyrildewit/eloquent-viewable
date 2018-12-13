@@ -19,18 +19,8 @@ use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\ViewSessionHistory;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
-/**
- * Class ViewSessionHistoryTest.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class ViewSessionHistoryTest extends TestCase
 {
-    protected function tearDown()
-    {
-        // Carbon::setTestNow();
-    }
-
     /** @test */
     public function push_can_add_an_item()
     {
@@ -57,5 +47,23 @@ class ViewSessionHistoryTest extends TestCase
         $viewHistory->push($post, Carbon::tomorrow());
 
         $this->assertCount(1, Session::get($postBaseKey));
+    }
+
+    /** @test */
+    public function it_can_forget_expired_views()
+    {
+        $post = factory(Post::class)->create();
+        $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $viewHistory = app(ViewSessionHistory::class);
+
+        $viewHistory->push($post, Carbon::today());
+        $viewHistory->push($post, Carbon::today()->addHours(1));
+        $viewHistory->push($post, Carbon::today()->addHours(2));
+
+        Carbon::setTestNow(Carbon::tomorrow());
+
+        $viewHistory->push($post, Carbon::today()->addHours(2));
+
+        $this->assertCount(1, Session::get($postNamespacKey));
     }
 }

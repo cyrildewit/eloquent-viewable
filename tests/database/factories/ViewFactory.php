@@ -11,10 +11,15 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-Route::middleware(['web'])->group(function () {
-    $cookieName = config('eloquent-viewable.cookie_name', 'eloquent_viewable');
+use Faker\Generator as Faker;
+use CyrildeWit\EloquentViewable\View;
 
-    if (Cookie::get($cookieName) == false) {
-        Cookie::queue($cookieName, str_random(80), 2628000);
-    }
+/*
+ * This is the Post factory.
+ *
+ * @var \Illuminate\Database\Eloquent\Factory  $factory
+ */
+$factory->define(View::class, function (Faker $faker) {
+    return [
+    ];
 });

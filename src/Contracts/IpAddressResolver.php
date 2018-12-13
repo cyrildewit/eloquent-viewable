@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-interface CrawlerDetector
+interface IpAddressResolver
 {
     /**
-     * Determine if the current user is a crawler.
+     * Resolve the IP address.
      *
-     * @return bool
+     * @return string
      */
-    public function isCrawler(): bool;
+    public function resolve(): string;
 }

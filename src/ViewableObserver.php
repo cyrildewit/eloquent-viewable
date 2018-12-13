@@ -13,35 +13,30 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-/**
- * Class ViewableObserver.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+
 class ViewableObserver
 {
     /**
-     * Handle the deleted event for the model.
+     * Handle the deleted event for the viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $model
      * @return void
      */
-    public function deleted($viewable)
+    public function deleted(ViewableContract $viewable)
     {
-        if (! $this->removeViewsOnDelete($viewable)) {
-            return;
+        if ($this->removeViewsOnDelete($viewable)) {
+            app(Views::class)->forViewable($viewable)->destroy();
         }
-
-        $viewable->removeViews();
     }
 
     /**
      * Determine if should remove views on model delete (defaults to true).
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return bool
      */
-    private function removeViewsOnDelete($viewable): bool
+    private function removeViewsOnDelete(ViewableContract $viewable): bool
     {
         return $viewable->removeViewsOnDelete ?? true;
     }

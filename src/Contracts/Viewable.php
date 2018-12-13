@@ -13,14 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
+use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-/**
- * Interface Viewable.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 interface Viewable
 {
     /**
@@ -38,40 +34,29 @@ interface Viewable
     public function getMorphClass();
 
     /**
-     * Get a collection of all the views the model has.
+     * Get the views the model has.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
     public function views(): MorphMany;
 
     /**
-     * Get the total number of unique views.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return int
-     */
-    public function getUniqueViews($period = null) : int;
-
-    /**
-     * Store a new view.
-     *
-     * @return bool
-     */
-    public function addView() : bool;
-
-    /**
-     * Get the total number of views.
-     *
-     * @return void
-     */
-    public function removeViews();
-
-    /**
-     * Retrieve records sorted by views count.
+     * Scope a query to order records by views count.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByViewsCount(Builder $query, string $direction = 'desc'): Builder;
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder;
+
+    /**
+     * Scope a query to order records by unique views count.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $direction
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder;
 }

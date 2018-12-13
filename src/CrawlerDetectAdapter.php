@@ -16,11 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
-/**
- * Class CrawlerDetectAdapter.
- *
- * @author Cyril de Wit <github@cyrildewit.nl>
- */
 class CrawlerDetectAdapter implements CrawlerDetector
 {
     /**
@@ -28,7 +23,7 @@ class CrawlerDetectAdapter implements CrawlerDetector
      *
      * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
      */
-    protected $detector;
+    private $detector;
 
     /**
      * Create a new CrawlerDetector instance.
@@ -42,11 +37,11 @@ class CrawlerDetectAdapter implements CrawlerDetector
     }
 
     /**
-     * Determine if the current user is crawler.
+     * Determine if the current user is a crawler.
      *
      * @return bool
      */
-    public function isBot()
+    public function isCrawler(): bool
     {
         return $this->detector->isCrawler();
     }
