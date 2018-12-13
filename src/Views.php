@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
+use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
@@ -24,6 +25,8 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
 class Views
 {
+    use Macroable;
+
     /**
      * The subject where we are applying actions to.
      *
