@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use Illuminate\Database\Query\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
@@ -304,12 +303,12 @@ class Views
     /**
      * Apply the period constraint to the given query.
      *
-     * @param  \Illuminate\Database\Builder  $query
+     * @param  $query
      * @param  string  $column
      * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    protected function applyPeriodToQuery(Builder $query, $period, string $column = 'viewed_at'): Builder
+    protected function applyPeriodToQuery($query, $period, string $column = 'viewed_at')
     {
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
