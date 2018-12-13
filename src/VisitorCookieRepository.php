@@ -16,7 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use Cookie;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Model;
 
 class VisitorCookieRepository
 {

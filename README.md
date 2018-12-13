@@ -345,7 +345,7 @@ views($post)
 
 If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
 
-An easy job that simply records a view for the given subject, would look like:
+An easy job that simply records a view for the given viewable model, would look like:
 
 ```php
 namespace App\Jobs\ProcessView;
@@ -359,16 +359,16 @@ class ProcessView implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    public $subject;
+    public $viewable;
 
-    public function __construct($subject)
+    public function __construct($viewable)
     {
-        $this->subject = $subject;
+        $this->viewable = $viewable;
     }
 
     public function handle()
     {
-        views($this->subject)->record();
+        views($this->viewable)->record();
     }
 }
 ```

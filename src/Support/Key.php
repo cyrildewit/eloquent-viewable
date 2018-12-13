@@ -13,19 +13,19 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
-use Illuminate\Database\Eloquent\Model;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
 class Key
 {
     /**
      * Create a unique key for the viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @param  bool  $unique
      * @return string
      */
-    public static function createForEntity(Model $viewable, $period, bool $unique): string
+    public static function createForEntity(ViewableContract $viewable, $period, bool $unique): string
     {
         $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
 
@@ -41,8 +41,8 @@ class Key
     /**
      * Create a unique key for the viewable type.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $subject
-     * @param  \CyrildeWit\subject\Support\Period  $period
+     * @param  string  $viewableType
+     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @param  bool  $unique
      * @return string
      */

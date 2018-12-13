@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -31,11 +30,11 @@ class Views
     use Macroable;
 
     /**
-     * The subject where we are applying actions to.
+     * The viewable model where we are applying actions to.
      *
-     * @var \Illuminate\Database\Eloquent\Model
+     * @var \CyrildeWit\EloquentViewable\Contracts\Viewable
      */
-    protected $subject;
+    protected $viewable;
 
     /**
      * The period that the current query should scoped to.
@@ -158,7 +157,7 @@ class Views
      */
     public function countByType($viewableType): int
     {
-        if ($viewableType instanceof Model) {
+        if ($viewableType instanceof ViewableContract) {
             $viewableType = $viewableType->getMorphClass();
         }
 
@@ -200,8 +199,8 @@ class Views
     {
         if ($this->shouldRecord()) {
             $view = app(ViewContract::class);
-            $view->viewable_id = $this->subject->getKey();
-            $view->viewable_type = $this->subject->getMorphClass();
+            $view->viewable_id = $this->viewable->getKey();
+            $view->viewable_type = $this->viewable->getMorphClass();
             $view->visitor = $this->resolveVisitorId();
             $view->tag = $this->tag;
             $view->viewed_at = Carbon::now();
@@ -219,13 +218,13 @@ class Views
      */
     public function count(): int
     {
-        $query = $this->subject->views();
+        $query = $this->viewable->views();
 
         if ($period = $this->period) {
             $query->withinPeriod($period);
         }
 
-        $cacheKey = Key::createForEntity($this->subject, $this->period ?? Period::create(), $this->unique);
+        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique);
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
@@ -249,24 +248,24 @@ class Views
     }
 
     /**
-     * Destroy all views of the subject.
+     * Destroy all views of the viewable model.
      *
      * @return void
      */
     public function destroy()
     {
-        $this->subject->views()->delete();
+        $this->viewable->views()->delete();
     }
 
     /**
-     * Set a new subject.
+     * Set the viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model|null
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
      * @return self
      */
-    public function setSubject(ViewableContract $subject = null): self
+    public function forViewable(ViewableContract $viewable = null): self
     {
-        $this->subject = $subject;
+        $this->viewable = $viewable;
 
         return $this;
     }
@@ -372,7 +371,7 @@ class Views
             return false;
         }
 
-        if ($this->sessionDelay && $this->viewSessionHistory->push($this->subject, $this->sessionDelay)) {
+        if ($this->sessionDelay && $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
             return false;
         }
 

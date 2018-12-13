@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Session\Session;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
 class ViewSessionHistory
 {
@@ -47,10 +47,10 @@ class ViewSessionHistory
     /**
      * Push a viewable model with an expiry date to the session.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \DateTime  $expiryDateTime
      */
-    public function push($viewable, $delay): bool
+    public function push(ViewableContract $viewable, $delay): bool
     {
         $namespaceKey = $this->createNamespaceKey($viewable);
         $viewableKey = $this->createViewableKey($viewable);
@@ -80,11 +80,11 @@ class ViewSessionHistory
     /**
      * Create a history record from the given viewable model and expiry date.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \DateTime  $expiryDateTime
      * @return array
      */
-    protected function createRecord($viewable, $expiryDateTime): array
+    protected function createRecord(ViewableContract $viewable, $expiryDateTime): array
     {
         return [
             'viewable_id' => $viewable->getKey(),
@@ -115,10 +115,10 @@ class ViewSessionHistory
     /**
      * Create a base key from the given viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createNamespaceKey($viewable): string
+    protected function createNamespaceKey(ViewableContract $viewable): string
     {
         return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
     }
@@ -126,10 +126,10 @@ class ViewSessionHistory
     /**
      * Create a unique key from the given viewable model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $viewable
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createViewableKey($viewable): string
+    protected function createViewableKey(ViewableContract $viewable): string
     {
         return $this->createNamespaceKey($viewable).'.'.$viewable->getKey();
     }
