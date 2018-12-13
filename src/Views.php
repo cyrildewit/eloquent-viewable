@@ -16,11 +16,13 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Traits\Macroable;
+use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
@@ -71,6 +73,13 @@ class Views
     protected $shouldCache = false;
 
     /**
+     * Determine if the views count should be cached.
+     *
+     * @var \DateTime|null
+     */
+    public $cacheLifetime = false;
+
+    /**
      * Used IP Address instead of the provided one by the resolver.
      *
      * @var string
@@ -113,6 +122,13 @@ class Views
     protected $headerResolver;
 
     /**
+     * The cache repository instance.
+     *
+     * @var \Illuminate\Contracts\Cache\Repository
+     */
+    protected $cache;
+
+    /**
      * Create a new views instance.
      *
      * @return void
@@ -122,13 +138,16 @@ class Views
         VisitorCookieRepository $visitorCookieRepository,
         CrawlerDetector $crawlerDetector,
         IpAddressResolver $ipAddressResolver,
-        HeaderResolver $headerResolver
+        HeaderResolver $headerResolver,
+        CacheRepository $cache
     ) {
         $this->viewSessionHistory = $viewSessionHistory;
         $this->visitorCookieRepository = $visitorCookieRepository;
         $this->crawlerDetector = $crawlerDetector;
         $this->ipAddressResolver = $ipAddressResolver;
         $this->headerResolver = $headerResolver;
+        $this->cache = $cache;
+        $this->cacheLifetime = Carbon::now()->addMinutes(config('eloquent-viewable.cache.lifetime_in_minutes'));
     }
 
     /**
@@ -149,10 +168,24 @@ class Views
             $query->withinPeriod($period);
         }
 
+        $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
+
+        if ($this->shouldCache) {
+            $cachedViewsCount = $this->cache->get($cacheKey);
+
+            if ($cachedViewsCount !== null) {
+                return $cachedViewsCount;
+            }
+        }
+
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
         } else {
             $viewsCount = $query->count();
+        }
+
+        if ($this->shouldCache) {
+            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
         return $viewsCount;
@@ -192,10 +225,24 @@ class Views
             $query->withinPeriod($period);
         }
 
+        $cacheKey = Key::createForEntity($this->subject, $this->period ?? Period::create(), $this->unique);
+
+        if ($this->shouldCache) {
+            $cachedViewsCount = $this->cache->get($cacheKey);
+
+            if ($cachedViewsCount !== null) {
+                return $cachedViewsCount;
+            }
+        }
+
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
         } else {
             $viewsCount = $query->count();
+        }
+
+        if ($this->shouldCache) {
+            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
         return $viewsCount;
@@ -227,7 +274,7 @@ class Views
     /**
      * Set the delay in the session.
      *
-     * @param
+     * @param  \DateTime|int  $delay
      * @return self
      */
     public function delayInSession($delay): self
@@ -276,17 +323,19 @@ class Views
         return $this;
     }
 
-    // /**
-    //  * Cache the current views count.
-    //  *
-    //  * @return self
-    //  */
-    // public function cache()
-    // {
-    //     $this->shouldCache = true;
+    /**
+     * Cache the current views count.
+     *
+     * @param  \DateTime|int  $lifetime
+     * @return self
+     */
+    public function remember($lifetime = null)
+    {
+        $this->shouldCache = true;
+        $this->cacheLifetiem = $lifetime;
 
-    //     return $this;
-    // }
+        return $this;
+    }
 
     /**
      * Override the visitor's IP Address.

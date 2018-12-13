@@ -202,6 +202,57 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_remember_the_views_counts()
+    {
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(3, views($this->post)->remember()->count());
+
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(3, views($this->post)->remember()->count());
+    }
+
+    /** @test */
+    public function it_can_remember_the_views_counts_with_custom_lifetime()
+    {
+        views($this->post)->record();
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(3, views($this->post)->remember(10)->count());
+
+        views($this->post)->record();
+        views($this->post)->record();
+
+        $this->assertEquals(3, views($this->post)->remember(10)->count());
+    }
+
+    /** @test */
+    public function it_can_remember_the_views_counts_of_a_type()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $apartment = factory(Apartment::class)->create();
+
+        views($postOne)->record();
+        views($postTwo)->record();
+        views($postTwo)->record();
+        views($apartment)->record();
+        views($apartment)->record();
+
+        $this->assertEquals(3, views()->remember()->countByType(Post::class));
+
+        views($postTwo)->record();
+        views($apartment)->record();
+
+        $this->assertEquals(3, views()->remember()->countByType(Post::class));
+    }
+
+    /** @test */
     public function it_does_not_record_bot_views()
     {
         // Faking that the visitor is a bot

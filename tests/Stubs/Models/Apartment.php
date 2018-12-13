@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Apartment extends Model // implements ViewableContract
+class Apartment extends Model implements ViewableContract
 {
     use Viewable;
 

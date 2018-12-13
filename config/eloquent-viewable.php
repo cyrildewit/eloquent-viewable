@@ -24,6 +24,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cache  Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'cache' => [
+
+        /*
+         * Everthing will be stored under the following key.
+         */
+        'key' => 'cyrildewit.eloquent-viewable.cache',
+
+        /*
+         * Default lifetime of cached views count in minutes.
+         */
+        'lifetime_in_minutes' => 60,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Configuration
     |--------------------------------------------------------------------------
     */
