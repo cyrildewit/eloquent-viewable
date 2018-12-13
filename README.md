@@ -71,6 +71,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
 3. [Advanced Usage](#advanced-usage)
+    * [Tagging views](#tagging-views)
     * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
@@ -274,7 +275,7 @@ Period::subYears(int $years);
 
 #### Get total unique views count
 
-If you only want to retrieve the unique views count, can you simply add the `unique` method to the chain.
+If you only want to retrieve the unique views count, you can simply add the `unique` method to the chain.
 
 ```php
 views($post)
@@ -330,6 +331,26 @@ views()->countByType($post);
 ```
 
 ## Advanced Usage
+
+### Tagging views
+
+### Recording views under a custom tag
+
+Sometimes, you may need to have multiple view counters for one viewable type. To record views under a tag, you can easily call the `tag()` method on the chain.
+
+```php
+views($post)
+    ->tag('customTag')
+    ->record();
+```
+
+To retrieve the views count with this tag, you can reuse the same `tag()` method.
+
+```php
+views($post)
+    ->tag('customTag')
+    ->count();
+```
 
 ### Supplying your own visitor's IP Address
 
