@@ -399,7 +399,7 @@ This method is perfectly fine for the example where we are counting the views st
 
 Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're know able to properly generalize the dates.
 
-Now of course, you can wrap all these methods with your solution, but luckily this package provides an easy way of handling this. You can simply add the `cache()` method on the chain.
+Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `cache()` method on the chain. It will do all the hard work under the hood!
 
 Examples:
 
