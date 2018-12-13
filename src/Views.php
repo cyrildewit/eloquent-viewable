@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
@@ -134,14 +135,11 @@ class Views
      */
     public function countByType(string $viewableType): int
     {
-        // Use given period, otherwise create an empty one
         $period = $this->period ?? Period::create();
 
         $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
         $query = $this->applyPeriodToQuery($query, $period);
 
-        // Count only the unique views
         if ($this->unique) {
             $viewsCount = $query->distinct('visitor')->count('visitor');
         } else {
@@ -158,18 +156,18 @@ class Views
      */
     public function record(): bool
     {
-        if (! $this->shouldRecord()) {
-            return false;
+        if ($this->shouldRecord()) {
+            $view = app(ViewContract::class);
+            $view->viewable_id = $this->subject->getKey();
+            $view->viewable_type = $this->subject->getMorphClass();
+            $view->visitor = $this->resolveVisitorId();
+            $view->tag = $this->tag;
+            $view->viewed_at = Carbon::now();
+
+            return $view->save();
         }
 
-        $view = app(ViewContract::class);
-        $view->viewable_id = $this->subject->getKey();
-        $view->viewable_type = $this->subject->getMorphClass();
-        $view->visitor = $this->resolveVisitorId();
-        $view->tag = $this->tag;
-        $view->viewed_at = Carbon::now();
-
-        return $view->save();
+        return false;
     }
 
     /**
@@ -179,15 +177,11 @@ class Views
      */
     public function count(): int
     {
-        // Use given period, otherwise create an empty one
         $period = $this->period ?? Period::create();
 
-        // Create new Query Builder instance of the views relationship
         $query = $this->morphViews();
-
         $query = $this->applyPeriodToQuery($query, $period);
 
-        // Count only the unique views
         if ($this->unique) {
             $viewsCount = $query->distinct('visitor')->count('visitor');
         } else {
@@ -247,7 +241,7 @@ class Views
     }
 
     /**
-     * Set the tag.
+     * Set a tag.
      *
      * @param  string
      * @return self
@@ -260,7 +254,7 @@ class Views
     }
 
     /**
-     * Fetch only the unique views.
+     * Fetch only unique views.
      *
      * @param  bool  $state
      * @return self
@@ -285,8 +279,9 @@ class Views
     // }
 
     /**
-     * Cache the current views count.
+     * Override the visitor's IP Address.
      *
+     * @param  string  $address
      * @return self
      */
     public function overrideIpAddress(string $address)
@@ -297,33 +292,45 @@ class Views
     }
 
     /**
-     * Get a collection of all the views the model has.
+     * Get the views the model has.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    private function morphViews()
+    protected function morphViews()
     {
         return $this->subject->morphMany(app(ViewContract::class), 'viewable');
     }
 
-    private function applyPeriodToQuery($query, $period)
+    /**
+     * Apply the period constraint to the given query.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $column
+     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function applyPeriodToQuery(Builder $query, $period, string $column = 'viewed_at'): Builder
     {
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        // Apply period to query
         if ($startDateTime && ! $endDateTime) {
-            $query->where('viewed_at', '>=', $startDateTime);
+            $query->where($column, '>=', $startDateTime);
         } elseif (! $startDateTime && $endDateTime) {
-            $query->where('viewed_at', '<=', $endDateTime);
+            $query->where($column, '<=', $endDateTime);
         } elseif ($startDateTime && $endDateTime) {
-            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
+            $query->whereBetween($column, [$startDateTime, $endDateTime]);
         }
 
         return $query;
     }
 
-    private function shouldRecord()
+    /**
+     * Determine if we should record the view.
+     *
+     * @return bool
+     */
+    protected function shouldRecord(): bool
     {
         // If ignore bots is true and the current viewer is a bot, return false
         if (config('eloquent-viewable.ignore_bots') && $this->crawlerDetector->isCrawler()) {
@@ -350,9 +357,12 @@ class Views
     /**
      * Resolve the visitor's IP Address.
      *
+     * It will first check if the overriddenIpAddress property has been set,
+     * otherwise it will resolve it using the IP Address resolver.
+     *
      * @return string
      */
-    private function resolveIpAddress(): string
+    protected function resolveIpAddress(): string
     {
         return $this->overriddenIpAddress ?? $this->ipAddressResolver->resolve();
     }
@@ -362,7 +372,7 @@ class Views
      *
      * @return string
      */
-    private function requestHasDoNotTrackHeader(): bool
+    protected function requestHasDoNotTrackHeader(): bool
     {
         return 1 === (int) $this->headerResolver->resolve('HTTP_DNT');
     }
@@ -372,7 +382,7 @@ class Views
      *
      * @return string|null
      */
-    private function resolveVisitorId()
+    protected function resolveVisitorId()
     {
         return $this->visitorCookieRepository->get();
     }
