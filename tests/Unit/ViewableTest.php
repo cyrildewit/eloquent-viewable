@@ -17,6 +17,7 @@ use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class ViewableTest extends TestCase
@@ -32,9 +33,9 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function it_can_return_an_instance_of_views()
+    public function it_has_a_views_relationship()
     {
-        $this->assertInstanceOf(Views::class, $this->post->views());
+        $this->assertInstanceOf(MorphMany::class, $this->post->views());
     }
 
     /** @test */
