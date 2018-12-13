@@ -36,4 +36,80 @@ class ViewableTest extends TestCase
     {
         $this->assertInstanceOf(Views::class, $this->post->views());
     }
+
+    /** @test */
+    public function it_can_be_ordered_by_views_count_in_descending_order()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne);
+        TestHelper::createNewView($postOne);
+        TestHelper::createNewView($postOne);
+
+        TestHelper::createNewView($postTwo);
+
+        TestHelper::createNewView($postThree);
+        TestHelper::createNewView($postThree);
+
+        $this->assertEquals(collect([1, 3, 2]), Post::orderByViews()->pluck('id'));
+    }
+
+    /** @test */
+    public function it_can_be_ordered_by_views_count_in_ascending_order()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne);
+        TestHelper::createNewView($postOne);
+        TestHelper::createNewView($postOne);
+
+        TestHelper::createNewView($postTwo);
+
+        TestHelper::createNewView($postThree);
+        TestHelper::createNewView($postThree);
+
+        $this->assertEquals(collect([2, 3, 1]), Post::orderByViews('asc')->pluck('id'));
+    }
+
+    /** @test */
+    public function it_can_be_ordered_by_unique_views_count_in_descending_order()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $this->assertEquals(collect([1, 3, 2]), Post::orderByUniqueViews()->pluck('id'));
+    }
+
+    /** @test */
+    public function it_can_be_ordered_by_unique_views_count_in_ascending_order()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+
+        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+
+        $this->assertEquals(collect([2, 3, 1]), Post::orderByUniqueViews('asc')->pluck('id'));
+    }
 }
