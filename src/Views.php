@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -133,11 +134,15 @@ class Views
     /**
      * Count the views for a viewable type.
      *
-     * @param  string  $viewableType
+     * @param  string|  $viewableType
      * @return int
      */
-    public function countByType(string $viewableType): int
+    public function countByType($viewableType): int
     {
+        if ($viewableType instanceof Model) {
+            $viewableType = $viewableType->getMorphClass();
+        }
+
         $query = app(ViewContract::class)->where('viewable_type', $viewableType);
 
         if ($period = $this->period) {

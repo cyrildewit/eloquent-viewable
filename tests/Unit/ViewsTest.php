@@ -181,6 +181,7 @@ class ViewsTest extends TestCase
         TestHelper::createNewView($apartment);
 
         $this->assertEquals(3, app(Views::class)->countByType(Post::class));
+        $this->assertEquals(3, app(Views::class)->countByType($postOne));
     }
 
     /** @test */
@@ -197,6 +198,7 @@ class ViewsTest extends TestCase
         TestHelper::createNewView($apartment, ['visitor' => 'visitor_one']);
 
         $this->assertEquals(2, app(Views::class)->unique()->countByType(Post::class));
+        $this->assertEquals(2, app(Views::class)->unique()->countByType($postOne));
     }
 
     /** @test */
