@@ -334,8 +334,6 @@ views()->countByType($post);
 
 ### Tagging views
 
-### Recording views under a custom tag
-
 Sometimes, you may need to have multiple view counters for one viewable type. To record views under a tag, you can easily call the `tag()` method on the chain.
 
 ```php
