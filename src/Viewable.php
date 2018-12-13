@@ -43,7 +43,7 @@ trait Viewable
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
-     * @param  \  $period
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
@@ -62,7 +62,7 @@ trait Viewable
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  string  $direction
-     * @param  \  $period
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder
