@@ -39,6 +39,16 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_is_macroable()
+    {
+        Views::macro('newMethod', function () {
+            return 'someValue';
+        });
+
+        $this->assertEquals('someValue', views()->newMethod());
+    }
+
+    /** @test */
     public function it_can_record_a_view()
     {
         views($this->post)->record();
