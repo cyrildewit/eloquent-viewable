@@ -384,7 +384,7 @@ ProcessView::dispatch($post)
 
 ### Caching view counts
 
-If you want to cache for example the total number of views of a post, you can do the following as example:
+If you want to cache for example the total number of views of a post, you could do the following:
 
 ```php
 // unique key that contains the post id and period to avoid collisions with other queries
@@ -395,9 +395,11 @@ cache()->remember($key, now()->addHours(2), function () use ($post) {
 });
 ```
 
-This method is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic. This is also a reason why the `Period` class exists.
+This method is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic.
 
-Of course, there are solutions to prevent this issue from occurring. Luckily this package provides an easy way of handling this. You can simply add the `cache()` method on the chain.
+Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're know able to properly generalize the dates.
+
+Now of course, you can wrap all these methods with your solution, but luckily this package provides an easy way of handling this. You can simply add the `cache()` method on the chain.
 
 Examples:
 
