@@ -50,13 +50,11 @@ trait Viewable
      */
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        $viewable = $query->getModel();
-        $viewModel = app(ViewContract::class);
-
-        return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewable->getTable()}.*, count(`{$viewModel->getConnection()->getTablePrefix()}{$viewModel->getTable()}`.`{$viewModel->getKeyName()}`) as views_count")
-            ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->orderBy('views_count', $direction);
+        return $query->withCount(['views' => function ($query) use ($period) {
+            if ($period) {
+                $query->withinPeriod($period);
+            }
+        }])->orderBy('views_count', $direction);
     }
 
     /**
@@ -69,12 +67,12 @@ trait Viewable
      */
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        $viewable = $query->getModel();
-        $viewModel = app(View::class);
+        return $query->withCount(['views' => function ($query) use ($period) {
+            $query->uniqueVisitor();
 
-       return $query->leftJoin($viewModel->getTable(), "{$viewModel->getTable()}.viewable_id", '=', "{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewable->getTable()}.*, count(distinct visitor) as views_count")
-            ->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->orderBy('views_count', $direction);
+            if ($period) {
+                $query->withinPeriod($period);
+            }
+        }])->orderBy('views_count', $direction);
     }
 }

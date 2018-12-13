@@ -135,13 +135,14 @@ class Views
      */
     public function countByType(string $viewableType): int
     {
-        $period = $this->period ?? Period::create();
-
         $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-        $query = $this->applyPeriodToQuery($query, $period);
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
+        }
 
         if ($this->unique) {
-            $viewsCount = $query->distinct('visitor')->count('visitor');
+            $viewsCount = $query->uniqueVisitor()->count('visitor');
         } else {
             $viewsCount = $query->count();
         }
@@ -177,13 +178,14 @@ class Views
      */
     public function count(): int
     {
-        $period = $this->period ?? Period::create();
-
         $query = $this->subject->views();
-        $query = $this->applyPeriodToQuery($query, $period);
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
+        }
 
         if ($this->unique) {
-            $viewsCount = $query->distinct('visitor')->count('visitor');
+            $viewsCount = $query->uniqueVisitor()->count('visitor');
         } else {
             $viewsCount = $query->count();
         }
@@ -289,30 +291,6 @@ class Views
         $this->overriddenIpAddress = $address;
 
         return $this;
-    }
-
-    /**
-     * Apply the period constraint to the given query.
-     *
-     * @param  $query
-     * @param  string  $column
-     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    protected function applyPeriodToQuery($query, $period, string $column = 'viewed_at')
-    {
-        $startDateTime = $period->getStartDateTime();
-        $endDateTime = $period->getEndDateTime();
-
-        if ($startDateTime && ! $endDateTime) {
-            $query->where($column, '>=', $startDateTime);
-        } elseif (! $startDateTime && $endDateTime) {
-            $query->where($column, '<=', $endDateTime);
-        } elseif ($startDateTime && $endDateTime) {
-            $query->whereBetween($column, [$startDateTime, $endDateTime]);
-        }
-
-        return $query;
     }
 
     /**
