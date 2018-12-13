@@ -300,10 +300,18 @@ Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-#### Retrieve viewable models by views count and period
+#### Retrieve viewable models by views count within the specified period
 
 ```php
-Post::orderByViews()->get();
+Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
+Post::orderByViews('desc', Period::pastDays(3))->get(); // ascending
+```
+
+And of course, it's also possible with the unique view variant:
+
+```php
+Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
+Post::orderByUniqueViews('desc', Period::pastDays(3))->get();
 ```
 
 ### Get views count of viewable type
