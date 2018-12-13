@@ -87,18 +87,10 @@ class ViewsTest extends TestCase
             ->tag('customTag')
             ->record();
 
-        $this->assertEquals(1, View::where('tag', 'customTag')->count());
+        views($this->post)->record();
+
+        $this->assertEquals(1, views($this->post)->tag('customTag')->count());
     }
-
-    // /** @test */
-    // public function it_can_record_a_view_under_multiple_tag()
-    // {
-    //     views($this->post)
-    //         ->tag('firstTag', 'secondTag')
-    //         ->record();
-
-    //     $this->assertEquals(1, View::count());
-    // }
 
     /** @test */
     public function it_can_record_a_view_with_a_custom_ip_address()
