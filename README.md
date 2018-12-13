@@ -15,25 +15,25 @@ Once installed you can do stuff like this:
 
 ```php
 // Return total views count
-$post->views()->count();
+views($post)->count();
 
 // Return total views count that have been made since 20 February 2017
-$post->views()->period(Period::since('2017-02-20'))->count();
+views($post)->period(Period::since('2017-02-20'))->count();
 
 // Return total views count that have been made between 2014 and 216
-$post->views()->period(Period::create('2014', '2016'))->count();
+views($post)->period(Period::create('2014', '2016'))->count();
 
 // Return total unique views count (based on visitor cookie)
-$post->views()->unique()->count();
+views($post)->unique()->count();
 
 // Record a new view
-$post->views()->record();
+views($post)->record();
 
 // Record a new view with session delay between views
-$post->views()->sessionDelay(now()->addHours(2))->record();
+views($post)->sessionDelay(now()->addHours(2))->record();
 
-// Alternatively, you can use the helper function
-views($post)->doSomething();
+// Alternatively, you can use the shortcut method on the viewable model
+$post->views()->doSomething();
 ```
 
 ## Overview
@@ -152,7 +152,7 @@ class Post extends Model implements ViewableContract
 }
 ```
 
-The `Viewable` trait also adds a shortcut for `views($model)`:
+**Note:** the `Viewable` trait also adds a shortcut for `views($model)`:
 
 ```php
 $post->views()->doSomething();
@@ -284,7 +284,7 @@ views($post)
 
 ### Order models by views count
 
-The `Viewable` trait adds two scopes to your model: `scopeOrderByViews` and `scopeOrderByUniqueViews`.
+The `Viewable` trait adds two scopes to your model: `orderByViews` and `orderByUniqueViews`.
 
 #### Retrieve viewable models by views count
 
@@ -375,6 +375,10 @@ ProcessView::dispatch($post)
 **Note:** it's unnecessary if you are using the database as queue driver!
 
 ### Caching view counts
+
+```php
+views($post)->cache()->count();
+```
 
 ## Extending
 
