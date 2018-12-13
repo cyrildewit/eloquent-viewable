@@ -307,11 +307,11 @@ Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
 Post::orderByViews('desc', Period::pastDays(3))->get(); // ascending
 ```
 
-And of course, it's also possible with the unique view variant:
+And of course, it's also possible with the unique views variant:
 
 ```php
 Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
-Post::orderByUniqueViews('desc', Period::pastDays(3))->get();
+Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
 ```
 
 ### Get views count of viewable type
@@ -384,8 +384,29 @@ ProcessView::dispatch($post)
 
 ### Caching view counts
 
+If you want to cache for example the total number of views of a post, you can do the following as example:
+
+```php
+// unique key that contains the post id and period to avoid collisions with other queries
+$key = 'views.post'.$post->id.'.2018-01-24|2018-05-22';
+
+cache()->remember($key, now()->addHours(2), function () use ($post) {
+    return views($post)->period(Period::create('2018-01-24', '2018-05-22'))->count();
+});
+```
+
+This method is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic. This is also a reason why the `Period` class exists.
+
+Of course, there are solutions to prevent this issue from occurring. Luckily this package provides an easy way of handling this. You can simply add the `cache()` method on the chain.
+
+Examples:
+
 ```php
 views($post)->cache()->count();
+views($post)->period(Period::create('2018-01-24', '2018-05-22'))->cache()->count();
+views($post)->period(Period::upto('2018-11-10'))->unique()->cache()->count();
+views($post)->period(Period::pastMonths(2))->cache()->count();
+views($post)->period(Period::subHours(6))->cache()->count();
 ```
 
 ## Extending
