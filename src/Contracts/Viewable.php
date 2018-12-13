@@ -34,11 +34,11 @@ interface Viewable
     public function getMorphClass();
 
     /**
-     * Return an instance of the Views class.
+     * Get the views the model has.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function views(): Views;
+    public function views(): MorphMany;
 
     /**
      * Scope a query to order records by views count.
