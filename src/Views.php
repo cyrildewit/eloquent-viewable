@@ -20,6 +20,7 @@ use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
 class Views
 {
@@ -178,7 +179,7 @@ class Views
     {
         $period = $this->period ?? Period::create();
 
-        $query = $this->morphViews();
+        $query = $this->subject->views();
         $query = $this->applyPeriodToQuery($query, $period);
 
         if ($this->unique) {
@@ -197,7 +198,7 @@ class Views
      */
     public function destroy()
     {
-        $this->morphViews()->delete();
+        $this->subject->views()->delete();
     }
 
     /**
@@ -206,7 +207,7 @@ class Views
      * @param  \Illuminate\Database\Eloquent\Model|null
      * @return self
      */
-    public function setSubject($subject): self
+    public function setSubject(ViewableContract $subject): self
     {
         $this->subject = $subject;
 
@@ -288,16 +289,6 @@ class Views
         $this->overriddenIpAddress = $address;
 
         return $this;
-    }
-
-    /**
-     * Get the views the model has.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
-     */
-    protected function morphViews()
-    {
-        return $this->subject->morphMany(app(ViewContract::class), 'viewable');
     }
 
     /**
