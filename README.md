@@ -71,7 +71,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
 3. [Advanced Usage](#advanced-usage)
-    * [Tagging views](#tagging-views)
+    * [View collections](#view-collections)
     * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
@@ -332,21 +332,21 @@ views()->countByType($post);
 
 ## Advanced Usage
 
-### Tagging views
+### View collections
 
-Sometimes, you may need to have multiple view counters for one viewable type. To record views under a tag, you can easily call the `tag()` method on the chain.
+If you have different types of views for the same viewable type, you may want to store them in their own collection.
 
 ```php
 views($post)
-    ->tag('customTag')
+    ->collection('customCollection')
     ->record();
 ```
 
-To retrieve the views count with this tag, you can reuse the same `tag()` method.
+To retrieve the views count in a specific collection, you can reuse the same `collection()` method.
 
 ```php
 views($post)
-    ->tag('customTag')
+    ->collection('customCollection')
     ->count();
 ```
 
