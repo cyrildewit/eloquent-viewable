@@ -45,7 +45,7 @@ class CreateViewsTable extends Migration
             $table->increments('id');
             $table->morphs('viewable');
             $table->text('visitor')->nullable();
-            $table->text('tag')->nullable();
+            $table->string('collection')->nullable();
             $table->timestamp('viewed_at')->useCurrent();
         });
     }
