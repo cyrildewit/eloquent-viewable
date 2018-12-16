@@ -25,7 +25,7 @@ class Key
      * @param  bool  $unique
      * @return string
      */
-    public static function createForEntity(ViewableContract $viewable, $period, bool $unique, string $tag = null): string
+    public static function createForEntity(ViewableContract $viewable, $period, bool $unique, string $collection = null): string
     {
         $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
 
@@ -35,9 +35,9 @@ class Key
         $typeKey = $unique ? 'unique' : 'normal';
         $periodKey = static::createPeriodKey($period);
 
-        $tag = $tag ? ".{$tag}" : '';
+        $collection = $collection ? ".{$collection}" : '';
 
-        return "{$cacheKey}{$tag}.{$viewableType}.{$viewableKey}.{$typeKey}.{$periodKey}";
+        return "{$cacheKey}{$collection}.{$viewableType}.{$viewableKey}.{$typeKey}.{$periodKey}";
     }
 
     /**
@@ -59,7 +59,6 @@ class Key
 
         return "{$cacheKey}.{$viewableType}.{$typeKey}.{$periodKey}";
     }
-
 
     /**
      * Format a period class into a key.

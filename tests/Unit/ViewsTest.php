@@ -23,8 +23,8 @@ use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
 class ViewsTest extends TestCase
 {
@@ -81,15 +81,15 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_can_record_a_view_under_a_tag()
+    public function it_can_record_a_view_under_a_collection()
     {
         views($this->post)
-            ->tag('customTag')
+            ->collection('customCollection')
             ->record();
 
         views($this->post)->record();
 
-        $this->assertEquals(1, views($this->post)->tag('customTag')->count());
+        $this->assertEquals(1, View::where('collection', 'customCollection')->count());
     }
 
     /** @test */
@@ -145,6 +145,17 @@ class ViewsTest extends TestCase
         $this->assertEquals(6, views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count());
         $this->assertEquals(4, views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count());
         $this->assertEquals(4, views($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count());
+    }
+
+    /** @test */
+    public function it_can_count_the_views_with_a_collection()
+    {
+        views($this->post)->collection('custom')->record();
+        views($this->post)->collection('custom')->record();
+        views($this->post)->record();
+
+        $this->assertEquals(2, views($this->post)->collection('custom')->count());
+        $this->assertEquals(1, views($this->post)->count());
     }
 
     /** @test */

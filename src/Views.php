@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
@@ -58,11 +57,11 @@ class Views
     protected $sessionDelay = null;
 
     /**
-     * The tag under which view will be saved.
+     * The collection under where the view will be saved.
      *
      * @var string|null
      */
-    protected $tag = null;
+    protected $collection = null;
 
     /**
      * Determine if the views count should be cached.
@@ -202,7 +201,7 @@ class Views
             $view->viewable_id = $this->viewable->getKey();
             $view->viewable_type = $this->viewable->getMorphClass();
             $view->visitor = $this->resolveVisitorId();
-            $view->tag = $this->tag;
+            $view->collection = $this->collection;
             $view->viewed_at = Carbon::now();
 
             return $view->save();
@@ -220,7 +219,7 @@ class Views
     {
         $query = $this->viewable->views();
 
-        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->tag);
+        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->collection);
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
@@ -234,9 +233,7 @@ class Views
             $query->withinPeriod($period);
         }
 
-        if ($tag = $this->tag) {
-            $query->where('tag', $tag);
-        }
+        $query->where('collection', $this->collection);
 
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
@@ -301,14 +298,14 @@ class Views
     }
 
     /**
-     * Set a tag.
+     * Set the collection.
      *
      * @param  string
      * @return self
      */
-    public function tag($tag): self
+    public function collection(string $name): self
     {
-        $this->tag = $tag;
+        $this->collection = $name;
 
         return $this;
     }
