@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;

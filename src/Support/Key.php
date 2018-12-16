@@ -60,7 +60,6 @@ class Key
         return "{$cacheKey}.{$viewableType}.{$typeKey}.{$periodKey}";
     }
 
-
     /**
      * Format a period class into a key.
      *
