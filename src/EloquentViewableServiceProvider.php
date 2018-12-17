@@ -31,9 +31,25 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // $this->registerMiddleware();
-        $this->registerMigrations();
-        $this->registerPublishing();
+        if ($this->app->runningInConsole()) {
+            $config = $this->app->config['eloquent-viewable'];
+
+            $this->publishes([
+                __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
+            ], 'config');
+
+            $this->publishes([
+                __DIR__.'/../migrations/2018_11_10_125700_create_views_table.php' => $this->app->databasePath('migrations/2018_11_10_125700_create_views_table.php'),
+            ], 'migrations');
+
+            if (! class_exists('CreateViewsTable')) {
+                $timestamp = date('Y_m_d_His', time());
+
+                $this->publishes([
+                    __DIR__.'/../migrations/create_views_table.php.stub' => database_path("/migrations/{$timestamp}_create_views_table.php"),
+                ], 'migrations');
+            }
+        }
     }
 
     /**
@@ -62,37 +78,5 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
         $this->app->singleton(IpAddressResolverContract::class, IpAddressResolver::class);
         $this->app->singleton(HeaderResolverContract::class, HeaderResolver::class);
-    }
-
-    /**
-     * Register the package's migrations.
-     *
-     * @return void
-     */
-    protected function registerMigrations()
-    {
-        if ($this->app->runningInConsole()) {
-            $this->loadMigrationsFrom(__DIR__.'/../migrations');
-        }
-    }
-
-    /**
-     * Setup the resource publishing groups for Eloquent Viewable.
-     *
-     * @return void
-     */
-    protected function registerPublishing()
-    {
-        if ($this->app->runningInConsole()) {
-            $config = $this->app->config['eloquent-viewable'];
-
-            $this->publishes([
-                __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
-            ], 'config');
-
-            $this->publishes([
-                __DIR__.'/../migrations/2018_11_10_125700_create_views_table.php' => $this->app->databasePath('migrations/2018_11_10_125700_create_views_table.php'),
-            ], 'migrations');
-        }
     }
 }

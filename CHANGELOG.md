@@ -5,7 +5,7 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased v3.0.0]
+## [v3.0.0] (2018-12-17)
 
 ### Added
 
@@ -14,10 +14,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `HeaderResolver` contract with implementation
 - Added `VisitorCookieRepository` class
 - Added global helper `views`
+- Added `collection` column to views table shema
+- Added `withinPeriod` scope to `View` model
+- Added `uniqueVisitor` scope to `View` model
 
 ### Changed
 
-- The public views method on viewable models will now return an instance of the `Views` class
+- Bumped minimum required PHP version to ^7.1
+- Require viewable models to implement the `Viewable` contract
+- Added global `views()` helper
 - Remove IP address as fallback for visitor cookie when it doesn't exists
 - Changed the `isBot` method name to `isCrawler` in `CrawlerDetector` contract and updated the `CrawlerDetectAdapter`
 - Changed the visibility of the `$detector` property from `protected` to `private`
@@ -33,8 +38,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Removed the `ViewableService` class
 - Removed the `ProcessView` job
 - Removed the `update_views_table` migration file from `resources/database/migrations`
+- Removed `illuminate/bus` as dependency
+- Removed `illuminate/queue` as dependency
+- Removed `illuminate/routing` as dependency
 
 ## [Unreleased]
+
+## [v2.5.0] (2018-12-03)
+
+### Fixed
+
+- `orderByViewsCount` scope doesn't adhere to connection prefix
 
 ## [v2.4.3] (2018-10-21)
 

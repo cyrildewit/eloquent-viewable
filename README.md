@@ -1,9 +1,9 @@
 # Eloquent Viewable
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/3.x.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
-[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
+[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/3.x.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
@@ -151,12 +151,6 @@ class Post extends Model implements ViewableContract
 
     // ...
 }
-```
-
-**Note:** the `Viewable` trait also adds a shortcut for `views($model)`:
-
-```php
-$post->views()->doSomething();
 ```
 
 ### Recording views
