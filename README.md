@@ -410,16 +410,24 @@ This method is perfectly fine for the example where we are counting the views st
 
 Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're know able to properly generalize the dates.
 
-Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `cache()` method on the chain. It will do all the hard work under the hood!
+Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
 
 Examples:
 
 ```php
-views($post)->cache()->count();
-views($post)->period(Period::create('2018-01-24', '2018-05-22'))->cache()->count();
-views($post)->period(Period::upto('2018-11-10'))->unique()->cache()->count();
-views($post)->period(Period::pastMonths(2))->cache()->count();
-views($post)->period(Period::subHours(6))->cache()->count();
+views($post)->remember()->count();
+views($post)->period(Period::create('2018-01-24', '2018-05-22'))->remember()->count();
+views($post)->period(Period::upto('2018-11-10'))->unique()->remember()->count();
+views($post)->period(Period::pastMonths(2))->remember()->count();
+views($post)->period(Period::subHours(6))->remember()->count();
+```
+
+The default lifetime is configurable through the config file. Alternatively, you can pass a custom lifetime to the `remember` method.
+
+```php
+views($post)
+    ->remember(now()->addHours(6))
+    ->count();
 ```
 
 ## Extending
