@@ -153,12 +153,6 @@ class Post extends Model implements ViewableContract
 }
 ```
 
-**Note:** the `Viewable` trait also adds a shortcut for `views($model)`:
-
-```php
-$post->views()->doSomething();
-```
-
 ### Recording views
 
 To make a view record, you can call the `record` method on the fluent `Views` instance.
