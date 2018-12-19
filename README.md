@@ -29,9 +29,6 @@ views($post)->record();
 
 // Record a new view with session delay between views
 views($post)->sessionDelay(now()->addHours(2))->record();
-
-// Alternatively, you can use the shortcut method on the viewable model
-$post->views()->doSomething();
 ```
 
 ## Overview
@@ -74,14 +71,17 @@ In this documentation, you will find some helpful information about the use of t
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
-    * [Using your own model](#using-your-own-model)
+    * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
+    * [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
+    * [Using a custom header resolver](#using-a-custom-header-resolver)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
+    * [Adding macros to the Views class](#adding-macros-to-the-views-class)
 
 ## Getting Started
 
 ### Requirements
 
-This package requires **PHP 7+** and **Laravel 5.5+**.
+This package requires **PHP 7.1+** and **Laravel 5.5+**.
 
 Lumen is not supported!
 
@@ -89,8 +89,8 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
-| 3.0     | 5.5 - 5.7  | _In Development_ | >= 7.1.0    |
-| 2.0     | 5.5 - 5.7  | Active support | >= 7.0.0    |
+| 3.0     | 5.5 - 5.7  | Active support | >= 7.1.0    |
+| 2.0     | 5.5 - 5.7  | Bug fixes only | >= 7.0.0    |
 | 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
 ### Installation
@@ -101,13 +101,7 @@ First, you need to install the package via Composer:
 composer require cyrildewit/eloquent-viewable
 ```
 
-Secondly, if you want to make some basic changes like giving the `views` table a different name or creating the table on a different connection, you can configure that by publishing the config file with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
-```
-
-Alternatively, if you want to make bigger changes to the migrations, you can publish them using:
+Secondly, you can publish the the migrations with:
 
 ```winbatch
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
@@ -117,6 +111,12 @@ Finally, you need to run the `migrate` command:
 
 ```winbatch
 php artisan migrate
+```
+
+You can optionally publish the config file with:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
 #### Register service provider manually
@@ -436,11 +436,12 @@ If you want to extend or replace one of the core classes with your own implement
 
 * `CyrildeWit\EloquentViewable\View`
 * `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
-* `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
+* `CyrildeWit\EloquentViewable\Resolvers\HeaderResolver`
+* `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-### Replace `View` model with custom implementation
+### Using your own `View` Eloquent model
 
 ```php
 $this->app->bind(
@@ -449,7 +450,7 @@ $this->app->bind(
 );
 ```
 
-### Replace `IpAddressResolver` class with custom implementation
+### Using a custom IP address resolver
 
 ```php
 $this->app->singleton(
@@ -458,13 +459,32 @@ $this->app->singleton(
 );
 ```
 
-### Replace `CrawlerDetectAdapter` class with custom implementation
+### Using a custom header resolver
+
+```php
+$this->app->singleton(
+    \CyrildeWit\EloquentViewable\Contracts\HeaderResolver::class,
+    \App\Resolvers\HeaderResolver::class
+);
+```
+
+### Using a custom crawler detector
 
 ```php
 $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
     \App\Services\CrawlerDetector\CustomAdapter::class
 );
+```
+
+### Adding macros to the Views class
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::macro('countAndCache', function () {
+    return $this->cache()->count();
+});
 ```
 
 ## Upgrading
