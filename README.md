@@ -101,7 +101,7 @@ First, you need to install the package via Composer:
 composer require cyrildewit/eloquent-viewable
 ```
 
-Secondly, you can publish the the migrations with:
+Secondly, you can publish the migrations with:
 
 ```winbatch
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
