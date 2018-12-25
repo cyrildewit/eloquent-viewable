@@ -38,10 +38,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
 
-            $this->publishes([
-                __DIR__.'/../migrations/2018_11_10_125700_create_views_table.php' => $this->app->databasePath('migrations/2018_11_10_125700_create_views_table.php'),
-            ], 'migrations');
-
             if (! class_exists('CreateViewsTable')) {
                 $timestamp = date('Y_m_d_His', time());
 
