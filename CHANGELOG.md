@@ -5,6 +5,12 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v3.0.1] (2018-12-25)
+
+### Fixed
+
+- Publishing package migrations results in error (#133)
+
 ## [v3.0.0] (2018-12-17)
 
 ### Added
@@ -124,7 +130,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.1...HEAD
+[v3.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.3...v3.0.0
 [v2.4.3]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.2...v2.4.3
 [v2.4.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v2.3.1...v2.4.2
