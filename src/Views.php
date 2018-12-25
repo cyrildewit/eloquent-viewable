@@ -372,7 +372,7 @@ class Views
             return false;
         }
 
-        if ($this->sessionDelay && $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
+        if (!is_null($this->sessionDelay) && !$this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
             return false;
         }
 
