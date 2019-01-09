@@ -107,7 +107,7 @@ class Period
      * Create a new Period instance with only a start date time.
      *
      * @param  \Datetime|string|null  $startDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function since($startDateTime = null): self
     {
@@ -118,7 +118,7 @@ class Period
      * Create a new Period instance with only a end date time.
      *
      * @param  \Datetime|string|null  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function upto($endDateTime = null): self
     {
