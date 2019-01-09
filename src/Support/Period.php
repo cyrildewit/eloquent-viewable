@@ -76,10 +76,8 @@ class Period
      */
     public function __construct($startDateTime = null, $endDateTime = null)
     {
-        if (is_string($startDateTime) && is_string($endDateTime)) {
-            $startDateTime = Carbon::parse($startDateTime);
-            $endDateTime = Carbon::parse($endDateTime);
-        }
+        $startDateTime = $this->resolveDateTime($startDateTime);
+        $endDateTime = $this->resolveDateTime($endDateTime);
 
         if ($startDateTime instanceof DateTime && $endDateTime instanceof DateTime) {
             if ($startDateTime > $endDateTime) {
@@ -461,5 +459,16 @@ class Period
         $this->subValue = $subValue;
 
         return $this;
+    }
+
+    protected function resolveDateTime($dateTime)
+    {
+        if ($dateTime instanceof DateTime) {
+            return $dateTime;
+        }
+
+        if (is_string($dateTime)) {
+            return Carbon::parse($dateTime);
+        }
     }
 }
