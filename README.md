@@ -67,6 +67,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Order models by views count](#order-models-by-views-count)
 3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
+    * [Remove views on delete](#remove-views-on-delete)
     * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
@@ -340,6 +341,14 @@ To retrieve the views count in a specific collection, you can reuse the same `co
 views($post)
     ->collection('customCollection')
     ->count();
+```
+
+### Remove views on delete
+
+To automatically delete all views of an viewable Eloquent model on delete, you can enable it by setting the `removeViewsOnDelete` property to `true` in your model definition.
+
+```php
+protected $removeViewsOnDelete = true;
 ```
 
 ### Supplying your own visitor's IP Address
