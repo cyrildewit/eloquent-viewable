@@ -166,7 +166,7 @@ class Views
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
         }
 
@@ -225,7 +225,7 @@ class Views
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
         }
 
