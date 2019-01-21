@@ -279,6 +279,10 @@ class Views
      */
     public function delayInSession($delay): self
     {
+        if (is_integer($delay)) {
+            $delay = Carbon::now()->addMinutes($delay);
+        }
+
         $this->sessionDelay = $delay;
 
         return $this;
