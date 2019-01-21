@@ -24,7 +24,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cache  Configuration
+    | Cache Configuration
     |--------------------------------------------------------------------------
     */
 
@@ -34,6 +34,11 @@ return [
          * Everthing will be stored under the following key.
          */
         'key' => 'cyrildewit.eloquent-viewable.cache',
+
+        /*
+         * Here you may define the cache store that should be used.
+         */
+        'store' => env('CACHE_DRIVER', 'file'),
 
         /*
          * Default lifetime of cached views count in minutes.
