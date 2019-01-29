@@ -286,7 +286,7 @@ class Views
      */
     public function delayInSession($delay): self
     {
-        if (is_integer($delay)) {
+        if (is_int($delay)) {
             $delay = Carbon::now()->addMinutes($delay);
         }
 
@@ -396,7 +396,7 @@ class Views
             return false;
         }
 
-        if (!is_null($this->sessionDelay) && !$this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
+        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
             return false;
         }
 
