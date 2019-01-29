@@ -15,6 +15,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use Illuminate\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
 use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
@@ -59,6 +60,12 @@ class EloquentViewableServiceProvider extends ServiceProvider
             __DIR__.'/../config/eloquent-viewable.php',
             'eloquent-viewable'
         );
+
+        $this->app->when(Views::class)
+            ->needs(CacheRepository::class)
+            ->give(function () : CacheRepository {
+                return $this->app['cache']->store(config('eloquent-viewable.cache.store'));
+            });
 
         $this->app->bind(ViewContract::class, View::class);
 

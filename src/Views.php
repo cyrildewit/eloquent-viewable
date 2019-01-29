@@ -85,6 +85,13 @@ class Views
     protected $overriddenIpAddress;
 
     /**
+     * Used visitor ID instead of the provided one by a cookie.
+     *
+     * @var string
+     */
+    protected $overriddenVisitor;
+
+    /**
      * The view session history instance.
      *
      * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
@@ -279,6 +286,10 @@ class Views
      */
     public function delayInSession($delay): self
     {
+        if (is_integer($delay)) {
+            $delay = Carbon::now()->addMinutes($delay);
+        }
+
         $this->sessionDelay = $delay;
 
         return $this;
@@ -351,6 +362,19 @@ class Views
     }
 
     /**
+     * Override the visitor's unique ID.
+     *
+     * @param  string  $visitor
+     * @return self
+     */
+    public function overrideVisitor(string $visitor)
+    {
+        $this->overriddenVisitor = $visitor;
+
+        return $this;
+    }
+
+    /**
      * Determine if we should record the view.
      *
      * @return bool
@@ -409,6 +433,6 @@ class Views
      */
     protected function resolveVisitorId()
     {
-        return $this->visitorCookieRepository->get();
+        return $this->overriddenVisitor ?? $this->visitorCookieRepository->get();
     }
 }

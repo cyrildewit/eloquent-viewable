@@ -67,7 +67,7 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_can_record_a_view_with_a_session_delay()
+    public function it_does_not_record_views_if_session_delay_is_active()
     {
         views($this->post)
             ->delayInSession(Carbon::now()->addMinutes(10))
@@ -75,6 +75,20 @@ class ViewsTest extends TestCase
 
         views($this->post)
             ->delayInSession(Carbon::now()->addMinutes(10))
+            ->record();
+
+        $this->assertEquals(1, View::count());
+    }
+
+    /** @test */
+    public function it_can_record_a_view_with_session_delay_where_delay_is_an_integer()
+    {
+        views($this->post)
+            ->delayInSession(10)
+            ->record();
+
+        views($this->post)
+            ->delayInSession(10)
             ->record();
 
         $this->assertEquals(1, View::count());

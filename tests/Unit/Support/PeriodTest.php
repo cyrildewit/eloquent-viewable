@@ -55,6 +55,28 @@ class PeriodTest extends TestCase
     }
 
     /** @test */
+    public function it_can_construct_a_new_period_instance_with_start_datetime_argument_as_string()
+    {
+        $startDateTime = '2018-07-16';
+
+        $period = new Period('2018-07-16');
+
+        $this->assertEquals($period->getStartDateTime(), Carbon::parse($startDateTime));
+        $this->assertNull($period->getEndDateTime());
+    }
+
+    /** @test */
+    public function it_can_construct_a_new_period_instance_with_end_datetime_argument_as_string()
+    {
+        $endDateTime = '2018-07-16';
+
+        $period = new Period(null, $endDateTime);
+
+        $this->assertNull($period->getStartDateTime());
+        $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
+    }
+
+    /** @test */
     public function it_will_throw_an_exception_if_the_start_date_time_comes_after_the_end_date_time()
     {
         $startDateTime = Carbon::create(2018, 1, 1);
