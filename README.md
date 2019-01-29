@@ -56,53 +56,27 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Table of contents
 
-- [Eloquent Viewable](#eloquent-viewable)
-  - [Overview](#overview)
-    - [Features](#features)
-  - [Documentation](#documentation)
-    - [Table of contents](#table-of-contents)
-  - [Getting Started](#getting-started)
-    - [Requirements](#requirements)
-      - [Version information](#version-information)
-    - [Installation](#installation)
-      - [Register service provider manually](#register-service-provider-manually)
-  - [Usage](#usage)
-    - [Preparing your model](#preparing-your-model)
-    - [Recording views](#recording-views)
-    - [Recording views with session delays](#recording-views-with-session-delays)
-      - [How it works](#how-it-works)
-    - [Retrieving views counts](#retrieving-views-counts)
-      - [Get total views count](#get-total-views-count)
-      - [Get views count of a specific period](#get-views-count-of-a-specific-period)
-        - [Between two datetimes](#between-two-datetimes)
-        - [Since a datetime](#since-a-datetime)
-        - [Upto a datetime](#upto-a-datetime)
-        - [Since past](#since-past)
-        - [Since sub](#since-sub)
-      - [Get total unique views count](#get-total-unique-views-count)
-    - [Order models by views count](#order-models-by-views-count)
-      - [Retrieve viewable models by views count](#retrieve-viewable-models-by-views-count)
-      - [Retrieve viewable models by unique views count](#retrieve-viewable-models-by-unique-views-count)
-      - [Retrieve viewable models by views count within the specified period](#retrieve-viewable-models-by-views-count-within-the-specified-period)
-    - [Get views count of viewable type](#get-views-count-of-viewable-type)
-  - [Advanced Usage](#advanced-usage)
-    - [View collections](#view-collections)
-    - [Remove views on delete](#remove-views-on-delete)
-    - [Supplying your own visitor's ID and IP Address](#supplying-your-own-visitors-id-and-ip-address)
-    - [Queuing views](#queuing-views)
-    - [Caching view counts](#caching-view-counts)
-  - [Extending](#extending)
-    - [Using your own `View` Eloquent model](#using-your-own-view-eloquent-model)
-    - [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
-    - [Using a custom header resolver](#using-a-custom-header-resolver)
-    - [Using a custom crawler detector](#using-a-custom-crawler-detector)
-    - [Adding macros to the Views class](#adding-macros-to-the-views-class)
-  - [Upgrading](#upgrading)
-  - [Changelog](#changelog)
-  - [Contributing](#contributing)
-  - [Credits](#credits)
-  - [Alternatives](#alternatives)
-  - [License](#license)
+1. [Getting Started](#getting-started)
+    * [Requirements](#requirements)
+    * [Installation](#installation)
+2. [Usage](#usage)
+    * [Preparing your model](#preparing-your-model)
+    * [Recording views](#recording-views)
+    * [Recording views with session delays](#recording-views-with-session-delays)
+    * [Retrieving views counts](#retrieving-views-counts)
+    * [Order models by views count](#order-models-by-views-count)
+3. [Advanced Usage](#advanced-usage)
+    * [View collections](#view-collections)
+    * [Remove views on delete](#remove-views-on-delete)
+    * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
+    * [Queuing views](#queuing-views)
+    * [Caching view counts](#caching-view-counts)
+4. [Extending](#extending)
+    * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
+    * [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
+    * [Using a custom header resolver](#using-a-custom-header-resolver)
+    * [Using a custom crawler detector](#using-a-custom-crawler-detector)
+    * [Adding macros to the Views class](#adding-macros-to-the-views-class)
 
 ## Getting Started
 
@@ -377,19 +351,13 @@ To automatically delete all views of an viewable Eloquent model on delete, you c
 protected $removeViewsOnDelete = true;
 ```
 
-### Supplying your own visitor's ID and IP Address
+### Supplying your own visitor's IP Address
 
-If you are using this package via a RESTful API, you might want to supply your own visitor's ID and IP Address, otherwise this package will use the visitor ID that's stored in a cookie and use IP Address of the requester.
+If you are using this package via a RESTful API, you might want to supply your own visitor's IP Address, otherwise this package will use the IP Address of the requester.
 
 ```php
-// Override IP Address (this would be supplied by your client)
 views($post)
     ->overrideIpAddress('Your IP Address')
-    ->record();
-
-// Override visitor ID (this would be supplied by your client)
-views($post)
-    ->overrideVisitor('Your unique visitor ID')
     ->record();
 ```
 
