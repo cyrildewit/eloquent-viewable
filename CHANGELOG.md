@@ -5,6 +5,18 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v3.1.0] (2019-01-29)
+
+### Fixed
+
+- Fixed the ability to pass an integer to the `delayInSession` method without getting an error
+- Type cast the cached views count otherwise PHP's type hint will fail
+
+### Added
+
+- Added the ability to override the visitor's unique ID that's used to distinguish unique views
+- Added the ability to specify a cache store that should be used by this package
+
 ## [v3.0.2] (2018-12-25)
 
 ### Fixed

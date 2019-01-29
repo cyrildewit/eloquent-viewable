@@ -351,13 +351,19 @@ To automatically delete all views of an viewable Eloquent model on delete, you c
 protected $removeViewsOnDelete = true;
 ```
 
-### Supplying your own visitor's IP Address
+### Supplying your own visitor's ID and IP Address
 
-If you are using this package via a RESTful API, you might want to supply your own visitor's IP Address, otherwise this package will use the IP Address of the requester.
+If you are using this package via a RESTful API, you might want to supply your own visitor's ID and IP Address, otherwise this package will use the visitor ID that's stored in a cookie and use IP Address of the requester.
 
 ```php
+// Override IP Address (this would be supplied by your client)
 views($post)
     ->overrideIpAddress('Your IP Address')
+    ->record();
+
+// Override visitor ID (this would be supplied by your client)
+views($post)
+    ->overrideVisitor('Your unique visitor ID')
     ->record();
 ```
 
