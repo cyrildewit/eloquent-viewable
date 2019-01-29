@@ -68,7 +68,7 @@ In this documentation, you will find some helpful information about the use of t
 3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
-    * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
+    * [Supplying your own visitor's ID and IP Address](#supplying-your-own-visitors-id-and-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
