@@ -343,7 +343,7 @@ class Views
     public function remember($lifetime = null)
     {
         $this->shouldCache = true;
-        $this->cacheLifetiem = $lifetime;
+        $this->cacheLifetime = $lifetime;
 
         return $this;
     }
