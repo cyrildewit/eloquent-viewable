@@ -76,7 +76,7 @@ class Views
      *
      * @var \DateTime
      */
-    public $cacheLifetime;
+    protected $cacheLifetime;
 
     /**
      * Used IP Address instead of the provided one by the resolver.
