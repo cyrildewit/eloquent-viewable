@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
@@ -451,12 +452,12 @@ class Views
      */
     protected function resolveCacheLifetime($lifetime): DateTime
     {
-        if ($dateTime instanceof DateTime) {
-            return $dateTime;
+        if ($lifetime instanceof DateTime) {
+            return $lifetime;
         }
 
-        if (is_int($dateTime)) {
-            return Carbon::now()->addMinutes($delay);
+        if (is_int($lifetime)) {
+            return Carbon::now()->addMinutes($lifetime);
         }
     }
 }
