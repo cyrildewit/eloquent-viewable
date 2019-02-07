@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
@@ -73,9 +74,9 @@ class Views
     /**
      * Determine if the views count should be cached.
      *
-     * @var \DateTime|null
+     * @var \DateTime
      */
-    public $cacheLifetime = false;
+    protected $cacheLifetime;
 
     /**
      * Used IP Address instead of the provided one by the resolver.
@@ -169,6 +170,7 @@ class Views
 
         $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
 
+        // Return cached views count if it exists
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
@@ -231,6 +233,7 @@ class Views
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
+            // Return cached views count if it exists
             if ($cachedViewsCount !== null) {
                 return (int) $cachedViewsCount;
             }
@@ -343,7 +346,12 @@ class Views
     public function remember($lifetime = null)
     {
         $this->shouldCache = true;
-        $this->cacheLifetime = $lifetime;
+
+        // Make sure something other than the default value (null) is given.
+        // Then resolve the DateTime instance from the given value.
+        if ($lifetime !== null) {
+            $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
+        }
 
         return $this;
     }
@@ -434,5 +442,22 @@ class Views
     protected function resolveVisitorId()
     {
         return $this->overriddenVisitor ?? $this->visitorCookieRepository->get();
+    }
+
+    /**
+     * Resolve cache lifetime.
+     *
+     * @param  int|DateTime
+     * @return \Carbon\Carbon
+     */
+    protected function resolveCacheLifetime($lifetime): DateTime
+    {
+        if ($lifetime instanceof DateTime) {
+            return $lifetime;
+        }
+
+        if (is_int($lifetime)) {
+            return Carbon::now()->addMinutes($lifetime);
+        }
     }
 }
