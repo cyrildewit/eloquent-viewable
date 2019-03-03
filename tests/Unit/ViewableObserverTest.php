@@ -18,7 +18,7 @@ use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
-class HasViewsObserverTest extends TestCase
+class ViewableObserverTest extends TestCase
 {
     /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
     protected $post;

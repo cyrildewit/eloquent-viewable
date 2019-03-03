@@ -28,10 +28,11 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
+        $this->destroyPackageMigrations();
+        $this->publishPackageMigrations();
+        $this->migratePackageTables();
         $this->migrateUnitTestTables();
         $this->registerPackageFactories();
-
-        $this->artisan('migrate');
     }
 
     /**
@@ -59,6 +60,41 @@ abstract class TestCase extends Orchestra
     }
 
     /**
+     * Publish package migrations.
+     *
+     * @return void
+     */
+    protected function publishPackageMigrations()
+    {
+        $this->artisan('vendor:publish', [
+            '--force' => '',
+            '--tag' => 'migrations',
+        ]);
+    }
+
+    /**
+     * Delete all published migrations.
+     *
+     * @return void
+     */
+    protected function destroyPackageMigrations()
+    {
+        File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
+    }
+
+    /**
+     * Perform package database migrations.
+     *
+     * @return void
+     */
+    protected function migratePackageTables()
+    {
+        $this->loadMigrationsFrom([
+            '--realpath' => database_path('migrations'),
+        ]);
+    }
+
+    /**
      * Perform unit test database migrations.
      *
      * @return void
@@ -75,7 +111,6 @@ abstract class TestCase extends Orchestra
      */
     protected function registerPackageFactories()
     {
-        $pathToFactories = realpath(__DIR__.'/database/factories');
-        $this->withFactories($pathToFactories);
+        $this->withFactories(realpath(__DIR__.'/database/factories'));
     }
 }

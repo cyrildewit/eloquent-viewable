@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Support;
 use DateTime;
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
@@ -76,10 +77,8 @@ class Period
      */
     public function __construct($startDateTime = null, $endDateTime = null)
     {
-        if (is_string($startDateTime) && is_string($endDateTime)) {
-            $startDateTime = Carbon::parse($startDateTime);
-            $endDateTime = Carbon::parse($endDateTime);
-        }
+        $startDateTime = $this->resolveDateTime($startDateTime);
+        $endDateTime = $this->resolveDateTime($endDateTime);
 
         if ($startDateTime instanceof DateTime && $endDateTime instanceof DateTime) {
             if ($startDateTime > $endDateTime) {
@@ -107,7 +106,7 @@ class Period
      * Create a new Period instance with only a start date time.
      *
      * @param  \Datetime|string|null  $startDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function since($startDateTime = null): self
     {
@@ -118,7 +117,7 @@ class Period
      * Create a new Period instance with only a end date time.
      *
      * @param  \Datetime|string|null  $endDateTime
-     * @return CyrildeWit\EloquentViewable\Period
+     * @return \CyrildeWit\EloquentViewable\Support\Period
      */
     public static function upto($endDateTime = null): self
     {
@@ -279,7 +278,7 @@ class Period
      */
     public static function subToday(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'PAST_')));
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
         $today = Carbon::today();
 
         return self::sub($today, $subTypeMethod, $subType, $subValue);
@@ -296,7 +295,7 @@ class Period
      */
     public static function subNow(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'SUB_')));
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
         $now = Carbon::now();
 
         return self::sub($now, $subTypeMethod, $subType, $subValue);
@@ -461,5 +460,16 @@ class Period
         $this->subValue = $subValue;
 
         return $this;
+    }
+
+    protected function resolveDateTime($dateTime)
+    {
+        if ($dateTime instanceof DateTime) {
+            return $dateTime;
+        }
+
+        if (is_string($dateTime)) {
+            return Carbon::parse($dateTime);
+        }
     }
 }

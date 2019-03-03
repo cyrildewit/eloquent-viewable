@@ -53,7 +53,14 @@ class ViewTest extends TestCase
         $this->assertNull($view->getAttribute('visitor'));
     }
 
-    // public function it_can_fill_tag();
+    public function it_can_fill_collection()
+    {
+        $view = new View([
+            'collection' => null,
+        ]);
+
+        $this->assertNull($view->getAttribute('collection'));
+    }
 
     /** @test */
     public function it_can_fill_viewed_at()

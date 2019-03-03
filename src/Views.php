@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
@@ -58,11 +58,11 @@ class Views
     protected $sessionDelay = null;
 
     /**
-     * The tag under which view will be saved.
+     * The collection under where the view will be saved.
      *
      * @var string|null
      */
-    protected $tag = null;
+    protected $collection = null;
 
     /**
      * Determine if the views count should be cached.
@@ -72,11 +72,11 @@ class Views
     protected $shouldCache = false;
 
     /**
-     * Determine if the views count should be cached.
+     * Cache lifetime.
      *
-     * @var \DateTime|null
+     * @var \DateTime
      */
-    public $cacheLifetime = false;
+    protected $cacheLifetime;
 
     /**
      * Used IP Address instead of the provided one by the resolver.
@@ -84,6 +84,13 @@ class Views
      * @var string
      */
     protected $overriddenIpAddress;
+
+    /**
+     * Used visitor ID instead of the provided one by a cookie.
+     *
+     * @var string
+     */
+    protected $overriddenVisitor;
 
     /**
      * The view session history instance.
@@ -161,20 +168,21 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
         $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
 
+        // Return cached views count if it exists
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
+        }
+
+        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
         }
 
         if ($this->unique) {
@@ -202,7 +210,7 @@ class Views
             $view->viewable_id = $this->viewable->getKey();
             $view->viewable_type = $this->viewable->getMorphClass();
             $view->visitor = $this->resolveVisitorId();
-            $view->tag = $this->tag;
+            $view->collection = $this->collection;
             $view->viewed_at = Carbon::now();
 
             return $view->save();
@@ -220,19 +228,22 @@ class Views
     {
         $query = $this->viewable->views();
 
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
-        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique);
+        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->collection);
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
+            // Return cached views count if it exists
             if ($cachedViewsCount !== null) {
-                return $cachedViewsCount;
+                return (int) $cachedViewsCount;
             }
         }
+
+        if ($period = $this->period) {
+            $query->withinPeriod($period);
+        }
+
+        $query->where('collection', $this->collection);
 
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
@@ -261,7 +272,7 @@ class Views
      * Set the viewable model.
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
-     * @return self
+     * @return $this
      */
     public function forViewable(ViewableContract $viewable = null): self
     {
@@ -274,10 +285,14 @@ class Views
      * Set the delay in the session.
      *
      * @param  \DateTime|int  $delay
-     * @return self
+     * @return $this
      */
     public function delayInSession($delay): self
     {
+        if (is_int($delay)) {
+            $delay = Carbon::now()->addMinutes($delay);
+        }
+
         $this->sessionDelay = $delay;
 
         return $this;
@@ -287,7 +302,7 @@ class Views
      * Set the period.
      *
      * @param  \CyrildeWit\EloquentViewable\Period
-     * @return self
+     * @return $this
      */
     public function period($period): self
     {
@@ -297,14 +312,14 @@ class Views
     }
 
     /**
-     * Set a tag.
+     * Set the collection.
      *
      * @param  string
-     * @return self
+     * @return $this
      */
-    public function tag($tag): self
+    public function collection(string $name): self
     {
-        $this->tag = $tag;
+        $this->collection = $name;
 
         return $this;
     }
@@ -313,7 +328,7 @@ class Views
      * Fetch only unique views.
      *
      * @param  bool  $state
-     * @return self
+     * @return $this
      */
     public function unique(bool $state = true): self
     {
@@ -325,13 +340,18 @@ class Views
     /**
      * Cache the current views count.
      *
-     * @param  \DateTime|int  $lifetime
-     * @return self
+     * @param  \DateTime|int|null  $lifetime
+     * @return $this
      */
     public function remember($lifetime = null)
     {
         $this->shouldCache = true;
-        $this->cacheLifetiem = $lifetime;
+
+        // Make sure something other than the default value (null) is given.
+        // Then resolve the DateTime instance from the given value.
+        if ($lifetime !== null) {
+            $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
+        }
 
         return $this;
     }
@@ -340,11 +360,24 @@ class Views
      * Override the visitor's IP Address.
      *
      * @param  string  $address
-     * @return self
+     * @return $this
      */
     public function overrideIpAddress(string $address)
     {
         $this->overriddenIpAddress = $address;
+
+        return $this;
+    }
+
+    /**
+     * Override the visitor's unique ID.
+     *
+     * @param  string  $visitor
+     * @return $this
+     */
+    public function overrideVisitor(string $visitor)
+    {
+        $this->overriddenVisitor = $visitor;
 
         return $this;
     }
@@ -371,7 +404,7 @@ class Views
             return false;
         }
 
-        if ($this->sessionDelay && $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
+        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
             return false;
         }
 
@@ -408,6 +441,23 @@ class Views
      */
     protected function resolveVisitorId()
     {
-        return $this->visitorCookieRepository->get();
+        return $this->overriddenVisitor ?? $this->visitorCookieRepository->get();
+    }
+
+    /**
+     * Resolve cache lifetime.
+     *
+     * @param  int|DateTime
+     * @return \Carbon\Carbon
+     */
+    protected function resolveCacheLifetime($lifetime): DateTime
+    {
+        if ($lifetime instanceof DateTime) {
+            return $lifetime;
+        }
+
+        if (is_int($lifetime)) {
+            return Carbon::now()->addMinutes($lifetime);
+        }
     }
 }

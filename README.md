@@ -1,13 +1,11 @@
 # Eloquent Viewable
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
+[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/3.x.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
-[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/2.0.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
+[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/3.x.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
-
-> **Note:** This is an unstable branch!
 
 This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 
@@ -30,10 +28,7 @@ views($post)->unique()->count();
 views($post)->record();
 
 // Record a new view with session delay between views
-views($post)->sessionDelay(now()->addHours(2))->record();
-
-// Alternatively, you can use the shortcut method on the viewable model
-$post->views()->doSomething();
+views($post)->delayInSession(now()->addHours(2))->record();
 ```
 
 ## Overview
@@ -71,18 +66,23 @@ In this documentation, you will find some helpful information about the use of t
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
 3. [Advanced Usage](#advanced-usage)
-    * [Supplying your own visitor's IP Address](#supplying-your-own-visitors-ip-address)
+    * [View collections](#view-collections)
+    * [Remove views on delete](#remove-views-on-delete)
+    * [Supplying your own visitor's ID and IP Address](#supplying-your-own-visitors-id-and-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
-    * [Using your own model](#using-your-own-model)
+    * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
+    * [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
+    * [Using a custom header resolver](#using-a-custom-header-resolver)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
+    * [Adding macros to the Views class](#adding-macros-to-the-views-class)
 
 ## Getting Started
 
 ### Requirements
 
-This package requires **PHP 7+** and **Laravel 5.5+**.
+This package requires **PHP 7.1+** and **Laravel 5.5+**.
 
 Lumen is not supported!
 
@@ -90,8 +90,8 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
-| 3.0     | 5.5 - 5.7  | _In Development_ | >= 7.1.0    |
-| 2.0     | 5.5 - 5.7  | Active support | >= 7.0.0    |
+| 3.0     | 5.5 - 5.7  | Active support | >= 7.1.0    |
+| 2.0     | 5.5 - 5.7  | Bug fixes only | >= 7.0.0    |
 | 1.0     | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
 ### Installation
@@ -102,13 +102,7 @@ First, you need to install the package via Composer:
 composer require cyrildewit/eloquent-viewable
 ```
 
-Secondly, if you want to make some basic changes like giving the `views` table a different name or creating the table on a different connection, you can configure that by publishing the config file with:
-
-```winbatch
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
-```
-
-Alternatively, if you want to make bigger changes to the migrations, you can publish them using:
+Secondly, you can publish the migrations with:
 
 ```winbatch
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
@@ -118,6 +112,12 @@ Finally, you need to run the `migrate` command:
 
 ```winbatch
 php artisan migrate
+```
+
+You can optionally publish the config file with:
+
+```winbatch
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
 #### Register service provider manually
@@ -152,12 +152,6 @@ class Post extends Model implements ViewableContract
 }
 ```
 
-**Note:** the `Viewable` trait also adds a shortcut for `views($model)`:
-
-```php
-$post->views()->doSomething();
-```
-
 ### Recording views
 
 To make a view record, you can call the `record` method on the fluent `Views` instance.
@@ -183,11 +177,11 @@ public function show(Post $post)
 
 ### Recording views with session delays
 
-You may use the `sessionDelay` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
+You may use the `delayInSession` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
 
 ```php
 views($post)
-    ->sessionDelay($minutes)
+    ->delayInSession($minutes)
     ->record();
 ```
 
@@ -197,7 +191,7 @@ Instead of passing the number of minutes as an integer, you can also pass a `Dat
 $expiresAt = now()->addHours(3);
 
 views($post)
-    ->sessionDelay($expiresAt)
+    ->delayInSession($expiresAt)
     ->record();
 ```
 
@@ -274,7 +268,7 @@ Period::subYears(int $years);
 
 #### Get total unique views count
 
-If you only want to retrieve the unique views count, can you simply add the `unique` method to the chain.
+If you only want to retrieve the unique views count, you can simply add the `unique` method to the chain.
 
 ```php
 views($post)
@@ -331,13 +325,45 @@ views()->countByType($post);
 
 ## Advanced Usage
 
-### Supplying your own visitor's IP Address
+### View collections
 
-If you are using this package via a RESTful API, you might want to supply your own visitor's IP Address, otherwise this package will use the IP Address of the requester.
+If you have different types of views for the same viewable type, you may want to store them in their own collection.
 
 ```php
 views($post)
+    ->collection('customCollection')
+    ->record();
+```
+
+To retrieve the views count in a specific collection, you can reuse the same `collection()` method.
+
+```php
+views($post)
+    ->collection('customCollection')
+    ->count();
+```
+
+### Remove views on delete
+
+To automatically delete all views of an viewable Eloquent model on delete, you can enable it by setting the `removeViewsOnDelete` property to `true` in your model definition.
+
+```php
+protected $removeViewsOnDelete = true;
+```
+
+### Supplying your own visitor's ID and IP Address
+
+If you are using this package via a RESTful API, you might want to supply your own visitor's ID and IP Address, otherwise this package will use the visitor ID that's stored in a cookie and use IP Address of the requester.
+
+```php
+// Override IP Address (this would be supplied by your client)
+views($post)
     ->overrideIpAddress('Your IP Address')
+    ->record();
+
+// Override visitor ID (this would be supplied by your client)
+views($post)
+    ->overrideVisitor('Your unique visitor ID')
     ->record();
 ```
 
@@ -399,16 +425,24 @@ This method is perfectly fine for the example where we are counting the views st
 
 Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're know able to properly generalize the dates.
 
-Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `cache()` method on the chain. It will do all the hard work under the hood!
+Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
 
 Examples:
 
 ```php
-views($post)->cache()->count();
-views($post)->period(Period::create('2018-01-24', '2018-05-22'))->cache()->count();
-views($post)->period(Period::upto('2018-11-10'))->unique()->cache()->count();
-views($post)->period(Period::pastMonths(2))->cache()->count();
-views($post)->period(Period::subHours(6))->cache()->count();
+views($post)->remember()->count();
+views($post)->period(Period::create('2018-01-24', '2018-05-22'))->remember()->count();
+views($post)->period(Period::upto('2018-11-10'))->unique()->remember()->count();
+views($post)->period(Period::pastMonths(2))->remember()->count();
+views($post)->period(Period::subHours(6))->remember()->count();
+```
+
+The default lifetime is configurable through the config file. Alternatively, you can pass a custom lifetime to the `remember` method.
+
+```php
+views($post)
+    ->remember(now()->addHours(6))
+    ->count();
 ```
 
 ## Extending
@@ -417,11 +451,12 @@ If you want to extend or replace one of the core classes with your own implement
 
 * `CyrildeWit\EloquentViewable\View`
 * `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
-* `CyrildeWit\EloquentViewable\CrawlerDetector\CrawlerDetectAdapter`
+* `CyrildeWit\EloquentViewable\Resolvers\HeaderResolver`
+* `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-### Replace `View` model with custom implementation
+### Using your own `View` Eloquent model
 
 ```php
 $this->app->bind(
@@ -430,7 +465,7 @@ $this->app->bind(
 );
 ```
 
-### Replace `IpAddressResolver` class with custom implementation
+### Using a custom IP address resolver
 
 ```php
 $this->app->singleton(
@@ -439,13 +474,40 @@ $this->app->singleton(
 );
 ```
 
-### Replace `CrawlerDetectAdapter` class with custom implementation
+### Using a custom header resolver
+
+```php
+$this->app->singleton(
+    \CyrildeWit\EloquentViewable\Contracts\HeaderResolver::class,
+    \App\Resolvers\HeaderResolver::class
+);
+```
+
+### Using a custom crawler detector
 
 ```php
 $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
     \App\Services\CrawlerDetector\CustomAdapter::class
 );
+```
+
+### Adding macros to the Views class
+
+```php
+use CyrildeWit\EloquentViewable\Views;
+
+Views::macro('countAndCache', function () {
+    return $this->cache()->count();
+});
+```
+
+Now you're able to use this shorthand like this:
+
+```php
+views($post)->countAndCache();
+
+Views::forViewable($post)->countAndCache();
 ```
 
 ## Upgrading
