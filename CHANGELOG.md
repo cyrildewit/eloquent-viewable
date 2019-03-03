@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Add support for Laravel 5.8
 
+### Changed
+
+- Use String and Array classes instead of the helper functions
+
 ## [v3.1.0] (2019-01-29)
 
 ### Fixed
