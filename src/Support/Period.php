@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Support;
 use DateTime;
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
@@ -277,7 +278,7 @@ class Period
      */
     public static function subToday(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'PAST_')));
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
         $today = Carbon::today();
 
         return self::sub($today, $subTypeMethod, $subType, $subValue);
@@ -294,7 +295,7 @@ class Period
      */
     public static function subNow(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(str_after($subType, 'SUB_')));
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
         $now = Carbon::now();
 
         return self::sub($now, $subTypeMethod, $subType, $subValue);
