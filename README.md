@@ -502,6 +502,14 @@ Views::macro('countAndCache', function () {
 });
 ```
 
+Now you're able to use this shorthand like this:
+
+```php
+views($post)->countAndCache();
+
+Views::forViewable($post)->countAndCache();
+```
+
 ## Upgrading
 
 Please see [UPGRADING](UPGRADING.md) for detailed upgrade guide.
