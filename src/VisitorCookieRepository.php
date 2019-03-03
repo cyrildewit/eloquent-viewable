@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cookie;
 
 class VisitorCookieRepository
@@ -57,7 +58,7 @@ class VisitorCookieRepository
      */
     protected function generateUniqueString(): string
     {
-        return str_random(80);
+        return Str::random(80);
     }
 
     /**
