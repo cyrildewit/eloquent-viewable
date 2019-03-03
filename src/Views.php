@@ -72,7 +72,7 @@ class Views
     protected $shouldCache = false;
 
     /**
-     * Determine if the views count should be cached.
+     * Cache lifetime.
      *
      * @var \DateTime
      */
