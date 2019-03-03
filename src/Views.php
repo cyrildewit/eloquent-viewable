@@ -272,7 +272,7 @@ class Views
      * Set the viewable model.
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
-     * @return self
+     * @return $this
      */
     public function forViewable(ViewableContract $viewable = null): self
     {
@@ -285,7 +285,7 @@ class Views
      * Set the delay in the session.
      *
      * @param  \DateTime|int  $delay
-     * @return self
+     * @return $this
      */
     public function delayInSession($delay): self
     {
@@ -302,7 +302,7 @@ class Views
      * Set the period.
      *
      * @param  \CyrildeWit\EloquentViewable\Period
-     * @return self
+     * @return $this
      */
     public function period($period): self
     {
@@ -315,7 +315,7 @@ class Views
      * Set the collection.
      *
      * @param  string
-     * @return self
+     * @return $this
      */
     public function collection(string $name): self
     {
@@ -328,7 +328,7 @@ class Views
      * Fetch only unique views.
      *
      * @param  bool  $state
-     * @return self
+     * @return $this
      */
     public function unique(bool $state = true): self
     {
@@ -340,8 +340,8 @@ class Views
     /**
      * Cache the current views count.
      *
-     * @param  \DateTime|int  $lifetime
-     * @return self
+     * @param  \DateTime|int|null  $lifetime
+     * @return $this
      */
     public function remember($lifetime = null)
     {
@@ -360,7 +360,7 @@ class Views
      * Override the visitor's IP Address.
      *
      * @param  string  $address
-     * @return self
+     * @return $this
      */
     public function overrideIpAddress(string $address)
     {
@@ -373,7 +373,7 @@ class Views
      * Override the visitor's unique ID.
      *
      * @param  string  $visitor
-     * @return self
+     * @return $this
      */
     public function overrideVisitor(string $visitor)
     {
