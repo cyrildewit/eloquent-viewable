@@ -421,11 +421,11 @@ cache()->remember($key, now()->addHours(2), function () use ($post) {
 });
 ```
 
-This method is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic.
+This solution is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic.
 
-Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're know able to properly generalize the dates.
+Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're now able to properly generalize the dates.
 
-Now of course, you can wrap all your views counts statements with your solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
+Now of course, you can wrap all your views counts statements with this solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
 
 Examples:
 
