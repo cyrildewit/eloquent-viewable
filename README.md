@@ -6,6 +6,7 @@
 [![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/3.x.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcyrildewit%2Feloquent-viewable.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcyrildewit%2Feloquent-viewable?ref=badge_shield)
 
 This Laravel >= 5.5 package allows you to associate views with Eloquent models.
 
@@ -545,3 +546,6 @@ Feel free to add more alternatives!
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcyrildewit%2Feloquent-viewable.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcyrildewit%2Feloquent-viewable?ref=badge_large)
