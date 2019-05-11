@@ -53,11 +53,34 @@ trait Viewable
      */
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        return $query->withCount(['views' => function ($query) use ($period) {
-            if ($period) {
-                $query->withinPeriod($period);
+        $viewable = $query->getModel();
+        $viewModel = app(ViewContract::class);
+
+        $viewableTable = $viewable->getTable();
+        $viewsTable = $viewModel->getTable();
+
+        $query->leftJoin($viewsTable, function($join) use ($viewsTable, $viewableTable, $viewable) {
+            $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
+            $join->on("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+        });
+
+        $query->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewableTable}.*, count(visitor) as views_count");
+
+        if($period) {
+            $startDateTime = $period->getStartDateTime();
+            $endDateTime = $period->getEndDateTime();
+
+            if ($startDateTime && ! $endDateTime) {
+                $query->where("{$viewsTable}.viewed_at", '>=', $startDateTime);
+            } elseif (! $startDateTime && $endDateTime) {
+                $query->where("{$viewsTable}.viewed_at", '<=', $endDateTime);
+            } elseif ($startDateTime && $endDateTime) {
+                $query->whereBetween("{$viewsTable}.viewed_at", [$startDateTime, $endDateTime]);
             }
-        }])->orderBy('views_count', $direction);
+        }
+
+        return $query->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
+            ->orderBy('views_count', $direction);
     }
 
     /**
@@ -70,12 +93,33 @@ trait Viewable
      */
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        return $query->withCount(['views' => function ($query) use ($period) {
-            $query->uniqueVisitor();
+        $viewable = $query->getModel();
+        $viewModel = app(ViewContract::class);
 
-            if ($period) {
-                $query->withinPeriod($period);
+        $viewableTable = $viewable->getTable();
+        $viewsTable = $viewModel->getTable();
+
+        $query->leftJoin($viewsTable, function($join) use ($viewsTable, $viewableTable, $viewable) {
+            $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
+            $join->where("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+        });
+
+        $query->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewableTable}.*, count(distinct visitor) as views_count");
+
+        if($period) {
+            $startDateTime = $period->getStartDateTime();
+            $endDateTime = $period->getEndDateTime();
+
+            if ($startDateTime && ! $endDateTime) {
+                $query->where("{$viewsTable}.viewed_at", '>=', $startDateTime);
+            } elseif (! $startDateTime && $endDateTime) {
+                $query->where("{$viewsTable}.viewed_at", '<=', $endDateTime);
+            } elseif ($startDateTime && $endDateTime) {
+                $query->whereBetween("{$viewsTable}.viewed_at", [$startDateTime, $endDateTime]);
             }
-        }])->orderBy('views_count', $direction);
+        }
+
+        return $query->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
+            ->orderBy('views_count', $direction);
     }
 }
