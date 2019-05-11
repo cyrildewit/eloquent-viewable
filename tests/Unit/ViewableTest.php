@@ -46,14 +46,14 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne);
-        TestHelper::createNewView($postOne);
-        TestHelper::createNewView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
 
-        TestHelper::createNewView($postTwo);
+        TestHelper::createView($postTwo);
 
-        TestHelper::createNewView($postThree);
-        TestHelper::createNewView($postThree);
+        TestHelper::createView($postThree);
+        TestHelper::createView($postThree);
 
         $this->assertEquals(collect([1, 3, 2]), Post::orderByViews()->pluck('id'));
     }
@@ -65,14 +65,14 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
 
-        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
 
-        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
 
         $this->assertEquals(collect([1, 3, 2]), Post::orderByUniqueViews()->pluck('id'));
     }
@@ -84,14 +84,14 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne);
-        TestHelper::createNewView($postOne);
-        TestHelper::createNewView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
 
-        TestHelper::createNewView($postTwo);
+        TestHelper::createView($postTwo);
 
-        TestHelper::createNewView($postThree);
-        TestHelper::createNewView($postThree);
+        TestHelper::createView($postThree);
+        TestHelper::createView($postThree);
 
         $this->assertEquals(collect([2, 3, 1]), Post::orderByViews('asc')->pluck('id'));
     }
@@ -103,14 +103,14 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_two']);
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_three']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
 
-        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
 
-        TestHelper::createNewView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($postThree, ['visitor' => 'visitor_two']);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
 
         $this->assertEquals(collect([2, 3, 1]), Post::orderByUniqueViews('asc')->pluck('id'));
     }
@@ -124,17 +124,17 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
 
         $this->assertEquals(collect([1, 3, 2]), Post::orderByViews('desc', Period::pastDays(10))->pluck('id'));
     }
@@ -148,18 +148,18 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(2), 'visitor' => 'visitor_one']);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(8), 'visitor' => 'visitor_two']);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_three']);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8), 'visitor' => 'visitor_two']);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_three']);
 
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(5), 'visitor' => 'visitor_two']);
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_two']);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(5), 'visitor' => 'visitor_two']);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13), 'visitor' => 'visitor_two']);
 
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(14), 'visitor' => 'visitor_one']);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(18), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now(), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(14), 'visitor' => 'visitor_one']);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(18), 'visitor' => 'visitor_one']);
 
         $this->assertEquals(collect([3, 2, 1]), Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'));
     }
@@ -173,17 +173,17 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
 
         $this->assertEquals(collect([1, 3, 2]), Post::orderByViews('desc', Period::pastDays(10))->pluck('id'));
     }
@@ -197,17 +197,17 @@ class ViewableTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $postThree = factory(Post::class)->create();
 
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createNewView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
 
         $this->assertEquals(collect([2, 3, 1]), Post::orderByViews('asc', Period::pastDays(10))->pluck('id'));
     }
