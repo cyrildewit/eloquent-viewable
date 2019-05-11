@@ -137,9 +137,9 @@ class ViewsTest extends TestCase
     /** @test */
     public function it_can_count_the_unique_views()
     {
-        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($this->post, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($this->post, ['visitor' => 'visitor_two']);
+        TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
+        TestHelper::createView($this->post, ['visitor' => 'visitor_two']);
 
         $this->assertEquals(2, views($this->post)->unique()->count());
     }
@@ -149,12 +149,12 @@ class ViewsTest extends TestCase
     {
         Carbon::setTestNow(Carbon::now());
 
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-01-10')]);
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-01-15')]);
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-02-10')]);
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-02-15')]);
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
-        TestHelper::createNewView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-01-10')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-01-15')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-02-10')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-02-15')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
+        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
 
         $this->assertEquals(6, views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count());
         $this->assertEquals(4, views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count());
@@ -175,9 +175,9 @@ class ViewsTest extends TestCase
     /** @test */
     public function it_can_destroy_the_views()
     {
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
 
         views($this->post)->destroy();
 
@@ -191,11 +191,11 @@ class ViewsTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $apartment = factory(Apartment::class)->create();
 
-        TestHelper::createNewView($postOne);
-        TestHelper::createNewView($postTwo);
-        TestHelper::createNewView($postTwo);
-        TestHelper::createNewView($apartment);
-        TestHelper::createNewView($apartment);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postTwo);
+        TestHelper::createView($postTwo);
+        TestHelper::createView($apartment);
+        TestHelper::createView($apartment);
 
         $this->assertEquals(3, app(Views::class)->countByType(Post::class));
         $this->assertEquals(3, app(Views::class)->countByType($postOne));
@@ -208,11 +208,11 @@ class ViewsTest extends TestCase
         $postTwo = factory(Post::class)->create();
         $apartment = factory(Apartment::class)->create();
 
-        TestHelper::createNewView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_two']);
-        TestHelper::createNewView($postTwo, ['visitor' => 'visitor_one']);
-        TestHelper::createNewView($apartment, ['visitor' => 'visitor_three']);
-        TestHelper::createNewView($apartment, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
+        TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
+        TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
 
         $this->assertEquals(2, app(Views::class)->unique()->countByType(Post::class));
         $this->assertEquals(2, app(Views::class)->unique()->countByType($postOne));

@@ -33,9 +33,9 @@ class ViewableObserverTest extends TestCase
     /** @test */
     public function it_can_destroy_all_views_when_viewable_gets_deleted()
     {
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
 
         $this->assertEquals(3, View::count());
 
@@ -49,9 +49,9 @@ class ViewableObserverTest extends TestCase
     {
         $this->post->removeViewsOnDelete = false;
 
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
-        TestHelper::createNewView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
 
         $this->assertEquals(3, View::count());
 

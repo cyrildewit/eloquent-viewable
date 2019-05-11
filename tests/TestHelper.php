@@ -24,7 +24,7 @@ class TestHelper
      * @param  array  $data
      * @return \CyrildeWit\EloquentViewable\View
      */
-    public static function createNewView($model, $data = [])
+    public static function createView($model, $data = [])
     {
         return View::create([
             'viewable_id' => $model->getKey(),
