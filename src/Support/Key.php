@@ -72,7 +72,7 @@ class Key
             return "{$period->getStartDateTimeString()}|{$period->getEndDateTimeString()}";
         }
 
-        list($subType, $subValueType) = explode('_', strtolower($period->getSubType()));
+        [$subType, $subValueType] = explode('_', strtolower($period->getSubType()));
 
         return "{$subType}{$period->getSubValue()}{$subValueType}|";
     }
