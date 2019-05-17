@@ -39,7 +39,7 @@ class OrderByViewsScope
         $viewsTable = $viewModel->getTable();
         $distinctQuery = '';
 
-        $query->leftJoin($viewsTable, function($join) use ($viewsTable, $viewableTable, $viewable) {
+        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable) {
             $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
             $join->on("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
         });
@@ -50,7 +50,7 @@ class OrderByViewsScope
 
         $query->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewableTable}.*, count({$distinctQuery}visitor) as views_count");
 
-        if($period) {
+        if ($period) {
             $startDateTime = $period->getStartDateTime();
             $endDateTime = $period->getEndDateTime();
 
