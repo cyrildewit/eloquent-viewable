@@ -53,11 +53,10 @@ trait Viewable
      */
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        return $query->withCount(['views' => function ($query) use ($period) {
-            if ($period) {
-                $query->withinPeriod($period);
-            }
-        }])->orderBy('views_count', $direction);
+        return (new OrderByViewsScope())->apply($query, [
+            'descending' => $direction === 'desc',
+            'period' => $period,
+        ]);
     }
 
     /**
@@ -70,12 +69,10 @@ trait Viewable
      */
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder
     {
-        return $query->withCount(['views' => function ($query) use ($period) {
-            $query->uniqueVisitor();
-
-            if ($period) {
-                $query->withinPeriod($period);
-            }
-        }])->orderBy('views_count', $direction);
+        return (new OrderByViewsScope())->apply($query, [
+            'descending' => $direction === 'desc',
+            'period' => $period,
+            'unique' => true,
+        ]);
     }
 }
