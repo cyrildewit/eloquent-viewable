@@ -32,6 +32,7 @@ class OrderByViewsScope
         $descending = ($options['descending'] ?? false) === true;
         $direction = $descending ? SortDirection::DESCENDING : SortDirection::ASCENDING;
         $period = $options['period'];
+        $collection = $options['collection'];
 
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
@@ -61,6 +62,10 @@ class OrderByViewsScope
             } elseif ($startDateTime && $endDateTime) {
                 $query->whereBetween("{$viewsTable}.viewed_at", [$startDateTime, $endDateTime]);
             }
+        }
+
+        if ($collection) {
+            $query->where("{$viewsTable}.collection", '>=', $collection);
         }
 
         return $query->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
