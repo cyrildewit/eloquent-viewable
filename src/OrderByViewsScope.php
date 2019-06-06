@@ -40,9 +40,13 @@ class OrderByViewsScope
         $viewsTable = $viewModel->getTable();
         $distinctQuery = '';
 
-        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable) {
+        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable, $collection) {
             $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
-            $join->on("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+            $join->where("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+
+            if ($collection) {
+                $join->where("{$viewsTable}.collection", '=', $collection);
+            }
         });
 
         if ($unique) {
@@ -62,10 +66,6 @@ class OrderByViewsScope
             } elseif ($startDateTime && $endDateTime) {
                 $query->whereBetween("{$viewsTable}.viewed_at", [$startDateTime, $endDateTime]);
             }
-        }
-
-        if ($collection) {
-            $query->where("{$viewsTable}.collection", '>=', $collection);
         }
 
         return $query->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
