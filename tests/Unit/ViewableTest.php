@@ -132,6 +132,70 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
+    public function it_can_be_ordered_by_views_in_a_specific_collection_descending()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+        $postFour = factory(Post::class)->create();
+
+        // Views in collection: 0
+        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postOne);
+
+        // Views in collection: 2
+        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+        TestHelper::createView($postTwo);
+
+        // Views in collection: 3
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postThree);
+
+        // Views in collection: 1
+        TestHelper::createView($postFour, ['collection' => 'good_collection']);
+        TestHelper::createView($postFour);
+
+        $this->assertEquals(collect([3, 2, 4, 1]), Post::orderByViews('desc', null, 'good_collection')->pluck('id'));
+    }
+
+    /** @test */
+    public function it_can_be_ordered_by_views_in_a_specific_collection_ascending()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+        $postFour = factory(Post::class)->create();
+
+        // Views in collection: 0
+        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postOne);
+
+        // Views in collection: 2
+        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+        TestHelper::createView($postTwo);
+
+        // Views in collection: 3
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'good_collection']);
+        TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
+        TestHelper::createView($postThree);
+
+        // Views in collection: 1
+        TestHelper::createView($postFour, ['collection' => 'good_collection']);
+        TestHelper::createView($postFour);
+
+        $this->assertEquals(collect([1, 4, 2, 3]), Post::orderByViews('asc', null, 'good_collection')->pluck('id'));
+    }
+
+    /** @test */
     public function it_can_be_ordered_by_views_in_ascending_order()
     {
         $postOne = $this->post;
