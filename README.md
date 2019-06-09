@@ -526,7 +526,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 * **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
 
-See also the list of [contributors](https://github.com/cyrildewit/perceptor/graphs/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who participated in this project.
 
 **Helpful Resources:**
 
