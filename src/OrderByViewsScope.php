@@ -32,6 +32,7 @@ class OrderByViewsScope
         $descending = ($options['descending'] ?? false) === true;
         $direction = $descending ? SortDirection::DESCENDING : SortDirection::ASCENDING;
         $period = $options['period'];
+        $collection = $options['collection'];
 
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
@@ -39,9 +40,13 @@ class OrderByViewsScope
         $viewsTable = $viewModel->getTable();
         $distinctQuery = '';
 
-        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable) {
+        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable, $collection) {
             $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
-            $join->on("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+            $join->where("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+
+            if ($collection) {
+                $join->where("{$viewsTable}.collection", '=', $collection);
+            }
         });
 
         if ($unique) {

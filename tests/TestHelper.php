@@ -30,6 +30,7 @@ class TestHelper
             'viewable_id' => $model->getKey(),
             'viewable_type' => $model->getMorphClass(),
             'visitor' => $data['visitor'] ?? 'unique_hash',
+            'collection' => $data['collection'] ?? null,
             'viewed_at' => $data['viewed_at'] ?? Carbon::now(),
         ]);
     }

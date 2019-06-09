@@ -18,8 +18,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
- * @method static self|Builder orderByViews(string $direction = 'desc', ?Period $period = null)
- * @method static self|Builder orderByUniqueViews(string $direction = 'desc', ?Period $period = null)
+ * @method static self|Builder orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection)
+ * @method static self|Builder orderByUniqueViews(string $direction = 'desc', ?Period $period = null, ?string $collection)
  **/
 trait Viewable
 {
@@ -51,11 +51,12 @@ trait Viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null, string $collection = null): Builder
     {
         return (new OrderByViewsScope())->apply($query, [
             'descending' => $direction === 'desc',
             'period' => $period,
+            'collection' => $collection,
         ]);
     }
 
@@ -67,12 +68,13 @@ trait Viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder
+    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null, string $collection = null): Builder
     {
         return (new OrderByViewsScope())->apply($query, [
             'descending' => $direction === 'desc',
             'period' => $period,
             'unique' => true,
+            'collection' => $collection,
         ]);
     }
 }
