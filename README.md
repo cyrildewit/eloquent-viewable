@@ -33,9 +33,9 @@ views($post)->delayInSession(now()->addHours(2))->record();
 
 ## Overview
 
-Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind. This package will save all view records in a database table, so we can make different views counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`.
+Sometimes you don't want to pull in a third-party service like Google Analytics to track your application's page views. Then this package comes in handy. Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind.
 
-This package is not built with the intent to collect analytical data. It is made to simply store the views of a Laravel Eloquent model. You would use this package for models like: Post, Video, Profile and Hotel, but of course, you can use this package as you want.
+This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can grow rapidly in size depending on the amount of visitors your application has.
 
 ### Features
 
