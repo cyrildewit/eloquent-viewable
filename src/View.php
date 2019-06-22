@@ -40,7 +40,7 @@ class View extends Model implements ViewContract
      *
      * @return string
      */
-    public function getTable(): string
+    public function getTable()
     {
         return config('eloquent-viewable.models.view.table_name', parent::getTable());
     }
