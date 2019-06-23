@@ -243,7 +243,7 @@ class Views
             $query->withinPeriod($period);
         }
 
-        $query->where('collection', $this->collection);
+        $query->collection($this->collection);
 
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
