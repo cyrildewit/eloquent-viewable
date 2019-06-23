@@ -95,7 +95,7 @@ class View extends Model implements ViewContract
      * @param  string|null  $collection
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeCollection(Builder $query, $collection)
+    public function scopeCollection(Builder $query, string $collection = null)
     {
         return $query->where('collection', $collection);
     }
