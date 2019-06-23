@@ -92,10 +92,10 @@ class View extends Model implements ViewContract
      * Scope a query to only include views withing the collection.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $collection
+     * @param  string|null  $collection
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeCollection(Builder $query, string $collection)
+    public function scopeCollection(Builder $query, $collection)
     {
         return $query->where('collection', $collection);
     }
