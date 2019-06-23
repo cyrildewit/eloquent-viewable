@@ -498,7 +498,7 @@ $this->app->singleton(
 use CyrildeWit\EloquentViewable\Views;
 
 Views::macro('countAndCache', function () {
-    return $this->cache()->count();
+    return $this->remember()->count();
 });
 ```
 
