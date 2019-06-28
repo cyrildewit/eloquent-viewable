@@ -66,26 +66,59 @@ class CacheKey
 
     protected function getConnectionName(): string
     {
+        // Since don't know anything about the connection of the viewable type origin,
+        // we need to return an empty string to prevent an exception.
+        // TODO: look if an alternative solution could resolve this issue.
+        if ($this->viewable === null && $this->viewableType !== null) {
+            return '';
+        }
+
         return $this->viewable->getConnection()->getName().':';
     }
 
     protected function getDatabaseName(): string
     {
+        // Since don't know anything about the connection of the viewable type origin,
+        // we need to return an empty string to prevent an exception.
+        // TODO: look if an alternative solution could resolve this issue.
+        if ($this->viewable === null && $this->viewableType !== null) {
+            return '';
+        }
+
         return $this->viewable->getConnection()->getDatabaseName().':';
     }
 
     protected function getTableSlug(): string
     {
+        // Since don't know anything about the connection of the viewable type origin,
+        // we need to return an empty string to prevent an exception.
+        // TODO: look if an alternative solution could resolve this issue.
+        if ($this->viewable === null && $this->viewableType !== null) {
+            return '';
+        }
+
         return app(Str::class)->slug($this->viewable->getTable()).':';
     }
 
     protected function getModelSlug(): string
     {
+        // TODO: look if an alternative solution could improve this ugluy code
+        if ($this->viewable === null && $this->viewableType !== null) {
+            return app(Str::class)->slug($this->viewableType).'.';
+        }
+
         return app(Str::class)->slug($this->viewable->getMorphClass()).'.';
     }
 
     protected function getKeySlug()
     {
+        // Since don't know anything about the connection of the viewable type origin,
+        // we need to return an empty string to prevent an exception.
+        // TODO: look if an alternative solution could resolve this issue.
+        if ($this->viewable === null && $this->viewableType !== null) {
+            return '';
+        }
+
         return $this->viewable->getKey().'.' ?? '';
     }
 
@@ -124,6 +157,6 @@ class CacheKey
 
     protected function getCollectionSlug($collection = null): string
     {
-        return $collection ? ".{$collection}" : '';;
+        return $collection ? ".{$collection}" : '';
     }
 }
