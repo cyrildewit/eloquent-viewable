@@ -147,4 +147,15 @@ class CacheKeyTest extends TestCase
             $secondPostCacheKey->make(null, false, 'some-collection')
         );
     }
+
+    /** @test */
+    public function it_can_make_a_key_from_a_viewable_type()
+    {
+        $cacheKey = new CacheKey(null, Post::class);
+
+        $this->assertEquals(
+            'test-namespace:cyrildewiteloquentviewabletestsstubsmodelspost.|.normal',
+            $cacheKey->make()
+        );
+    }
 }
