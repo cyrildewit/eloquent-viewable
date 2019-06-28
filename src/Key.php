@@ -11,8 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Support;
+namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
 class Key
@@ -27,17 +28,9 @@ class Key
      */
     public static function createForEntity(ViewableContract $viewable, $period, bool $unique, string $collection = null): string
     {
-        $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
+        $cacheKey = new CacheKey($viewable);
 
-        $viewableKey = $viewable->getKey();
-        $viewableType = strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
-
-        $typeKey = $unique ? 'unique' : 'normal';
-        $periodKey = static::createPeriodKey($period);
-
-        $collection = $collection ? ".{$collection}" : '';
-
-        return "{$cacheKey}{$collection}.{$viewableType}.{$viewableKey}.{$typeKey}.{$periodKey}";
+        return $cacheKey->make($period, $unique, $collection);
     }
 
     /**
