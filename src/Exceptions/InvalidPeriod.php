@@ -32,24 +32,4 @@ class InvalidPeriod extends Exception
     {
         return new static("Start date `{$startDateTime->format('Y-m-d')}` cannot be after end date `{$endDateTime->format('Y-m-d')}`.");
     }
-
-    /**
-     * Start date time is not set.
-     *
-     * @return static
-     */
-    public static function unknownStartDateTime()
-    {
-        return new static("There is no start date time set.");
-    }
-
-    /**
-     * Start date time is not set.
-     *
-     * @return static
-     */
-    public static function unknownEndDateTime()
-    {
-        return new static("There is no end date time set.");
-    }
 }

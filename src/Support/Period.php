@@ -380,29 +380,21 @@ class Period
     /**
      * Get the timestamp of the start date time.
      *
-     * @return string
+     * @return string|null
      */
-    public function getStartDateTimestamp(): int
+    public function getStartDateTimestamp()
     {
-        if ($this->startDateTime === null) {
-            throw InvalidPeriod::unknownStartDateTime();
-        }
-
-        return $this->startDateTime->getTimestamp();
+        return $this->startDateTime !== null ? $this->startDateTime->getTimestamp() : null;
     }
 
     /**
      * Get the timestamp of the end date time.
      *
-     * @return string
+     * @return string|null
      */
-    public function getEndDateTimestamp(): int
+    public function getEndDateTimestamp()
     {
-        if ($this->endDateTime === null) {
-            throw InvalidPeriod::unknownEndDateTime();
-        }
-
-        return $this->endDateTime->getTimestamp();
+        return $this->endDateTime !== null ? $this->endDateTime->getTimestamp() : null;
     }
 
     /**
