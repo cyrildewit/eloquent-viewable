@@ -13,12 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use Exception;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\CacheKey;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class CacheKeyTest extends TestCase
