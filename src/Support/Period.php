@@ -378,6 +378,34 @@ class Period
     }
 
     /**
+     * Get the timestamp of the start date time.
+     *
+     * @return string
+     */
+    public function getStartDateTimestamp(): int
+    {
+        if ($this->startDateTime === null) {
+            throw InvalidPeriod::unknownStartDateTime();
+        }
+
+        return $this->startDateTime->getTimestamp();
+    }
+
+    /**
+     * Get the timestamp of the end date time.
+     *
+     * @return string
+     */
+    public function getEndDateTimestamp(): int
+    {
+        if ($this->endDateTime === null) {
+            throw InvalidPeriod::unknownEndDateTime();
+        }
+
+        return $this->endDateTime->getTimestamp();
+    }
+
+    /**
      * Get the sub type.
      *
      * @return string
