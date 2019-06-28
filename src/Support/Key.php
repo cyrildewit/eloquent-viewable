@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Support;
 
 use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
@@ -24,6 +24,7 @@ class Key
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @param  bool  $unique
+     * @param  string  $collection
      * @return string
      */
     public static function createForEntity(ViewableContract $viewable, $period, bool $unique, string $collection = null): string
@@ -39,34 +40,13 @@ class Key
      * @param  string  $viewableType
      * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @param  bool  $unique
+     * @param  string  $collection
      * @return string
      */
-    public static function createForType($viewableType, $period, bool $unique): string
+    public static function createForType($viewableType, $period, bool $unique, string $collection = null): string
     {
-        $cacheKey = config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache');
+        $cacheKey = new CacheKey(null, $viewableType);
 
-        $viewableType = strtolower(str_replace('\\', '-', $viewableType));
-
-        $typeKey = $unique ? 'unique' : 'normal';
-        $periodKey = static::createPeriodKey($period);
-
-        return "{$cacheKey}.{$viewableType}.{$typeKey}.{$periodKey}";
-    }
-
-    /**
-     * Format a period class into a key.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period
-     * @return string
-     */
-    public static function createPeriodKey($period): string
-    {
-        if ($period->hasFixedDateTimes()) {
-            return "{$period->getStartDateTimeString()}|{$period->getEndDateTimeString()}";
-        }
-
-        [$subType, $subValueType] = explode('_', strtolower($period->getSubType()));
-
-        return "{$subType}{$period->getSubValue()}{$subValueType}|";
+        return $cacheKey->make($period, $unique, $collection);
     }
 }
