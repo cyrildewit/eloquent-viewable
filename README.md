@@ -137,7 +137,12 @@ If you prefer to register packages manually, you can add the following provider 
 
 ### Preparing your model
 
-To associate views with a model, the model must implement the following interface and trait.
+To associate views with a model, the model must implement the following interface and trait:
+
+* **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
+* **Trait:** `CyrildeWit\EloquentViewable\Viewable`
+
+Example:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
