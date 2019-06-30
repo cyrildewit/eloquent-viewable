@@ -366,6 +366,8 @@ class Views
     /**
      * Override the visitor's IP Address.
      *
+     * @deprecated  v4.0.0  Please use `useIpAddress(string $address)` instead.
+     *
      * @param  string  $address
      * @return $this
      */
@@ -377,12 +379,40 @@ class Views
     }
 
     /**
+     * Override the visitor's IP Address.
+     *
+     * @param  string  $address
+     * @return $this
+     */
+    public function useIpAddress(string $address)
+    {
+        $this->overriddenIpAddress = $address;
+
+        return $this;
+    }
+
+    /**
      * Override the visitor's unique ID.
+     *
+     * @deprecated  v4.0.0  Please use `useVisitor(string $visitor)` instead.
      *
      * @param  string  $visitor
      * @return $this
      */
     public function overrideVisitor(string $visitor)
+    {
+        $this->overriddenVisitor = $visitor;
+
+        return $this;
+    }
+
+    /**
+     * Override the visitor's unique ID.
+     *
+     * @param  string  $visitor
+     * @return $this
+     */
+    public function useVisitor(string $visitor)
     {
         $this->overriddenVisitor = $visitor;
 
