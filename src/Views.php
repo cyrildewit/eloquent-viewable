@@ -16,7 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
@@ -168,7 +167,11 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
+        $cacheKey = (CacheKey::fromViewableType($viewableType))->make(
+            $this->period,
+            $this->unique,
+            $this->collection
+        );
 
         // Return cached views count if it exists
         if ($this->shouldCache) {
@@ -228,7 +231,11 @@ class Views
     {
         $query = $this->viewable->views();
 
-        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->collection);
+        $cacheKey = (CacheKey::fromViewable($this->viewable))->make(
+            $this->period,
+            $this->unique,
+            $this->collection
+        );
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
