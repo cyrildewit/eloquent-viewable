@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v4.0.0] (2019-06-23)
+
+## Added
+
+- Added `SortDirection` enum class that contains a `DESCENDING` and `ASCENDING` constant
+- Added `OrderByViewsScope` class that can order a query by views based on some options
+- Added `collection($collection)` query scope to `View` model
+- Added the ability to pass a collection to the `orderByViews` and `orderByUniqueViews` query scope
+
+## Changed
+
+- Replaced inner code of the `orderByViews` and `orderByUniqueViews` query scope with the new `OrderByViewsScope` class
+- Removed the `string` type declaration from the `getTable` method in the `View` model class [#165]([#165](https://github.com/cyrildewit/eloquent-viewable/pull/165))
+
 ## [v3.2.0] (2019-03-03)
 
 ### Added
