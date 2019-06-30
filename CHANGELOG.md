@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added a new `CacheKey` class with a new improved approach to making keys for the cache
 - Added `getStartDateTimestamp` and `getEndDateTimestamp` methods to the `Period` class for internal use
 
+## Deprecated
+
+- Deprecated the `overrideIpAddress` method of the `Views` class. Please use the new `useIpAddress(string $address)` method instead.
+- Deprecated the `overrideVisitor` method of the `Views` class. Please use the new `useVisitor(string $visitor)` method instead.
+
 ## Changed
 
 - Replaced inner code of the `orderByViews` and `orderByUniqueViews` query scope with the new `OrderByViewsScope` class
