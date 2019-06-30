@@ -15,11 +15,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `OrderByViewsScope` class that can order a query by views based on some options
 - Added `collection($collection)` query scope to `View` model
 - Added the ability to pass a collection to the `orderByViews` and `orderByUniqueViews` query scope
+- Added a new `CacheKey` class with a new improved approach to making keys for the cache
+- Added `getStartDateTimestamp` and `getEndDateTimestamp` methods to the `Period` class for internal use
 
 ## Changed
 
 - Replaced inner code of the `orderByViews` and `orderByUniqueViews` query scope with the new `OrderByViewsScope` class
 - Removed the `string` type declaration from the `getTable` method in the `View` model class [#165]([#165](https://github.com/cyrildewit/eloquent-viewable/pull/165))
+
+## Removed
+
+- Removed the `Support\Key` class with its references
 
 ## [v3.2.0] (2019-03-03)
 
