@@ -49,7 +49,7 @@ class CacheKey
     }
 
     /**
-     * Make a the cache key.
+     * Make the cache key.
      *
      * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @param  bool  $unique
@@ -120,7 +120,7 @@ class CacheKey
         return app(Str::class)->slug($this->viewable->getMorphClass()).'.';
     }
 
-    protected function getKeySlug()
+    protected function getKeySlug(): string
     {
         // Since don't know anything about the connection of the viewable type origin,
         // we need to return an empty string to prevent an exception.
