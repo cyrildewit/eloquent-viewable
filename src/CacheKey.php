@@ -38,6 +38,16 @@ class CacheKey
         $this->viewableType = $viewableType;
     }
 
+    public static function fromViewable(ViewableContract $viewable)
+    {
+        return new static($viewable);
+    }
+
+    public static function fromViewableType(string $viewableType)
+    {
+        return new static(null, $viewableType);
+    }
+
     /**
      * Make a the cache key.
      *

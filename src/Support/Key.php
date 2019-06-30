@@ -29,7 +29,7 @@ class Key
      */
     public static function createForEntity(ViewableContract $viewable, $period, bool $unique, string $collection = null): string
     {
-        $cacheKey = new CacheKey($viewable);
+        $cacheKey = CacheKey::fromViewable($viewable);
 
         return $cacheKey->make($period, $unique, $collection);
     }
@@ -45,7 +45,7 @@ class Key
      */
     public static function createForType($viewableType, $period, bool $unique, string $collection = null): string
     {
-        $cacheKey = new CacheKey(null, $viewableType);
+        $cacheKey = CacheKey::fromViewableType($viewableType);
 
         return $cacheKey->make($period, $unique, $collection);
     }
