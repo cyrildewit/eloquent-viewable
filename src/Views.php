@@ -16,7 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
