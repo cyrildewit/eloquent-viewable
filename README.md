@@ -90,7 +90,8 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
-| ^3.0    | 5.5 - 5.8  | Active support | >= 7.1.0    |
+| ^4.0    | 5.5 - 5.8  | Active support | >= 7.1.0    |
+| ^3.0    | 5.5 - 5.8  | Bug fixes only | >= 7.1.0    |
 | ^2.0    | 5.5 - 5.7  | Bug fixes only | >= 7.0.0    |
 | ^1.0    | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
