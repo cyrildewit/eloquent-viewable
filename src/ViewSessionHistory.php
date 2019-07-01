@@ -54,7 +54,7 @@ class ViewSessionHistory
      */
     public function push(ViewableContract $viewable, $delay, string $collection = null): bool
     {
-        $namespaceKey = $this->createNamespaceKey($viewable);
+        $namespaceKey = $this->createNamespaceKey($viewable, $collection);
         $viewableKey = $this->createViewableKey($viewable, $collection);
 
         $this->forgetExpiredViews($namespaceKey);
@@ -123,9 +123,13 @@ class ViewSessionHistory
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createNamespaceKey(ViewableContract $viewable): string
+    protected function createNamespaceKey(ViewableContract $viewable, string $collection = null): string
     {
-        return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+        $key = $this->primaryKey;
+        $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+        $key .= is_string($collection) ? ".{$collection}" : '';
+
+        return $key;
     }
 
     /**
@@ -140,8 +144,7 @@ class ViewSessionHistory
      */
     protected function createViewableKey(ViewableContract $viewable, string $collection = null): string
     {
-        $key = $this->createNamespaceKey($viewable);
-        $key .= is_string($collection) ? ".{$collection}" : '';
+        $key = $this->createNamespaceKey($viewable, $collection);
         $key .= ".{$viewable->getKey()}";
 
         return $key;
