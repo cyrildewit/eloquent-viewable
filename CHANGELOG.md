@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added the ability to pass a collection to the `orderByViews` and `orderByUniqueViews` query scope
 - Added a new `CacheKey` class with a new improved approach to making keys for the cache
 - Added `getStartDateTimestamp` and `getEndDateTimestamp` methods to the `Period` class for internal use
+- Added `string $collection = null` argument to `push`, `createNamespaceKey` and `createViewableKey` methods in `ViewSessionHistory`
 
 ## Deprecated
 
