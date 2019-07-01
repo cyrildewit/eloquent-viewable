@@ -90,7 +90,8 @@ Lumen is not supported!
 
 | Version | Illuminate | Status         | PHP Version |
 |---------|------------|----------------|-------------|
-| ^3.0    | 5.5 - 5.8  | Active support | >= 7.1.0    |
+| ^4.0    | 5.5 - 5.8  | Active support | >= 7.1.0    |
+| ^3.0    | 5.5 - 5.8  | Bug fixes only | >= 7.1.0    |
 | ^2.0    | 5.5 - 5.7  | Bug fixes only | >= 7.0.0    |
 | ^1.0    | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
 
@@ -137,7 +138,12 @@ If you prefer to register packages manually, you can add the following provider 
 
 ### Preparing your model
 
-To associate views with a model, the model must implement the following interface and trait.
+To associate views with a model, the model must implement the following interface and trait:
+
+* **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
+* **Trait:** `CyrildeWit\EloquentViewable\Viewable`
+
+Example:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
@@ -498,7 +504,7 @@ $this->app->singleton(
 use CyrildeWit\EloquentViewable\Views;
 
 Views::macro('countAndCache', function () {
-    return $this->cache()->count();
+    return $this->remember()->count();
 });
 ```
 

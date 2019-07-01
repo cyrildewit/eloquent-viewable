@@ -15,7 +15,6 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit\Support;
 
 use Exception;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;

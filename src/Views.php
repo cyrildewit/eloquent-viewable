@@ -16,7 +16,6 @@ namespace CyrildeWit\EloquentViewable;
 use DateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Key;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
@@ -168,7 +167,11 @@ class Views
             $viewableType = $viewableType->getMorphClass();
         }
 
-        $cacheKey = Key::createForType($viewableType, $this->period ?? Period::create(), $this->unique);
+        $cacheKey = (CacheKey::fromViewableType($viewableType))->make(
+            $this->period,
+            $this->unique,
+            $this->collection
+        );
 
         // Return cached views count if it exists
         if ($this->shouldCache) {
@@ -228,7 +231,11 @@ class Views
     {
         $query = $this->viewable->views();
 
-        $cacheKey = Key::createForEntity($this->viewable, $this->period ?? Period::create(), $this->unique, $this->collection);
+        $cacheKey = (CacheKey::fromViewable($this->viewable))->make(
+            $this->period,
+            $this->unique,
+            $this->collection
+        );
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
@@ -243,7 +250,7 @@ class Views
             $query->withinPeriod($period);
         }
 
-        $query->where('collection', $this->collection);
+        $query->collection($this->collection);
 
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
@@ -359,6 +366,8 @@ class Views
     /**
      * Override the visitor's IP Address.
      *
+     * @deprecated  v4.0.0  Please use `useIpAddress(string $address)` instead.
+     *
      * @param  string  $address
      * @return $this
      */
@@ -370,12 +379,40 @@ class Views
     }
 
     /**
+     * Override the visitor's IP Address.
+     *
+     * @param  string  $address
+     * @return $this
+     */
+    public function useIpAddress(string $address)
+    {
+        $this->overriddenIpAddress = $address;
+
+        return $this;
+    }
+
+    /**
      * Override the visitor's unique ID.
+     *
+     * @deprecated  v4.0.0  Please use `useVisitor(string $visitor)` instead.
      *
      * @param  string  $visitor
      * @return $this
      */
     public function overrideVisitor(string $visitor)
+    {
+        $this->overriddenVisitor = $visitor;
+
+        return $this;
+    }
+
+    /**
+     * Override the visitor's unique ID.
+     *
+     * @param  string  $visitor
+     * @return $this
+     */
+    public function useVisitor(string $visitor)
     {
         $this->overriddenVisitor = $visitor;
 
@@ -404,7 +441,7 @@ class Views
             return false;
         }
 
-        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
+        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay, $this->collection)) {
             return false;
         }
 

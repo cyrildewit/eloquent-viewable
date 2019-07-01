@@ -49,11 +49,13 @@ class ViewSessionHistory
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \DateTime  $expiryDateTime
+     * @param  string  $collection
+     * @return bool
      */
-    public function push(ViewableContract $viewable, $delay): bool
+    public function push(ViewableContract $viewable, $delay, string $collection = null): bool
     {
-        $namespaceKey = $this->createNamespaceKey($viewable);
-        $viewableKey = $this->createViewableKey($viewable);
+        $namespaceKey = $this->createNamespaceKey($viewable, $collection);
+        $viewableKey = $this->createViewableKey($viewable, $collection);
 
         $this->forgetExpiredViews($namespaceKey);
 
@@ -115,22 +117,36 @@ class ViewSessionHistory
     /**
      * Create a base key from the given viewable model.
      *
+     * Returns for example:
+     * => `eloquent-viewable.session.key.app-models-post`
+     *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createNamespaceKey(ViewableContract $viewable): string
+    protected function createNamespaceKey(ViewableContract $viewable, string $collection = null): string
     {
-        return $this->primaryKey.'.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+        $key = $this->primaryKey;
+        $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
+        $key .= is_string($collection) ? ":{$collection}" : '';
+
+        return $key;
     }
 
     /**
      * Create a unique key from the given viewable model.
      *
+     * Returns for example:
+     * => `eloquent-viewable.session.key.app-models-post.1`
+     *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
+     * @param  string  $collection
      * @return string
      */
-    protected function createViewableKey(ViewableContract $viewable): string
+    protected function createViewableKey(ViewableContract $viewable, string $collection = null): string
     {
-        return $this->createNamespaceKey($viewable).'.'.$viewable->getKey();
+        $key = $this->createNamespaceKey($viewable, $collection);
+        $key .= ".{$viewable->getKey()}";
+
+        return $key;
     }
 }

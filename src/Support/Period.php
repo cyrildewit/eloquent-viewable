@@ -378,6 +378,26 @@ class Period
     }
 
     /**
+     * Get the timestamp of the start date time.
+     *
+     * @return string|null
+     */
+    public function getStartDateTimestamp()
+    {
+        return $this->startDateTime !== null ? $this->startDateTime->getTimestamp() : null;
+    }
+
+    /**
+     * Get the timestamp of the end date time.
+     *
+     * @return string|null
+     */
+    public function getEndDateTimestamp()
+    {
+        return $this->endDateTime !== null ? $this->endDateTime->getTimestamp() : null;
+    }
+
+    /**
      * Get the sub type.
      *
      * @return string

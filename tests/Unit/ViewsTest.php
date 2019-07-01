@@ -125,6 +125,24 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_record_a_view_with_a_custom_ip_address_using_useIpAddress()
+    {
+        Config::set('eloquent-viewable.ignored_ip_addresses', [
+            '100.13.20.120',
+        ]);
+
+        views($this->post)
+            ->useIpAddress('128.42.77.5')
+            ->record();
+
+        views($this->post)
+            ->useIpAddress('100.13.20.120')
+            ->record();
+
+        $this->assertEquals(1, View::count());
+    }
+
+    /** @test */
     public function it_can_count_the_views()
     {
         views($this->post)->record();
