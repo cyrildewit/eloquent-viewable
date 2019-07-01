@@ -127,7 +127,7 @@ class ViewSessionHistory
     {
         $key = $this->primaryKey;
         $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
-        $key .= is_string($collection) ? ".{$collection}" : '';
+        $key .= is_string($collection) ? ":{$collection}" : '';
 
         return $key;
     }

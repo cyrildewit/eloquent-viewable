@@ -40,7 +40,7 @@ class ViewSessionHistoryTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $viewHistory = app(ViewSessionHistory::class);
-        $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).'.some-collection'.'.'.$post->getKey();
+        $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
 
         $this->assertFalse(Session::has($postSessionKey));
 
