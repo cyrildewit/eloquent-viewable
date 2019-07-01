@@ -411,7 +411,7 @@ class Views
             return false;
         }
 
-        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay)) {
+        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay, $this->collection)) {
             return false;
         }
 
