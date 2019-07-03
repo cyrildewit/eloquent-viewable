@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v5.0.0]
+
+## Removed
+
+- Removed the deprecated `overrideIpAddress` method from the `Views` class.
+- Removed the deprecated `overrideVisitor` method from the `Views` class.
+
 ## [v4.0.0] (2019-07-01)
 
 ## Added
