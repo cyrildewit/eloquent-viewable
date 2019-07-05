@@ -18,8 +18,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
@@ -92,32 +90,18 @@ class Views
     protected $overriddenVisitor;
 
     /**
+     * The viewer instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\Viewer
+     */
+    protected $viewer;
+
+    /**
      * The view session history instance.
      *
      * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
      */
     protected $viewSessionHistory;
-
-    /**
-     * The visitor cookie repository instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
-     */
-    protected $visitorCookieRepository;
-
-    /**
-     * The crawler detector instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
-     */
-    protected $crawlerDetector;
-
-    /**
-     * The IP Address resolver instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver
-     */
-    protected $ipAddressResolver;
 
     /**
      * The request header resolver instance.
@@ -139,17 +123,13 @@ class Views
      * @return void
      */
     public function __construct(
+        Viewer $viewer,
         ViewSessionHistory $viewSessionHistory,
-        VisitorCookieRepository $visitorCookieRepository,
-        CrawlerDetector $crawlerDetector,
-        IpAddressResolver $ipAddressResolver,
         HeaderResolver $headerResolver,
         CacheRepository $cache
     ) {
+        $this->viewer = $viewer;
         $this->viewSessionHistory = $viewSessionHistory;
-        $this->visitorCookieRepository = $visitorCookieRepository;
-        $this->crawlerDetector = $crawlerDetector;
-        $this->ipAddressResolver = $ipAddressResolver;
         $this->headerResolver = $headerResolver;
         $this->cache = $cache;
         $this->cacheLifetime = Carbon::now()->addMinutes(config('eloquent-viewable.cache.lifetime_in_minutes'));
@@ -397,13 +377,13 @@ class Views
     protected function shouldRecord(): bool
     {
         // If ignore bots is true and the current viewer is a bot, return false
-        if (config('eloquent-viewable.ignore_bots') && $this->crawlerDetector->isCrawler()) {
+        if (config('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
             return false;
         }
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if (config('eloquent-viewable.honor_dnt', false) && $this->requestHasDoNotTrackHeader()) {
+        if (config('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
             return false;
         }
 
@@ -428,17 +408,7 @@ class Views
      */
     protected function resolveIpAddress(): string
     {
-        return $this->overriddenIpAddress ?? $this->ipAddressResolver->resolve();
-    }
-
-    /**
-     * Determine if the request has a Do Not Track header.
-     *
-     * @return string
-     */
-    protected function requestHasDoNotTrackHeader(): bool
-    {
-        return 1 === (int) $this->headerResolver->resolve('HTTP_DNT');
+        return $this->overriddenIpAddress ?? $this->viewer->ip();
     }
 
     /**
@@ -448,7 +418,7 @@ class Views
      */
     protected function resolveVisitorId()
     {
-        return $this->overriddenVisitor ?? $this->visitorCookieRepository->get();
+        return $this->overriddenVisitor ?? $this->viewer->id();
     }
 
     /**
