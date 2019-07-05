@@ -13,15 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Feature;
 
-use Mockery;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Viewer;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 
 class ViewerTest extends TestCase

@@ -16,15 +16,13 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
-use CyrildeWit\EloquentViewable\Viewer;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Request;
+use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
 class ViewsTest extends TestCase

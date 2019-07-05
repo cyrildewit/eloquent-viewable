@@ -18,8 +18,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Traits\Macroable;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
