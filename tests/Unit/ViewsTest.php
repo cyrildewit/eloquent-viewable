@@ -312,7 +312,11 @@ class ViewsTest extends TestCase
     public function it_does_not_record_views_from_visitors_with_dnt_header()
     {
         Config::set('eloquent-viewable.honor_dnt', true);
-        Request::instance()->headers->set('HTTP_DNT', 1);
+
+        $this->mock(Viewer::class, function ($mock) {
+            $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
+            $mock->shouldReceive('isCrawler')->andReturn(false);
+        });
 
         views($this->post)->record();
         views($this->post)->record();

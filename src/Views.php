@@ -385,7 +385,7 @@ class Views
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if (config('eloquent-viewable.honor_dnt', false) && $this->requestHasDoNotTrackHeader()) {
+        if (config('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
             return false;
         }
 
@@ -411,16 +411,6 @@ class Views
     protected function resolveIpAddress(): string
     {
         return $this->overriddenIpAddress ?? $this->viewer->ip();
-    }
-
-    /**
-     * Determine if the request has a Do Not Track header.
-     *
-     * @return string
-     */
-    protected function requestHasDoNotTrackHeader(): bool
-    {
-        return 1 === (int) $this->headerResolver->resolve('HTTP_DNT');
     }
 
     /**

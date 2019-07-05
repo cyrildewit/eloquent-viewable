@@ -77,6 +77,18 @@ class Viewer
     }
 
     /**
+     * Determine if the viewer has a "Do Not Track" header.
+     *
+     * @return bool
+     */
+    public function hasDoNotTrackHeader(): bool
+    {
+        $DNT_HEADER = 'HTTP_DNT';
+
+        return 1 === (int) $this->request()->header($DNT_HEADER);
+    }
+
+    /**
      * Determine if the viewer is a crawler.
      *
      * @return bool
