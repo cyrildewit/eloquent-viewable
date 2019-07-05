@@ -9,10 +9,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [v5.0.0]
 
+### Added
+
+- Added the `Viewer` class which represents the current viewer.
+
+### Changed
+
+- Changed the `Views` class constructor arguments. Added the `Viewer` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`
+- Replaced calls to `$this->crawlerDetector` in `Views` with new `Viewer` class implementation
+- Replaced calls to `requestHasDoNotTrackHeader` in `Views` with new `Viewer` class implementation
+
 ### Removed
 
 - Removed the deprecated `overrideIpAddress` method from the `Views` class.
 - Removed the deprecated `overrideVisitor` method from the `Views` class.
+- Removed `requestHasDoNotTrackHeader` method from `Views` class.
 
 ## [v4.0.0] (2019-07-01)
 
