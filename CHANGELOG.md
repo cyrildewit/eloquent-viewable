@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [v5.0.0]
 
-## Removed
+### Removed
 
 - Removed the deprecated `overrideIpAddress` method from the `Views` class.
 - Removed the deprecated `overrideVisitor` method from the `Views` class.
 
 ## [v4.0.0] (2019-07-01)
 
-## Added
+### Added
 
 - Added `SortDirection` enum class that contains a `DESCENDING` and `ASCENDING` constant
 - Added `OrderByViewsScope` class that can order a query by views based on some options
@@ -26,17 +26,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `getStartDateTimestamp` and `getEndDateTimestamp` methods to the `Period` class for internal use
 - Added `string $collection = null` argument to `push`, `createNamespaceKey` and `createViewableKey` methods in `ViewSessionHistory`
 
-## Deprecated
+### Deprecated
 
 - Deprecated the `overrideIpAddress` method of the `Views` class. Please use the new `useIpAddress(string $address)` method instead.
 - Deprecated the `overrideVisitor` method of the `Views` class. Please use the new `useVisitor(string $visitor)` method instead.
 
-## Changed
+### Changed
 
 - Replaced inner code of the `orderByViews` and `orderByUniqueViews` query scope with the new `OrderByViewsScope` class
 - Removed the `string` type declaration from the `getTable` method in the `View` model class [#165]([#165](https://github.com/cyrildewit/eloquent-viewable/pull/165))
 
-## Removed
+### Removed
 
 - Removed the `Support\Key` class with its references
 
