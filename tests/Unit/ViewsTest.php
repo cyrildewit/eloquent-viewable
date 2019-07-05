@@ -17,13 +17,12 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Request;
+use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Apartment;
 
 class ViewsTest extends TestCase
@@ -114,11 +113,11 @@ class ViewsTest extends TestCase
         ]);
 
         views($this->post)
-            ->overrideIpAddress('128.42.77.5')
+            ->useIpAddress('128.42.77.5')
             ->record();
 
         views($this->post)
-            ->overrideIpAddress('100.13.20.120')
+            ->useIpAddress('100.13.20.120')
             ->record();
 
         $this->assertEquals(1, View::count());
@@ -311,7 +310,11 @@ class ViewsTest extends TestCase
     public function it_does_not_record_views_from_visitors_with_dnt_header()
     {
         Config::set('eloquent-viewable.honor_dnt', true);
-        Request::instance()->headers->set('HTTP_DNT', 1);
+
+        $this->mock(Viewer::class, function ($mock) {
+            $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
+            $mock->shouldReceive('isCrawler')->andReturn(false);
+        });
 
         views($this->post)->record();
         views($this->post)->record();
@@ -328,30 +331,13 @@ class ViewsTest extends TestCase
             '10.10.30.40',
         ]);
 
-        // Test ip address: 127.20.22.6
-        $this->app->bind(IpAddressResolver::class, function ($app) {
-            return new class implements IpAddressResolver {
-                public function resolve(): string
-                {
-                    return '127.20.22.6';
-                }
-            };
+        $this->mock(Viewer::class, function ($mock) {
+            $mock->shouldReceive('ip')->andReturn('127.20.22.6');
+            $mock->shouldReceive('isCrawler')->andReturn(false);
         });
 
         views($this->post)->record();
         views($this->post)->record();
-
-        $this->assertEquals(0, View::count());
-
-        // Test ip address: 10.10.30.40
-        $this->app->bind(IpAddressResolver::class, function ($app) {
-            return new class implements IpAddressResolver {
-                public function resolve(): string
-                {
-                    return '10.10.30.40';
-                }
-            };
-        });
 
         $this->assertEquals(0, View::count());
     }
