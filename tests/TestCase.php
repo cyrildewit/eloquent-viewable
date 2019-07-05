@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use Mockery;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -42,6 +43,7 @@ abstract class TestCase extends Orchestra
      */
     protected function tearDown()
     {
+        Mockery::close();
         Carbon::setTestNow();
     }
 
