@@ -16,6 +16,7 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Viewer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -328,30 +329,13 @@ class ViewsTest extends TestCase
             '10.10.30.40',
         ]);
 
-        // Test ip address: 127.20.22.6
-        $this->app->bind(IpAddressResolver::class, function ($app) {
-            return new class implements IpAddressResolver {
-                public function resolve(): string
-                {
-                    return '127.20.22.6';
-                }
-            };
+        $this->mock(Viewer::class, function ($mock) {
+            $mock->shouldReceive('ip')->andReturn('127.20.22.6');
+            $mock->shouldReceive('isCrawler')->andReturn(false);
         });
 
         views($this->post)->record();
         views($this->post)->record();
-
-        $this->assertEquals(0, View::count());
-
-        // Test ip address: 10.10.30.40
-        $this->app->bind(IpAddressResolver::class, function ($app) {
-            return new class implements IpAddressResolver {
-                public function resolve(): string
-                {
-                    return '10.10.30.40';
-                }
-            };
-        });
 
         $this->assertEquals(0, View::count());
     }
