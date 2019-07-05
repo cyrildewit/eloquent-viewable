@@ -33,16 +33,37 @@ class Viewer
     protected $crawlerDetector;
 
     /**
+     * The visitor cookie repository instance.
+     *
+     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
+     */
+    protected $visitorCookieRepository;
+
+    /**
      * Create a new viewer instance.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector  $crawlerDetector
      * @return void
      */
-    public function __construct(Request $request, CrawlerDetector $crawlerDetector)
-    {
+    public function __construct(
+        Request $request,
+        CrawlerDetector $crawlerDetector,
+        VisitorCookieRepository $visitorCookieRepository
+    ) {
         $this->request = $request;
         $this->crawlerDetector = $crawlerDetector;
+        $this->visitorCookieRepository = $visitorCookieRepository;
+    }
+
+    /**
+     * Get the unique ID that represent's the viewer.
+     *
+     * @return string
+     */
+    public function id()
+    {
+        return $this->visitorCookieRepository->get();
     }
 
     /**
