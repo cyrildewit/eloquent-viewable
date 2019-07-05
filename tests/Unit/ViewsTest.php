@@ -114,11 +114,11 @@ class ViewsTest extends TestCase
         ]);
 
         views($this->post)
-            ->overrideIpAddress('128.42.77.5')
+            ->useIpAddress('128.42.77.5')
             ->record();
 
         views($this->post)
-            ->overrideIpAddress('100.13.20.120')
+            ->useIpAddress('100.13.20.120')
             ->record();
 
         $this->assertEquals(1, View::count());
