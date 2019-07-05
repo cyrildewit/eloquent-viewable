@@ -19,6 +19,13 @@ use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 class Viewer
 {
     /**
+     * PHP stores the DNT header under the "HTTP_DNT" key instead of "DNT".
+     *
+     * @var string
+     */
+    const DNT = 'HTTP_DNT';
+
+    /**
      * The request instance.
      *
      * @var \Illuminate\Http\Request
@@ -73,7 +80,7 @@ class Viewer
      */
     public function ip()
     {
-        return $this->request->ip();
+        return $this->request()->ip();
     }
 
     /**
@@ -83,9 +90,7 @@ class Viewer
      */
     public function hasDoNotTrackHeader(): bool
     {
-        $DNT_HEADER = 'HTTP_DNT';
-
-        return 1 === (int) $this->request()->header($DNT_HEADER);
+        return 1 === (int) $this->request()->header(Viewer::DNT);
     }
 
     /**
@@ -95,6 +100,26 @@ class Viewer
      */
     public function isCrawler(): bool
     {
-        return $this->crawlerDetector->isCrawler();
+        return $this->crawlerDetector()->isCrawler();
+    }
+
+    /**
+     * Returns the request instance.
+     *
+     * @return \Illuminate\Http\Request
+     */
+    protected function request(): Request
+    {
+        return $this->request;
+    }
+
+    /**
+     * Returns the crawler detector instance.
+     *
+     * @return \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
+     */
+    protected function crawlerDetector(): CrawlerDetector
+    {
+        return $this->crawlerDetector;
     }
 }
