@@ -316,12 +316,10 @@ Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
 
 ### Get views count of viewable type
 
-If you want to know how many views a specific viewable type has, you can reuse the same `count` method, but need to pass an empty instance of the viewable type to the `views()` helper.
-
-<!-- // Under the hood the package will get the fully qualified class name by calling the `getMorphClass` method on the model and . -->
+If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the `views()` helper like so:
 
 ```php
-views()->count(new Post());
+views(new Post())->count();
 ```
 
 You can also pass a fully qualified class name. The package will then resolve an instance from the application container.
