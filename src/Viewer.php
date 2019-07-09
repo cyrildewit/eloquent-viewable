@@ -90,7 +90,7 @@ class Viewer
      */
     public function hasDoNotTrackHeader(): bool
     {
-        return 1 === (int) $this->request()->header(Viewer::DNT);
+        return 1 === (int) $this->request()->header(self::DNT);
     }
 
     /**
