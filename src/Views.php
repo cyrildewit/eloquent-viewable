@@ -159,7 +159,7 @@ class Views
 
         $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
-        if ($this->shouldCache) {
+        if ($this->shouldCache()) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             // Return cached views count if it exists
@@ -180,7 +180,7 @@ class Views
             $viewsCount = $query->count();
         }
 
-        if ($this->shouldCache) {
+        if ($this->shouldCache()) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
@@ -346,6 +346,16 @@ class Views
         }
 
         return true;
+    }
+
+    /**
+     * Determine if we should cache the views count.
+     *
+     * @return bool
+     */
+    protected function shouldCache()
+    {
+        return $this->shouldCache;
     }
 
     /**
