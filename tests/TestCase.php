@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use Closure;
 use Mockery;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
@@ -114,5 +115,17 @@ abstract class TestCase extends Orchestra
     protected function registerPackageFactories()
     {
         $this->withFactories(realpath(__DIR__.'/database/factories'));
+    }
+
+    /**
+     * Mock an instance of an object in the container.
+     *
+     * @param  string  $abstract
+     * @param  \Closure|null  $mock
+     * @return object
+     */
+    protected function mock($abstract, Closure $mock = null)
+    {
+        return $this->instance($abstract, Mockery::mock(...array_filter(func_get_args())));
     }
 }

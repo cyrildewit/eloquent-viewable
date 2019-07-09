@@ -28,14 +28,12 @@ class CacheKey
     /**
      * Create a new cache key instance.
      *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null  $viewable
      * @return void
      */
-    public function __construct(
-        ViewableContract $viewable = null,
-        string $viewableType = null
-    ) {
+    public function __construct(ViewableContract $viewable = null)
+    {
         $this->viewable = $viewable;
-        $this->viewableType = $viewableType;
     }
 
     public static function fromViewable(ViewableContract $viewable)
@@ -43,22 +41,20 @@ class CacheKey
         return new static($viewable);
     }
 
-    public static function fromViewableType(string $viewableType)
-    {
-        return new static(null, $viewableType);
-    }
-
     /**
      * Make the cache key.
      *
      * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @param  bool  $unique
+     * @param  string|null  $collection
+     * @return string
      */
     public function make($period = null, bool $unique = false, string $collection = null)
     {
         $key = $this->getCachePrefix();
         $key .= $this->getConnectionName();
         $key .= $this->getDatabaseName();
+        $key .= $this->getViewableTypeSlug();
         $key .= $this->getTableSlug();
         $key .= $this->getModelSlug();
         $key .= $this->getKeySlug();
@@ -76,56 +72,36 @@ class CacheKey
 
     protected function getConnectionName(): string
     {
-        // Since don't know anything about the connection of the viewable type origin,
-        // we need to return an empty string to prevent an exception.
-        // TODO: look if an alternative solution could resolve this issue.
-        if ($this->viewable === null && $this->viewableType !== null) {
-            return '';
-        }
-
         return $this->viewable->getConnection()->getName().':';
     }
 
     protected function getDatabaseName(): string
     {
-        // Since don't know anything about the connection of the viewable type origin,
-        // we need to return an empty string to prevent an exception.
-        // TODO: look if an alternative solution could resolve this issue.
-        if ($this->viewable === null && $this->viewableType !== null) {
-            return '';
+        return $this->viewable->getConnection()->getDatabaseName().':';
+    }
+
+    protected function getViewableTypeSlug(): string
+    {
+        if ($this->viewable->getKey() === null) {
+            return 'type.';
         }
 
-        return $this->viewable->getConnection()->getDatabaseName().':';
+        return '';
     }
 
     protected function getTableSlug(): string
     {
-        // Since don't know anything about the connection of the viewable type origin,
-        // we need to return an empty string to prevent an exception.
-        // TODO: look if an alternative solution could resolve this issue.
-        if ($this->viewable === null && $this->viewableType !== null) {
-            return '';
-        }
-
         return app(Str::class)->slug($this->viewable->getTable()).':';
     }
 
     protected function getModelSlug(): string
     {
-        // TODO: look if an alternative solution could improve this ugluy code
-        if ($this->viewable === null && $this->viewableType !== null) {
-            return app(Str::class)->slug($this->viewableType).'.';
-        }
-
         return app(Str::class)->slug($this->viewable->getMorphClass()).'.';
     }
 
     protected function getKeySlug(): string
     {
-        // Since don't know anything about the connection of the viewable type origin,
-        // we need to return an empty string to prevent an exception.
-        // TODO: look if an alternative solution could resolve this issue.
-        if ($this->viewable === null && $this->viewableType !== null) {
+        if ($this->viewable->getKey() === null) {
             return '';
         }
 

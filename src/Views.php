@@ -136,37 +136,43 @@ class Views
     }
 
     /**
-     * Count the views for a viewable type.
+     * Set the viewable model.
      *
-     * @param  string|  $viewableType
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
+     * @return $this
+     */
+    public function forViewable(ViewableContract $viewable = null): self
+    {
+        $this->viewable = $viewable;
+
+        return $this;
+    }
+
+    /**
+     * Count the views.
+     *
      * @return int
      */
-    public function countByType($viewableType): int
+    public function count(): int
     {
-        if ($viewableType instanceof ViewableContract) {
-            $viewableType = $viewableType->getMorphClass();
-        }
+        $query = $this->resolveVewableQuery();
 
-        $cacheKey = (CacheKey::fromViewableType($viewableType))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
+        $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
-        // Return cached views count if it exists
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
+            // Return cached views count if it exists
             if ($cachedViewsCount !== null) {
                 return (int) $cachedViewsCount;
             }
         }
 
-        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
         if ($period = $this->period) {
             $query->withinPeriod($period);
         }
+
+        $query->collection($this->collection);
 
         if ($this->unique) {
             $viewsCount = $query->uniqueVisitor()->count('visitor');
@@ -203,49 +209,6 @@ class Views
     }
 
     /**
-     * Count the views.
-     *
-     * @return int
-     */
-    public function count(): int
-    {
-        $query = $this->viewable->views();
-
-        $cacheKey = (CacheKey::fromViewable($this->viewable))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
-
-        if ($this->shouldCache) {
-            $cachedViewsCount = $this->cache->get($cacheKey);
-
-            // Return cached views count if it exists
-            if ($cachedViewsCount !== null) {
-                return (int) $cachedViewsCount;
-            }
-        }
-
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
-        $query->collection($this->collection);
-
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
-
-        if ($this->shouldCache) {
-            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
-        }
-
-        return $viewsCount;
-    }
-
-    /**
      * Destroy all views of the viewable model.
      *
      * @return void
@@ -253,19 +216,6 @@ class Views
     public function destroy()
     {
         $this->viewable->views()->delete();
-    }
-
-    /**
-     * Set the viewable model.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
-     * @return $this
-     */
-    public function forViewable(ViewableContract $viewable = null): self
-    {
-        $this->viewable = $viewable;
-
-        return $this;
     }
 
     /**
@@ -396,6 +346,36 @@ class Views
         }
 
         return true;
+    }
+
+    /**
+     * Resolve the viewable query builder instance.
+     *
+     * @return
+     */
+    protected function resolveVewableQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        // If null, we take for granted that we need to count the type
+        if ($this->viewable->getKey() === null) {
+            $viewableType = $this->viewable->getMorphClass();
+
+            return app(ViewContract::class)->where('viewable_type', $viewableType);
+        }
+
+        return $this->viewable->views()->getQuery();
+    }
+
+    /**
+     * Make a cache key for the viewable with custom query options.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @param  bool  $unique
+     * @param  string|null  $collection
+     * @return string
+     */
+    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
+    {
+        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
     }
 
     /**
