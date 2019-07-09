@@ -46,6 +46,8 @@ class CacheKey
      *
      * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
      * @param  bool  $unique
+     * @param  string|null  $collection
+     * @return string
      */
     public function make($period = null, bool $unique = false, string $collection = null)
     {

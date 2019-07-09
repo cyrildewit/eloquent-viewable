@@ -202,10 +202,7 @@ class Views
         return $viewsCount;
     }
 
-    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
-    {
-        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
-    }
+
 
     /**
      * Destroy all views of the viewable model.
@@ -358,6 +355,19 @@ class Views
         }
 
         return true;
+    }
+
+    /**
+     * Make a cache key for the viewable with custom query options.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @param  bool  $unique
+     * @param  string|null  $collection
+     * @return string
+     */
+    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
+    {
+        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
     }
 
     /**
