@@ -28,7 +28,7 @@ class CacheKey
     /**
      * Create a new cache key instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null  $viewable|
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null  $viewable
      * @return void
      */
     public function __construct(ViewableContract $viewable = null)
@@ -82,7 +82,7 @@ class CacheKey
 
     protected function getViewableTypeSlug(): string
     {
-        if ($this->viewable !== null && $this->viewable->getKey() === null) {
+        if ($this->viewable->getKey() === null) {
             return 'type.';
         }
 
