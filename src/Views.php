@@ -163,14 +163,7 @@ class Views
      */
     public function count(): int
     {
-        // If null, we take for granted that we need to count the type
-        if ($this->viewable->getKey() === null) {
-            $viewableType = $this->viewable->getMorphClass();
-
-            $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-        } else {
-            $query = $this->viewable->views();
-        }
+        $query = $this->resolveVewableQuery();
 
         $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
@@ -201,8 +194,6 @@ class Views
 
         return $viewsCount;
     }
-
-
 
     /**
      * Destroy all views of the viewable model.
@@ -355,6 +346,23 @@ class Views
         }
 
         return true;
+    }
+
+    /**
+     * Resolve the viewable query builder instance.
+     *
+     * @return
+     */
+    protected function resolveVewableQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        // If null, we take for granted that we need to count the type
+        if ($this->viewable->getKey() === null) {
+            $viewableType = $this->viewable->getMorphClass();
+
+            return app(ViewContract::class)->where('viewable_type', $viewableType);
+        }
+
+        return $this->viewable->views()->getQuery();
     }
 
     /**
