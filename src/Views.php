@@ -136,24 +136,16 @@ class Views
     }
 
     /**
-     * Save a new record of the made view.
+     * Set the viewable model.
      *
-     * @return bool
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
+     * @return $this
      */
-    public function record(): bool
+    public function forViewable(ViewableContract $viewable = null): self
     {
-        if ($this->shouldRecord()) {
-            $view = app(ViewContract::class);
-            $view->viewable_id = $this->viewable->getKey();
-            $view->viewable_type = $this->viewable->getMorphClass();
-            $view->visitor = $this->resolveVisitorId();
-            $view->collection = $this->collection;
-            $view->viewed_at = Carbon::now();
+        $this->viewable = $viewable;
 
-            return $view->save();
-        }
-
-        return false;
+        return $this;
     }
 
     /**
@@ -196,6 +188,27 @@ class Views
     }
 
     /**
+     * Save a new record of the made view.
+     *
+     * @return bool
+     */
+    public function record(): bool
+    {
+        if ($this->shouldRecord()) {
+            $view = app(ViewContract::class);
+            $view->viewable_id = $this->viewable->getKey();
+            $view->viewable_type = $this->viewable->getMorphClass();
+            $view->visitor = $this->resolveVisitorId();
+            $view->collection = $this->collection;
+            $view->viewed_at = Carbon::now();
+
+            return $view->save();
+        }
+
+        return false;
+    }
+
+    /**
      * Destroy all views of the viewable model.
      *
      * @return void
@@ -203,19 +216,6 @@ class Views
     public function destroy()
     {
         $this->viewable->views()->delete();
-    }
-
-    /**
-     * Set the viewable model.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
-     * @return $this
-     */
-    public function forViewable(ViewableContract $viewable = null): self
-    {
-        $this->viewable = $viewable;
-
-        return $this;
     }
 
     /**
