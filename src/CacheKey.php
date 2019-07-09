@@ -59,6 +59,7 @@ class CacheKey
         $key = $this->getCachePrefix();
         $key .= $this->getConnectionName();
         $key .= $this->getDatabaseName();
+        $key .= $this->getViewableTypeSlug();
         $key .= $this->getTableSlug();
         $key .= $this->getModelSlug();
         $key .= $this->getKeySlug();
@@ -98,6 +99,15 @@ class CacheKey
         return $this->viewable->getConnection()->getDatabaseName().':';
     }
 
+    protected function getViewableTypeSlug(): string
+    {
+        if ($this->viewable !== null && $this->viewable->getKey() === null) {
+            return 'type.';
+        }
+
+        return '';
+    }
+
     protected function getTableSlug(): string
     {
         // Since don't know anything about the connection of the viewable type origin,
@@ -126,6 +136,10 @@ class CacheKey
         // we need to return an empty string to prevent an exception.
         // TODO: look if an alternative solution could resolve this issue.
         if ($this->viewable === null && $this->viewableType !== null) {
+            return '';
+        }
+
+        if ($this->viewable->getKey() === null) {
             return '';
         }
 

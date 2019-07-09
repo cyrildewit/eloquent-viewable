@@ -136,52 +136,6 @@ class Views
     }
 
     /**
-     * Count the views for a viewable type.
-     *
-     * @param  string|  $viewableType
-     * @return int
-     */
-    public function countByType($viewableType): int
-    {
-        if ($viewableType instanceof ViewableContract) {
-            $viewableType = $viewableType->getMorphClass();
-        }
-
-        $cacheKey = (CacheKey::fromViewableType($viewableType))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
-
-        // Return cached views count if it exists
-        if ($this->shouldCache) {
-            $cachedViewsCount = $this->cache->get($cacheKey);
-
-            if ($cachedViewsCount !== null) {
-                return (int) $cachedViewsCount;
-            }
-        }
-
-        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
-
-        if ($this->shouldCache) {
-            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
-        }
-
-        return $viewsCount;
-    }
-
-    /**
      * Save a new record of the made view.
      *
      * @return bool
@@ -209,13 +163,16 @@ class Views
      */
     public function count(): int
     {
-        $query = $this->viewable->views();
+        // If null, we take for granted that we need to count the type
+        if ($this->viewable->getKey() === null) {
+            $viewableType = $this->viewable->getMorphClass();
 
-        $cacheKey = (CacheKey::fromViewable($this->viewable))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
+            $query = app(ViewContract::class)->where('viewable_type', $viewableType);
+        } else {
+            $query = $this->viewable->views();
+        }
+
+        $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
         if ($this->shouldCache) {
             $cachedViewsCount = $this->cache->get($cacheKey);
@@ -243,6 +200,11 @@ class Views
         }
 
         return $viewsCount;
+    }
+
+    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
+    {
+        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
     }
 
     /**
