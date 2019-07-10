@@ -215,7 +215,7 @@ class Views
      */
     public function destroy()
     {
-        $this->viewable->views()->delete();
+        $this->resolveVewableQuery()->delete();
     }
 
     /**

@@ -203,13 +203,39 @@ class ViewsTest extends TestCase
     /** @test */
     public function it_can_destroy_the_views()
     {
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
+        $post = $this->post;
+        $apartment = factory(Apartment::class)->create();
 
-        app(Views::class)->forViewable($this->post)->destroy();
+        TestHelper::createView($post);
+        TestHelper::createView($post);
+        TestHelper::createView($post);
+        TestHelper::createView($post);
+        TestHelper::createView($apartment);
+        TestHelper::createView($apartment);
 
-        $this->assertEquals(0, app(Views::class)->forViewable($this->post)->count());
+        app(Views::class)->forViewable($post)->destroy();
+
+        $this->assertEquals(0, app(Views::class)->forViewable($post)->count());
+    }
+
+    /** @test */
+    public function it_can_destroy_the_views_of_a_viewable_type()
+    {
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $apartment = factory(Apartment::class)->create();
+
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postOne);
+        TestHelper::createView($postTwo);
+        TestHelper::createView($postTwo);
+        TestHelper::createView($apartment);
+        TestHelper::createView($apartment);
+
+        app(Views::class)->forViewable(new Post())->destroy();
+
+        $this->assertEquals(0, app(Views::class)->forViewable(new Post())->count());
     }
 
     /** @test */
