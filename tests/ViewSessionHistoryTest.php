@@ -15,7 +15,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use Session;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\ViewSessionHistory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 

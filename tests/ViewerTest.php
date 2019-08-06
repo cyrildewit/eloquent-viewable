@@ -15,7 +15,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Viewer;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\VisitorCookieRepository;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 

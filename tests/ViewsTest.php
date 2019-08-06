@@ -19,10 +19,8 @@ use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 
 class ViewsTest extends TestCase
