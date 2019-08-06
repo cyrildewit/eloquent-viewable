@@ -155,7 +155,7 @@ class Views
      */
     public function count(): int
     {
-        $query = $this->resolveVewableQuery();
+        $query = $this->resolveViewableQuery();
 
         $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
@@ -215,7 +215,7 @@ class Views
      */
     public function destroy()
     {
-        $this->resolveVewableQuery()->delete();
+        $this->resolveViewableQuery()->delete();
     }
 
     /**
@@ -363,7 +363,7 @@ class Views
      *
      * @return
      */
-    protected function resolveVewableQuery(): \Illuminate\Database\Eloquent\Builder
+    protected function resolveViewableQuery(): \Illuminate\Database\Eloquent\Builder
     {
         // If null, we take for granted that we need to count the type
         if ($this->viewable->getKey() === null) {
