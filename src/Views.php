@@ -188,24 +188,25 @@ class Views
     }
 
     /**
-     * Save a new record of the made view.
+     * Record a view.
      *
-     * @return bool
+     * @return \CyrildeWit\EloquentViewable\Contracts\View|void
      */
-    public function record(): bool
+    public function record()
     {
-        if ($this->shouldRecord()) {
-            $view = app(ViewContract::class);
-            $view->viewable_id = $this->viewable->getKey();
-            $view->viewable_type = $this->viewable->getMorphClass();
-            $view->visitor = $this->resolveVisitorId();
-            $view->collection = $this->collection;
-            $view->viewed_at = Carbon::now();
-
-            return $view->save();
+        if (! $this->shouldRecord()) {
+            return;
         }
 
-        return false;
+        $view = app(ViewContract::class);
+        $view->viewable_id = $this->viewable->getKey();
+        $view->viewable_type = $this->viewable->getMorphClass();
+        $view->visitor = $this->resolveVisitorId();
+        $view->collection = $this->collection;
+        $view->viewed_at = Carbon::now();
+        $view->save();
+
+        return $view;
     }
 
     /**
