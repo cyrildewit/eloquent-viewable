@@ -15,7 +15,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\View;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class ViewTest extends TestCase

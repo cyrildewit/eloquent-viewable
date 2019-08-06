@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Views;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class ViewsHelperTest extends TestCase
