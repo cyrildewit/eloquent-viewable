@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit;
+namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class ViewsHelperTest extends TestCase
 {

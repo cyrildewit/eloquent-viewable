@@ -12,7 +12,7 @@ declare(strict_types=1);
  */
 
 use Faker\Generator as Faker;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 /*
  * This is the Post factory.

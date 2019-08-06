@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit\Support;
+namespace CyrildeWit\EloquentViewable\Tests\Support;
 
 use Exception;
 use Carbon\Carbon;

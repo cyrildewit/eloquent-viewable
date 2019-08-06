@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
+namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use CyrildeWit\EloquentViewable\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Post extends Model implements ViewableContract
+class Apartment extends Model implements ViewableContract
 {
     use Viewable;
 
@@ -26,7 +26,7 @@ class Post extends Model implements ViewableContract
      *
      * @var string
      */
-    protected $table = 'posts';
+    protected $table = 'apartments';
     /**
      * The attributes that aren't mass assignable.
      *

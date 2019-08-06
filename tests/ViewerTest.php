@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Feature;
+namespace CyrildeWit\EloquentViewable\Tests;
 
 use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Viewer;
