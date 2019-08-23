@@ -18,6 +18,7 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 
 /**
  * @see \CyrildeWit\EloquentViewable\Views
+ * @codeCoverageIgnore
  */
 class ViewsFacade extends Facade
 {
