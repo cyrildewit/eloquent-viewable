@@ -31,8 +31,8 @@ class OrderByViewsScope
         $unique = ($options['unique'] ?? false) === true;
         $descending = ($options['descending'] ?? false) === true;
         $direction = $descending ? SortDirection::DESCENDING : SortDirection::ASCENDING;
-        $period = $options['period'];
-        $collection = $options['collection'];
+        $period = $options['period'] ?? null;
+        $collection = $options['collection'] ?? null;
 
         $viewable = $query->getModel();
         $viewModel = app(ViewContract::class);
