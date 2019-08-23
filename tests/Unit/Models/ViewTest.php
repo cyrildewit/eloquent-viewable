@@ -20,7 +20,7 @@ use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class ViewTest extends TestCase
 {
-    protected function tearDown()
+    protected function tearDown(): void
     {
         Carbon::setTestNow();
     }

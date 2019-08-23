@@ -7,7 +7,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
-This Laravel >= 5.5 package allows you to associate views with Eloquent models.
+This Laravel >= 5.8 package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
 
@@ -82,18 +82,19 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires **PHP 7.1+** and **Laravel 5.5+**.
+This package requires **PHP 7.2+** and **Laravel 5.8+**.
 
 Lumen is not supported!
 
 #### Version information
 
-| Version | Illuminate | Status         | PHP Version |
-|---------|------------|----------------|-------------|
-| ^4.0    | 5.5 - 5.8  | Active support | >= 7.1.0    |
-| ^3.0    | 5.5 - 5.8  | Bug fixes only | >= 7.1.0    |
-| ^2.0    | 5.5 - 5.7  | Bug fixes only | >= 7.0.0    |
-| ^1.0    | 5.5 - 5.6  | Bug fixes only | >= 7.0.0    |
+| Version | Illuminate     | Status         | PHP Version |
+|---------|----------------|----------------|-------------|
+| ^5.0    | 5.8.x - 5.x.x  | Active support | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x  | Active support | >= 7.1.0    |
+| ^3.0    | 5.5.x - 5.8.x  | End of life    | >= 7.1.0    |
+| ^2.0    | 5.5.x - 5.7.x  | End of life    | >= 7.0.0    |
+| ^1.0    | 5.5.x - 5.6.x  | End of life    | >= 7.0.0    |
 
 ### Installation
 
