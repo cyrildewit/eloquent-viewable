@@ -22,16 +22,6 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class OrderByViewsScopeTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
-    protected $post;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $this->post = factory(Post::class)->create();
-    }
-
     /** @test */
     public function it_builds_a_query_with_no_options()
     {
