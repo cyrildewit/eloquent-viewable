@@ -19,6 +19,7 @@ use Illuminate\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
 use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver as HeaderResolverContract;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
@@ -66,6 +67,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
             ->give(function () : CacheRepository {
                 return $this->app['cache']->store(config('eloquent-viewable.cache.store'));
             });
+
+        $this->app->bind(ViewsContract::class, Views::class);
 
         $this->app->bind(ViewContract::class, View::class);
 

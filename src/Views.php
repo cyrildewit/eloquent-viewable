@@ -20,9 +20,10 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 
-class Views
+class Views implements ViewsContract
 {
     use Macroable;
 
@@ -141,7 +142,7 @@ class Views
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
      * @return $this
      */
-    public function forViewable(ViewableContract $viewable = null): self
+    public function forViewable(ViewableContract $viewable = null): ViewsContract
     {
         $this->viewable = $viewable;
 
@@ -225,7 +226,7 @@ class Views
      * @param  \DateTime|int  $delay
      * @return $this
      */
-    public function delayInSession($delay): self
+    public function delayInSession($delay): ViewsContract
     {
         if (is_int($delay)) {
             $delay = Carbon::now()->addMinutes($delay);
@@ -242,7 +243,7 @@ class Views
      * @param  \CyrildeWit\EloquentViewable\Period
      * @return $this
      */
-    public function period($period): self
+    public function period($period): ViewsContract
     {
         $this->period = $period;
 
@@ -255,7 +256,7 @@ class Views
      * @param  string
      * @return $this
      */
-    public function collection(string $name): self
+    public function collection(string $name): ViewsContract
     {
         $this->collection = $name;
 
@@ -268,7 +269,7 @@ class Views
      * @param  bool  $state
      * @return $this
      */
-    public function unique(bool $state = true): self
+    public function unique(bool $state = true): ViewsContract
     {
         $this->unique = $state;
 
@@ -281,7 +282,7 @@ class Views
      * @param  \DateTime|int|null  $lifetime
      * @return $this
      */
-    public function remember($lifetime = null)
+    public function remember($lifetime = null): ViewsContract
     {
         $this->shouldCache = true;
 
@@ -300,7 +301,7 @@ class Views
      * @param  string  $address
      * @return $this
      */
-    public function useIpAddress(string $address)
+    public function useIpAddress(string $address): ViewsContract
     {
         $this->overriddenIpAddress = $address;
 
@@ -313,7 +314,7 @@ class Views
      * @param  string  $visitor
      * @return $this
      */
-    public function useVisitor(string $visitor)
+    public function useVisitor(string $visitor): ViewsContract
     {
         $this->overriddenVisitor = $visitor;
 
