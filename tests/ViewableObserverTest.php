@@ -11,16 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit;
+namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\View;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class ViewableObserverTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
+    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
     protected $post;
 
     public function setUp(): void
