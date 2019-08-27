@@ -542,7 +542,7 @@ See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewa
 ## Alternatives
 
 * [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
-* [foothing/laravel-simple-pageviews](foothing/laravel-simple-pageviews)
+* [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
 * [awssat/laravel-visits](https://github.com/awssat/laravel-visits)
 * [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
 * [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
