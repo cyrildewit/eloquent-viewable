@@ -28,7 +28,7 @@ views($post)->unique()->count();
 views($post)->record();
 
 // Record a new view with session delay between views
-views($post)->delayInSession(now()->addHours(2))->record();
+views($post)->cooldown(now()->addHours(2))->record();
 ```
 
 ## Overview
@@ -184,11 +184,11 @@ public function show(Post $post)
 
 ### Recording views with session delays
 
-You may use the `delayInSession` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
+You may use the `cooldown` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
 
 ```php
 views($post)
-    ->delayInSession($minutes)
+    ->cooldown($minutes)
     ->record();
 ```
 
@@ -198,7 +198,7 @@ Instead of passing the number of minutes as an integer, you can also pass a `Dat
 $expiresAt = now()->addHours(3);
 
 views($post)
-    ->delayInSession($expiresAt)
+    ->cooldown($expiresAt)
     ->record();
 ```
 
