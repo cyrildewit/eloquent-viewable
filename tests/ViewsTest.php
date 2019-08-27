@@ -68,12 +68,12 @@ class ViewsTest extends TestCase
     {
         app(Views::class)
             ->forViewable($this->post)
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         app(Views::class)
             ->forViewable($this->post)
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         $this->assertEquals(1, View::count());
@@ -84,12 +84,12 @@ class ViewsTest extends TestCase
     {
         app(Views::class)
             ->forViewable($this->post)
-            ->delayInSession(10)
+            ->cooldown(10)
             ->record();
 
         app(Views::class)
             ->forViewable($this->post)
-            ->delayInSession(10)
+            ->cooldown(10)
             ->record();
 
         $this->assertEquals(1, View::count());

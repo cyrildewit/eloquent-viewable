@@ -49,11 +49,11 @@ class Views implements ViewsContract
     protected $unique = false;
 
     /**
-     * The delay that should be finished before a new view can be recorded.
+     * The cooldown that should be over before a new view can be recorded.
      *
      * @var \DateTime|null
      */
-    protected $sessionDelay = null;
+    protected $cooldown = null;
 
     /**
      * The collection under where the view will be saved.
@@ -221,18 +221,18 @@ class Views implements ViewsContract
     }
 
     /**
-     * Set the delay in the session.
+     * Set a cooldown.
      *
-     * @param  \DateTime|int  $delay
+     * @param  \DateTime|int  $cooldown
      * @return $this
      */
-    public function delayInSession($delay): ViewsContract
+    public function cooldown($cooldown): ViewsContract
     {
-        if (is_int($delay)) {
-            $delay = Carbon::now()->addMinutes($delay);
+        if (is_int($cooldown)) {
+            $cooldown = Carbon::now()->addMinutes($cooldown);
         }
 
-        $this->sessionDelay = $delay;
+        $this->cooldown = $cooldown;
 
         return $this;
     }
@@ -343,7 +343,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay, $this->collection)) {
+        if ($this->cooldown !== null && ! $this->viewSessionHistory->push($this->viewable, $this->cooldown, $this->collection)) {
             return false;
         }
 
@@ -416,7 +416,7 @@ class Views implements ViewsContract
     /**
      * Resolve cache lifetime.
      *
-     * @param  int|DateTime
+     * @param  DateTime|int
      * @return \Carbon\Carbon
      */
     protected function resolveCacheLifetime($lifetime): DateTime

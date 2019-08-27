@@ -50,12 +50,12 @@ interface Views
     public function destroy();
 
     /**
-     * Set the delay in the session.
+     * Set a cooldown.
      *
-     * @param  \DateTime|int  $delay
+     * @param  \DateTime|int  $cooldown
      * @return $this
      */
-    public function delayInSession($delay): Views;
+    public function cooldown($cooldown): Views;
 
     /**
      * Set the period.

@@ -49,10 +49,10 @@ class ViewSessionHistory
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @param  \DateTime  $expiryDateTime
-     * @param  string  $collection
+     * @param  string|null  $collection
      * @return bool
      */
-    public function push(ViewableContract $viewable, $delay, string $collection = null): bool
+    public function push(ViewableContract $viewable, $expiryDateTime, string $collection = null): bool
     {
         $namespaceKey = $this->createNamespaceKey($viewable, $collection);
         $viewableKey = $this->createViewableKey($viewable, $collection);
@@ -60,7 +60,7 @@ class ViewSessionHistory
         $this->forgetExpiredViews($namespaceKey);
 
         if (! $this->has($viewableKey)) {
-            $this->session->put($viewableKey, $this->createRecord($viewable, $delay));
+            $this->session->put($viewableKey, $this->createRecord($viewable, $expiryDateTime));
 
             return true;
         }
