@@ -62,7 +62,7 @@ In this documentation, you will find some helpful information about the use of t
 2. [Usage](#usage)
     * [Preparing your model](#preparing-your-model)
     * [Recording views](#recording-views)
-    * [Recording views with session delays](#recording-views-with-session-delays)
+    * [Setting a cooldown](#setting-a-cooldown)
     * [Retrieving views counts](#retrieving-views-counts)
     * [Order models by views count](#order-models-by-views-count)
 3. [Advanced Usage](#advanced-usage)
@@ -182,9 +182,9 @@ public function show(Post $post)
 
 **Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
 
-### Recording views with session delays
+### Setting a cooldown
 
-You may use the `cooldown` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
+You may use the `cooldown` method on the `Views` instance to add a cooldown between view records. When you set a cooldown, you need to specify the number of minutes.
 
 ```php
 views($post)
