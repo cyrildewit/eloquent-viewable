@@ -13,11 +13,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\OrderByViewsScope;
-use CyrildeWit\EloquentViewable\Enums\SortDirection;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class OrderByViewsScopeTest extends TestCase
