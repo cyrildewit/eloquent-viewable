@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v4.1.0] (2019-09-03)
+
+### Changed
+
+- Add support for Laravel 6
+
 ## [v4.0.0] (2019-07-01)
 
-## Added
+### Added
 
 - Added `SortDirection` enum class that contains a `DESCENDING` and `ASCENDING` constant
 - Added `OrderByViewsScope` class that can order a query by views based on some options
@@ -19,17 +25,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added `getStartDateTimestamp` and `getEndDateTimestamp` methods to the `Period` class for internal use
 - Added `string $collection = null` argument to `push`, `createNamespaceKey` and `createViewableKey` methods in `ViewSessionHistory`
 
-## Deprecated
+### Deprecated
 
 - Deprecated the `overrideIpAddress` method of the `Views` class. Please use the new `useIpAddress(string $address)` method instead.
 - Deprecated the `overrideVisitor` method of the `Views` class. Please use the new `useVisitor(string $visitor)` method instead.
 
-## Changed
+### Changed
 
 - Replaced inner code of the `orderByViews` and `orderByUniqueViews` query scope with the new `OrderByViewsScope` class
 - Removed the `string` type declaration from the `getTable` method in the `View` model class [#165]([#165](https://github.com/cyrildewit/eloquent-viewable/pull/165))
 
-## Removed
+### Removed
 
 - Removed the `Support\Key` class with its references
 
@@ -187,6 +193,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - The DateTransformer functionality has been removed
 
 [Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...HEAD
+[v4.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.0.0...v4.0.1
+[v4.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...v4.0.0
 [v3.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.1.0...v3.2.0
 [v3.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.2...v3.1.0
 [v3.0.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.1...v3.0.2
