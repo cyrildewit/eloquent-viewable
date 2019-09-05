@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Removed the deprecated `overrideVisitor` method from the `Views` class.
 - Removed `requestHasDoNotTrackHeader` method from `Views` class.
 
+## [v4.1.0] (2019-09-03)
+
+### Changed
+
+- Add support for Laravel 6
+
 ## [v4.0.0] (2019-07-01)
 
 ### Added
@@ -204,7 +210,10 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.0.0...HEAD
+[v5.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.1.0...v5.0.0
+[v4.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.0.0...v4.0.1
+[v4.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...v4.0.0
 [v3.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.1.0...v3.2.0
 [v3.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.2...v3.1.0
 [v3.0.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.1...v3.0.2

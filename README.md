@@ -88,13 +88,13 @@ Lumen is not supported!
 
 #### Version information
 
-| Version | Illuminate     | Status         | PHP Version |
-|---------|----------------|----------------|-------------|
-| ^5.0    | 5.8.x - 5.x.x  | Active support | >= 7.2.0    |
-| ^4.0    | 5.5.x - 5.8.x  | Active support | >= 7.1.0    |
-| ^3.0    | 5.5.x - 5.8.x  | End of life    | >= 7.1.0    |
-| ^2.0    | 5.5.x - 5.7.x  | End of life    | >= 7.0.0    |
-| ^1.0    | 5.5.x - 5.6.x  | End of life    | >= 7.0.0    |
+| Version | Illuminate    | Status         | PHP Version |
+|---------|---------------|----------------|-------------|
+| ^5.0    | 5.8.x - 6.x.x | Active support | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x | Active support | >= 7.1.0    |
+| ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
+| ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
+| ^1.0    | 5.5.x - 5.6.x | End of life    | >= 7.0.0    |
 
 ### Installation
 
