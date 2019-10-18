@@ -199,7 +199,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - The DateTransformer functionality has been removed
 
 [Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...HEAD
-[v4.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.0.0...v4.0.1
+[v4.1.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.1.0...v4.1.1
+[v4.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.0.0...v4.1.0
 [v4.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...v4.0.0
 [v3.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.1.0...v3.2.0
 [v3.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.0.2...v3.1.0
