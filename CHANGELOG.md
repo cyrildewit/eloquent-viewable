@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v4.1.1] (2019-10-18)
+
+### Fixed
+
+- Update required dependencies in composer.json to adhere to new Laravel 6 verison scheme
+
 ## [v4.1.0] (2019-09-03)
 
 ### Changed
