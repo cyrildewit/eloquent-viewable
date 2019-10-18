@@ -392,15 +392,17 @@ class ProcessView implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable;
 
     public $viewable;
+    public $visitor;
 
     public function __construct($viewable)
     {
         $this->viewable = $viewable;
+        $this->visitor = (new VisitorCookieRepository)->get();
     }
 
     public function handle()
     {
-        views($this->viewable)->record();
+        views($this->viewable)->overrideVisitor($this->visitor)->record();
     }
 }
 ```
