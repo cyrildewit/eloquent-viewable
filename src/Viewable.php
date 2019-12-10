@@ -91,6 +91,7 @@ trait Viewable
         }
 
         $related = $this->getRelation('viewsCount');
+
         return ($related->first()) ? (int) $related->first()->count : 0;
     }
 }
