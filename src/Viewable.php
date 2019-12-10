@@ -77,4 +77,20 @@ trait Viewable
             'collection' => $collection,
         ]);
     }
+
+    public function viewsCount()
+    {
+        return $this->views()->selectRaw('viewable_id, count(distinct `visitor`) as count')->groupBy('viewable_id');
+    }
+
+    public function getviewsCountAttribute()
+    {
+        // Load relation if relation is not loaded already.
+        if ( ! array_key_exists('viewsCount', $this->relations)) {
+            $this->load('viewsCount');
+        }
+
+        $related = $this->getRelation('viewsCount');
+        return ($related->first()) ? (int) $related->first()->count : 0;
+    }
 }

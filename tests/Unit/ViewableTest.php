@@ -19,6 +19,7 @@ use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use Illuminate\Support\Facades\DB;
 
 class ViewableTest extends TestCase
 {
@@ -289,5 +290,53 @@ class ViewableTest extends TestCase
         TestHelper::createView($postFour, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(7)]);
 
         $this->assertEquals(collect([2, 3, 1, 4]), Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'));
+    }
+
+    /** @test */
+    public function it_has_a_views_relationship_count ()
+    {
+        Carbon::setTestNow(Carbon::now());
+
+        $postOne = $this->post;
+        $postTwo = factory(Post::class)->create();
+        $postThree = factory(Post::class)->create();
+        $postFour = factory(Post::class)->create();
+
+        // Views within period: 3
+        TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postOne, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(13)]);
+
+        // Views within period: 1
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
+
+        // Views within period: 2
+        TestHelper::createView($postThree, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(8)]);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
+        TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
+
+        // Views within period: 4
+        TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+        TestHelper::createView($postFour, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(3)]);
+        TestHelper::createView($postFour, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(4)]);
+        TestHelper::createView($postFour, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(7)]);
+
+        DB::connection()->enableQueryLog();
+
+        // With eager load
+        $this->assertEquals(collect([4, 2, 3, 4]), Post::with(['viewsCount'])->get()->pluck('viewsCount'));
+        $countQueriesWith = count(DB::getQueryLog());
+        $this->assertEquals(2, $countQueriesWith);
+
+        // Without eager load
+        $this->assertEquals(collect([4, 2, 3, 4]), Post::get()->pluck('viewsCount'));
+        $this->assertEquals(5, count(DB::getQueryLog()) - $countQueriesWith);
     }
 }
