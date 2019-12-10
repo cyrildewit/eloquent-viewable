@@ -24,7 +24,7 @@ class CacheKeyTest extends TestCase
     /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
     protected $post;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 

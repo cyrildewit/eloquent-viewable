@@ -24,7 +24,7 @@ abstract class TestCase extends Orchestra
      *
      * @return void
      */
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -40,7 +40,7 @@ abstract class TestCase extends Orchestra
      *
      * @return void
      */
-    protected function tearDown()
+    protected function tearDown(): void
     {
         Carbon::setTestNow();
     }
@@ -90,7 +90,7 @@ abstract class TestCase extends Orchestra
     protected function migratePackageTables()
     {
         $this->loadMigrationsFrom([
-            '--realpath' => database_path('migrations'),
+            '--realpath' => true,
         ]);
     }
 

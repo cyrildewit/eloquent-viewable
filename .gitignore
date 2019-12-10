@@ -3,5 +3,6 @@ doc/
 vendor/
 node_modules/
 .vscode/
+.idea/
 composer.lock
 .phpunit.result.cache
