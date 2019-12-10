@@ -15,10 +15,10 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use Illuminate\Support\Facades\DB;
 
 class ViewableTest extends TestCase
@@ -293,7 +293,7 @@ class ViewableTest extends TestCase
     }
 
     /** @test */
-    public function it_has_a_views_relationship_count ()
+    public function it_has_a_views_relationship_count()
     {
         Carbon::setTestNow(Carbon::now());
 

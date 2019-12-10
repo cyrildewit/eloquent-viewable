@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * @method static self|Builder orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection)
@@ -86,7 +86,7 @@ trait Viewable
     public function getviewsCountAttribute()
     {
         // Load relation if relation is not loaded already.
-        if ( ! array_key_exists('viewsCount', $this->relations)) {
+        if (! array_key_exists('viewsCount', $this->relations)) {
             $this->load('viewsCount');
         }
 

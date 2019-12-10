@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\View;
 
 class ViewableObserverTest extends TestCase
 {
