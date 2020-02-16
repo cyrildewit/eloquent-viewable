@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Closure;
-use Mockery;
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Support\Facades\File;
+use Mockery;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra

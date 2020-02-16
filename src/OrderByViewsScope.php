@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Enums\SortDirection;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Enums\SortDirection;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrderByViewsScope
 {

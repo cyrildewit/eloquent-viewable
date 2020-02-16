@@ -1,7 +1,7 @@
 <?php
 
-use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Views;
 
 if (! function_exists('views')) {
     function views($viewable = null)

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use Illuminate\Support\Facades\Config;
 
 class CacheKeyTest extends TestCase
 {

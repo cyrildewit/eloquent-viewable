@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class CrawlerDetectAdapter implements CrawlerDetector
 {

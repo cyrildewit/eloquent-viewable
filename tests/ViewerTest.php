@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Illuminate\Http\Request;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\VisitorCookieRepository;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use Illuminate\Http\Request;
 
 class ViewerTest extends TestCase
 {

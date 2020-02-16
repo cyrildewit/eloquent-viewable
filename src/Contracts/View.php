@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-use Illuminate\Database\Eloquent\Builder;
 use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 interface View

@@ -6,8 +6,8 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ViewableTest extends TestCase
 {

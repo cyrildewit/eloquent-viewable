@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\OrderByViewsScope;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 
 class OrderByViewsScopeTest extends TestCase

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Viewable;
+use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model implements ViewableContract
 {

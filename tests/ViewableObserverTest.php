@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\View;
 
 class ViewableObserverTest extends TestCase
 {
