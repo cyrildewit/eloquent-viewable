@@ -15,13 +15,6 @@
         "hits",
         "counter"
     ],
-    "support": {
-        "email": "github@cyrildewit.nl",
-        "issues": "https://github.com/cyrildewit/eloquent-viewable/issues",
-        "wiki": "https://github.com/cyrildewit/eloquent-viewable/wiki",
-        "source": "https://github.com/cyrildewit/eloquent-viewable",
-        "docs": "https://github.com/cyrildewit/eloquent-viewable/wiki"
-    },
     "authors": [
         {
             "name": "Cyril de Wit",
