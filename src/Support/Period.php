@@ -10,9 +10,6 @@ use DateTime;
 use Exception;
 use Illuminate\Support\Str;
 
-/**
- * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
- */
 class Period
 {
     /**
