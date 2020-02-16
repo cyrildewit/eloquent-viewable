@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Support\ServiceProvider;
-use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use Illuminate\Cache\Repository as CacheRepository;
-use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
-use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
+use CyrildeWit\EloquentViewable\Contracts\HeaderResolver as HeaderResolverContract;
+use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
-use CyrildeWit\EloquentViewable\Contracts\HeaderResolver as HeaderResolverContract;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
+use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
+use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
+use Illuminate\Cache\Repository as CacheRepository;
+use Illuminate\Support\ServiceProvider;
+use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
@@ -55,7 +55,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->when(Views::class)
             ->needs(CacheRepository::class)
-            ->give(function () : CacheRepository {
+            ->give(function (): CacheRepository {
                 return $this->app['cache']->store(config('eloquent-viewable.cache.store'));
             });
 

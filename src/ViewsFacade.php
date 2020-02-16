@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Support\Facades\Facade;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * @see \CyrildeWit\EloquentViewable\Views

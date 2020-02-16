@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Support\Str;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Support\Str;
 
 class CacheKey
 {

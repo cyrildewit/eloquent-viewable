@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Faker\Generator as Faker;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
+use Faker\Generator as Faker;
 
 /*
  * This is the Apartment factory.

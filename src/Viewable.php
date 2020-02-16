@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 
 /**
  * @method static self|Builder orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection)

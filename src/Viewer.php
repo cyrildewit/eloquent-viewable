@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Http\Request;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use Illuminate\Http\Request;
 
 class Viewer
 {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use Session;
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\ViewSessionHistory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\ViewSessionHistory;
+use Session;
 
 class ViewSessionHistoryTest extends TestCase
 {

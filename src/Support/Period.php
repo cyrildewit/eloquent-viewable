@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
+use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use DateTime;
 use Exception;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
-use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
  * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
