@@ -415,7 +415,7 @@ class Views implements ViewsContract
      * @param  DateTime|int
      * @return \Carbon\Carbon
      */
-    protected function resolveCacheLifetime($lifetime): DateTime
+    protected function resolveCacheLifetime($lifetime): Carbon
     {
         if ($lifetime instanceof DateTime) {
             return Carbon::instance($lifetime);
