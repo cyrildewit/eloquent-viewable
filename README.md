@@ -45,9 +45,9 @@ Here are some of the main features:
 * Get total views count
 * Get views count of a specific period
 * Get unique views count
-* Get views count of a viewable type
-* Record views with session delays
-* Smart views count cacher
+* Get views count of a viewable type (Eloquent model class)
+* Set a cooldown between views
+* Elegant cache wrapper built-in
 * Ignore views from crawlers, ignored IP addresses or requests with DNT header
 
 ## Documentation
@@ -84,7 +84,7 @@ In this documentation, you will find some helpful information about the use of t
 
 This package requires **PHP 7.2+** and **Laravel 5.8+**.
 
-Lumen is not supported!
+Support for Lumen is not maintained!
 
 #### Version information
 
@@ -139,7 +139,7 @@ If you prefer to register packages manually, you can add the following provider 
 
 ### Preparing your model
 
-To associate views with a model, the model must implement the following interface and trait:
+To associate views with a model, the model **must** implement the following interface and trait:
 
 * **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
 * **Trait:** `CyrildeWit\EloquentViewable\Viewable`
