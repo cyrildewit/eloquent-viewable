@@ -177,7 +177,6 @@ public function show(Post $post)
 
     return view('post.show', compact('post'));
 }
-// ...
 ```
 
 **Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
@@ -219,7 +218,7 @@ views($post)->count();
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get views count since 2017 upto 2018
+// Example: get views count from 2017 upto 2018
 views($post)
     ->period(Period::create('2017', '2018'))
     ->count();
@@ -525,7 +524,7 @@ Please see [UPGRADING](UPGRADING.md) for detailed upgrade guide.
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG-2.0.md) for more information on what has changed recently.
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Contributing
 
