@@ -57,7 +57,7 @@ class Views implements ViewsContract
     /**
      * Determine if the views count should be cached.
      *
-     * @var string|null
+     * @var bool
      */
     protected $shouldCache = false;
 
@@ -351,7 +351,7 @@ class Views implements ViewsContract
      *
      * @return bool
      */
-    protected function shouldCache()
+    protected function shouldCache(): bool
     {
         return $this->shouldCache;
     }
