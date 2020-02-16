@@ -43,7 +43,7 @@ class Views implements ViewsContract
     /**
      * The cooldown that should be over before a new view can be recorded.
      *
-     * @var \DateTime|null
+     * @var \Carbon\Carbon|null
      */
     protected $cooldown = null;
 
@@ -215,13 +215,17 @@ class Views implements ViewsContract
     /**
      * Set a cooldown.
      *
-     * @param  \DateTime|int  $cooldown
+     * @param  \DateTime|\Carbon\Carbon|int  $cooldown
      * @return $this
      */
     public function cooldown($cooldown): ViewsContract
     {
         if (is_int($cooldown)) {
             $cooldown = Carbon::now()->addMinutes($cooldown);
+        }
+
+        if ($cooldown instanceof DateTime) {
+            $cooldown = Carbon::instance($cooldown);
         }
 
         $this->cooldown = $cooldown;
