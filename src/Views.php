@@ -2,26 +2,18 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
-use DateTime;
 use Carbon\Carbon;
-use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use DateTime;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Traits\Macroable;
 
 class Views implements ViewsContract
 {
@@ -363,11 +355,11 @@ class Views implements ViewsContract
     /**
      * Resolve the viewable query builder instance.
      *
-     * @return
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    protected function resolveViewableQuery(): \Illuminate\Database\Eloquent\Builder
+    protected function resolveViewableQuery(): Builder
     {
-        // If null, we take for granted that we need to count the type
+        // If null, we take for granted that we need to count the viewable type
         if ($this->viewable->getKey() === null) {
             $viewableType = $this->viewable->getMorphClass();
 

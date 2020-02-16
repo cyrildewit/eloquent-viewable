@@ -2,20 +2,11 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Viewable;
+use Illuminate\Database\Eloquent\Model;
 
 class Apartment extends Model implements ViewableContract
 {

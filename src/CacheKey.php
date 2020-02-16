@@ -2,20 +2,11 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Support\Str;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Support\Str;
 
 class CacheKey
 {

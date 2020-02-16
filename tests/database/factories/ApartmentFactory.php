@@ -2,17 +2,8 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
-use Faker\Generator as Faker;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
+use Faker\Generator as Faker;
 
 /*
  * This is the Apartment factory.

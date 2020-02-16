@@ -35,7 +35,7 @@ views($post)->cooldown(now()->addHours(2))->record();
 
 Sometimes you don't want to pull in a third-party service like Google Analytics to track your application's page views. Then this package comes in handy. Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind.
 
-This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can grow rapidly in size depending on the amount of visitors your application has.
+This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can **grow rapidly in size** depending on the amount of visitors your application has.
 
 ### Features
 
@@ -45,9 +45,9 @@ Here are some of the main features:
 * Get total views count
 * Get views count of a specific period
 * Get unique views count
-* Get views count of a viewable type
-* Record views with session delays
-* Smart views count cacher
+* Get views count of a viewable type (Eloquent model class)
+* Set a cooldown between views
+* Elegant cache wrapper built-in
 * Ignore views from crawlers, ignored IP addresses or requests with DNT header
 
 ## Documentation
@@ -84,7 +84,7 @@ In this documentation, you will find some helpful information about the use of t
 
 This package requires **PHP 7.2+** and **Laravel 5.8+**.
 
-Lumen is not supported!
+Support for Lumen is not maintained!
 
 #### Version information
 
@@ -139,7 +139,7 @@ If you prefer to register packages manually, you can add the following provider 
 
 ### Preparing your model
 
-To associate views with a model, the model must implement the following interface and trait:
+To associate views with a model, the model **must** implement the following interface and trait:
 
 * **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
 * **Trait:** `CyrildeWit\EloquentViewable\Viewable`
@@ -177,7 +177,6 @@ public function show(Post $post)
 
     return view('post.show', compact('post'));
 }
-// ...
 ```
 
 **Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
@@ -219,7 +218,7 @@ views($post)->count();
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get views count since 2017 upto 2018
+// Example: get views count from 2017 upto 2018
 views($post)
     ->period(Period::create('2017', '2018'))
     ->count();
@@ -525,7 +524,7 @@ Please see [UPGRADING](UPGRADING.md) for detailed upgrade guide.
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG-2.0.md) for more information on what has changed recently.
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Contributing
 
@@ -553,4 +552,4 @@ Feel free to add more alternatives!
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details.

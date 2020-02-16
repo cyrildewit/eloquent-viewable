@@ -2,22 +2,13 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable\Support;
 
+use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use DateTime;
 use Exception;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
-use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 
 /**
  * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
