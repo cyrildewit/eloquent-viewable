@@ -27,7 +27,7 @@ class Views implements ViewsContract
     protected $viewable;
 
     /**
-     * The period that the current query should scoped to.
+     * The period that the current query should be scoped to.
      *
      * @var \CyrildeWit\EloquentViewable\Support\Period|null
      */
