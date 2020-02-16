@@ -25,20 +25,20 @@
     ],
     "require": {
         "php": "^7.2",
-        "illuminate/cache": "^5.8",
-        "illuminate/contracts": "^5.8",
-        "illuminate/cookie": "^5.8",
-        "illuminate/database": "^5.8",
-        "illuminate/http": "^5.8",
-        "illuminate/support": "^5.8",
+        "illuminate/cache": "^5.8|^6.0",
+        "illuminate/contracts": "^5.8|^6.0",
+        "illuminate/cookie": "^5.8|^6.0",
+        "illuminate/database": "^5.8|^6.0",
+        "illuminate/http": "^5.8|^6.0",
+        "illuminate/support": "^5.8|^6.0",
         "jaybizzle/crawler-detect": "^1.0",
         "nesbot/carbon": "^1.22|^2.0"
     },
     "require-dev": {
-        "illuminate/config": "^5.8",
+        "illuminate/config": "^5.8|^6.0",
         "mockery/mockery": "^1.0",
         "orchestra/database": "^3.5",
-        "orchestra/testbench": "^3.8",
+        "orchestra/testbench": "^3.8|^4.0",
         "phpunit/phpunit": "^8.0"
     },
     "autoload": {
