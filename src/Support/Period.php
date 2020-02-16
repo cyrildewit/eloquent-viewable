@@ -32,12 +32,12 @@ class Period
     const SUB_YEARS = 'SUB_YEARS';
 
     /**
-     * @var \DateTime|null
+     * @var \Carbon\Carbon|null
      */
     protected $startDateTime;
 
     /**
-     * @var \DateTime|null
+     * @var \Carbon\Carbon|null
      */
     protected $endDateTime;
 
@@ -473,7 +473,7 @@ class Period
     protected function resolveDateTime($dateTime)
     {
         if ($dateTime instanceof DateTime) {
-            return $dateTime;
+            return Carbon::instance($dateTime);
         }
 
         if (is_string($dateTime)) {
