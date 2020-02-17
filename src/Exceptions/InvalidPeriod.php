@@ -7,9 +7,6 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 use DateTime;
 use Exception;
 
-/**
- * @see https://github.com/spatie/laravel-analytics/blob/master/src/Exceptions/InvalidPeriod.php
- */
 class InvalidPeriod extends Exception
 {
     /**
