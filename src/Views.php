@@ -288,7 +288,7 @@ class Views implements ViewsContract
         // Make sure something other than the default value (null) is given.
         // Then resolve the DateTime instance from the given value.
         if ($lifetime !== null) {
-            $this->cacheLifetime = $this->resolveLifetime($lifetime);
+            $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
         }
 
         return $this;
