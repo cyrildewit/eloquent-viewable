@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
+use DateTimeInterface;
+use InvalidArgumentException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Traits\Macroable;
@@ -285,7 +288,7 @@ class Views implements ViewsContract
         // Make sure something other than the default value (null) is given.
         // Then resolve the DateTime instance from the given value.
         if ($lifetime !== null) {
-            $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
+            $this->cacheLifetime = $this->resolveLifetime($lifetime);
         }
 
         return $this;
@@ -412,17 +415,24 @@ class Views implements ViewsContract
     /**
      * Resolve cache lifetime.
      *
-     * @param  DateTime|int
-     * @return \Carbon\Carbon
+     * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
+     * @return \Carbon\CarbonInterface
      */
-    protected function resolveCacheLifetime($lifetime): Carbon
+    protected function resolveCacheLifetime($lifetime): CarbonInterface
     {
-        if ($lifetime instanceof DateTime) {
-            return Carbon::instance($lifetime);
-        }
-
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
+
+
+        if ($lifetime instanceof DateTimeInterface) {
+            return Carbon::instance($lifetime);
+        }
+
+        if ($lifetime instanceof CarbonInterface) {
+            return $lifetime;
+        }
+
+        throw new InvalidArgumentException("Argument $lifetime must be of type int, \Carbon\CarbonInterface or \DateTimeInterface");
     }
 }
