@@ -413,7 +413,7 @@ class Period
      */
     public function setStartDateTime(DateTime $startDateTime)
     {
-        $this->startDateTime = $startDateTime;
+        $this->startDateTime = Carbon::instance($startDateTime);
 
         return $this;
     }
@@ -426,7 +426,7 @@ class Period
      */
     public function setEndDateTime(DateTime $endDateTime)
     {
-        $this->endDateTime = $endDateTime;
+        $this->endDateTime = Carbon::instance($endDateTime);
 
         return $this;
     }
