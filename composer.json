@@ -32,7 +32,7 @@
         "illuminate/http": "^5.8|^6.0",
         "illuminate/support": "^5.8|^6.0",
         "jaybizzle/crawler-detect": "^1.0",
-        "nesbot/carbon": "^1.22|^2.0"
+        "nesbot/carbon": "^2.0"
     },
     "require-dev": {
         "illuminate/config": "^5.8|^6.0",
