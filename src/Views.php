@@ -13,10 +13,10 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
-use InvalidArgumentException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Traits\Macroable;
+use InvalidArgumentException;
 
 class Views implements ViewsContract
 {
@@ -423,7 +423,6 @@ class Views implements ViewsContract
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
-
 
         if ($lifetime instanceof DateTimeInterface) {
             return Carbon::instance($lifetime);
