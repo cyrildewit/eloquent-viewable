@@ -36,9 +36,9 @@
     },
     "require-dev": {
         "illuminate/config": "^5.8|^6.0",
-        "mockery/mockery": "^1.0",
+        "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^3.8|^4.0",
-        "phpunit/phpunit": "^8.0"
+        "phpunit/phpunit": "^8.4"
     },
     "autoload": {
         "psr-4": {
