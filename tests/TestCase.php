@@ -48,7 +48,6 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            \Orchestra\Database\ConsoleServiceProvider::class,
             \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
         ];
     }
@@ -84,7 +83,7 @@ abstract class TestCase extends Orchestra
     protected function migratePackageTables()
     {
         $this->loadMigrationsFrom([
-            '--realpath' => database_path('migrations'),
+            '--realpath' => true,
         ]);
     }
 

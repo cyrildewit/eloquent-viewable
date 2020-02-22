@@ -29,7 +29,6 @@
         <env name="DB_DATABASE" value=":memory:"/>
     </php>
     <logging>
-        <log type="coverage-text" target="build/coverage.txt"/>
-        <log type="coverage-clover" target="build/logs/clover.xml"/>
+        <log type="coverage-clover" target="tmp/clover.xml"/>
     </logging>
 </phpunit>
