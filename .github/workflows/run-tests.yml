@@ -21,11 +21,11 @@ jobs:
         php: [7.2, 7.3, 7.4]
         laravel: [5.8.*, ^6.0]
         stability: [prefer-lowest, prefer-stable]
-        # include:
-        #   - laravel: 5.8.*
-        #     testbench: 3.8.*
-        #   - laravel: ^6.0
-        #     testbench: ^4.0
+        include:
+          - laravel: 5.8.*
+            testbench: 3.8.*
+          - laravel: ^6.0
+            testbench: ^4.0
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
@@ -51,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "symfony/console:^4.3.4" --no-interaction --no-update
+          composer require "orchestra/testbench:${{ matrix.testbench }}" "symfony/console:^4.3.4" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
 
       - name: Execute tests
