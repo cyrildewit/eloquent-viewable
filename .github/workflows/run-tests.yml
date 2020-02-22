@@ -24,10 +24,8 @@ jobs:
         include:
           - laravel: 5.8.*
             testbench: 3.8.*
-            orchestra_database: ^3.5
           - laravel: ^6.0
             testbench: ^4.0
-            orchestra_database: ^4.0
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
@@ -53,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.orchestra_database }}" "orchestra/database:${{ matrix.laravel }}" "symfony/console:^4.3.4" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/database:${{ matrix.laravel }}" "symfony/console:^4.3.4" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
 
       - name: Execute tests
