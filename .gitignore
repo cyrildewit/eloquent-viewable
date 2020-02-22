@@ -1,4 +1,4 @@
-build/
+tmp/
 vendor/
 node_modules/
 .vscode/
