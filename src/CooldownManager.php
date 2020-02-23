@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
+use DateTime;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use Illuminate\Contracts\Session\Session;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
-class ViewSessionHistory
+class CooldownManager
 {
     /**
      * The session repository instance.
@@ -29,29 +31,29 @@ class ViewSessionHistory
      *
      * @return void
      */
-    public function __construct(Session $session)
+    public function __construct(ConfigRepository $config, Session $session)
     {
         $this->session = $session;
-        $this->primaryKey = config('eloquent-viewable.session.key', 'cyrildewit.eloquent-viewable.session');
+        $this->primaryKey = $config['eloquent-viewable']['session']['key'];
     }
 
     /**
-     * Push a viewable model with an expiry date to the session.
+     * Push a cooldown for the viewable model with an expiry date.
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
-     * @param  \DateTime  $expiryDateTime
+     * @param  \DateTime  $expiresAt
      * @param  string|null  $collection
      * @return bool
      */
-    public function push(ViewableContract $viewable, $expiryDateTime, string $collection = null): bool
+    public function push(ViewableContract $viewable, DateTime $expiresAt, string $collection = null): bool
     {
         $namespaceKey = $this->createNamespaceKey($viewable, $collection);
         $viewableKey = $this->createViewableKey($viewable, $collection);
 
-        $this->forgetExpiredViews($namespaceKey);
+        $this->forgetExpiredCooldowns($namespaceKey);
 
         if (! $this->has($viewableKey)) {
-            $this->session->put($viewableKey, $this->createRecord($viewable, $expiryDateTime));
+            $this->session->put($viewableKey, $this->createCooldown($viewable, $expiresAt));
 
             return true;
         }
@@ -71,27 +73,27 @@ class ViewSessionHistory
     }
 
     /**
-     * Create a history record from the given viewable model and expiry date.
+     * Create a cooldown for given viewable model.
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
-     * @param  \DateTime  $expiryDateTime
+     * @param  \DateTime  $expiresAt
      * @return array
      */
-    protected function createRecord(ViewableContract $viewable, $expiryDateTime): array
+    protected function createCooldown(ViewableContract $viewable, $expiresAt): array
     {
         return [
             'viewable_id' => $viewable->getKey(),
-            'expires_at' => $expiryDateTime,
+            'expires_at' => $expiresAt,
         ];
     }
 
     /**
-     * Remove all expired views from the session.
+     * Remove all expired cooldowns from the session.
      *
      * @param  string  $key
      * @return void
      */
-    protected function forgetExpiredViews(string $key)
+    protected function forgetExpiredCooldowns(string $key)
     {
         $currentTime = Carbon::now();
         $viewHistory = $this->session->get($key, []);

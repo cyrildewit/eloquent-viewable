@@ -47,7 +47,7 @@ class Views implements ViewsContract
     /**
      * The cooldown that should be over before a new view can be recorded.
      *
-     * @var \Carbon\Carbon|null
+     * @var \DateTime|null
      */
     protected $cooldown = null;
 
@@ -80,11 +80,11 @@ class Views implements ViewsContract
     protected $viewer;
 
     /**
-     * The view session history instance.
+     * The cooldown manager instance.
      *
-     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     * @var \CyrildeWit\EloquentViewable\CooldownManager
      */
-    protected $viewSessionHistory;
+    protected $cooldownManager;
 
     /**
      * The cache repository instance.
@@ -101,11 +101,11 @@ class Views implements ViewsContract
     public function __construct(
         ConfigRepository $config,
         Viewer $viewer,
-        ViewSessionHistory $viewSessionHistory,
+        CooldownManager $cooldownManager,
         CacheRepository $cache
     ) {
         $this->viewer = $viewer;
-        $this->viewSessionHistory = $viewSessionHistory;
+        $this->cooldownManager = $cooldownManager;
         $this->cache = $cache;
         $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
     }
@@ -191,9 +191,9 @@ class Views implements ViewsContract
     }
 
     /**
-     * Set a cooldown.
+     * Set the cooldown.
      *
-     * @param  \DateTime|\Carbon\Carbon|int  $cooldown
+     * @param  \DateTime|int  $cooldown
      * @return $this
      */
     public function cooldown($cooldown): ViewsContract
@@ -291,7 +291,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        if ($this->cooldown !== null && ! $this->viewSessionHistory->push($this->viewable, $this->cooldown, $this->collection)) {
+        if ($this->cooldown !== null && ! $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection)) {
             return false;
         }
 
