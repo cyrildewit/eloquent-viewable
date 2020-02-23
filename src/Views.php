@@ -164,8 +164,8 @@ class Views implements ViewsContract
             }
         }
 
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
+        if ($this->period) {
+            $query->withinPeriod($this->period);
         }
 
         $query->collection($this->collection);
