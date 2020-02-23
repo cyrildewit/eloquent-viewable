@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Enums\SortDirection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;

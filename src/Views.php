@@ -15,9 +15,9 @@ use DateTime;
 use DateTimeInterface;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
-use Illuminate\Support\Facades\DB;
 
 class Views implements ViewsContract
 {
