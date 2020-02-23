@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 trait Viewable
 {
     /**
-     * HasViews boot logic.
+     * Viewable boot logic.
      *
      * @return void
      */
