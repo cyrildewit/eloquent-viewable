@@ -46,7 +46,7 @@ trait Viewable
     public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null, string $collection = null): Builder
     {
         return (new OrderByViewsScope())->apply($query, [
-            'descending' => $direction === 'desc',
+            'descending' => $direction === SortDirection::DESCENDING,
             'period' => $period,
             'collection' => $collection,
         ]);
