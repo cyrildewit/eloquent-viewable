@@ -146,7 +146,7 @@ class Views implements ViewsContract
     }
 
     /**
-     * Count the views.
+     * Get the views count.
      *
      * @return int
      */
