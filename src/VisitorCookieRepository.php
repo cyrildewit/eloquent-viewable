@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 class VisitorCookieRepository
 {
@@ -21,9 +22,9 @@ class VisitorCookieRepository
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(ConfigRepository $config)
     {
-        $this->key = config('eloquent-viewable.visitor_cookie_key');
+        $this->key = $config['eloquent-viewable']['visitor_cookie_key'];
     }
 
     /**
