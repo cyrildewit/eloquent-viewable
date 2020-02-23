@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 
@@ -75,5 +76,60 @@ class ViewTest extends TestCase
         ]);
 
         $this->assertInstanceOf(Post::class, View::first()->viewable);
+    }
+
+    /** @test */
+    public function it_can_scope_to_within_period_with_only_start_date_time()
+    {
+        $post = factory(Post::class)->create();
+
+        $this->assertEquals(
+            'select * from "views" where "viewed_at" >= ?',
+            View::withinPeriod(Period::since('2019-06-12'))->toSql()
+        );
+    }
+
+    /** @test */
+    public function it_can_scope_to_within_period_with_only_end_date_time()
+    {
+        $post = factory(Post::class)->create();
+
+        $this->assertEquals(
+            'select * from "views" where "viewed_at" <= ?',
+            View::withinPeriod(Period::upto('2019-03-23'))->toSql()
+        );
+    }
+
+    /** @test */
+    public function it_can_scope_to_within_period_with_both_start_and_end_date_time()
+    {
+        $post = factory(Post::class)->create();
+
+        $this->assertEquals(
+            'select * from "views" where "viewed_at" between ? and ?',
+            View::withinPeriod(Period::create('2019-02-15', '2019-06-12'))->toSql()
+        );
+    }
+
+    /** @test */
+    public function it_can_scope_to_collection_null()
+    {
+        $post = factory(Post::class)->create();
+
+        $this->assertEquals(
+            'select * from "views" where "collection" is null',
+            View::collection(null)->toSql()
+        );
+    }
+
+    /** @test */
+    public function it_can_scope_to_collection_custom()
+    {
+        $post = factory(Post::class)->create();
+
+        $this->assertEquals(
+            'select * from "views" where "collection" = ?',
+            View::collection('custom')->toSql()
+        );
     }
 }
