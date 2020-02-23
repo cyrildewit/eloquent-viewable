@@ -25,12 +25,4 @@ interface View
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeWithinPeriod(Builder $query, Period $period);
-
-    /**
-     * Scope a query to only include unique views.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeUniqueVisitor(Builder $query);
 }
