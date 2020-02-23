@@ -15,7 +15,7 @@ interface Views
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
      * @return $this
      */
-    public function forViewable(ViewableContract $viewable = null): Views;
+    public function forViewable(ViewableContract $viewable = null): self;
 
     /**
      * Get the views count.
@@ -44,7 +44,7 @@ interface Views
      * @param  \DateTime|\Carbon\Carbon|int  $cooldown
      * @return $this
      */
-    public function cooldown($cooldown): Views;
+    public function cooldown($cooldown): self;
 
     /**
      * Set the period.
@@ -52,7 +52,7 @@ interface Views
      * @param  \CyrildeWit\EloquentViewable\Period
      * @return $this
      */
-    public function period($period): Views;
+    public function period($period): self;
 
     /**
      * Set the collection.
@@ -60,15 +60,15 @@ interface Views
      * @param  string
      * @return $this
      */
-    public function collection(string $name): Views;
+    public function collection(string $name): self;
 
-   /**
+    /**
      * Fetch only unique views.
      *
      * @param  bool  $state
      * @return $this
      */
-    public function unique(bool $state = true): Views;
+    public function unique(bool $state = true): self;
 
     /**
      * Cache the current views count.
@@ -76,5 +76,5 @@ interface Views
      * @param  \DateTime|int|null  $lifetime
      * @return $this
      */
-    public function remember($lifetime = null): Views;
+    public function remember($lifetime = null): self;
 }
