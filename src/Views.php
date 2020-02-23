@@ -170,11 +170,7 @@ class Views implements ViewsContract
 
         $query->collection($this->collection);
 
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
+        $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
         if ($this->shouldCache()) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
