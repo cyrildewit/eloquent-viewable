@@ -47,7 +47,7 @@ class Views implements ViewsContract
     /**
      * The cooldown that should be over before a new view can be recorded.
      *
-     * @var \DateTime|null
+     * @var \DateTimeInterface|null
      */
     protected $cooldown = null;
 
@@ -68,7 +68,7 @@ class Views implements ViewsContract
     /**
      * Cache lifetime.
      *
-     * @var \Carbon\Carbon
+     * @var \DateTimeInterface
      */
     protected $cacheLifetime;
 
@@ -344,7 +344,7 @@ class Views implements ViewsContract
      * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
      * @return \Carbon\CarbonInterface
      */
-    protected function resolveCacheLifetime($lifetime): CarbonInterface
+    protected function resolveCacheLifetime($lifetime): DateTimeInterface
     {
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
