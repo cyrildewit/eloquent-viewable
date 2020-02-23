@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
@@ -101,13 +100,6 @@ class Views implements ViewsContract
     protected $viewSessionHistory;
 
     /**
-     * The request header resolver instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\HeaderResolver
-     */
-    protected $headerResolver;
-
-    /**
      * The cache repository instance.
      *
      * @var \Illuminate\Contracts\Cache\Repository
@@ -122,12 +114,10 @@ class Views implements ViewsContract
     public function __construct(
         Viewer $viewer,
         ViewSessionHistory $viewSessionHistory,
-        HeaderResolver $headerResolver,
         CacheRepository $cache
     ) {
         $this->viewer = $viewer;
         $this->viewSessionHistory = $viewSessionHistory;
-        $this->headerResolver = $headerResolver;
         $this->cache = $cache;
         $this->cacheLifetime = Carbon::now()->addMinutes(config('eloquent-viewable.cache.lifetime_in_minutes'));
     }
