@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Enums\SortDirection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 trait Viewable
 {
     /**
-     * HasViews boot logic.
+     * Viewable boot logic.
      *
      * @return void
      */
@@ -62,7 +63,7 @@ trait Viewable
     public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null, string $collection = null): Builder
     {
         return (new OrderByViewsScope())->apply($query, [
-            'descending' => $direction === 'desc',
+            'descending' => $direction === SortDirection::DESCENDING,
             'period' => $period,
             'unique' => true,
             'collection' => $collection,

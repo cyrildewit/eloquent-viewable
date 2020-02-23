@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Enums\SortDirection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class OrderByViewsScope
 {
@@ -25,41 +25,20 @@ class OrderByViewsScope
         $period = $options['period'] ?? null;
         $collection = $options['collection'] ?? null;
 
-        $viewable = $query->getModel();
-        $viewModel = app(ViewContract::class);
-        $viewableTable = $viewable->getTable();
-        $viewsTable = $viewModel->getTable();
-        $distinctQuery = '';
-
-        $query->leftJoin($viewsTable, function ($join) use ($viewsTable, $viewableTable, $viewable, $collection) {
-            $join->on("{$viewsTable}.viewable_id", '=', "{$viewableTable}.{$viewable->getKeyName()}");
-            $join->where("{$viewsTable}.viewable_type", '=', "{$viewable->getMorphClass()}");
+        $query->withCount(['views as views_count' => function (Builder $query) use ($unique, $direction, $period, $collection) {
+            if ($period) {
+                $query->withinPeriod($period);
+            }
 
             if ($collection) {
-                $join->where("{$viewsTable}.collection", '=', $collection);
+                $query->collection($collection);
             }
-        });
 
-        if ($unique) {
-            $distinctQuery = 'distinct ';
-        }
-
-        $query->selectRaw("{$viewable->getConnection()->getTablePrefix()}{$viewableTable}.*, count({$distinctQuery}visitor) as views_count");
-
-        if ($period) {
-            $startDateTime = $period->getStartDateTime();
-            $endDateTime = $period->getEndDateTime();
-
-            if ($startDateTime && ! $endDateTime) {
-                $query->where("{$viewsTable}.viewed_at", '>=', $startDateTime);
-            } elseif (! $startDateTime && $endDateTime) {
-                $query->where("{$viewsTable}.viewed_at", '<=', $endDateTime);
-            } elseif ($startDateTime && $endDateTime) {
-                $query->whereBetween("{$viewsTable}.viewed_at", [$startDateTime, $endDateTime]);
+            if ($unique) {
+                $query->select(DB::raw('count(DISTINCT visitor)'));
             }
-        }
+        }]);
 
-        return $query->groupBy("{$viewable->getTable()}.{$viewable->getKeyName()}")
-            ->orderBy('views_count', $direction);
+        return $query->orderBy('views_count', $direction);
     }
 }

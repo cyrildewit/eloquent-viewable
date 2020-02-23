@@ -15,6 +15,7 @@ use DateTime;
 use DateTimeInterface;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 
@@ -145,7 +146,7 @@ class Views implements ViewsContract
     }
 
     /**
-     * Count the views.
+     * Get the views count.
      *
      * @return int
      */
@@ -164,17 +165,13 @@ class Views implements ViewsContract
             }
         }
 
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
+        if ($this->period) {
+            $query->withinPeriod($this->period);
         }
 
         $query->collection($this->collection);
 
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
+        $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
         if ($this->shouldCache()) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
