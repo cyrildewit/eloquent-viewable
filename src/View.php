@@ -90,15 +90,4 @@ class View extends Model implements ViewContract
     {
         return $query->where('collection', $collection);
     }
-
-    /**
-     * Scope a query to only include unique views.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeUniqueVisitor(Builder $query)
-    {
-        return $query->distinct('visitor');
-    }
 }
