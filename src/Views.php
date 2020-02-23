@@ -72,20 +72,6 @@ class Views implements ViewsContract
     protected $cacheLifetime;
 
     /**
-     * Used IP Address instead of the provided one by the resolver.
-     *
-     * @var string
-     */
-    protected $overriddenIpAddress;
-
-    /**
-     * Used visitor ID instead of the provided one by a cookie.
-     *
-     * @var string
-     */
-    protected $overriddenVisitor;
-
-    /**
      * The viewer instance.
      *
      * @var \CyrildeWit\EloquentViewable\Viewer
@@ -184,7 +170,7 @@ class Views implements ViewsContract
         $view = app(ViewContract::class);
         $view->viewable_id = $this->viewable->getKey();
         $view->viewable_type = $this->viewable->getMorphClass();
-        $view->visitor = $this->resolveVisitorId();
+        $view->visitor = $this->viewer->id();
         $view->collection = $this->collection;
         $view->viewed_at = Carbon::now();
         $view->save();
@@ -282,32 +268,6 @@ class Views implements ViewsContract
     }
 
     /**
-     * Override the visitor's IP Address.
-     *
-     * @param  string  $address
-     * @return $this
-     */
-    public function useIpAddress(string $address): ViewsContract
-    {
-        $this->overriddenIpAddress = $address;
-
-        return $this;
-    }
-
-    /**
-     * Override the visitor's unique ID.
-     *
-     * @param  string  $visitor
-     * @return $this
-     */
-    public function useVisitor(string $visitor): ViewsContract
-    {
-        $this->overriddenVisitor = $visitor;
-
-        return $this;
-    }
-
-    /**
      * Determine if we should record the view.
      *
      * @return bool
@@ -325,7 +285,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->resolveIpAddress())) {
+        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
             return false;
         }
 
@@ -374,29 +334,6 @@ class Views implements ViewsContract
     protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
     {
         return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
-    }
-
-    /**
-     * Resolve the visitor's IP Address.
-     *
-     * It will first check if the overriddenIpAddress property has been set,
-     * otherwise it will resolve it using the IP Address resolver.
-     *
-     * @return string
-     */
-    protected function resolveIpAddress(): string
-    {
-        return $this->overriddenIpAddress ?? $this->viewer->ip();
-    }
-
-    /**
-     * Resolve the visitor's unique ID.
-     *
-     * @return string|null
-     */
-    protected function resolveVisitorId()
-    {
-        return $this->overriddenVisitor ?? $this->viewer->id();
     }
 
     /**

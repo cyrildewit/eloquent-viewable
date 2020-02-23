@@ -77,20 +77,4 @@ interface Views
      * @return $this
      */
     public function remember($lifetime = null): self;
-
-    /**
-     * Override the visitor's IP Address.
-     *
-     * @param  string  $address
-     * @return $this
-     */
-    public function useIpAddress(string $address): self;
-
-    /**
-     * Override the visitor's unique ID.
-     *
-     * @param  string  $visitor
-     * @return $this
-     */
-    public function useVisitor(string $visitor): self;
 }
