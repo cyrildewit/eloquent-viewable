@@ -16,7 +16,7 @@ class OrderByViewsScopeTest extends TestCase
         $query = (new OrderByViewsScope())->apply(Post::query());
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
@@ -29,20 +29,20 @@ class OrderByViewsScopeTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(distinct visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(DISTINCT visitor) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
 
     /** @test */
-    public function it_builds_a_query_with_option_direction()
+    public function it_builds_a_query_with_option_descending()
     {
         $query = (new OrderByViewsScope())->apply(Post::query(), [
             'descending' => true,
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? group by "posts"."id" order by "views_count" desc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ?) as "views_count" from "posts" order by "views_count" desc',
             $query->toSql()
         );
     }
@@ -55,7 +55,7 @@ class OrderByViewsScopeTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? where "views"."viewed_at" >= ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "viewed_at" >= ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
@@ -68,7 +68,7 @@ class OrderByViewsScopeTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? where "views"."viewed_at" <= ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "viewed_at" <= ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
@@ -81,7 +81,7 @@ class OrderByViewsScopeTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? where "views"."viewed_at" between ? and ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "viewed_at" between ? and ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
@@ -94,7 +94,7 @@ class OrderByViewsScopeTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select posts.*, count(visitor) as views_count from "posts" left join "views" on "views"."viewable_id" = "posts"."id" and "views"."viewable_type" = ? and "views"."collection" = ? group by "posts"."id" order by "views_count" asc',
+            'select "posts".*, (select count(*) from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "collection" = ?) as "views_count" from "posts" order by "views_count" asc',
             $query->toSql()
         );
     }
