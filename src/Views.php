@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -98,6 +99,7 @@ class Views implements ViewsContract
      * @return void
      */
     public function __construct(
+        ConfigRepository $config,
         Viewer $viewer,
         ViewSessionHistory $viewSessionHistory,
         CacheRepository $cache
@@ -105,7 +107,7 @@ class Views implements ViewsContract
         $this->viewer = $viewer;
         $this->viewSessionHistory = $viewSessionHistory;
         $this->cache = $cache;
-        $this->cacheLifetime = Carbon::now()->addMinutes(config('eloquent-viewable.cache.lifetime_in_minutes'));
+        $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
     }
 
     /**
