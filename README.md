@@ -68,13 +68,10 @@ In this documentation, you will find some helpful information about the use of t
 3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
-    * [Supplying your own visitor's ID and IP Address](#supplying-your-own-visitors-id-and-ip-address)
     * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
-    * [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
-    * [Using a custom header resolver](#using-a-custom-header-resolver)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
 
@@ -357,22 +354,6 @@ To automatically delete all views of an viewable Eloquent model on delete, you c
 protected $removeViewsOnDelete = true;
 ```
 
-### Supplying your own visitor's ID and IP Address
-
-If you are using this package via a RESTful API, you might want to supply your own visitor's ID and IP Address, otherwise this package will use the visitor ID that's stored in a cookie and use IP Address of the requester.
-
-```php
-// Override IP Address (this would be supplied by your client)
-views($post)
-    ->overrideIpAddress('Your IP Address')
-    ->record();
-
-// Override visitor ID (this would be supplied by your client)
-views($post)
-    ->overrideVisitor('Your unique visitor ID')
-    ->record();
-```
-
 ### Queuing views
 
 If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
@@ -458,8 +439,6 @@ views($post)
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
-* `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
-* `CyrildeWit\EloquentViewable\Resolvers\HeaderResolver`
 * `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
@@ -470,24 +449,6 @@ _**Note:** Don't forget that all custom classes must implement their original in
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
     \App\CustomView::class
-);
-```
-
-### Using a custom IP address resolver
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver::class,
-    \App\Resolvers\IpAddressResolver::class
-);
-```
-
-### Using a custom header resolver
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\HeaderResolver::class,
-    \App\Resolvers\HeaderResolver::class
 );
 ```
 
