@@ -76,7 +76,6 @@ In this documentation, you will find some helpful information about the use of t
 3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
-    * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
 4. [Extending](#extending)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
@@ -371,49 +370,6 @@ To automatically delete all views of an viewable Eloquent model on delete, you c
 ```php
 protected $removeViewsOnDelete = true;
 ```
-
-### Queuing views
-
-If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
-
-An easy job that simply records a view for the given viewable model, would look like:
-
-```php
-namespace App\Jobs\ProcessView;
-
-use Illuminate\Bus\Queueable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-
-class ProcessView implements ShouldQueue
-{
-    use Dispatchable, InteractsWithQueue, Queueable;
-
-    public $viewable;
-    public $visitor;
-
-    public function __construct($viewable)
-    {
-        $this->viewable = $viewable;
-        $this->visitor = (new VisitorCookieRepository)->get();
-    }
-
-    public function handle()
-    {
-        views($this->viewable)->overrideVisitor($this->visitor)->record();
-    }
-}
-```
-
-You can now dispatch this job:
-
-```php
-ProcessView::dispatch($post)
-    ->delay(now()->addMinutes(30));
-```
-
-**Note:** it's unnecessary if you are using the database as queue driver!
 
 ### Caching view counts
 
