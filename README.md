@@ -64,7 +64,15 @@ In this documentation, you will find some helpful information about the use of t
     * [Recording views](#recording-views)
     * [Setting a cooldown](#setting-a-cooldown)
     * [Retrieving views counts](#retrieving-views-counts)
+        * [Get total views count](#get-total-views-count)
+        * [Get views count of a specific period](#get-views-count-of-a-specific-period)
+        * [Get total unique views count](#get-total-unique-views-count)
     * [Order models by views count](#order-models-by-views-count)
+        * [Order by views count](#ordery-by-views-count)
+        * [Order by unique views count](#order-by-unique-views-count)
+        * [Order by views count within the specified period](#order-by-views-count-within-the-specified-period)
+        * [Order by views count within the specified collection](#order-by-views-count-within-the-specified-collection)
+    * [Get views count of viewable type](#get-views-count-of-viewable-type)
 3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
@@ -283,21 +291,21 @@ views($post)
 
 The `Viewable` trait adds two scopes to your model: `orderByViews` and `orderByUniqueViews`.
 
-#### Retrieve viewable models by views count
+#### Order by views count
 
 ```php
 Post::orderByViews()->get(); // descending
 Post::orderByViews('asc')->get(); // ascending
 ```
 
-#### Retrieve viewable models by unique views count
+#### Order by unique views count
 
 ```php
 Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-#### Retrieve viewable models by views count within the specified period
+#### Order by views count within the specified period
 
 ```php
 Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
@@ -309,6 +317,16 @@ And of course, it's also possible with the unique views variant:
 ```php
 Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
 Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
+```
+
+#### Order by views count within the specified collection
+
+```php
+Post::orderByViews('asc', null, 'custom-collection')->get();  // descending
+Post::orderByViews('desc', null, 'custom-collection')->get(); // ascending
+
+Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // descending
+Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // ascending
 ```
 
 ### Get views count of viewable type
