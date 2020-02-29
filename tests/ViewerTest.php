@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Tests;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\VisitorCookieRepository;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 
 class ViewerTest extends TestCase
@@ -18,7 +19,7 @@ class ViewerTest extends TestCase
             $mock->shouldReceive('get')->once()->andReturn('241.224.55.106');
         });
 
-        $viewer = app(Viewer::class);
+        $viewer = Container::getInstance()->make(Viewer::class);
 
         $this->assertEquals('241.224.55.106', $viewer->id());
     }
@@ -30,7 +31,7 @@ class ViewerTest extends TestCase
             $mock->shouldReceive('ip')->once()->andReturn('241.224.55.106');
         });
 
-        $viewer = app(Viewer::class);
+        $viewer = Container::getInstance()->make(Viewer::class);
 
         $this->assertEquals('241.224.55.106', $viewer->ip());
     }
@@ -42,7 +43,7 @@ class ViewerTest extends TestCase
             $mock->shouldReceive('header')->once()->andReturn('1');
         });
 
-        $viewer = app(Viewer::class);
+        $viewer = Container::getInstance()->make(Viewer::class);
 
         $this->assertTrue($viewer->hasDoNotTrackHeader());
     }
@@ -54,7 +55,7 @@ class ViewerTest extends TestCase
             $mock->shouldReceive('isCrawler')->once()->andReturn(true);
         });
 
-        $viewer = app(Viewer::class);
+        $viewer = Container::getInstance()->make(Viewer::class);
 
         $this->assertTrue($viewer->isCrawler());
     }

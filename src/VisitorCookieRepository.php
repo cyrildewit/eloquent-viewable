@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 class VisitorCookieRepository
 {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,10 @@ trait Viewable
      */
     public function views(): MorphMany
     {
-        return $this->morphMany(app(ViewContract::class), 'viewable');
+        return $this->morphMany(
+            Container::getInstance()->make(ViewContract::class),
+            'viewable'
+        );
     }
 
     /**
@@ -52,8 +56,7 @@ trait Viewable
         string $collection = null,
         bool $unique = false,
         string $as = 'views_count'
-    ): Builder
-    {
+    ): Builder {
         return $query->withViewsCount($period, $collection, $unique, $as)
             ->orderBy($as, $direction);
     }
@@ -74,8 +77,7 @@ trait Viewable
         $period = null,
         string $collection = null,
         string $as = 'unique_views_count'
-    ): Builder
-    {
+    ): Builder {
         return $query->orderByViews($direction, $period, $collection, true, $as);
     }
 

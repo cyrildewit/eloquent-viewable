@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use DateTime;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
-use Illuminate\Contracts\Session\Session;
+use DateTime;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Session\Session;
 
 class CooldownManager
 {

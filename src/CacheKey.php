@@ -82,12 +82,12 @@ class CacheKey
 
     protected function getTableSlug(): string
     {
-        return app(Str::class)->slug($this->viewable->getTable()).':';
+        return Str::slug($this->viewable->getTable()).':';
     }
 
     protected function getModelSlug(): string
     {
-        return app(Str::class)->slug($this->viewable->getMorphClass()).'.';
+        return Str::slug($this->viewable->getMorphClass()).'.';
     }
 
     protected function getKeySlug(): string
