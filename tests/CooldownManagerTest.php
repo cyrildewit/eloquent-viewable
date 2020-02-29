@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\CooldownManager;
 use Session;
+use Illuminate\Container\Container;
 
 class CooldownManagerTest extends TestCase
 {
@@ -15,7 +16,7 @@ class CooldownManagerTest extends TestCase
     public function push_can_add_an_item()
     {
         $post = factory(Post::class)->create();
-        $cooldownManager = app(CooldownManager::class);
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).'.'.$post->getKey();
 
         $this->assertFalse(Session::has($postSessionKey));
@@ -29,7 +30,7 @@ class CooldownManagerTest extends TestCase
     public function push_can_add_an_item_with_collection()
     {
         $post = factory(Post::class)->create();
-        $cooldownManager = app(CooldownManager::class);
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
 
         $this->assertFalse(Session::has($postSessionKey));
@@ -44,7 +45,7 @@ class CooldownManagerTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $postBaseKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-        $cooldownManager = app(CooldownManager::class);
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::tomorrow());
         $cooldownManager->push($post, Carbon::tomorrow());
@@ -58,7 +59,7 @@ class CooldownManagerTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-        $cooldownManager = app(CooldownManager::class);
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
         $cooldownManager->push($post, Carbon::today()->addHours(1));
@@ -76,7 +77,7 @@ class CooldownManagerTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-        $cooldownManager = app(CooldownManager::class);
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
         $cooldownManager->push($post, Carbon::today(), 'some-collection');

@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
+use Illuminate\Container\Container;
 
 class Views implements ViewsContract
 {
@@ -169,7 +170,7 @@ class Views implements ViewsContract
             return;
         }
 
-        $view = app(ViewContract::class);
+        $view = Container::getInstance()->make(ViewContract::class);
         $view->viewable_id = $this->viewable->getKey();
         $view->viewable_type = $this->viewable->getMorphClass();
         $view->visitor = $this->viewer->id();
@@ -319,7 +320,7 @@ class Views implements ViewsContract
         if ($this->viewable->getKey() === null) {
             $viewableType = $this->viewable->getMorphClass();
 
-            return app(ViewContract::class)->where('viewable_type', $viewableType);
+            return Container::getInstance()->make(ViewContract::class)->where('viewable_type', $viewableType);
         }
 
         return $this->viewable->views()->getQuery();

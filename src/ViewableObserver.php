@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use Illuminate\Container\Container;
 
 class ViewableObserver
 {
@@ -17,7 +18,7 @@ class ViewableObserver
     public function deleted(ViewableContract $viewable)
     {
         if ($this->removeViewsOnDelete($viewable)) {
-            app(Views::class)->forViewable($viewable)->destroy();
+            Container::getInstance()->make(Views::class)->forViewable($viewable)->destroy();
         }
     }
 
