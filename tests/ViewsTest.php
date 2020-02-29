@@ -12,8 +12,8 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Views;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Config;
 
 class ViewsTest extends TestCase
 {

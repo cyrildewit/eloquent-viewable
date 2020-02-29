@@ -7,8 +7,8 @@ namespace CyrildeWit\EloquentViewable\Tests;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\VisitorCookieRepository;
-use Illuminate\Http\Request;
 use Illuminate\Container\Container;
+use Illuminate\Http\Request;
 
 class ViewerTest extends TestCase
 {

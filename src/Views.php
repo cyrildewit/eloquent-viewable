@@ -12,13 +12,13 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
-use Illuminate\Container\Container;
 
 class Views implements ViewsContract
 {

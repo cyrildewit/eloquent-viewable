@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\CooldownManager;
-use Session;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Container\Container;
+use Session;
 
 class CooldownManagerTest extends TestCase
 {
