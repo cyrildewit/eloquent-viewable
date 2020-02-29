@@ -277,18 +277,20 @@ class Views implements ViewsContract
      */
     protected function shouldRecord(): bool
     {
+        $config = Container::getInstance()->make('config');
+
         // If ignore bots is true and the current viewer is a bot, return false
-        if (config('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
+        if ($config->get('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
             return false;
         }
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if (config('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
+        if ($config->get('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
             return false;
         }
 
-        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
+        if (collect($config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
             return false;
         }
 

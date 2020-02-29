@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Support\Str;
+use Illuminate\Container\Container;
 
 class CacheKey
 {
@@ -58,7 +59,9 @@ class CacheKey
 
     protected function getCachePrefix(): string
     {
-        return config('eloquent-viewable.cache.key', 'cyrildewit.eloquent-viewable.cache').':';
+        return Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.cache.key').':';
     }
 
     protected function getConnectionName(): string

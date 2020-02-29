@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use Illuminate\Container\Container;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
@@ -52,7 +53,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->app->when(Views::class)
             ->needs(CacheRepository::class)
             ->give(function (): CacheRepository {
-                return $this->app['cache']->store(config('eloquent-viewable.cache.store'));
+                return $this->app['cache']->store(
+                    $this->app['config']['eloquent-viewable']['cache']['store']
+                );
             });
 
         $this->app->bind(ViewsContract::class, Views::class);

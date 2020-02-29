@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Container\Container;
 
 class View extends Model implements ViewContract
 {
@@ -33,7 +34,9 @@ class View extends Model implements ViewContract
      */
     public function getTable()
     {
-        return config('eloquent-viewable.models.view.table_name', parent::getTable());
+        return Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
     /**
@@ -43,7 +46,9 @@ class View extends Model implements ViewContract
      */
     public function getConnectionName()
     {
-        return config('eloquent-viewable.models.view.connection', parent::getConnectionName());
+        return Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
     /**

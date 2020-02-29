@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
+use Illuminate\Container\Container;
 
 class ViewTest extends TestCase
 {
@@ -19,7 +20,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_have_a_custom_connection_through_config_file()
     {
-        config(['eloquent-viewable.models.view.connection', 'sqlite']);
+        Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'sqlite']);
 
         $this->assertEquals('sqlite', (new View)->getConnection()->getName());
     }

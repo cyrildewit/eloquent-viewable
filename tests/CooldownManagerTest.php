@@ -17,7 +17,9 @@ class CooldownManagerTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-        $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).'.'.$post->getKey();
+        $postSessionKey = Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).'.'.$post->getKey();
 
         $this->assertFalse(Session::has($postSessionKey));
 
@@ -31,7 +33,7 @@ class CooldownManagerTest extends TestCase
     {
         $post = factory(Post::class)->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-        $postSessionKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
+        $postSessionKey = Container::getInstance()->make('config')->get('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
 
         $this->assertFalse(Session::has($postSessionKey));
 
@@ -44,7 +46,7 @@ class CooldownManagerTest extends TestCase
     public function push_does_not_add_an_item_if_already_added()
     {
         $post = factory(Post::class)->create();
-        $postBaseKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $postBaseKey = Container::getInstance()->make('config')->get('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::tomorrow());
@@ -58,7 +60,7 @@ class CooldownManagerTest extends TestCase
     public function it_can_forget_expired_views()
     {
         $post = factory(Post::class)->create();
-        $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
@@ -76,7 +78,7 @@ class CooldownManagerTest extends TestCase
     public function it_can_forget_expired_views_with_collection()
     {
         $post = factory(Post::class)->create();
-        $postNamespacKey = config('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.session.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
