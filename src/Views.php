@@ -320,7 +320,9 @@ class Views implements ViewsContract
         if ($this->viewable->getKey() === null) {
             $viewableType = $this->viewable->getMorphClass();
 
-            return Container::getInstance()->make(ViewContract::class)->where('viewable_type', $viewableType);
+            return Container::getInstance()
+                ->make(ViewContract::class)
+                ->where('viewable_type', $viewableType);
         }
 
         return $this->viewable->views()->getQuery();
