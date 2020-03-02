@@ -15,10 +15,10 @@ namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class ViewableTest extends TestCase
 {

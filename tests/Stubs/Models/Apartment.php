@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Stubs\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Viewable;
+use Illuminate\Database\Eloquent\Model;
 
 class Apartment extends Model implements ViewableContract
 {

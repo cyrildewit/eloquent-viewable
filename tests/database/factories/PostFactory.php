@@ -11,8 +11,8 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use Faker\Generator as Faker;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use Faker\Generator as Faker;
 
 /*
  * This is the Post factory.

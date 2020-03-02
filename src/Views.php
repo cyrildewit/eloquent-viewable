@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use DateTime;
 use Carbon\Carbon;
-use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use DateTime;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Support\Traits\Macroable;
 
 class Views
 {

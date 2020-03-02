@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Resolvers;
 
-use Illuminate\Support\Facades\Request;
 use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
+use Illuminate\Support\Facades\Request;
 
 class IpAddressResolver implements IpAddressResolverContract
 {

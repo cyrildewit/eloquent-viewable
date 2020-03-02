@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Unit;
 
-use Illuminate\Support\Facades\Config;
 use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
 use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestCase;
+use Illuminate\Support\Facades\Config;
 
 class CacheKeyTest extends TestCase
 {

@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use Illuminate\Contracts\Session\Session;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use Illuminate\Contracts\Session\Session;
 
 class ViewSessionHistory
 {
