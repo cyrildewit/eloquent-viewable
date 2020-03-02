@@ -36,6 +36,10 @@ jobs:
             php: 7.1
           - laravel: ^6.0
             php: 7.0
+          - laravel: ^6.0
+            php: 7.1
+          - laravel: ^7.0
+            php: 7.0
           - laravel: ^7.0
             php: 7.1
 
