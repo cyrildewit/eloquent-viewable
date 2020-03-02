@@ -31,11 +31,13 @@ jobs:
           - laravel: 5.7.*
             php: 7.0
           - laravel: 5.8.*
-            php: [7.0, 7.1]
+            php: 7.0
+          - laravel: 5.8.*
+            php: 7.1
           - laravel: ^6.0
-            php: [7.0, 7.1]
+            php: 7.0
           - laravel: ^7.0
-            php: [7.0, 7.1]
+            php: 7.1
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
