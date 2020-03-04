@@ -8,17 +8,17 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
 
-class VisitorCookieRepository
+class ViewerCookieRepository
 {
     /**
-     * The visitor cookie key.
+     * The viewer cookie key.
      *
      * @var string
      */
     protected $key;
 
     /**
-     * Create a new view session history instance.
+     * Create a new viewer cookie repository instance.
      *
      * @return void
      */
@@ -28,14 +28,16 @@ class VisitorCookieRepository
     }
 
     /**
-     * Get the visitor's unique key.
+     * Get the viewer's unique id.
      *
      * @return string
      */
     public function get()
     {
         if (! Cookie::has($this->key)) {
-            Cookie::queue($this->key, $uniqueString = $this->generateUniqueString(), $this->expirationInMinutes());
+            $uniqueString = $this->generateUniqueString();
+
+            Cookie::queue($this->key, $uniqueString, $this->expirationInMinutes());
 
             return $uniqueString;
         }
@@ -44,7 +46,7 @@ class VisitorCookieRepository
     }
 
     /**
-     * Generate a unique visitor string.
+     * Generate a unique viewer id.
      *
      * @return string
      */

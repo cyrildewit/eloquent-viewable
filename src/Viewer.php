@@ -33,9 +33,9 @@ class Viewer
     /**
      * The visitor cookie repository instance.
      *
-     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
+     * @var \CyrildeWit\EloquentViewable\ViewerCookieRepository
      */
-    protected $visitorCookieRepository;
+    protected $viewerCookieRepository;
 
     /**
      * Create a new viewer instance.
@@ -47,11 +47,11 @@ class Viewer
     public function __construct(
         Request $request,
         CrawlerDetector $crawlerDetector,
-        VisitorCookieRepository $visitorCookieRepository
+        ViewerCookieRepository $viewerCookieRepository
     ) {
         $this->request = $request;
         $this->crawlerDetector = $crawlerDetector;
-        $this->visitorCookieRepository = $visitorCookieRepository;
+        $this->viewerCookieRepository = $viewerCookieRepository;
     }
 
     /**
@@ -61,7 +61,7 @@ class Viewer
      */
     public function id()
     {
-        return $this->visitorCookieRepository->get();
+        return $this->viewerCookieRepository->get();
     }
 
     /**

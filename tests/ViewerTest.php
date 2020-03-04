@@ -6,7 +6,7 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Viewer;
-use CyrildeWit\EloquentViewable\VisitorCookieRepository;
+use CyrildeWit\EloquentViewable\ViewerCookieRepository;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 
@@ -15,7 +15,7 @@ class ViewerTest extends TestCase
     /** @test */
     public function it_can_get_the_id_from_the_visitor_cookie_repository()
     {
-        $this->mock(VisitorCookieRepository::class, function ($mock) {
+        $this->mock(ViewerCookieRepository::class, function ($mock) {
             $mock->shouldReceive('get')->once()->andReturn('241.224.55.106');
         });
 
