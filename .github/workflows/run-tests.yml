@@ -10,11 +10,9 @@ jobs:
       fail-fast: true
       matrix:
         php: [7.2, 7.3, 7.4]
-        laravel: [5.8.*, ^6.0, ^7.0]
+        laravel: [^6.0, ^7.0]
         stability: [prefer-lowest, prefer-stable]
         include:
-          - laravel: 5.8.*
-            testbench: 3.8.*
           - laravel: ^6.0
             testbench: ^4.0
           - laravel: ^7.0
@@ -44,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "symfony/console:^4.3.4" "fzaninotto/faker:^1.9.1" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "fzaninotto/faker:^1.9.1" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
 
       - name: Execute tests
