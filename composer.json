@@ -25,17 +25,17 @@
     ],
     "require": {
         "php": "^7.2",
-        "illuminate/cache": "^5.8|^6.0|^7.0",
-        "illuminate/contracts": "^5.8|^6.0|^7.0",
-        "illuminate/cookie": "^5.8|^6.0|^7.0",
-        "illuminate/database": "^5.8|^6.0|^7.0",
-        "illuminate/http": "^5.8|^6.0|^7.0",
-        "illuminate/support": "^5.8|^6.0|^7.0",
+        "illuminate/cache": "^6.0|^7.0",
+        "illuminate/contracts": "^6.0|^7.0",
+        "illuminate/cookie": "^6.0|^7.0",
+        "illuminate/database": "^6.0|^7.0",
+        "illuminate/http": "^6.0|^7.0",
+        "illuminate/support": "^6.0|^7.0",
         "jaybizzle/crawler-detect": "^1.0",
         "nesbot/carbon": "^2.0"
     },
     "require-dev": {
-        "illuminate/config": "^5.8|^6.0|^7.0",
+        "illuminate/config": "^6.0|^7.0",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^3.8|^4.0|^5.0",
         "phpunit/phpunit": "^8.4"
