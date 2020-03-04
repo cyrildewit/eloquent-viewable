@@ -1,13 +1,13 @@
 # Eloquent Viewable
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
+[![run-tests](https://github.com/cyrildewit/eloquent-viewable/workflows/run-tests/badge.svg)](https://github.com/cyrildewit/eloquent-viewable/actions)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
 [![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/master.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
-This Laravel >= 5.8 package allows you to associate views with Eloquent models.
+This Laravel >= 6.0 package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
 
@@ -86,7 +86,7 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires **PHP 7.2+** and **Laravel 5.8+**.
+This package requires **PHP 7.2+** and **Laravel 6+**.
 
 Support for Lumen is not maintained!
 
@@ -94,8 +94,8 @@ Support for Lumen is not maintained!
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| ^5.0    | 5.8.x - 6.x.x | Active support | >= 7.2.0    |
-| ^4.0    | 5.5.x - 5.8.x | Active support | >= 7.1.0    |
+| ^5.0    | 7.x.x - 7.x.x | Active support | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x | Only bug fixes | >= 7.1.0    |
 | ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
 | ^1.0    | 5.5.x - 5.6.x | End of life    | >= 7.0.0    |
