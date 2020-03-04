@@ -302,10 +302,6 @@ class Period
      */
     public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
     {
-        if (! method_exists($startDateTime, $subTypeMethod)) {
-            throw new Exception("Method `{$subTypeMethod}` is not callable on the given start date time instance.");
-        }
-
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
 
         $period = new static($startDateTime);
