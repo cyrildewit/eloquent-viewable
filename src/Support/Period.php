@@ -7,7 +7,6 @@ namespace CyrildeWit\EloquentViewable\Support;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use DateTime;
-use Exception;
 use Illuminate\Support\Str;
 
 class Period
