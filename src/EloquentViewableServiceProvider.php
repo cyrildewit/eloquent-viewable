@@ -8,9 +8,9 @@ use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorCont
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use Illuminate\Cache\Repository as CacheRepository;
+use Illuminate\Container\Container;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use Illuminate\Container\Container;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
