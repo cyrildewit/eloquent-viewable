@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
+use DateTime;
+use Exception;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -237,7 +239,7 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_can_remember_the_views_counts_with_custom_lifetime()
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_integers()
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -249,6 +251,44 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(10)->count());
+    }
+
+    /** @test */
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_DateTimeInterface()
+    {
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count());
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count());
+    }
+
+    /** @test */
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_CarbonInterface()
+    {
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(Carbon::now()->addHours(2))->count());
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(Carbon::now()->addHours(2))->count());
+    }
+
+    /** @test */
+    public function it_throws_an_exception_when_remember_lifetime_is_of_incorrect_type()
+    {
+        $this->expectException(Exception::class);
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->remember('not good')->count();
     }
 
     /** @test */
