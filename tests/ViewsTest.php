@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests;
 
-use DateTime;
-use Exception;
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -14,6 +12,8 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Views;
+use DateTime;
+use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Config;
 
