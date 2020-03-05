@@ -58,7 +58,7 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_does_not_record_views_if_session_delay_is_active()
+    public function it_does_not_record_views_if_cooldown_is_active()
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -74,7 +74,7 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
-    public function it_can_record_a_view_with_session_delay_where_delay_is_an_integer()
+    public function it_can_record_a_view_with_cooldown_where_lifetime_is_an_integer()
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -84,6 +84,24 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
             ->cooldown(10)
+            ->record();
+
+        $this->assertEquals(1, View::count());
+    }
+
+    /** @test */
+    public function it_does_not_record_views_if_cooldown_is_active_with_collection()
+    {
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->collection('test')
+            ->cooldown(Carbon::now()->addMinutes(10))
+            ->record();
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->collection('test')
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         $this->assertEquals(1, View::count());
