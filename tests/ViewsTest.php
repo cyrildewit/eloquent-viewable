@@ -74,6 +74,22 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_does_not_record_views_if_session_delay_is_active_with_collection()
+    {
+        views($this->post)
+            ->collection('test')
+            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->record();
+
+        views($this->post)
+            ->collection('test')
+            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->record();
+
+        $this->assertEquals(1, View::count());
+    }
+
+    /** @test */
     public function it_can_record_a_view_with_cooldown_where_lifetime_is_an_integer()
     {
         Container::getInstance()->make(Views::class)
