@@ -418,9 +418,9 @@ _**Note:** Don't forget that all custom classes must implement their original in
 
 ### Custom Visitor information
 
-The `Visitor` class is responsible of providing the `Views` builder information about the visitor.
+The `Visitor` class is responsible of providing the `Views` builder information about the visitor. You can override this class globally or locally.
 
-You can override this class globally or locally.
+Create you own `Visitor` class in your Laravel application and implemnet the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
 
 #### Globally
 
