@@ -88,6 +88,13 @@ class Views implements ViewsContract
     protected $cooldownManager;
 
     /**
+     * The config repository instance.
+     *
+     * @var \Illuminate\Contracts\Config\Repository
+     */
+    protected $config;
+
+    /**
      * The cache repository instance.
      *
      * @var \Illuminate\Contracts\Cache\Repository
@@ -101,14 +108,15 @@ class Views implements ViewsContract
      */
     public function __construct(
         ConfigRepository $config,
-        Viewer $viewer,
+        CacheRepository $cache,
         CooldownManager $cooldownManager,
-        CacheRepository $cache
+        ViewerContract $viewer
     ) {
-        $this->viewer = $viewer;
-        $this->cooldownManager = $cooldownManager;
+        $this->config = $config;
         $this->cache = $cache;
+        $this->cooldownManager = $cooldownManager;
         $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
+        $this->viewer = $viewer;
     }
 
     /**
@@ -277,20 +285,18 @@ class Views implements ViewsContract
      */
     protected function shouldRecord(): bool
     {
-        $config = Container::getInstance()->make('config');
-
         // If ignore bots is true and the current viewer is a bot, return false
-        if ($config->get('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
+        if ($this->config->get('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
             return false;
         }
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if ($config->get('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
+        if ($this->config->get('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
             return false;
         }
 
-        if (collect($config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
+        if (collect($this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
             return false;
         }
 
