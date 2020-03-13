@@ -24,10 +24,10 @@ views($post)->period(Period::create('2014', '2016'))->count();
 // Return total unique views count (based on visitor cookie)
 views($post)->unique()->count();
 
-// Record a new view
+// Record a view
 views($post)->record();
 
-// Record a new view with session delay between views
+// Record a view with a cooldown
 views($post)->cooldown(now()->addHours(2))->record();
 ```
 
@@ -46,6 +46,7 @@ Here are some of the main features:
 * Get views count of a specific period
 * Get unique views count
 * Get views count of a viewable type (Eloquent model class)
+* Order viewables by views
 * Set a cooldown between views
 * Elegant cache wrapper built-in
 * Ignore views from crawlers, ignored IP addresses or requests with DNT header
@@ -76,7 +77,9 @@ In this documentation, you will find some helpful information about the use of t
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
     * [Caching view counts](#caching-view-counts)
-3. [Extending](#extending)
+3. [Optimizing](#optimizing)
+    *
+4. [Extending](#extending)
     * [Custom Visitor information](#custom-visitor-information)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
@@ -371,22 +374,9 @@ protected $removeViewsOnDelete = true;
 
 ### Caching view counts
 
-If you want to cache for example the total number of views of a post, you could do the following:
+Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not posible. That's why you can make use of the in-built caching functionality.
 
-```php
-// unique key that contains the post id and period to avoid collisions with other queries
-$key = 'views.post'.$post->id.'.2018-01-24|2018-05-22';
-
-cache()->remember($key, now()->addHours(2), function () use ($post) {
-    return views($post)->period(Period::create('2018-01-24', '2018-05-22'))->count();
-});
-```
-
-This solution is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic.
-
-Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're now able to properly generalize the dates.
-
-Now of course, you can wrap all your views counts statements with this solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
+To cache the views count, simply add the `remember()` method to the chain.
 
 Examples:
 
