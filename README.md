@@ -78,7 +78,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Remove views on delete](#remove-views-on-delete)
     * [Caching view counts](#caching-view-counts)
 3. [Optimizing](#optimizing)
-    *
+    * [Benchmarks](#benchmarks)
 4. [Extending](#extending)
     * [Custom Visitor information](#custom-visitor-information)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
@@ -374,7 +374,7 @@ protected $removeViewsOnDelete = true;
 
 ### Caching view counts
 
-Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not posible. That's why you can make use of the in-built caching functionality.
+Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not possible. That's why you can make use of the in-built caching functionality.
 
 To cache the views count, simply add the `remember()` method to the chain.
 
@@ -396,6 +396,19 @@ views($post)
     ->count();
 ```
 
+## Optimizing
+
+### Benchmarks
+
+<!-- todo -->
+
+### Database indexes
+
+The default `views` table migration file has already two indexes for `viewable_id` and `viewable_id`.
+
+If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of views, this may speed up your queries in some cases.
+
+
 ## Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
@@ -410,7 +423,7 @@ _**Note:** Don't forget that all custom classes must implement their original in
 
 The `Visitor` class is responsible of providing the `Views` builder information about the visitor. You can override this class globally or locally.
 
-Create you own `Visitor` class in your Laravel application and implemnet the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
+Create you own `Visitor` class in your Laravel application and implement the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
 
 #### Globally
 
