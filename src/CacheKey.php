@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
-use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 

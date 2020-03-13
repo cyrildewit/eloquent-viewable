@@ -9,9 +9,10 @@ use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\TestVisitor;
 use CyrildeWit\EloquentViewable\View;
-use CyrildeWit\EloquentViewable\Viewer;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Visitor;
 use DateTime;
 use Exception;
 use Illuminate\Container\Container;
@@ -78,12 +79,12 @@ class ViewsTest extends TestCase
     {
         views($this->post)
             ->collection('test')
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         views($this->post)
             ->collection('test')
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         $this->assertEquals(1, View::count());
@@ -370,7 +371,7 @@ class ViewsTest extends TestCase
     {
         Config::set('eloquent-viewable.honor_dnt', true);
 
-        $this->mock(Viewer::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock) {
             $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });
@@ -390,7 +391,7 @@ class ViewsTest extends TestCase
             '10.10.30.40',
         ]);
 
-        $this->mock(Viewer::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock) {
             $mock->shouldReceive('ip')->andReturn('127.20.22.6');
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });
@@ -399,5 +400,22 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(0, View::count());
+    }
+
+    /** @test */
+    public function it_can_set_the_visitor_instance()
+    {
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->useVisitor(
+                Container::getInstance()->make(TestVisitor::class)
+            )
+            ->record();
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(2, View::count());
     }
 }

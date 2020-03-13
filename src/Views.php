@@ -9,6 +9,7 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
@@ -74,11 +75,11 @@ class Views implements ViewsContract
     protected $cacheLifetime;
 
     /**
-     * The viewer instance.
+     * The visitor instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Viewer
+     * @var \CyrildeWit\EloquentViewable\Visitor
      */
-    protected $viewer;
+    protected $visitor;
 
     /**
      * The cooldown manager instance.
@@ -86,6 +87,13 @@ class Views implements ViewsContract
      * @var \CyrildeWit\EloquentViewable\CooldownManager
      */
     protected $cooldownManager;
+
+    /**
+     * The config repository instance.
+     *
+     * @var \Illuminate\Contracts\Config\Repository
+     */
+    protected $config;
 
     /**
      * The cache repository instance.
@@ -101,14 +109,15 @@ class Views implements ViewsContract
      */
     public function __construct(
         ConfigRepository $config,
-        Viewer $viewer,
+        CacheRepository $cache,
         CooldownManager $cooldownManager,
-        CacheRepository $cache
+        VisitorContract $visitor
     ) {
-        $this->viewer = $viewer;
-        $this->cooldownManager = $cooldownManager;
+        $this->config = $config;
         $this->cache = $cache;
+        $this->cooldownManager = $cooldownManager;
         $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
+        $this->visitor = $visitor;
     }
 
     /**
@@ -173,7 +182,7 @@ class Views implements ViewsContract
         $view = Container::getInstance()->make(ViewContract::class);
         $view->viewable_id = $this->viewable->getKey();
         $view->viewable_type = $this->viewable->getMorphClass();
-        $view->visitor = $this->viewer->id();
+        $view->visitor = $this->visitor->id();
         $view->collection = $this->collection;
         $view->viewed_at = Carbon::now();
         $view->save();
@@ -271,26 +280,36 @@ class Views implements ViewsContract
     }
 
     /**
+     * Set the visitor.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Visitor
+     */
+    public function useVisitor(VisitorContract $visitor)
+    {
+        $this->visitor = $visitor;
+
+        return $this;
+    }
+
+    /**
      * Determine if we should record the view.
      *
      * @return bool
      */
     protected function shouldRecord(): bool
     {
-        $config = Container::getInstance()->make('config');
-
-        // If ignore bots is true and the current viewer is a bot, return false
-        if ($config->get('eloquent-viewable.ignore_bots') && $this->viewer->isCrawler()) {
+        // If ignore bots is true and the current visitor is a bot, return false
+        if ($this->config->get('eloquent-viewable.ignore_bots') && $this->visitor->isCrawler()) {
             return false;
         }
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if ($config->get('eloquent-viewable.honor_dnt', false) && $this->viewer->hasDoNotTrackHeader()) {
+        if ($this->config->get('eloquent-viewable.honor_dnt', false) && $this->visitor->hasDoNotTrackHeader()) {
             return false;
         }
 
-        if (collect($config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->viewer->ip())) {
+        if (collect($this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->visitor->ip())) {
             return false;
         }
 
