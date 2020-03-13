@@ -78,12 +78,12 @@ class ViewsTest extends TestCase
     {
         views($this->post)
             ->collection('test')
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         views($this->post)
             ->collection('test')
-            ->delayInSession(Carbon::now()->addMinutes(10))
+            ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
         $this->assertEquals(1, View::count());
