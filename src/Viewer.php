@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\Viewer as ViewerContract;
 use Illuminate\Http\Request;
 
-class Viewer
+class Viewer implements ViewerContract
 {
     /**
      * PHP stores the DNT header under the "HTTP_DNT" key instead of "DNT".
@@ -59,7 +60,7 @@ class Viewer
      *
      * @return string
      */
-    public function id()
+    public function id(): string
     {
         return $this->viewerCookieRepository->get();
     }
@@ -69,7 +70,7 @@ class Viewer
      *
      * @return string|null
      */
-    public function ip()
+    public function ip(): string
     {
         return $this->request()->ip();
     }
