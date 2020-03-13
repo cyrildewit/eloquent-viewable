@@ -79,6 +79,8 @@ In this documentation, you will find some helpful information about the use of t
     * [Caching view counts](#caching-view-counts)
 3. [Optimizing](#optimizing)
     * [Benchmarks](#benchmarks)
+    * [Database indexes](#database-indexes)
+    * [Caching](#caching)
 4. [Extending](#extending)
     * [Custom Visitor information](#custom-visitor-information)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
@@ -97,7 +99,7 @@ Support for Lumen is not maintained!
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| ^5.0    | 7.x.x - 7.x.x | Active support | >= 7.2.0    |
+| ^5.0    | 6.x.x - 7.x.x | Active support | >= 7.2.0    |
 | ^4.0    | 5.5.x - 5.8.x | Only bug fixes | >= 7.1.0    |
 | ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
@@ -408,6 +410,31 @@ The default `views` table migration file has already two indexes for `viewable_i
 
 If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of views, this may speed up your queries in some cases.
 
+### Caching
+
+Caching views counts can have a big impact on the performance of your application. You can read the documentation about caching the views count [here](#caching-view-counts)
+
+Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and `orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize these queries, you can add an extra column or multiple columns to your viewable database table with these counts.
+
+Example: we want to order our blog posts by **unique views** count. The first thing that may come to your mind is to use the `orderByUniqueViews` query scope.
+
+```php
+$posts = Post::latest()->orderByUniqueViews()->paginate(20);
+```
+
+This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a `unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views count. This can easily be achieved using a schedued Laravel command.
+
+There may be a faster way to do this, but such command can be like:
+
+```php
+$posts = Post::all();
+
+foreach($posts as $post) {
+    $post->unique_views_count = views($post)->unique()->count();
+}
+```
+
+**To be updated! Laravel has a nice chunk and cursor feature what may come in handy.**
 
 ## Extending
 
