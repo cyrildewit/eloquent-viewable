@@ -441,10 +441,6 @@ You can also set the visitor instance using the `useVisitor` setter method on th
 use App\Support\Visitor;
 
 views($post)
-    ->useVisitor(Visitor::class)
-    ->record();
-
-views($post)
     ->useVisitor(new Visitor()) // or app(visitor::class)
     ->record();
 ```
