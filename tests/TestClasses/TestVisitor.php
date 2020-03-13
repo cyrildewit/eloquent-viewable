@@ -8,7 +8,8 @@ use CyrildeWit\EloquentViewable\Visitor;
 
 class TestVisitor extends Visitor
 {
-    public function isCrawler(): bool {
+    public function isCrawler(): bool
+    {
         return true;
     }
 }
