@@ -9,6 +9,7 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewer as ViewerContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
@@ -274,6 +275,18 @@ class Views implements ViewsContract
         if ($lifetime !== null) {
             $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
         }
+
+        return $this;
+    }
+
+    /**
+     * Set the viewer.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewer
+     */
+    public function useViewer(ViewerContract $viewer)
+    {
+        $this->viewer = $viewer;
 
         return $this;
     }
