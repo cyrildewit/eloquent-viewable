@@ -11,25 +11,45 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- Added the `Viewer` class which represents the current viewer.
-- Added protected `getViewableTypeSlug()` to `CacheKey::class`
+- Added `Views` contract.
+- Added `Visitor` contract.
+- Added the `Visitor` class which represents the current visitor.
+- Added protected `getViewableTypeSlug()` to `CacheKey::class`.
+- Added `orderByViews` query scope to `Viewable` trait.
+- Added `orderByUniqueViews` query scope to `Viewable` trait.
+- Added `withViewsCount` query scope to `Viewable` trait.
 
 ### Changed
 
-- Changed the `Views` class constructor arguments. Added the `Viewer` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`
-- Replaced calls to `$this->crawlerDetector` in `Views` with new `Viewer` class implementation
-- Replaced calls to `requestHasDoNotTrackHeader` in `Views` with new `Viewer` class implementation
+- Renamed `session.key` to `cooldown.key` in configuration file.
+- Changed the `Views` class constructor arguments. Added the `Visitor` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`.
+- Replaced calls to `$this->crawlerDetector` in `Views` with new `Visitor` class implementation.
+- Replaced calls to `requestHasDoNotTrackHeader` in `Views` with new `Visitor` class implementation.
 - Changed type of primary key from `increments` to `bigIncrements` in `views` table migration.
-- Bumped minimum requirements for Laravel framework components to `^5.8|^6.0`
-- Removed check for provided viewable type in `getConnectionName()`, `getDatabaseName()`, `getModelSlug()` and `getKeySlug` in `CacheKey::class`
+- Bumped minimum requirements for Laravel framework components to `^6.0|^7.0`.
+- Removed check for provided viewable type in `getConnectionName()`, `getDatabaseName()`, `getModelSlug()` and `getKeySlug` in `CacheKey::class`.
+- Renamed `ViewSessionHistory` class to `CooldownMananger`.
+- Changed constructor of `CooldownManager` class. The `Illuminate\Contracts\Config\Repository` has been added as first parameter and the cooldown key is now retrieved from this instance.
+- The `Views` class now implements the `Views` contract.
+- The constructor of the `Views` class has been changed.
+- Moved `Facades/Views` to `src/` and renamed it to `ViewsFacade`.
+- The global `views()` helper now supports viewable types.
 
 ### Removed
 
+- Dropped support for `nesbot/carbon` ^1.22
 - Removed the deprecated `overrideIpAddress` method from the `Views` class.
 - Removed the deprecated `overrideVisitor` method from the `Views` class.
 - Removed `requestHasDoNotTrackHeader` method from `Views` class.
-- Removed `$viewableType` argument from constructor of `CacheKey::class`
-- Removed static `fromViewableType` method from `CacheKey::class`
+- Removed `$viewableType` argument from constructor of `CacheKey::class`.
+- Removed static `fromViewableType` method from `CacheKey::class`.
+- Removed `HeaderResolver` contract and class.
+- Removed `IpAddressResolver` contract and class.
+- Removed `uniqueVisitor()` scope from `View` model.
+- Removed `Enums\SortDirection` class.
+- Removed `OrderByViewsScope` class.
+- Removed the `countByType` method from the `Views` class.
+- Removed the `VisitorCookieRepository` (logic is move to the `Visitor` class).
 
 ## [v4.1.1] (2019-10-18)
 
