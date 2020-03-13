@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Visitor;
-use CyrildeWit\EloquentViewable\VisitorCookieRepository;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 

@@ -7,9 +7,9 @@ namespace CyrildeWit\EloquentViewable;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 
 class Visitor implements VisitorContract
 {
