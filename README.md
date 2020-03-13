@@ -73,11 +73,11 @@ In this documentation, you will find some helpful information about the use of t
         * [Order by views count within the specified period](#order-by-views-count-within-the-specified-period)
         * [Order by views count within the specified collection](#order-by-views-count-within-the-specified-collection)
     * [Get views count of viewable type](#get-views-count-of-viewable-type)
-3. [Advanced Usage](#advanced-usage)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
     * [Caching view counts](#caching-view-counts)
-4. [Extending](#extending)
+3. [Extending](#extending)
+    * [Custom Visitor information](#custom-visitor-information)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
@@ -343,8 +343,6 @@ views(Post::class)->count();
 views('App\Post')->count();
 ```
 
-## Advanced Usage
-
 ### View collections
 
 If you have different types of views for the same viewable type, you may want to store them in their own collection.
@@ -413,9 +411,43 @@ views($post)
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
+* `CyrildeWit\EloquentViewable\Visitor`
 * `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
+
+### Custom Visitor information
+
+The `Visitor` class is responsible of providing the `Views` builder information about the visitor.
+
+You can override this class globally or locally.
+
+#### Globally
+
+Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentViewable\Contracts\Visitor` contract.
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Contracts\Visitor::class,
+    \App\Support\Visitor::class
+);
+```
+
+#### Locally
+
+You can also set the visitor instance using the `useVisitor` setter method on the `Views` builder.
+
+```php
+use App\Support\Visitor;
+
+views($post)
+    ->useVisitor(Visitor::class)
+    ->record();
+
+views($post)
+    ->useVisitor(new Visitor()) // or app(visitor::class)
+    ->record();
+```
 
 ### Using your own `View` Eloquent model
 
