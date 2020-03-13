@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\Viewer as ViewerContract;
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
-class Viewer implements ViewerContract
+class Visitor implements VisitorContract
 {
     /**
      * PHP stores the DNT header under the "HTTP_DNT" key instead of "DNT".
@@ -16,6 +19,13 @@ class Viewer implements ViewerContract
      * @var string
      */
     const DNT = 'HTTP_DNT';
+
+    /**
+     * The visitor cookie key.
+     *
+     * @var string
+     */
+    protected $visitorCookieKey;
 
     /**
      * The request instance.
@@ -32,41 +42,43 @@ class Viewer implements ViewerContract
     protected $crawlerDetector;
 
     /**
-     * The visitor cookie repository instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\ViewerCookieRepository
-     */
-    protected $viewerCookieRepository;
-
-    /**
-     * Create a new viewer instance.
+     * Create a new visitor instance.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector  $crawlerDetector
+     * @param  \Illuminate\Contracts\Config\Repository  $config
      * @return void
      */
     public function __construct(
         Request $request,
         CrawlerDetector $crawlerDetector,
-        ViewerCookieRepository $viewerCookieRepository
+        ConfigRepository $config
     ) {
+        $this->visitorCookieKey = $config['eloquent-viewable']['visitor_cookie_key'];
         $this->request = $request;
         $this->crawlerDetector = $crawlerDetector;
-        $this->viewerCookieRepository = $viewerCookieRepository;
     }
 
     /**
-     * Get the unique ID that represent's the viewer.
+     * Get the unique ID that represent's the visitor.
      *
      * @return string
      */
     public function id(): string
     {
-        return $this->viewerCookieRepository->get();
+        if (! Cookie::has($this->visitorCookieKey)) {
+            $uniqueString = $this->generateUniqueCookieValue();
+
+            Cookie::queue($this->visitorCookieKey, $uniqueString, $this->cookieExpirationInMinutes());
+
+            return $uniqueString;
+        }
+
+        return Cookie::get($this->visitorCookieKey);
     }
 
     /**
-     * Get the viewer IP address.
+     * Get the visitor IP address.
      *
      * @return string|null
      */
@@ -76,7 +88,7 @@ class Viewer implements ViewerContract
     }
 
     /**
-     * Determine if the viewer has a "Do Not Track" header.
+     * Determine if the visitor has a "Do Not Track" header.
      *
      * @return bool
      */
@@ -86,7 +98,7 @@ class Viewer implements ViewerContract
     }
 
     /**
-     * Determine if the viewer is a crawler.
+     * Determine if the visitor is a crawler.
      *
      * @return bool
      */
@@ -113,5 +125,25 @@ class Viewer implements ViewerContract
     protected function crawlerDetector(): CrawlerDetector
     {
         return $this->crawlerDetector;
+    }
+
+    /**
+     * Generate a unique visitor id.
+     *
+     * @return string
+     */
+    protected function generateUniqueCookieValue(): string
+    {
+        return Str::random(80);
+    }
+
+    /**
+     * Get the expiration in minutes.
+     *
+     * @return int
+     */
+    protected function cookieExpirationInMinutes()
+    {
+        return 2628000; // aka 5 years
     }
 }

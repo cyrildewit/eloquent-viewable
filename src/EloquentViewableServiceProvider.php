@@ -6,7 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Viewer as ViewerContract;
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Container\Container;
@@ -63,7 +63,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->bind(ViewContract::class, View::class);
 
-        $this->app->bind(ViewerContract::class, Viewer::class);
+        $this->app->bind(VisitorContract::class, Visitor::class);
 
         $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
             $detector = new CrawlerDetect(

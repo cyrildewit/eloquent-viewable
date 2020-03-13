@@ -95,7 +95,7 @@ return [
     |
     */
 
-    'viewer_cookie_key' => 'eloquent_viewable',
+    'visitor_cookie_key' => 'eloquent_viewable',
 
     /*
     |--------------------------------------------------------------------------

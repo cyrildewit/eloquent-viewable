@@ -10,7 +10,7 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
-use CyrildeWit\EloquentViewable\Viewer;
+use CyrildeWit\EloquentViewable\Visitor;
 use CyrildeWit\EloquentViewable\Views;
 use DateTime;
 use Exception;
@@ -370,7 +370,7 @@ class ViewsTest extends TestCase
     {
         Config::set('eloquent-viewable.honor_dnt', true);
 
-        $this->mock(Viewer::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock) {
             $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });
@@ -390,7 +390,7 @@ class ViewsTest extends TestCase
             '10.10.30.40',
         ]);
 
-        $this->mock(Viewer::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock) {
             $mock->shouldReceive('ip')->andReturn('127.20.22.6');
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });
