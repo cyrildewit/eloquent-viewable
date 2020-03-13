@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitor;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\TestVisitor;
 use DateTime;
 use Exception;
 use Illuminate\Container\Container;
@@ -399,5 +400,22 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(0, View::count());
+    }
+
+    /** @test */
+    public function it_can_set_the_visitor_instance()
+    {
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->useVisitor(
+                Container::getInstance()->make(TestVisitor::class)
+            )
+            ->record();
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(2, View::count());
     }
 }
