@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\View;
 
 class TestHelper
 {
