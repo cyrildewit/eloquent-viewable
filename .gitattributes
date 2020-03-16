@@ -1,6 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+/.github export-ignore
 /tests export-ignore
 /.gitattributes export-ignore
 /.styleci.yml export-ignore
