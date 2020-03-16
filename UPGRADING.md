@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Upgrading from 4.1.1 to 5.0.0](#upgrading-from-411-to-500)
 - [Upgrading from 2.4.3 to 3.0.0](#upgrading-from-243-to-300)
 - [Upgrading from 2.4.2 to 2.4.3](#upgrading-from-242-to-243)
 - [Upgrading from 2.1.0 to 2.2.0](#upgrading-from-210-to-220)
