@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- The `CyrildeWit\EloquentViewable\Viewable` trait has been renamed to `CyrildeWit\EloquentViewable\InteractsWithViews`.
 - Renamed `session.key` to `cooldown.key` in configuration file.
 - Changed the `Views` class constructor arguments. Added the `Visitor` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`.
 - Replaced calls to `$this->crawlerDetector` in `Views` with new `Visitor` class implementation.
@@ -37,7 +38,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Removed
 
-- Dropped support for `nesbot/carbon` ^1.22
+- Dropped support for `nesbot/carbon` ^1.22.
 - Removed the deprecated `overrideIpAddress` method from the `Views` class.
 - Removed the deprecated `overrideVisitor` method from the `Views` class.
 - Removed `requestHasDoNotTrackHeader` method from `Views` class.

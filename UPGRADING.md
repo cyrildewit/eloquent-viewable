@@ -21,6 +21,10 @@ The underlying queries that this package creates has been changed completly. For
 
 In the most basic use cases of this package, you will likely experience no issues at all, but it's still possible. Please check all your usages of the `Views` class (`views()`) manually for broken functionality.
 
+### Update Eloquent model definitions
+
+The `CyrildeWit\EloquentViewable\Viewable` trait has been renamed to `CyrildeWit\EloquentViewable\InteractsWithViews`.
+
 ### Update config file
 
 If you have published the config file of this package, you will have to rename the key of `session` to `cooldown`.
