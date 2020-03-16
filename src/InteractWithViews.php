@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\DB;
  * @method static self|Builder orderByViews(string $direction = 'desc', $period = null, string $collection = null, bool $unique = false, $as = 'views_count')
  * @method static self|Builder orderByUniqueViews(string $direction = 'desc', $period = null, string $collection = null, string $as = 'unique_views_count')
  **/
-trait InteractWithViews
+trait InteractsWithViews
 {
     /**
      * Viewable boot logic.
      *
      * @return void
      */
-    public static function bootInteractWithViews()
+    public static function bootInteractsWithViews()
     {
         static::observe(ViewableObserver::class);
     }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\InteractWithViews;
+use CyrildeWit\EloquentViewable\InteractsWithViews;
 use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model implements Viewable
 {
-    use InteractWithViews;
+    use InteractsWithViews;
 
     /**
      * The table associated with the model.
