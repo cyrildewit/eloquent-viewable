@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v5.0.0]
+
+### Added
+
+- Added `Views` contract.
+- Added `Visitor` contract.
+- Added the `Visitor` class which represents the current visitor.
+- Added protected `getViewableTypeSlug()` to `CacheKey::class`.
+- Added `orderByViews` query scope to `Viewable` trait.
+- Added `orderByUniqueViews` query scope to `Viewable` trait.
+- Added `withViewsCount` query scope to `Viewable` trait.
+
+### Changed
+
+- The `CyrildeWit\EloquentViewable\Viewable` trait has been renamed to `CyrildeWit\EloquentViewable\InteractsWithViews`.
+- Renamed `session.key` to `cooldown.key` in configuration file.
+- Changed the `Views` class constructor arguments. Added the `Visitor` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`.
+- Replaced calls to `$this->crawlerDetector` in `Views` with new `Visitor` class implementation.
+- Replaced calls to `requestHasDoNotTrackHeader` in `Views` with new `Visitor` class implementation.
+- Changed type of primary key from `increments` to `bigIncrements` in `views` table migration.
+- Bumped minimum requirements for Laravel framework components to `^6.0|^7.0`.
+- Removed check for provided viewable type in `getConnectionName()`, `getDatabaseName()`, `getModelSlug()` and `getKeySlug` in `CacheKey::class`.
+- Renamed `ViewSessionHistory` class to `CooldownMananger`.
+- Changed constructor of `CooldownManager` class. The `Illuminate\Contracts\Config\Repository` has been added as first parameter and the cooldown key is now retrieved from this instance.
+- The `Views` class now implements the `Views` contract.
+- The constructor of the `Views` class has been changed.
+- Moved `Facades/Views` to `src/` and renamed it to `ViewsFacade`.
+- The global `views()` helper now supports viewable types.
+
+### Removed
+
+- Dropped support for `nesbot/carbon` ^1.22.
+- Removed the deprecated `overrideIpAddress` method from the `Views` class.
+- Removed the deprecated `overrideVisitor` method from the `Views` class.
+- Removed `requestHasDoNotTrackHeader` method from `Views` class.
+- Removed `$viewableType` argument from constructor of `CacheKey::class`.
+- Removed static `fromViewableType` method from `CacheKey::class`.
+- Removed `HeaderResolver` contract and class.
+- Removed `IpAddressResolver` contract and class.
+- Removed `uniqueVisitor()` scope from `View` model.
+- Removed `Enums\SortDirection` class.
+- Removed `OrderByViewsScope` class.
+- Removed the `countByType` method from the `Views` class.
+- Removed the `VisitorCookieRepository` (logic is move to the `Visitor` class).
+
 ## [v4.1.1] (2019-10-18)
 
 ### Fixed
@@ -198,7 +243,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.0.0...HEAD
+[v5.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.1.1...v5.0.0
 [v4.1.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.1.0...v4.1.1
 [v4.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.0.0...v4.1.0
 [v4.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v3.2.0...v4.0.0

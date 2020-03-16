@@ -1,13 +1,13 @@
 # Eloquent Viewable
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
-[![Travis branch](https://img.shields.io/travis/cyrildewit/eloquent-viewable/master.svg?style=flat-square)](https://travis-ci.org/cyrildewit/eloquent-viewable)
+[![run-tests](https://github.com/cyrildewit/eloquent-viewable/workflows/run-tests/badge.svg)](https://github.com/cyrildewit/eloquent-viewable/actions)
 [![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
 [![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/master.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
 [![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
-This Laravel >= 5.5 package allows you to associate views with Eloquent models.
+This Laravel >= 6.0 package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
 
@@ -24,18 +24,18 @@ views($post)->period(Period::create('2014', '2016'))->count();
 // Return total unique views count (based on visitor cookie)
 views($post)->unique()->count();
 
-// Record a new view
+// Record a view
 views($post)->record();
 
-// Record a new view with session delay between views
-views($post)->delayInSession(now()->addHours(2))->record();
+// Record a view with a cooldown
+views($post)->cooldown(now()->addHours(2))->record();
 ```
 
 ## Overview
 
 Sometimes you don't want to pull in a third-party service like Google Analytics to track your application's page views. Then this package comes in handy. Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind.
 
-This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can grow rapidly in size depending on the amount of visitors your application has.
+This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `$post->views()->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can **grow rapidly in size** depending on the amount of visitors your application has.
 
 ### Features
 
@@ -45,9 +45,10 @@ Here are some of the main features:
 * Get total views count
 * Get views count of a specific period
 * Get unique views count
-* Get views count of a viewable type
-* Record views with session delays
-* Smart views count cacher
+* Get views count of a viewable type (Eloquent model class)
+* Order viewables by views
+* Set a cooldown between views
+* Elegant cache wrapper built-in
 * Ignore views from crawlers, ignored IP addresses or requests with DNT header
 
 ## Documentation
@@ -62,19 +63,27 @@ In this documentation, you will find some helpful information about the use of t
 2. [Usage](#usage)
     * [Preparing your model](#preparing-your-model)
     * [Recording views](#recording-views)
-    * [Recording views with session delays](#recording-views-with-session-delays)
+    * [Setting a cooldown](#setting-a-cooldown)
     * [Retrieving views counts](#retrieving-views-counts)
+        * [Get total views count](#get-total-views-count)
+        * [Get views count of a specific period](#get-views-count-of-a-specific-period)
+        * [Get total unique views count](#get-total-unique-views-count)
     * [Order models by views count](#order-models-by-views-count)
-3. [Advanced Usage](#advanced-usage)
+        * [Order by views count](#ordery-by-views-count)
+        * [Order by unique views count](#order-by-unique-views-count)
+        * [Order by views count within the specified period](#order-by-views-count-within-the-specified-period)
+        * [Order by views count within the specified collection](#order-by-views-count-within-the-specified-collection)
+    * [Get views count of viewable type](#get-views-count-of-viewable-type)
     * [View collections](#view-collections)
     * [Remove views on delete](#remove-views-on-delete)
-    * [Supplying your own visitor's ID and IP Address](#supplying-your-own-visitors-id-and-ip-address)
-    * [Queuing views](#queuing-views)
     * [Caching view counts](#caching-view-counts)
+3. [Optimizing](#optimizing)
+    * [Benchmarks](#benchmarks)
+    * [Database indexes](#database-indexes)
+    * [Caching](#caching)
 4. [Extending](#extending)
+    * [Custom information about visitor](#custom-information-about-visitor)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
-    * [Using a custom IP address resolver](#using-a-custom-ip-address-resolver)
-    * [Using a custom header resolver](#using-a-custom-header-resolver)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
 
@@ -82,18 +91,19 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires **PHP 7.1+** and **Laravel 5.5+**.
+This package requires **PHP 7.2+** and **Laravel 6+**.
 
-Lumen is not supported!
+Support for Lumen is not maintained!
 
 #### Version information
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| ^4.0    | 5.5.x - 6.x.x | Active support | >= 7.1.0    |
-| ^3.0    | 5.5.x - 5.8.x | Bug fixes only | >= 7.1.0    |
-| ^2.0    | 5.5.x - 5.7.x | Bug fixes only | >= 7.0.0    |
-| ^1.0    | 5.5.x - 5.6.x | Bug fixes only | >= 7.0.0    |
+| ^5.0    | 6.x.x - 7.x.x | Active support | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x | Only bug fixes | >= 7.1.0    |
+| ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
+| ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
+| ^1.0    | 5.5.x - 5.6.x | End of life    | >= 7.0.0    |
 
 ### Installation
 
@@ -138,21 +148,21 @@ If you prefer to register packages manually, you can add the following provider 
 
 ### Preparing your model
 
-To associate views with a model, the model must implement the following interface and trait:
+To associate views with a model, the model **must** implement the following interface and trait:
 
 * **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
-* **Trait:** `CyrildeWit\EloquentViewable\Viewable`
+* **Trait:** `CyrildeWit\EloquentViewable\InteractsWithViews`
 
 Example:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\Viewable;
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\InteractsWithViews;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 
-class Post extends Model implements ViewableContract
+class Post extends Model implements Viewable
 {
-    use Viewable;
+    use InteractsWithViews;
 
     // ...
 }
@@ -176,18 +186,17 @@ public function show(Post $post)
 
     return view('post.show', compact('post'));
 }
-// ...
 ```
 
 **Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
 
-### Recording views with session delays
+### Setting a cooldown
 
-You may use the `delayInSession` method on the `Views` instance to add a delay between view records. When you set a delay, you need to specify the number of minutes.
+You may use the `cooldown` method on the `Views` instance to add a cooldown between view records. When you set a cooldown, you need to specify the number of minutes.
 
 ```php
 views($post)
-    ->delayInSession($minutes)
+    ->cooldown($minutes)
     ->record();
 ```
 
@@ -197,7 +206,7 @@ Instead of passing the number of minutes as an integer, you can also pass a `Dat
 $expiresAt = now()->addHours(3);
 
 views($post)
-    ->delayInSession($expiresAt)
+    ->cooldown($expiresAt)
     ->record();
 ```
 
@@ -218,7 +227,7 @@ views($post)->count();
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get views count since 2017 upto 2018
+// Example: get views count from 2017 upto 2018
 views($post)
     ->period(Period::create('2017', '2018'))
     ->count();
@@ -286,21 +295,21 @@ views($post)
 
 The `Viewable` trait adds two scopes to your model: `orderByViews` and `orderByUniqueViews`.
 
-#### Retrieve viewable models by views count
+#### Order by views count
 
 ```php
 Post::orderByViews()->get(); // descending
 Post::orderByViews('asc')->get(); // ascending
 ```
 
-#### Retrieve viewable models by unique views count
+#### Order by unique views count
 
 ```php
 Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-#### Retrieve viewable models by views count within the specified period
+#### Order by views count within the specified period
 
 ```php
 Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
@@ -314,22 +323,30 @@ Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
 Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
 ```
 
+#### Order by views count within the specified collection
+
+```php
+Post::orderByViews('asc', null, 'custom-collection')->get();  // descending
+Post::orderByViews('desc', null, 'custom-collection')->get(); // ascending
+
+Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // descending
+Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // ascending
+```
+
 ### Get views count of viewable type
 
-If you want to know how many views a specific viewable type has, you can use the `getViewsCountByType` method on the `Views` class.
+If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the `views()` helper like so:
 
 ```php
-views()->countByType(Post::class);
-views()->countByType('App\Post');
+views(new Post())->count();
 ```
 
-You can also pass an instance of an Eloquent model. It will get the fully qualified class name by calling the `getMorphClass` method on the model.
+You can also pass a fully qualified class name. The package will then resolve an instance from the application container.
 
 ```php
-views()->countByType($post);
+views(Post::class)->count();
+views('App\Post')->count();
 ```
-
-## Advanced Usage
 
 ### View collections
 
@@ -357,83 +374,11 @@ To automatically delete all views of an viewable Eloquent model on delete, you c
 protected $removeViewsOnDelete = true;
 ```
 
-### Supplying your own visitor's ID and IP Address
-
-If you are using this package via a RESTful API, you might want to supply your own visitor's ID and IP Address, otherwise this package will use the visitor ID that's stored in a cookie and use IP Address of the requester.
-
-```php
-// Override IP Address (this would be supplied by your client)
-views($post)
-    ->overrideIpAddress('Your IP Address')
-    ->record();
-
-// Override visitor ID (this would be supplied by your client)
-views($post)
-    ->overrideVisitor('Your unique visitor ID')
-    ->record();
-```
-
-### Queuing views
-
-If you have a ton of visitors who are viewing pages where you are recording views, it might be a good idea to offload this task using Laravel's queue.
-
-An easy job that simply records a view for the given viewable model, would look like:
-
-```php
-namespace App\Jobs\ProcessView;
-
-use Illuminate\Bus\Queueable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-
-class ProcessView implements ShouldQueue
-{
-    use Dispatchable, InteractsWithQueue, Queueable;
-
-    public $viewable;
-    public $visitor;
-
-    public function __construct($viewable)
-    {
-        $this->viewable = $viewable;
-        $this->visitor = (new VisitorCookieRepository)->get();
-    }
-
-    public function handle()
-    {
-        views($this->viewable)->overrideVisitor($this->visitor)->record();
-    }
-}
-```
-
-You can now dispatch this job:
-
-```php
-ProcessView::dispatch($post)
-    ->delay(now()->addMinutes(30));
-```
-
-**Note:** it's unnecessary if you are using the database as queue driver!
-
 ### Caching view counts
 
-If you want to cache for example the total number of views of a post, you could do the following:
+Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not possible. That's why you can make use of the in-built caching functionality.
 
-```php
-// unique key that contains the post id and period to avoid collisions with other queries
-$key = 'views.post'.$post->id.'.2018-01-24|2018-05-22';
-
-cache()->remember($key, now()->addHours(2), function () use ($post) {
-    return views($post)->period(Period::create('2018-01-24', '2018-05-22'))->count();
-});
-```
-
-This solution is perfectly fine for the example where we are counting the views statically. But what about dynamic views counts? For example: `views($post)->period(Period::subDays(3))->count();`. The `subDays` method uses `Carbon::now()` as starting point. In this case we can't generalize the since datetime to a string, because `Carbon::now()` will always be different! To be able to do this, we need to know if the period is static of dynamic.
-
-Thanks to the `Period` class that comes with this package we can know if it's static of dynamic, because it has the `hasFixedDateTimes()` method that returns a boolean value. You're now able to properly generalize the dates.
-
-Now of course, you can wrap all your views counts statements with this solution, but luckily this package provides an easy way of dealing with this. You can simply add the `remember()` method on the chain. It will do all the hard work under the hood!
+To cache the views count, simply add the `remember()` method to the chain.
 
 Examples:
 
@@ -453,16 +398,95 @@ views($post)
     ->count();
 ```
 
+## Optimizing
+
+### Benchmarks
+
+<!-- todo -->
+
+### Database indexes
+
+The default `views` table migration file has already two indexes for `viewable_id` and `viewable_id`.
+
+If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of views, this may speed up your queries in some cases.
+
+### Caching
+
+Caching views counts can have a big impact on the performance of your application. You can read the documentation about caching the views count [here](#caching-view-counts)
+
+Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and `orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize these queries, you can add an extra column or multiple columns to your viewable database table with these counts.
+
+Example: we want to order our blog posts by **unique views** count. The first thing that may come to your mind is to use the `orderByUniqueViews` query scope.
+
+```php
+$posts = Post::latest()->orderByUniqueViews()->paginate(20);
+```
+
+This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a `unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views count. This can easily be achieved using a schedued Laravel command.
+
+There may be a faster way to do this, but such command can be like:
+
+```php
+$posts = Post::all();
+
+foreach($posts as $post) {
+    $post->unique_views_count = views($post)->unique()->count();
+}
+```
+
+**To be updated! Laravel has a nice chunk and cursor feature what may come in handy.**
+
 ## Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
 * `CyrildeWit\EloquentViewable\View`
-* `CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver`
-* `CyrildeWit\EloquentViewable\Resolvers\HeaderResolver`
+* `CyrildeWit\EloquentViewable\Visitor`
 * `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
+
+### Custom information about visitor
+
+The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The following information is provided:
+
+* a unique identifier (stored in a cookie)
+* ip address
+* check for Do No Track header
+* check for crawler
+
+The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
+
+You can override the `Visitor` class globally or locally.
+
+#### Create your own `Visitor` class
+
+Create you own `Visitor` class in your Laravel application and implement the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
+
+Alternatively, you can extend the default `Visitor` class that comes with this package.
+
+#### Globally
+
+Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentViewable\Contracts\Visitor` contract.
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Contracts\Visitor::class,
+    \App\Support\Visitor::class
+);
+```
+
+#### Locally
+
+You can also set the visitor instance using the `useVisitor` setter method on the `Views` builder.
+
+```php
+use App\Support\Visitor;
+
+views($post)
+    ->useVisitor(new Visitor()) // or app(visitor::class)
+    ->record();
+```
 
 ### Using your own `View` Eloquent model
 
@@ -470,24 +494,6 @@ _**Note:** Don't forget that all custom classes must implement their original in
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
     \App\CustomView::class
-);
-```
-
-### Using a custom IP address resolver
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver::class,
-    \App\Resolvers\IpAddressResolver::class
-);
-```
-
-### Using a custom header resolver
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\HeaderResolver::class,
-    \App\Resolvers\HeaderResolver::class
 );
 ```
 
@@ -524,7 +530,7 @@ Please see [UPGRADING](UPGRADING.md) for detailed upgrade guide.
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG-2.0.md) for more information on what has changed recently.
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Contributing
 
@@ -543,7 +549,7 @@ See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewa
 ## Alternatives
 
 * [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
-* [foothing/laravel-simple-pageviews](foothing/laravel-simple-pageviews)
+* [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
 * [awssat/laravel-visits](https://github.com/awssat/laravel-visits)
 * [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
 * [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
@@ -552,4 +558,4 @@ Feel free to add more alternatives!
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

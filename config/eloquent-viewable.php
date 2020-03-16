@@ -7,7 +7,6 @@ return [
     | Eloquent Models
     |--------------------------------------------------------------------------
     */
-
     'models' => [
 
         /*
@@ -27,7 +26,6 @@ return [
     | Cache Configuration
     |--------------------------------------------------------------------------
     */
-
     'cache' => [
 
         /*
@@ -49,16 +47,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Session Configuration
+    | Cooldown Configuration
     |--------------------------------------------------------------------------
     */
-
-    'session' => [
+    'cooldown' => [
 
         /*
-         * Everthing will be stored under the following key.
+         * Everthing will be stored under the following key in the session.
          */
-        'key' => 'cyrildewit.eloquent-viewable.session',
+        'key' => 'cyrildewit.eloquent-viewable.cooldowns',
 
     ],
 

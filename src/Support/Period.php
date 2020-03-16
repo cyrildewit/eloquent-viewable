@@ -2,26 +2,13 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable\Support;
 
-use DateTime;
-use Exception;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use DateTime;
+use Illuminate\Support\Str;
 
-/**
- * @see https://github.com/spatie/laravel-analytics/blob/3.5.0/src/Period.php
- */
 class Period
 {
     /**
@@ -44,12 +31,12 @@ class Period
     const SUB_YEARS = 'SUB_YEARS';
 
     /**
-     * @var \DateTime|null
+     * @var \Carbon\Carbon|null
      */
     protected $startDateTime;
 
     /**
-     * @var \DateTime|null
+     * @var \Carbon\Carbon|null
      */
     protected $endDateTime;
 
@@ -314,10 +301,6 @@ class Period
      */
     public static function sub(DateTime $startDateTime, string $subTypeMethod, string $subType, int $subValue)
     {
-        if (! is_callable([$startDateTime, $subTypeMethod])) {
-            throw new Exception("Method `{$subTypeMethod}` is not callable on the given start date time instance.");
-        }
-
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
 
         $period = new static($startDateTime);
@@ -425,7 +408,7 @@ class Period
      */
     public function setStartDateTime(DateTime $startDateTime)
     {
-        $this->startDateTime = $startDateTime;
+        $this->startDateTime = Carbon::instance($startDateTime);
 
         return $this;
     }
@@ -438,7 +421,7 @@ class Period
      */
     public function setEndDateTime(DateTime $endDateTime)
     {
-        $this->endDateTime = $endDateTime;
+        $this->endDateTime = Carbon::instance($endDateTime);
 
         return $this;
     }
@@ -485,7 +468,7 @@ class Period
     protected function resolveDateTime($dateTime)
     {
         if ($dateTime instanceof DateTime) {
-            return $dateTime;
+            return Carbon::instance($dateTime);
         }
 
         if (is_string($dateTime)) {

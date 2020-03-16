@@ -1,9 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+/.github export-ignore
 /tests export-ignore
 /.gitattributes export-ignore
-/.travis.yml export-ignore
 /.styleci.yml export-ignore
 /phpunit.xml.dist export-ignore
 /CHANGELOG.md export-ignore

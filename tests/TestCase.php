@@ -2,19 +2,12 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Support\Facades\File;
+use Mockery;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
@@ -24,7 +17,7 @@ abstract class TestCase extends Orchestra
      *
      * @return void
      */
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -40,8 +33,9 @@ abstract class TestCase extends Orchestra
      *
      * @return void
      */
-    protected function tearDown()
+    protected function tearDown(): void
     {
+        Mockery::close();
         Carbon::setTestNow();
     }
 
@@ -54,7 +48,6 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            \Orchestra\Database\ConsoleServiceProvider::class,
             \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
         ];
     }
@@ -90,7 +83,7 @@ abstract class TestCase extends Orchestra
     protected function migratePackageTables()
     {
         $this->loadMigrationsFrom([
-            '--realpath' => database_path('migrations'),
+            '--realpath' => true,
         ]);
     }
 
@@ -112,5 +105,17 @@ abstract class TestCase extends Orchestra
     protected function registerPackageFactories()
     {
         $this->withFactories(realpath(__DIR__.'/database/factories'));
+    }
+
+    /**
+     * Mock an instance of an object in the container.
+     *
+     * @param  string  $abstract
+     * @param  \Closure|null  $mock
+     * @return object
+     */
+    protected function mock($abstract, Closure $mock = null)
+    {
+        return $this->instance($abstract, Mockery::mock(...array_filter(func_get_args())));
     }
 }

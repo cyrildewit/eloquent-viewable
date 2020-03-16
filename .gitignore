@@ -1,7 +1,4 @@
-build/
-doc/
+tmp/
 vendor/
-node_modules/
-.vscode/
 composer.lock
 .phpunit.result.cache

@@ -2,30 +2,19 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
-namespace CyrildeWit\EloquentViewable\Tests\Unit;
+namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post;
 
 class ViewableTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\Stubs\Models\Post */
+    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
     protected $post;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 

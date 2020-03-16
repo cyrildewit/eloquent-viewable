@@ -2,26 +2,16 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use Illuminate\Cache\Repository as CacheRepository;
+use Illuminate\Container\Container;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
-use Illuminate\Cache\Repository as CacheRepository;
-use CyrildeWit\EloquentViewable\Resolvers\HeaderResolver;
-use CyrildeWit\EloquentViewable\Resolvers\IpAddressResolver;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\HeaderResolver as HeaderResolverContract;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver as IpAddressResolverContract;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
@@ -63,11 +53,17 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->when(Views::class)
             ->needs(CacheRepository::class)
-            ->give(function () : CacheRepository {
-                return $this->app['cache']->store(config('eloquent-viewable.cache.store'));
+            ->give(function (): CacheRepository {
+                return $this->app['cache']->store(
+                    $this->app['config']['eloquent-viewable']['cache']['store']
+                );
             });
 
+        $this->app->bind(ViewsContract::class, Views::class);
+
         $this->app->bind(ViewContract::class, View::class);
+
+        $this->app->bind(VisitorContract::class, Visitor::class);
 
         $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
             $detector = new CrawlerDetect(
@@ -79,7 +75,5 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
-        $this->app->singleton(IpAddressResolverContract::class, IpAddressResolver::class);
-        $this->app->singleton(HeaderResolverContract::class, HeaderResolver::class);
     }
 }

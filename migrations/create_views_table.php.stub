@@ -42,7 +42,7 @@ class CreateViewsTable extends Migration
     public function up()
     {
         $this->schema->create($this->table, function (Blueprint $table) {
-            $table->increments('id');
+            $table->bigIncrements('id');
             $table->morphs('viewable');
             $table->text('visitor')->nullable();
             $table->string('collection')->nullable();

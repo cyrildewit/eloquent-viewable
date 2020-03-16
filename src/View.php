@@ -2,22 +2,14 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class View extends Model implements ViewContract
 {
@@ -42,7 +34,9 @@ class View extends Model implements ViewContract
      */
     public function getTable()
     {
-        return config('eloquent-viewable.models.view.table_name', parent::getTable());
+        return Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
     /**
@@ -52,7 +46,9 @@ class View extends Model implements ViewContract
      */
     public function getConnectionName()
     {
-        return config('eloquent-viewable.models.view.connection', parent::getConnectionName());
+        return Container::getInstance()
+            ->make('config')
+            ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
     /**
@@ -77,11 +73,11 @@ class View extends Model implements ViewContract
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        if ($startDateTime && ! $endDateTime) {
+        if ($startDateTime !== null && $endDateTime === null) {
             $query->where('viewed_at', '>=', $startDateTime);
-        } elseif (! $startDateTime && $endDateTime) {
+        } elseif ($startDateTime === null && $endDateTime !== null) {
             $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime && $endDateTime) {
+        } elseif ($startDateTime !== null && $endDateTime !== null) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
 
@@ -98,16 +94,5 @@ class View extends Model implements ViewContract
     public function scopeCollection(Builder $query, string $collection = null)
     {
         return $query->where('collection', $collection);
-    }
-
-    /**
-     * Scope a query to only include unique views.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeUniqueVisitor(Builder $query)
-    {
-        return $query->distinct('visitor');
     }
 }

@@ -1,18 +1,104 @@
 # Upgrade Guide
 
-
-
 ## Table of contents
 
+- [Upgrading from 4.1.1 to 5.0.0](#upgrading-from-411-to-500)
 - [Upgrading from 2.4.3 to 3.0.0](#upgrading-from-243-to-300)
 - [Upgrading from 2.4.2 to 2.4.3](#upgrading-from-242-to-243)
 - [Upgrading from 2.1.0 to 2.2.0](#upgrading-from-210-to-220)
 - [Upgrading from 2.0.0 to 2.1.0](#upgrading-from-200-to-210)
 - [Upgrading from 1.0.5 to 2.0.0](#upgrading-from-105-to-200)
 
+## Upgrading from 4.1.1 to 5.0.0
+
+First, you need to read the changelog and take a look at the comparision between your current used version and `v5.0.0`, so you have a broad overview of what has changed.
+
+This package now requires Laravel `^6.0` or `^7.0`.
+
+### Changes to underlying queries
+
+The underlying queries that this package creates has been changed completly. For example, the order by query scopes no no longer uses a left join.
+
+In the most basic use cases of this package, you will likely experience no issues at all, but it's still possible. Please check all your usages of the `Views` class (`views()`) manually for broken functionality.
+
+### Update Eloquent model definitions
+
+The `CyrildeWit\EloquentViewable\Viewable` trait has been renamed to `CyrildeWit\EloquentViewable\InteractsWithViews`.
+
+### Update config file
+
+If you have published the config file of this package, you will have to rename the key of `session` to `cooldown`.
+
+The current cooldown configuration is posted below:
+
+```php
+/*
+|--------------------------------------------------------------------------
+| Cooldown Configuration
+|--------------------------------------------------------------------------
+*/
+'cooldown' => [
+
+    /*
+     * Everthing will be stored under the following key in the session.
+     */
+    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
+
+],
+```
+
+### Update `views` database table
+
+The type of the primary key `id` has been changed to a big integer.
+
+Create a new migration for your views table with the following contents:
+
+```php
+$table->bigIncrements('id')->change();
+```
+
+### Update session delays
+
+The `delayInSession` method of the `Views` builder has been renamed to `cooldown`.
+
+Example:
+
+```php
+views($post)->cooldown(now()->addMinutes(30))->record();
+```
+
+### Update `overrideIpAddress` and `overrideVisitor` usages
+
+You can no longer override the ip address and visitor id using the `overrideIpAddress` and `overrideVisitor` method on the `Views` builder.
+
+You will have to create your own `Visitor` class to provide custom values.
+
+Take a look a the [documentation](readme.md#custom-visitor-information) on how to do this.
+
+### Remove custom HeaderResolver and `IpAddressResolver`
+
+If you have created your own `HeaderResolver` or `IpAddressResolver`, refactor your code to adhere to the new `Visitor` class implementation.
+
+### Update usages of `VisitorCookieRepository`
+
+The logic from the `VisitorCookieRepository` repository has been moved to the new `Visitor` class. If you have used or overwritten this class, you will have to update your code.
+
+### Remove usages of `uniqueVisitor` scope on `View` model
+
+Although, it's never documented you may have used the internal `uniqueVisitor` scope of the `View` eloquent model. This scope has been removed. If you rely on it, you will need to extend the `View` class and add this method manually.
+
+### Update usages of `ViewSessionHistory`
+
+If you have used the internal `ViewSessionHistory` you will have to update your code to use the new `CooldownManager`.
+
+### Remove usages of `OrderByViewsScope` class
+
+This class was used internally
+
+
 ## Upgrading from 2.4.3 to 3.0.0
 
-First, you need to read the changelog, so you you have a broad overview of what has changed.
+First, you need to read the changelog, so you have a broad overview of what has changed.
 
 **In Progress**
 
@@ -21,7 +107,7 @@ First, you need to read the changelog, so you you have a broad overview of what 
 Run the following migration to update the `visitor` column.
 
 ```php
-$table->text('visitor');
+$table->text('visitor')->change();
 ```
 
 ## Upgrading from 2.1.0 to 2.2.0

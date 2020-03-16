@@ -2,22 +2,13 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+namespace CyrildeWit\EloquentViewable\Tests\Support;
 
-namespace CyrildeWit\EloquentViewable\Tests\Unit\Support;
-
-use Exception;
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
-use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use Exception;
 
 class PeriodTest extends TestCase
 {
@@ -164,14 +155,15 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    // /** @test */
-    // public function static_sub_returns_null_when_subTypeMethod_is_not_callable()
-    // {
-    //     Carbon::setTestNow(Carbon::now());
+    /** @test */
+    public function static_sub_throws_exception_when_subTypeMethod_is_not_callable()
+    {
+        $this->expectException(Exception::class);
 
-    //     $period = Period::sub(Carbon::now(), 'subSecondds', Period::SUB_SECONDS, 2);
-    //     $this->assertNull($period->getEndDateTime());
-    // }
+        Carbon::setTestNow(Carbon::now());
+
+        $period = Period::sub(Carbon::now(), 'keepDreaming', Period::SUB_SECONDS, 2);
+    }
 
     /** @test */
     public function static_subSeconds_can_construct_a_new_period_instance()

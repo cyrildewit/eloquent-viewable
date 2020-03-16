@@ -2,18 +2,10 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use Illuminate\Container\Container;
 
 class ViewableObserver
 {
@@ -23,10 +15,10 @@ class ViewableObserver
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $model
      * @return void
      */
-    public function deleted(ViewableContract $viewable)
+    public function deleted(Viewable $viewable)
     {
         if ($this->removeViewsOnDelete($viewable)) {
-            app(Views::class)->forViewable($viewable)->destroy();
+            Container::getInstance()->make(Views::class)->forViewable($viewable)->destroy();
         }
     }
 
@@ -36,7 +28,7 @@ class ViewableObserver
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return bool
      */
-    private function removeViewsOnDelete(ViewableContract $viewable): bool
+    private function removeViewsOnDelete(Viewable $viewable): bool
     {
         return $viewable->removeViewsOnDelete ?? true;
     }

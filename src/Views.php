@@ -2,29 +2,26 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Eloquent Viewable package.
- *
- * (c) Cyril de Wit <github@cyrildewit.nl>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CyrildeWit\EloquentViewable;
 
-use DateTime;
 use Carbon\Carbon;
-use Illuminate\Support\Traits\Macroable;
-use CyrildeWit\EloquentViewable\Support\Period;
-use CyrildeWit\EloquentViewable\Contracts\HeaderResolver;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
-use CyrildeWit\EloquentViewable\Contracts\IpAddressResolver;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Support\Period;
+use DateTime;
+use DateTimeInterface;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Traits\Macroable;
+use InvalidArgumentException;
 
-class Views
+class Views implements ViewsContract
 {
     use Macroable;
 
@@ -36,7 +33,7 @@ class Views
     protected $viewable;
 
     /**
-     * The period that the current query should scoped to.
+     * The period that the current query should be scoped to.
      *
      * @var \CyrildeWit\EloquentViewable\Support\Period|null
      */
@@ -50,11 +47,11 @@ class Views
     protected $unique = false;
 
     /**
-     * The delay that should be finished before a new view can be recorded.
+     * The cooldown that should be over before a new view can be recorded.
      *
-     * @var \DateTime|null
+     * @var \DateTimeInterface|null
      */
-    protected $sessionDelay = null;
+    protected $cooldown = null;
 
     /**
      * The collection under where the view will be saved.
@@ -66,65 +63,37 @@ class Views
     /**
      * Determine if the views count should be cached.
      *
-     * @var string|null
+     * @var bool
      */
     protected $shouldCache = false;
 
     /**
      * Cache lifetime.
      *
-     * @var \DateTime
+     * @var \DateTimeInterface
      */
     protected $cacheLifetime;
 
     /**
-     * Used IP Address instead of the provided one by the resolver.
+     * The visitor instance.
      *
-     * @var string
+     * @var \CyrildeWit\EloquentViewable\Contracts\Visitor
      */
-    protected $overriddenIpAddress;
+    protected $visitor;
 
     /**
-     * Used visitor ID instead of the provided one by a cookie.
+     * The cooldown manager instance.
      *
-     * @var string
+     * @var \CyrildeWit\EloquentViewable\CooldownManager
      */
-    protected $overriddenVisitor;
+    protected $cooldownManager;
 
     /**
-     * The view session history instance.
+     * The config repository instance.
      *
-     * @var \CyrildeWit\EloquentViewable\ViewSessionHistory
+     * @var \Illuminate\Contracts\Config\Repository
      */
-    protected $viewSessionHistory;
-
-    /**
-     * The visitor cookie repository instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\VisitorCookieRepository
-     */
-    protected $visitorCookieRepository;
-
-    /**
-     * The crawler detector instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
-     */
-    protected $crawlerDetector;
-
-    /**
-     * The IP Address resolver instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\IpAddressResolver
-     */
-    protected $ipAddressResolver;
-
-    /**
-     * The request header resolver instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\HeaderResolver
-     */
-    protected $headerResolver;
+    protected $config;
 
     /**
      * The cache repository instance.
@@ -139,105 +108,43 @@ class Views
      * @return void
      */
     public function __construct(
-        ViewSessionHistory $viewSessionHistory,
-        VisitorCookieRepository $visitorCookieRepository,
-        CrawlerDetector $crawlerDetector,
-        IpAddressResolver $ipAddressResolver,
-        HeaderResolver $headerResolver,
-        CacheRepository $cache
+        ConfigRepository $config,
+        CacheRepository $cache,
+        CooldownManager $cooldownManager,
+        VisitorContract $visitor
     ) {
-        $this->viewSessionHistory = $viewSessionHistory;
-        $this->visitorCookieRepository = $visitorCookieRepository;
-        $this->crawlerDetector = $crawlerDetector;
-        $this->ipAddressResolver = $ipAddressResolver;
-        $this->headerResolver = $headerResolver;
+        $this->config = $config;
         $this->cache = $cache;
-        $this->cacheLifetime = Carbon::now()->addMinutes(config('eloquent-viewable.cache.lifetime_in_minutes'));
+        $this->cooldownManager = $cooldownManager;
+        $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
+        $this->visitor = $visitor;
     }
 
     /**
-     * Count the views for a viewable type.
+     * Set the viewable model.
      *
-     * @param  string|  $viewableType
-     * @return int
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
+     * @return $this
      */
-    public function countByType($viewableType): int
+    public function forViewable(Viewable $viewable = null): ViewsContract
     {
-        if ($viewableType instanceof ViewableContract) {
-            $viewableType = $viewableType->getMorphClass();
-        }
+        $this->viewable = $viewable;
 
-        $cacheKey = (CacheKey::fromViewableType($viewableType))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
-
-        // Return cached views count if it exists
-        if ($this->shouldCache) {
-            $cachedViewsCount = $this->cache->get($cacheKey);
-
-            if ($cachedViewsCount !== null) {
-                return (int) $cachedViewsCount;
-            }
-        }
-
-        $query = app(ViewContract::class)->where('viewable_type', $viewableType);
-
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
-        }
-
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
-
-        if ($this->shouldCache) {
-            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
-        }
-
-        return $viewsCount;
+        return $this;
     }
 
     /**
-     * Save a new record of the made view.
-     *
-     * @return bool
-     */
-    public function record(): bool
-    {
-        if ($this->shouldRecord()) {
-            $view = app(ViewContract::class);
-            $view->viewable_id = $this->viewable->getKey();
-            $view->viewable_type = $this->viewable->getMorphClass();
-            $view->visitor = $this->resolveVisitorId();
-            $view->collection = $this->collection;
-            $view->viewed_at = Carbon::now();
-
-            return $view->save();
-        }
-
-        return false;
-    }
-
-    /**
-     * Count the views.
+     * Get the views count.
      *
      * @return int
      */
     public function count(): int
     {
-        $query = $this->viewable->views();
+        $query = $this->resolveViewableQuery();
 
-        $cacheKey = (CacheKey::fromViewable($this->viewable))->make(
-            $this->period,
-            $this->unique,
-            $this->collection
-        );
+        $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
 
-        if ($this->shouldCache) {
+        if ($this->shouldCache()) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             // Return cached views count if it exists
@@ -246,23 +153,41 @@ class Views
             }
         }
 
-        if ($period = $this->period) {
-            $query->withinPeriod($period);
+        if ($this->period) {
+            $query->withinPeriod($this->period);
         }
 
         $query->collection($this->collection);
 
-        if ($this->unique) {
-            $viewsCount = $query->uniqueVisitor()->count('visitor');
-        } else {
-            $viewsCount = $query->count();
-        }
+        $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
-        if ($this->shouldCache) {
+        if ($this->shouldCache()) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
         return $viewsCount;
+    }
+
+    /**
+     * Record a view.
+     *
+     * @return \CyrildeWit\EloquentViewable\Contracts\View|void
+     */
+    public function record()
+    {
+        if (! $this->shouldRecord()) {
+            return;
+        }
+
+        $view = Container::getInstance()->make(ViewContract::class);
+        $view->viewable_id = $this->viewable->getKey();
+        $view->viewable_type = $this->viewable->getMorphClass();
+        $view->visitor = $this->visitor->id();
+        $view->collection = $this->collection;
+        $view->viewed_at = Carbon::now();
+        $view->save();
+
+        return $view;
     }
 
     /**
@@ -272,35 +197,26 @@ class Views
      */
     public function destroy()
     {
-        $this->viewable->views()->delete();
+        $this->resolveViewableQuery()->delete();
     }
 
     /**
-     * Set the viewable model.
+     * Set the cooldown.
      *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
+     * @param  \DateTime|int  $cooldown
      * @return $this
      */
-    public function forViewable(ViewableContract $viewable = null): self
+    public function cooldown($cooldown): ViewsContract
     {
-        $this->viewable = $viewable;
-
-        return $this;
-    }
-
-    /**
-     * Set the delay in the session.
-     *
-     * @param  \DateTime|int  $delay
-     * @return $this
-     */
-    public function delayInSession($delay): self
-    {
-        if (is_int($delay)) {
-            $delay = Carbon::now()->addMinutes($delay);
+        if (is_int($cooldown)) {
+            $cooldown = Carbon::now()->addMinutes($cooldown);
         }
 
-        $this->sessionDelay = $delay;
+        if ($cooldown instanceof DateTime) {
+            $cooldown = Carbon::instance($cooldown);
+        }
+
+        $this->cooldown = $cooldown;
 
         return $this;
     }
@@ -311,7 +227,7 @@ class Views
      * @param  \CyrildeWit\EloquentViewable\Period
      * @return $this
      */
-    public function period($period): self
+    public function period($period): ViewsContract
     {
         $this->period = $period;
 
@@ -324,7 +240,7 @@ class Views
      * @param  string
      * @return $this
      */
-    public function collection(string $name): self
+    public function collection(string $name): ViewsContract
     {
         $this->collection = $name;
 
@@ -337,7 +253,7 @@ class Views
      * @param  bool  $state
      * @return $this
      */
-    public function unique(bool $state = true): self
+    public function unique(bool $state = true): ViewsContract
     {
         $this->unique = $state;
 
@@ -350,7 +266,7 @@ class Views
      * @param  \DateTime|int|null  $lifetime
      * @return $this
      */
-    public function remember($lifetime = null)
+    public function remember($lifetime = null): ViewsContract
     {
         $this->shouldCache = true;
 
@@ -364,57 +280,13 @@ class Views
     }
 
     /**
-     * Override the visitor's IP Address.
+     * Set the visitor.
      *
-     * @deprecated  v4.0.0  Please use `useIpAddress(string $address)` instead.
-     *
-     * @param  string  $address
-     * @return $this
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Visitor
      */
-    public function overrideIpAddress(string $address)
+    public function useVisitor(VisitorContract $visitor)
     {
-        $this->overriddenIpAddress = $address;
-
-        return $this;
-    }
-
-    /**
-     * Override the visitor's IP Address.
-     *
-     * @param  string  $address
-     * @return $this
-     */
-    public function useIpAddress(string $address)
-    {
-        $this->overriddenIpAddress = $address;
-
-        return $this;
-    }
-
-    /**
-     * Override the visitor's unique ID.
-     *
-     * @deprecated  v4.0.0  Please use `useVisitor(string $visitor)` instead.
-     *
-     * @param  string  $visitor
-     * @return $this
-     */
-    public function overrideVisitor(string $visitor)
-    {
-        $this->overriddenVisitor = $visitor;
-
-        return $this;
-    }
-
-    /**
-     * Override the visitor's unique ID.
-     *
-     * @param  string  $visitor
-     * @return $this
-     */
-    public function useVisitor(string $visitor)
-    {
-        $this->overriddenVisitor = $visitor;
+        $this->visitor = $visitor;
 
         return $this;
     }
@@ -426,22 +298,22 @@ class Views
      */
     protected function shouldRecord(): bool
     {
-        // If ignore bots is true and the current viewer is a bot, return false
-        if (config('eloquent-viewable.ignore_bots') && $this->crawlerDetector->isCrawler()) {
+        // If ignore bots is true and the current visitor is a bot, return false
+        if ($this->config->get('eloquent-viewable.ignore_bots') && $this->visitor->isCrawler()) {
             return false;
         }
 
         // If we honor to the DNT header and the current request contains the
         // DNT header, return false
-        if (config('eloquent-viewable.honor_dnt', false) && $this->requestHasDoNotTrackHeader()) {
+        if ($this->config->get('eloquent-viewable.honor_dnt', false) && $this->visitor->hasDoNotTrackHeader()) {
             return false;
         }
 
-        if (collect(config('eloquent-viewable.ignored_ip_addresses'))->contains($this->resolveIpAddress())) {
+        if (collect($this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->visitor->ip())) {
             return false;
         }
 
-        if (! is_null($this->sessionDelay) && ! $this->viewSessionHistory->push($this->viewable, $this->sessionDelay, $this->collection)) {
+        if ($this->cooldown !== null && ! $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection)) {
             return false;
         }
 
@@ -449,52 +321,67 @@ class Views
     }
 
     /**
-     * Resolve the visitor's IP Address.
+     * Determine if we should cache the views count.
      *
-     * It will first check if the overriddenIpAddress property has been set,
-     * otherwise it will resolve it using the IP Address resolver.
-     *
-     * @return string
+     * @return bool
      */
-    protected function resolveIpAddress(): string
+    protected function shouldCache(): bool
     {
-        return $this->overriddenIpAddress ?? $this->ipAddressResolver->resolve();
+        return $this->shouldCache;
     }
 
     /**
-     * Determine if the request has a Do Not Track header.
+     * Resolve the viewable query builder instance.
      *
-     * @return string
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    protected function requestHasDoNotTrackHeader(): bool
+    protected function resolveViewableQuery(): Builder
     {
-        return 1 === (int) $this->headerResolver->resolve('HTTP_DNT');
+        // If null, we take for granted that we need to count the viewable type
+        if ($this->viewable->getKey() === null) {
+            $viewableType = $this->viewable->getMorphClass();
+
+            return Container::getInstance()
+                ->make(ViewContract::class)
+                ->where('viewable_type', $viewableType);
+        }
+
+        return $this->viewable->views()->getQuery();
     }
 
     /**
-     * Resolve the visitor's unique ID.
+     * Make a cache key for the viewable with custom query options.
      *
-     * @return string|null
+     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
+     * @param  bool  $unique
+     * @param  string|null  $collection
+     * @return string
      */
-    protected function resolveVisitorId()
+    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
     {
-        return $this->overriddenVisitor ?? $this->visitorCookieRepository->get();
+        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
     }
 
     /**
      * Resolve cache lifetime.
      *
-     * @param  int|DateTime
-     * @return \Carbon\Carbon
+     * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
+     * @return \Carbon\CarbonInterface
      */
-    protected function resolveCacheLifetime($lifetime): DateTime
+    protected function resolveCacheLifetime($lifetime): DateTimeInterface
     {
-        if ($lifetime instanceof DateTime) {
-            return $lifetime;
-        }
-
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
+
+        if ($lifetime instanceof DateTimeInterface) {
+            return Carbon::instance($lifetime);
+        }
+
+        if ($lifetime instanceof CarbonInterface) {
+            return $lifetime;
+        }
+
+        throw new InvalidArgumentException("Argument $lifetime must be of type int, \Carbon\CarbonInterface or \DateTimeInterface");
     }
 }
