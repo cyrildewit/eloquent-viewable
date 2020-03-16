@@ -73,11 +73,11 @@ class View extends Model implements ViewContract
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        if ($startDateTime && ! $endDateTime) {
+        if ($startDateTime !== null && $endDateTime === null) {
             $query->where('viewed_at', '>=', $startDateTime);
-        } elseif (! $startDateTime && $endDateTime) {
+        } elseif ($startDateTime === null && $endDateTime !== null) {
             $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime && $endDateTime) {
+        } elseif ($startDateTime !== null && $endDateTime !== null) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
 
