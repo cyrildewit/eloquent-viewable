@@ -77,7 +77,7 @@ class Views implements ViewsContract
     /**
      * The visitor instance.
      *
-     * @var \CyrildeWit\EloquentViewable\Visitor
+     * @var \CyrildeWit\EloquentViewable\Contracts\Visitor
      */
     protected $visitor;
 
