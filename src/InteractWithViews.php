@@ -21,7 +21,7 @@ trait InteractWithViews
      *
      * @return void
      */
-    public static function bootViewable()
+    public static function bootInteractWithViews()
     {
         static::observe(ViewableObserver::class);
     }
