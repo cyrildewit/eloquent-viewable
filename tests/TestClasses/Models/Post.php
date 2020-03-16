@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
-use CyrildeWit\EloquentViewable\Viewable;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\InteractWithViews;
 use Illuminate\Database\Eloquent\Model;
 
-class Post extends Model implements ViewableContract
+class Post extends Model implements Viewable
 {
-    use Viewable;
+    use InteractWithViews;
 
     /**
      * The table associated with the model.

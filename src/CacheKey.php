@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 
@@ -22,12 +22,12 @@ class CacheKey
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null  $viewable
      * @return void
      */
-    public function __construct(ViewableContract $viewable = null)
+    public function __construct(Viewable $viewable = null)
     {
         $this->viewable = $viewable;
     }
 
-    public static function fromViewable(ViewableContract $viewable)
+    public static function fromViewable(Viewable $viewable)
     {
         return new static($viewable);
     }

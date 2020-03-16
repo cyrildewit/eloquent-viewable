@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use DateTime;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Session\Session;
@@ -45,7 +45,7 @@ class CooldownManager
      * @param  string|null  $collection
      * @return bool
      */
-    public function push(ViewableContract $viewable, DateTime $expiresAt, string $collection = null): bool
+    public function push(Viewable $viewable, DateTime $expiresAt, string $collection = null): bool
     {
         $namespaceKey = $this->createNamespaceKey($viewable, $collection);
         $viewableKey = $this->createViewableKey($viewable, $collection);
@@ -79,7 +79,7 @@ class CooldownManager
      * @param  \DateTime  $expiresAt
      * @return array
      */
-    protected function createCooldown(ViewableContract $viewable, $expiresAt): array
+    protected function createCooldown(Viewable $viewable, $expiresAt): array
     {
         return [
             'viewable_id' => $viewable->getKey(),
@@ -116,7 +116,7 @@ class CooldownManager
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
      * @return string
      */
-    protected function createNamespaceKey(ViewableContract $viewable, string $collection = null): string
+    protected function createNamespaceKey(Viewable $viewable, string $collection = null): string
     {
         $key = $this->primaryKey;
         $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
@@ -135,7 +135,7 @@ class CooldownManager
      * @param  string  $collection
      * @return string
      */
-    protected function createViewableKey(ViewableContract $viewable, string $collection = null): string
+    protected function createViewableKey(Viewable $viewable, string $collection = null): string
     {
         $key = $this->createNamespaceKey($viewable, $collection);
         $key .= ".{$viewable->getKey()}";

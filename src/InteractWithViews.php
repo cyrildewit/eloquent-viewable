@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * @method static self|Builder orderByViews(string $direction = 'desc', $period = null, string $collection = null, bool $unique = false, $as = 'views_count')
  * @method static self|Builder orderByUniqueViews(string $direction = 'desc', $period = null, string $collection = null, string $as = 'unique_views_count')
  **/
-trait Viewable
+trait InteractWithViews
 {
     /**
      * Viewable boot logic.

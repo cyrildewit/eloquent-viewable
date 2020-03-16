@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Support\Period;
 
 interface Views
@@ -15,7 +15,7 @@ interface Views
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
      * @return $this
      */
-    public function forViewable(ViewableContract $viewable = null): self;
+    public function forViewable(Viewable $viewable = null): self;
 
     /**
      * Get the views count.

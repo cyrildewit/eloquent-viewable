@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Viewable as ViewableContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -126,7 +126,7 @@ class Views implements ViewsContract
      * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
      * @return $this
      */
-    public function forViewable(ViewableContract $viewable = null): ViewsContract
+    public function forViewable(Viewable $viewable = null): ViewsContract
     {
         $this->viewable = $viewable;
 
