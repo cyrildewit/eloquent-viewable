@@ -82,7 +82,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Database indexes](#database-indexes)
     * [Caching](#caching)
 4. [Extending](#extending)
-    * [Custom Visitor information](#custom-visitor-information)
+    * [Custom information about visitor](#custom-information-about-visitor)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
@@ -446,11 +446,24 @@ If you want to extend or replace one of the core classes with your own implement
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
-### Custom Visitor information
+### Custom information about visitor
 
-The `Visitor` class is responsible of providing the `Views` builder information about the visitor. You can override this class globally or locally.
+The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The following information is provided:
+
+* a unique identifier (stored in a cookie)
+* ip address
+* check for Do No Track header
+* check for crawler
+
+The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
+
+You can override the `Visitor` class globally or locally.
+
+#### Create your own `Visitor` class
 
 Create you own `Visitor` class in your Laravel application and implement the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
+
+Alternatively, you can extend the default `Visitor` class that comes with this package.
 
 #### Globally
 
