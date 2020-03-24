@@ -5,7 +5,7 @@ use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Container\Container;
 
 if (! function_exists('views')) {
-    function views($viewable = null)
+    function views($viewable)
     {
         $builder = Container::getInstance()->make(Views::class);
 
