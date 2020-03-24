@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v5.1.0]
+
+### Fixed
+
+- Remove default value (`null`) for viewable in `views()` helper.
+
 ## [v5.0.0]
 
 ### Added

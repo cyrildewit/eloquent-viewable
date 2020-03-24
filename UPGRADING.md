@@ -67,6 +67,16 @@ Example:
 views($post)->cooldown(now()->addMinutes(30))->record();
 ```
 
+### Check usages of views helper for null viewable
+
+The following code is not valid anymore:
+
+```php
+views()->count();
+```
+
+Use the `View` Eloquent model.
+
 ### Update `overrideIpAddress` and `overrideVisitor` usages
 
 You can no longer override the ip address and visitor id using the `overrideIpAddress` and `overrideVisitor` method on the `Views` builder.
