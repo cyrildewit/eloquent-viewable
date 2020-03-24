@@ -6,13 +6,16 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Views;
+use ArgumentCountError;
 
 class ViewsHelperTest extends TestCase
 {
     /** @test */
-    public function it_accepts_null_as_viewable()
+    public function it_does_not_accept_null_as_a_valid_viewable()
     {
-        $this->assertInstanceOf(Views::class, views());
+        $this->expectException(ArgumentCountError::class);
+
+        views();
     }
 
     /** @test */
