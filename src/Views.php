@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
+use Exception;
 
 class Views implements ViewsContract
 {
@@ -175,6 +176,10 @@ class Views implements ViewsContract
      */
     public function record()
     {
+        if ($this->viewable instanceof Viewable && $this->viewable->getKey() === null) {
+            throw new Exception('Cannot record a view for a viewable type.');
+        }
+
         if (! $this->shouldRecord()) {
             return;
         }
