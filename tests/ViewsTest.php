@@ -59,6 +59,17 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_throws_an_exception_when_recording_a_view_for_a_viewable_type()
+    {
+        $this->expectException(Exception::class);
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable(new Post())
+            ->cooldown(Carbon::now()->addMinutes(10))
+            ->record();
+    }
+
+    /** @test */
     public function it_does_not_record_views_if_cooldown_is_active()
     {
         Container::getInstance()->make(Views::class)
