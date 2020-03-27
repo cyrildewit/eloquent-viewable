@@ -170,9 +170,11 @@ class Views implements ViewsContract
     }
 
     /**
-     * Record a view.
+     * Record a view for the viewable Eloquent model.
      *
-     * @return \CyrildeWit\EloquentViewable\Contracts\View|void
+     * @return bool
+     *
+     * @throws \Exception
      */
     public function record()
     {
@@ -181,18 +183,30 @@ class Views implements ViewsContract
         }
 
         if (! $this->shouldRecord()) {
-            return;
+            return false;
         }
 
-        $view = Container::getInstance()->make(ViewContract::class);
-        $view->viewable_id = $this->viewable->getKey();
-        $view->viewable_type = $this->viewable->getMorphClass();
-        $view->visitor = $this->visitor->id();
-        $view->collection = $this->collection;
-        $view->viewed_at = Carbon::now();
-        $view->save();
+        event(new ViewRecorded($view = $this->createView()));
 
         return $view;
+    }
+
+    /**
+     * Create a new view instance.
+     *
+     * @return \CyrildeWit\EloquentViewable\Contracts\View
+     */
+    public function createView()
+    {
+        $view = Container::getInstance()->make(ViewContract::class);
+
+        return $view->create([
+            'viewable_id' => $this->viewable->getKey(),
+            'viewable_type' => $this->viewable->getMorphClass(),
+            'visitor' => $this->visitor->id(),
+            'collection' => $this->collection,
+            'viewed_at' => Carbon::now(),
+        ]);
     }
 
     /**
