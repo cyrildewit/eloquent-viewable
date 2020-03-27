@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use DateTime;
 use DateTimeInterface;
 use Illuminate\Container\Container;
@@ -192,24 +193,6 @@ class Views implements ViewsContract
     }
 
     /**
-     * Create a new view instance.
-     *
-     * @return \CyrildeWit\EloquentViewable\Contracts\View
-     */
-    protected function createView()
-    {
-        $view = Container::getInstance()->make(ViewContract::class);
-
-        return $view->create([
-            'viewable_id' => $this->viewable->getKey(),
-            'viewable_type' => $this->viewable->getMorphClass(),
-            'visitor' => $this->visitor->id(),
-            'collection' => $this->collection,
-            'viewed_at' => Carbon::now(),
-        ]);
-    }
-
-    /**
      * Destroy all views of the viewable model.
      *
      * @return void
@@ -337,6 +320,24 @@ class Views implements ViewsContract
         }
 
         return true;
+    }
+
+    /**
+     * Create a new view instance.
+     *
+     * @return \CyrildeWit\EloquentViewable\Contracts\View
+     */
+    protected function createView()
+    {
+        $view = Container::getInstance()->make(ViewContract::class);
+
+        return $view->create([
+            'viewable_id' => $this->viewable->getKey(),
+            'viewable_type' => $this->viewable->getMorphClass(),
+            'visitor' => $this->visitor->id(),
+            'collection' => $this->collection,
+            'viewed_at' => Carbon::now(),
+        ]);
     }
 
     /**
