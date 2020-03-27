@@ -196,7 +196,7 @@ class Views implements ViewsContract
      *
      * @return \CyrildeWit\EloquentViewable\Contracts\View
      */
-    public function createView()
+    protected function createView()
     {
         $view = Container::getInstance()->make(ViewContract::class);
 
