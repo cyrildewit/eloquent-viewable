@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Events;
 
 use Illuminate\Queue\SerializesModels;
+use CyrildeWit\EloquentViewable\Contracts\View;
 
 class ViewRecorded
 {
@@ -23,7 +24,7 @@ class ViewRecorded
      * @param  \CyrildeWit\EloquentViewable\Contracts\View
      * @return void
      */
-    public function __construct(Viewable $view)
+    public function __construct(View $view)
     {
         $this->view = $view;
     }
