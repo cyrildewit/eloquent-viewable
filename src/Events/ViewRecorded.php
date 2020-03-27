@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Events;
 
-use Illuminate\Queue\SerializesModels;
 use CyrildeWit\EloquentViewable\Contracts\View;
+use Illuminate\Queue\SerializesModels;
 
 class ViewRecorded
 {

@@ -10,10 +10,11 @@ use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
+use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -21,7 +22,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
-use Exception;
 
 class Views implements ViewsContract
 {
