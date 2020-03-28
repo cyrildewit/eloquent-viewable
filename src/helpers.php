@@ -1,7 +1,7 @@
 <?php
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Contracts\Views;
 use Illuminate\Container\Container;
 
 if (! function_exists('views')) {
