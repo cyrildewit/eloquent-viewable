@@ -9,7 +9,7 @@ use Exception;
 class ViewRecordException extends Exception
 {
     /**
-     * Cannot record a view for a viewable
+     * Cannot record a view for a viewable.
      *
      * @return static
      */

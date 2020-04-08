@@ -11,11 +11,10 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
-use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
+use CyrildeWit\EloquentViewable\Support\Period;
 use DateTime;
 use DateTimeInterface;
-use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -328,7 +327,7 @@ class Views implements ViewsContract
      *
      * @return \CyrildeWit\EloquentViewable\Contracts\View
      */
-    protected function createView()
+    protected function createView(): ViewContract
     {
         $view = Container::getInstance()->make(ViewContract::class);
 
