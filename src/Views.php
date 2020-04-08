@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
 use DateTime;
 use DateTimeInterface;
 use Exception;
@@ -175,12 +176,12 @@ class Views implements ViewsContract
      *
      * @return bool
      *
-     * @throws \Exception
+     * @throws \CyrildeWit\EloquentViewable\Exceptions\ViewRecordException
      */
     public function record()
     {
         if ($this->viewable instanceof Viewable && $this->viewable->getKey() === null) {
-            throw new Exception('Cannot record a view for a viewable type.');
+            throw ViewRecordException::cannotRecordViewForViewableType();
         }
 
         if (! $this->shouldRecord()) {
