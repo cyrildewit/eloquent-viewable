@@ -26,16 +26,16 @@ interface Views
     /**
      * Record a view.
      *
-     * @return \CyrildeWit\EloquentViewable\Contracts\View|void
+     * @return bool
      */
-    public function record();
+    public function record(): bool;
 
     /**
      * Destroy all views of the viewable model.
      *
      * @return void
      */
-    public function destroy();
+    public function destroy(): void;
 
     /**
      * Set a cooldown.

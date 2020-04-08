@@ -177,7 +177,7 @@ class Views implements ViewsContract
      *
      * @throws \CyrildeWit\EloquentViewable\Exceptions\ViewRecordException
      */
-    public function record()
+    public function record(): bool
     {
         if ($this->viewable instanceof Viewable && $this->viewable->getKey() === null) {
             throw ViewRecordException::cannotRecordViewForViewableType();
@@ -189,7 +189,7 @@ class Views implements ViewsContract
 
         event(new ViewRecorded($view = $this->createView()));
 
-        return $view;
+        return $view->exists;
     }
 
     /**
@@ -197,7 +197,7 @@ class Views implements ViewsContract
      *
      * @return void
      */
-    public function destroy()
+    public function destroy(): void
     {
         $this->resolveViewableQuery()->delete();
     }
