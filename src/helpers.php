@@ -8,7 +8,7 @@ if (! function_exists('views')) {
     /**
      * Construct a new views instance.
      *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable\string
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|string
      * @return \CyrildeWit\EloquentViewable\Contracts\Views
      */
     function views($viewable): Views
