@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v6.0.0]
+
+### Added
+
+- Added `bool` return typehint to `record` method.
+- Added `void` return typehint to `destroy` method.
+- The `ViewRecordException` will be throwed when trying to record a view for a viewable type.
+- The `ViewRecorded` event will be fired when a new view is recorded.
+- Added `Views` typehint to global `views()` function.
+
+### Changed
+
+- The creating of the `View` instance has been moved into its own method `protected function createView(): View`.
+
 ## [v5.2.0]
 
 ### Fixed
