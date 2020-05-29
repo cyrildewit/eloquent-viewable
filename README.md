@@ -406,7 +406,7 @@ views($post)
 
 ### Database indexes
 
-The default `views` table migration file has already two indexes for `viewable_id` and `viewable_id`.
+The default `views` table migration file has already two indexes for `viewable_id` and `viewable_type`.
 
 If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of views, this may speed up your queries in some cases.
 
