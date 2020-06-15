@@ -83,7 +83,7 @@ You can no longer override the ip address and visitor id using the `overrideIpAd
 
 You will have to create your own `Visitor` class to provide custom values.
 
-Take a look a the [documentation](readme.md#custom-visitor-information) on how to do this.
+Take a look a the [documentation](README.md#custom-information-about-visitor) on how to do this.
 
 ### Remove custom HeaderResolver and `IpAddressResolver`
 
