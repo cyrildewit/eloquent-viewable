@@ -70,7 +70,7 @@ class Views implements ViewsContract
     protected $shouldCache = false;
 
     /**
-     * Cache lifetime.
+     * Lifetime of cached views count.
      *
      * @var \DateTimeInterface
      */
