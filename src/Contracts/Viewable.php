@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
+use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use CyrildeWit\EloquentViewable\Support\Period;
 
 interface Viewable
 {

@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use DateTime;
 use DateTimeInterface;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Session\Session;

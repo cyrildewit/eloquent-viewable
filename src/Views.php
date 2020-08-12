@@ -13,7 +13,6 @@ use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
 use CyrildeWit\EloquentViewable\Support\Period;
-use DateTime;
 use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
