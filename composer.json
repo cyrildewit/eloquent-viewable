@@ -24,7 +24,7 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": "^7.4",
         "illuminate/cache": "^6.0|^7.0",
         "illuminate/contracts": "^6.0|^7.0",
         "illuminate/cookie": "^6.0|^7.0",
