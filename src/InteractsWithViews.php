@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -41,19 +42,12 @@ trait InteractsWithViews
 
     /**
      * Scope a query to order records by views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @param  bool  $unique
-     * @param  string  $as
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrderByViews(
         Builder $query,
         string $direction = 'desc',
-        $period = null,
-        string $collection = null,
+        ?Period $period = null,
+        ?string $collection = null,
         bool $unique = false,
         string $as = 'views_count'
     ): Builder {
@@ -63,13 +57,6 @@ trait InteractsWithViews
 
     /**
      * Scope a query to order records by unique views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @param  string  $collection
-     * @param  string  $as
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrderByUniqueViews(
         Builder $query,
@@ -82,14 +69,9 @@ trait InteractsWithViews
     }
 
     /**
-     * Scope a query to order records by unique views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Scope a query to get the views count without loading them.
      */
-    public function scopeWithViewsCount(Builder $query, $period = null, string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
+    public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
         return $query->withCount(["views as ${as}" => function (Builder $query) use ($period, $collection, $unique) {
             if ($period) {

@@ -38,11 +38,6 @@ return [
          */
         'store' => env('CACHE_DRIVER', 'file'),
 
-        /*
-         * Default lifetime of cached views count in minutes.
-         */
-        'lifetime_in_minutes' => 60,
-
     ],
 
     /*

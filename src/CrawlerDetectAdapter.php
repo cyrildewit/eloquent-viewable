@@ -9,28 +9,15 @@ use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class CrawlerDetectAdapter implements CrawlerDetector
 {
-    /**
-     * CrawlerDetect instance.
-     *
-     * @var \Jaybizzle\CrawlerDetect\CrawlerDetect
-     */
-    private $detector;
+    private CrawlerDetect $detector;
 
-    /**
-     * Create a new CrawlerDetector instance.
-     *
-     * @param  \Jaybizzle\CrawlerDetect\CrawlerDetect  $detector
-     * @return void
-     */
     public function __construct(CrawlerDetect $detector)
     {
         $this->detector = $detector;
     }
 
     /**
-     * Determine if the current user is a crawler.
-     *
-     * @return bool
+     * Determine if the current visitor is a crawler.
      */
     public function isCrawler(): bool
     {

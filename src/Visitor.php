@@ -20,35 +20,12 @@ class Visitor implements VisitorContract
      */
     const DNT = 'HTTP_DNT';
 
-    /**
-     * The visitor cookie key.
-     *
-     * @var string
-     */
-    protected $visitorCookieKey;
+    protected string $visitorCookieKey;
 
-    /**
-     * The request instance.
-     *
-     * @var \Illuminate\Http\Request
-     */
-    protected $request;
+    protected Request $request;
 
-    /**
-     * The crawler detector instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
-     */
-    protected $crawlerDetector;
+    protected CrawlerDetector $crawlerDetector;
 
-    /**
-     * Create a new visitor instance.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector  $crawlerDetector
-     * @param  \Illuminate\Contracts\Config\Repository  $config
-     * @return void
-     */
     public function __construct(
         Request $request,
         CrawlerDetector $crawlerDetector,
@@ -61,8 +38,6 @@ class Visitor implements VisitorContract
 
     /**
      * Get the unique ID that represent's the visitor.
-     *
-     * @return string
      */
     public function id(): string
     {
@@ -79,18 +54,14 @@ class Visitor implements VisitorContract
 
     /**
      * Get the visitor IP address.
-     *
-     * @return string|null
      */
-    public function ip(): string
+    public function ip(): ?string
     {
         return $this->request()->ip();
     }
 
     /**
      * Determine if the visitor has a "Do Not Track" header.
-     *
-     * @return bool
      */
     public function hasDoNotTrackHeader(): bool
     {
@@ -99,8 +70,6 @@ class Visitor implements VisitorContract
 
     /**
      * Determine if the visitor is a crawler.
-     *
-     * @return bool
      */
     public function isCrawler(): bool
     {
@@ -109,8 +78,6 @@ class Visitor implements VisitorContract
 
     /**
      * Returns the request instance.
-     *
-     * @return \Illuminate\Http\Request
      */
     protected function request(): Request
     {
@@ -119,8 +86,6 @@ class Visitor implements VisitorContract
 
     /**
      * Returns the crawler detector instance.
-     *
-     * @return \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector
      */
     protected function crawlerDetector(): CrawlerDetector
     {
@@ -129,8 +94,6 @@ class Visitor implements VisitorContract
 
     /**
      * Generate a unique visitor id.
-     *
-     * @return string
      */
     protected function generateUniqueCookieValue(): string
     {
@@ -139,10 +102,8 @@ class Visitor implements VisitorContract
 
     /**
      * Get the expiration in minutes.
-     *
-     * @return int
      */
-    protected function cookieExpirationInMinutes()
+    protected function cookieExpirationInMinutes(): int
     {
         return 2628000; // aka 5 years
     }

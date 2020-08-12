@@ -21,7 +21,7 @@ interface View
      * Scope a query to only include views within the period.
      *
      * @param  \Illuminate\Database\Eloquent\Builder $query
-     * @param  mixed $type
+     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeWithinPeriod(Builder $query, Period $period);

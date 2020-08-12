@@ -7,9 +7,7 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 interface CrawlerDetector
 {
     /**
-     * Determine if the current user is a crawler.
-     *
-     * @return bool
+     * Determine if the current visitor is a crawler.
      */
     public function isCrawler(): bool;
 }

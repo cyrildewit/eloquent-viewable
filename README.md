@@ -201,7 +201,7 @@ views($post)
     ->record();
 ```
 
-Instead of passing the number of minutes as an integer, you can also pass a `DateTime` instance.
+Instead of passing the number of minutes as an integer, you can also pass a `DateTimeInterface` instance.
 
 ```php
 $expiresAt = now()->addHours(3);
