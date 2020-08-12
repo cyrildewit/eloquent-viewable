@@ -56,7 +56,7 @@ interface Views
     /**
      * Cache the current views count.
      *
-     * @param  \DateTime|int|null  $lifetime
+     * @param  \DateTimeInterface|int|null  $lifetime
      */
     public function remember($lifetime): self;
 }
