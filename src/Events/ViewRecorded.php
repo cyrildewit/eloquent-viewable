@@ -11,19 +11,8 @@ class ViewRecorded
 {
     use SerializesModels;
 
-    /**
-     * The recorded view.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\View
-     */
-    public $view;
+    public View $view;
 
-    /**
-     * Create a new event instance.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\View
-     * @return void
-     */
     public function __construct(View $view)
     {
         $this->view = $view;

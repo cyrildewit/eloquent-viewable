@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use CyrildeWit\EloquentViewable\Support\Period;
 
 interface Viewable
 {
@@ -32,21 +33,11 @@ interface Viewable
 
     /**
      * Scope a query to order records by views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByViews(Builder $query, string $direction = 'desc', $period = null): Builder;
+    public function scopeOrderByViews(Builder $quersy, string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder;
 
     /**
      * Scope a query to order records by unique views count.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $direction
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder;
+    public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', ?Period $period = null, ?string $collection = null, string $as = 'unique_views_count'): Builder;
 }
