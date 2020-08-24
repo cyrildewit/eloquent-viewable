@@ -38,7 +38,7 @@
         "illuminate/config": "^6.0|^7.0",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^4.0|^5.0",
-        "phpunit/phpunit": "^8.4"
+        "phpunit/phpunit": "^8.4|^9.3"
     },
     "autoload": {
         "psr-4": {
