@@ -11,7 +11,6 @@ jobs:
       matrix:
         php: [7.3, 7.4]
         laravel: [^8.0]
-        stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: ^8.0
             testbench: ^6.0
@@ -41,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "fzaninotto/faker:^1.9.1" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
+          composer update --prefer-stable --prefer-dist --no-interaction --no-suggest
 
       - name: Execute tests
         run: vendor/bin/phpunit --verbose
