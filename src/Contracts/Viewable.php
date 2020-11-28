@@ -34,7 +34,7 @@ interface Viewable
     /**
      * Scope a query to order records by views count.
      */
-    public function scopeOrderByViews(Builder $quersy, string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder;
+    public function scopeOrderByViews(Builder $query, string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder;
 
     /**
      * Scope a query to order records by unique views count.
