@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - The creating of the `View` instance has been moved into its own method `protected function createView(): View`.
 
+## [v5.2.1] (2020-09-22)
+
+### Changed
+
+- Add support for Laravel 8
+
 ## [v5.2.0]
 
 ### Fixed
