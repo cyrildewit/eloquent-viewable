@@ -91,7 +91,7 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires **PHP 7.2+** and **Laravel 6+**.
+This package requires **PHP 7.4+** and **Laravel 6+**.
 
 Support for Lumen is not maintained!
 
@@ -99,8 +99,9 @@ Support for Lumen is not maintained!
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| ^5.0    | 6.x.x - 8.x.x | Active support | >= 7.2.0    |
-| ^4.0    | 5.5.x - 5.8.x | Only bug fixes | >= 7.1.0    |
+| ^6.0    | 6.x.x - 8.x.x | Active support | >= 7.4.0    |
+| ^5.0    | 6.x.x - 8.x.x | Only bug fixes | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
 | ^1.0    | 5.5.x - 5.6.x | End of life    | >= 7.0.0    |
