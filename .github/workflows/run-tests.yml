@@ -46,6 +46,18 @@ jobs:
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
+      - name: Install minimum required Laravel 6 Framework version on PHP 8 with prefer lowest stability
+        if: ${{ matrix.php == '8.0' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^6.0' }}
+        run: |
+          composer require "laravel/framework:^6.19.0" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install minimum required Laravel 7 Framework version on PHP 8 with prefer lowest stability
+        if: ${{ matrix.php == '8.0' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^7.0' }}
+        run: |
+          composer require "laravel/framework:^7.29.0" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
       - name: Install fzaninotto/faker
         if: ${{ matrix.php == '^7.4' }}
         run: |
