@@ -83,6 +83,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Caching](#caching)
 4. [Extending](#extending)
     * [Custom information about visitor](#custom-information-about-visitor)
+    * [Using your own Views Eloquent model](#using-your-own-views-eloquent-model)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
@@ -543,9 +544,9 @@ Views::macro('countAndRemember', function () {
 Now you're able to use this shorthand like this:
 
 ```php
-views($post)->countAndCache();
+views($post)->countAndRemember();
 
-Views::forViewable($post)->countAndCache();
+Views::forViewable($post)->countAndRemember();
 ```
 
 ## Upgrading
