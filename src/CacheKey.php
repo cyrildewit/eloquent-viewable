@@ -11,16 +11,14 @@ use Illuminate\Support\Str;
 
 class CacheKey
 {
-    protected ?Viewable $viewable;
+    protected Viewable $viewable;
 
-    protected ?string $viewableType;
-
-    public function __construct(?Viewable $viewable = null)
+    public function __construct(Viewable $viewable)
     {
         $this->viewable = $viewable;
     }
 
-    public static function fromViewable(Viewable $viewable)
+    public static function fromViewable(Viewable $viewable): CacheKey
     {
         return new static($viewable);
     }
