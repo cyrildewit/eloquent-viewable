@@ -199,7 +199,7 @@ class Views implements ViewsContract
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Visitor
      */
-    public function useVisitor(VisitorContract $visitor)
+    public function useVisitor(VisitorContract $visitor): ViewsContract
     {
         $this->visitor = $visitor;
 
