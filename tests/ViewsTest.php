@@ -237,7 +237,7 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->count());
-        $this->assertEquals(1, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
     }
 
     /** @test */
