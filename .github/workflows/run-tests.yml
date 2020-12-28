@@ -71,4 +71,4 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./tmp/clover.xml
+          file: ./build/logs/clover.xml
