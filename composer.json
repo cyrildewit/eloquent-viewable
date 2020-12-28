@@ -23,7 +23,7 @@
         }
     ],
     "require": {
-        "php": "^7.4",
+        "php": "^7.4|^8.0",
         "illuminate/cache": "^6.0|^7.0|^8.0",
         "illuminate/contracts": "^6.0|^7.0|^8.0",
         "illuminate/cookie": "^6.0|^7.0|^8.0",
@@ -36,8 +36,8 @@
     "require-dev": {
         "illuminate/config": "^6.0|^7.0|^8.0",
         "mockery/mockery": "^1.2.4",
-        "orchestra/testbench": "^4.0|^5.0|^6.0",
-        "phpunit/phpunit": "^8.4|^9.0"
+        "orchestra/testbench": "^4.9.1|^5.9.1|^6.6.1",
+        "phpunit/phpunit": "^9.3.3"
     },
     "autoload": {
         "psr-4": {
