@@ -87,7 +87,9 @@ class Views implements ViewsContract
             $query->withinPeriod($period);
         });
 
-        $query->collection($this->collection);
+        $query->when($this->collection, function ($query, $collection) {
+            $query->collection($collection);
+        });
 
         $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
