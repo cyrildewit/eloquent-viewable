@@ -84,15 +84,15 @@ The following internal classes have changed. If you're extending or using them, 
 * `CyrildeWit\EloquentViewable\Views`
 * `CyrildeWit\EloquentViewable\Visitor`
 
-# Upgrading from v5.2.0 to v5.2.1
+## Upgrading from v5.2.0 to v5.2.1
 
 There are no manual changes needed.
 
-# Upgrading from v5.1.0 to v5.2.0
+## Upgrading from v5.1.0 to v5.2.0
 
 There are no manual changes needed.
 
-# Upgrading from v5.0.0 to v5.1.0
+## Upgrading from v5.0.0 to v5.1.0
 
 ### Check usages of views helper for null viewable
 
