@@ -4,19 +4,20 @@ on: [push]
 
 jobs:
   tests:
-
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        php: [7.2, 7.3, 7.4]
-        laravel: [^6.0, ^7.0]
+        php: [7.4, 8.0]
+        laravel: [^6.0, ^7.0, ^8.0]
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: ^6.0
-            testbench: ^4.0
+            testbench: ^4.9.1
           - laravel: ^7.0
-            testbench: ^5.0
+            testbench: ^5.9.1
+          - laravel: ^8.0
+            testbench: ^6.6.1
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
@@ -42,8 +43,26 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "fzaninotto/faker:^1.9.1" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install minimum required Mockery version on PHP 8 with prefer lowest stability
+        if: ${{ matrix.php == '8.0' && matrix.stability == 'prefer-lowest' && (matrix.laravel == '^6.0' || matrix.laravel == '^7.0') }}
+        run: |
+          composer require "mockery/mockery:^1.4.2" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install fzaninotto/faker
+        if: ${{ matrix.php == '^7.4' }}
+        run: |
+          composer require "fzaninotto/faker:^1.9.1" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install laravel/legacy-factories
+        if: ${{ matrix.laravel == '^8.0' }}
+        run: |
+          composer require "laravel/legacy-factories:^1.1" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Execute tests
         run: vendor/bin/phpunit --verbose
@@ -52,4 +71,4 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./tmp/clover.xml
+          file: ./build/logs/clover.xml

@@ -5,29 +5,20 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 
 class CacheKey
 {
-    /** @var \CyrildeWit\EloquentViewable\Contracts\Viewable|null */
-    protected $viewable;
+    protected Viewable $viewable;
 
-    /** @var string|null */
-    protected $viewableType;
-
-    /**
-     * Create a new cache key instance.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null  $viewable
-     * @return void
-     */
-    public function __construct(Viewable $viewable = null)
+    public function __construct(Viewable $viewable)
     {
         $this->viewable = $viewable;
     }
 
-    public static function fromViewable(Viewable $viewable)
+    public static function fromViewable(Viewable $viewable): CacheKey
     {
         return new static($viewable);
     }
@@ -40,7 +31,7 @@ class CacheKey
      * @param  string|null  $collection
      * @return string
      */
-    public function make($period = null, bool $unique = false, string $collection = null)
+    public function make(?Period $period = null, bool $unique = false, ?string $collection = null)
     {
         $key = $this->getCachePrefix();
         $key .= $this->getConnectionName();

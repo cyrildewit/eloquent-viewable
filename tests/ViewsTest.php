@@ -59,6 +59,17 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_throws_an_exception_when_recording_a_view_for_a_viewable_type()
+    {
+        $this->expectException(Exception::class);
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable(new Post())
+            ->cooldown(Carbon::now()->addMinutes(10))
+            ->record();
+    }
+
+    /** @test */
     public function it_does_not_record_views_if_cooldown_is_active()
     {
         Container::getInstance()->make(Views::class)
@@ -125,6 +136,22 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_remove_a_cooldown()
+    {
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->cooldown(null)
+            ->record();
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->cooldown(null)
+            ->record();
+
+        $this->assertEquals(2, View::count());
+    }
+
+    /** @test */
     public function it_can_record_a_view_under_a_collection()
     {
         Container::getInstance()->make(Views::class)
@@ -137,6 +164,21 @@ class ViewsTest extends TestCase
             ->record();
 
         $this->assertEquals(1, View::where('collection', 'customCollection')->count());
+    }
+
+    /** @test */
+    public function it_can_remove_the_collection()
+    {
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->collection(null)
+            ->record();
+
+        Container::getInstance()->make(Views::class)
+            ->forViewable($this->post)
+            ->record();
+
+        $this->assertEquals(2, View::where('collection', null)->count());
     }
 
     /** @test */
@@ -177,6 +219,17 @@ class ViewsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_remove_the_period()
+    {
+        Carbon::setTestNow(Carbon::now());
+
+        TestHelper::createView($this->post);
+        TestHelper::createView($this->post);
+
+        $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable($this->post)->period(null)->count());
+    }
+
+    /** @test */
     public function it_can_count_the_views_with_a_collection()
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
@@ -184,7 +237,7 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->count());
-        $this->assertEquals(1, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
     }
 
     /** @test */
@@ -265,12 +318,27 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
-        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember()->count());
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count());
 
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
-        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember()->count());
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count());
+    }
+
+    /** @test */
+    public function it_can_remove_the_remember_lifetime()
+    {
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count());
+
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+        Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+
+        $this->assertEquals(5, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->remember(null)->count());
     }
 
     /** @test */
@@ -339,12 +407,12 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
 
-        $this->assertEquals(3, views(Post::class)->remember()->count());
+        $this->assertEquals(3, views(Post::class)->remember(60)->count());
 
         Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
 
-        $this->assertEquals(3, views(Post::class)->remember()->count());
+        $this->assertEquals(3, views(Post::class)->remember(60)->count());
     }
 
     /** @test */

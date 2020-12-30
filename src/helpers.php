@@ -5,7 +5,13 @@ use CyrildeWit\EloquentViewable\Contracts\Views;
 use Illuminate\Container\Container;
 
 if (! function_exists('views')) {
-    function views($viewable)
+    /**
+     * Construct a new views instance.
+     *
+     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|string
+     * @return \CyrildeWit\EloquentViewable\Contracts\Views
+     */
+    function views($viewable): Views
     {
         $builder = Container::getInstance()->make(Views::class);
 

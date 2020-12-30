@@ -10,8 +10,9 @@ use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
 use CyrildeWit\EloquentViewable\Support\Period;
-use DateTime;
 use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -25,88 +26,26 @@ class Views implements ViewsContract
 {
     use Macroable;
 
-    /**
-     * The viewable model where we are applying actions to.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\Viewable
-     */
-    protected $viewable;
+    protected Viewable $viewable;
 
-    /**
-     * The period that the current query should be scoped to.
-     *
-     * @var \CyrildeWit\EloquentViewable\Support\Period|null
-     */
-    protected $period = null;
+    protected ?Period $period = null;
 
-    /**
-     * Determine if only unique views should be returned.
-     *
-     * @var bool
-     */
-    protected $unique = false;
+    protected bool $unique = false;
 
-    /**
-     * The cooldown that should be over before a new view can be recorded.
-     *
-     * @var \DateTimeInterface|null
-     */
-    protected $cooldown = null;
+    protected ?DateTimeInterface $cooldown = null;
 
-    /**
-     * The collection under where the view will be saved.
-     *
-     * @var string|null
-     */
-    protected $collection = null;
+    protected ?string $collection = null;
 
-    /**
-     * Determine if the views count should be cached.
-     *
-     * @var bool
-     */
-    protected $shouldCache = false;
+    protected ?DateTimeInterface $cacheLifetime = null;
 
-    /**
-     * Cache lifetime.
-     *
-     * @var \DateTimeInterface
-     */
-    protected $cacheLifetime;
+    protected VisitorContract $visitor;
 
-    /**
-     * The visitor instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\Contracts\Visitor
-     */
-    protected $visitor;
+    protected CooldownManager $cooldownManager;
 
-    /**
-     * The cooldown manager instance.
-     *
-     * @var \CyrildeWit\EloquentViewable\CooldownManager
-     */
-    protected $cooldownManager;
+    protected ConfigRepository $config;
 
-    /**
-     * The config repository instance.
-     *
-     * @var \Illuminate\Contracts\Config\Repository
-     */
-    protected $config;
+    protected CacheRepository $cache;
 
-    /**
-     * The cache repository instance.
-     *
-     * @var \Illuminate\Contracts\Cache\Repository
-     */
-    protected $cache;
-
-    /**
-     * Create a new views instance.
-     *
-     * @return void
-     */
     public function __construct(
         ConfigRepository $config,
         CacheRepository $cache,
@@ -116,17 +55,10 @@ class Views implements ViewsContract
         $this->config = $config;
         $this->cache = $cache;
         $this->cooldownManager = $cooldownManager;
-        $this->cacheLifetime = Carbon::now()->addMinutes($config['eloquent-viewable']['cache']['lifetime_in_minutes']);
         $this->visitor = $visitor;
     }
 
-    /**
-     * Set the viewable model.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable|null
-     * @return $this
-     */
-    public function forViewable(Viewable $viewable = null): ViewsContract
+    public function forViewable(Viewable $viewable): ViewsContract
     {
         $this->viewable = $viewable;
 
@@ -135,8 +67,6 @@ class Views implements ViewsContract
 
     /**
      * Get the views count.
-     *
-     * @return int
      */
     public function count(): int
     {
@@ -153,15 +83,17 @@ class Views implements ViewsContract
             }
         }
 
-        if ($this->period) {
-            $query->withinPeriod($this->period);
-        }
+        $query->when($this->period, function ($query, $period) {
+            $query->withinPeriod($period);
+        });
 
-        $query->collection($this->collection);
+        $query->when($this->collection, function ($query, $collection) {
+            $query->collection($collection);
+        });
 
         $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
-        if ($this->shouldCache()) {
+        if ($this->shouldCache() && $this->cacheLifetime !== null) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
@@ -169,33 +101,29 @@ class Views implements ViewsContract
     }
 
     /**
-     * Record a view.
+     * Record a view for the viewable Eloquent model.
      *
-     * @return \CyrildeWit\EloquentViewable\Contracts\View|void
+     * @throws \CyrildeWit\EloquentViewable\Exceptions\ViewRecordException
      */
-    public function record()
+    public function record(): bool
     {
-        if (! $this->shouldRecord()) {
-            return;
+        if ($this->viewable instanceof Viewable && $this->viewable->getKey() === null) {
+            throw ViewRecordException::cannotRecordViewForViewableType();
         }
 
-        $view = Container::getInstance()->make(ViewContract::class);
-        $view->viewable_id = $this->viewable->getKey();
-        $view->viewable_type = $this->viewable->getMorphClass();
-        $view->visitor = $this->visitor->id();
-        $view->collection = $this->collection;
-        $view->viewed_at = Carbon::now();
-        $view->save();
+        if (! $this->shouldRecord()) {
+            return false;
+        }
 
-        return $view;
+        event(new ViewRecorded($view = $this->createView()));
+
+        return $view->exists;
     }
 
     /**
      * Destroy all views of the viewable model.
-     *
-     * @return void
      */
-    public function destroy()
+    public function destroy(): void
     {
         $this->resolveViewableQuery()->delete();
     }
@@ -203,8 +131,7 @@ class Views implements ViewsContract
     /**
      * Set the cooldown.
      *
-     * @param  \DateTime|int  $cooldown
-     * @return $this
+     * @param  \DateTimeInterface|int|null  $cooldown
      */
     public function cooldown($cooldown): ViewsContract
     {
@@ -212,7 +139,7 @@ class Views implements ViewsContract
             $cooldown = Carbon::now()->addMinutes($cooldown);
         }
 
-        if ($cooldown instanceof DateTime) {
+        if ($cooldown instanceof DateTimeInterface) {
             $cooldown = Carbon::instance($cooldown);
         }
 
@@ -223,11 +150,8 @@ class Views implements ViewsContract
 
     /**
      * Set the period.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Period
-     * @return $this
      */
-    public function period($period): ViewsContract
+    public function period(?Period $period): ViewsContract
     {
         $this->period = $period;
 
@@ -236,11 +160,8 @@ class Views implements ViewsContract
 
     /**
      * Set the collection.
-     *
-     * @param  string
-     * @return $this
      */
-    public function collection(string $name): ViewsContract
+    public function collection(?string $name): ViewsContract
     {
         $this->collection = $name;
 
@@ -249,9 +170,6 @@ class Views implements ViewsContract
 
     /**
      * Fetch only unique views.
-     *
-     * @param  bool  $state
-     * @return $this
      */
     public function unique(bool $state = true): ViewsContract
     {
@@ -263,18 +181,15 @@ class Views implements ViewsContract
     /**
      * Cache the current views count.
      *
-     * @param  \DateTime|int|null  $lifetime
-     * @return $this
+     * @param  \DateTimeInterface|int|null  $lifetime
      */
-    public function remember($lifetime = null): ViewsContract
+    public function remember($lifetime): ViewsContract
     {
-        $this->shouldCache = true;
-
-        // Make sure something other than the default value (null) is given.
-        // Then resolve the DateTime instance from the given value.
         if ($lifetime !== null) {
-            $this->cacheLifetime = $this->resolveCacheLifetime($lifetime);
+            $lifetime = $this->resolveCacheLifetime($lifetime);
         }
+
+        $this->cacheLifetime = $lifetime;
 
         return $this;
     }
@@ -284,7 +199,7 @@ class Views implements ViewsContract
      *
      * @param  \CyrildeWit\EloquentViewable\Contracts\Visitor
      */
-    public function useVisitor(VisitorContract $visitor)
+    public function useVisitor(VisitorContract $visitor): ViewsContract
     {
         $this->visitor = $visitor;
 
@@ -321,13 +236,31 @@ class Views implements ViewsContract
     }
 
     /**
+     * Create a new view instance.
+     *
+     * @return \CyrildeWit\EloquentViewable\Contracts\View
+     */
+    protected function createView(): ViewContract
+    {
+        $view = Container::getInstance()->make(ViewContract::class);
+
+        return $view->create([
+            'viewable_id' => $this->viewable->getKey(),
+            'viewable_type' => $this->viewable->getMorphClass(),
+            'visitor' => $this->visitor->id(),
+            'collection' => $this->collection,
+            'viewed_at' => Carbon::now(),
+        ]);
+    }
+
+    /**
      * Determine if we should cache the views count.
      *
      * @return bool
      */
     protected function shouldCache(): bool
     {
-        return $this->shouldCache;
+        return $this->cacheLifetime !== null;
     }
 
     /**
@@ -357,7 +290,7 @@ class Views implements ViewsContract
      * @param  string|null  $collection
      * @return string
      */
-    protected function makeCacheKey($period = null, bool $unique = false, string $collection = null): string
+    protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
         return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
     }
@@ -368,18 +301,18 @@ class Views implements ViewsContract
      * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
      * @return \Carbon\CarbonInterface
      */
-    protected function resolveCacheLifetime($lifetime): DateTimeInterface
+    protected function resolveCacheLifetime($lifetime): CarbonInterface
     {
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
 
-        if ($lifetime instanceof DateTimeInterface) {
-            return Carbon::instance($lifetime);
-        }
-
         if ($lifetime instanceof CarbonInterface) {
             return $lifetime;
+        }
+
+        if ($lifetime instanceof DateTimeInterface) {
+            return Carbon::instance($lifetime);
         }
 
         throw new InvalidArgumentException("Argument $lifetime must be of type int, \Carbon\CarbonInterface or \DateTimeInterface");

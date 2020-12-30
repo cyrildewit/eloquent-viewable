@@ -8,29 +8,21 @@ interface Visitor
 {
     /**
      * Get the unique ID that represent's the visitor.
-     *
-     * @return string
      */
     public function id(): string;
 
     /**
-     * Get the visitor's IP address.
-     *
-     * @return string|null
+     * Get the visitor IP address.
      */
-    public function ip(): string;
+    public function ip(): ?string;
 
     /**
      * Determine if the visitor has a "Do Not Track" header.
-     *
-     * @return bool
      */
     public function hasDoNotTrackHeader(): bool;
 
     /**
      * Determine if the visitor is a crawler.
-     *
-     * @return bool
      */
     public function isCrawler(): bool;
 }

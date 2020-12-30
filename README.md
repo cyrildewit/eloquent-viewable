@@ -83,6 +83,7 @@ In this documentation, you will find some helpful information about the use of t
     * [Caching](#caching)
 4. [Extending](#extending)
     * [Custom information about visitor](#custom-information-about-visitor)
+    * [Using your own Views Eloquent model](#using-your-own-views-eloquent-model)
     * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
     * [Using a custom crawler detector](#using-a-custom-crawler-detector)
     * [Adding macros to the Views class](#adding-macros-to-the-views-class)
@@ -91,7 +92,7 @@ In this documentation, you will find some helpful information about the use of t
 
 ### Requirements
 
-This package requires **PHP 7.2+** and **Laravel 6+**.
+This package requires **PHP 7.4+** and **Laravel 6+**.
 
 Support for Lumen is not maintained!
 
@@ -99,8 +100,9 @@ Support for Lumen is not maintained!
 
 | Version | Illuminate    | Status         | PHP Version |
 |---------|---------------|----------------|-------------|
-| ^5.0    | 6.x.x - 8.x.x | Active support | >= 7.2.0    |
-| ^4.0    | 5.5.x - 5.8.x | Only bug fixes | >= 7.1.0    |
+| ^6.0    | 6.x.x - 8.x.x | Active support | >= 7.4.0    |
+| ^5.0    | 6.x.x - 8.x.x | Only bug fixes | >= 7.2.0    |
+| ^4.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^3.0    | 5.5.x - 5.8.x | End of life    | >= 7.1.0    |
 | ^2.0    | 5.5.x - 5.7.x | End of life    | >= 7.0.0    |
 | ^1.0    | 5.5.x - 5.6.x | End of life    | >= 7.0.0    |
@@ -200,7 +202,7 @@ views($post)
     ->record();
 ```
 
-Instead of passing the number of minutes as an integer, you can also pass a `DateTime` instance.
+Instead of passing the number of minutes as an integer, you can also pass a `DateTimeInterface` instance.
 
 ```php
 $expiresAt = now()->addHours(3);
@@ -440,6 +442,7 @@ foreach($posts as $post) {
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
+* `CyrildeWit\EloquentViewable\Views`
 * `CyrildeWit\EloquentViewable\View`
 * `CyrildeWit\EloquentViewable\Visitor`
 * `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
@@ -472,7 +475,7 @@ Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentView
 ```php
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\Visitor::class,
-    \App\Support\Visitor::class
+    \App\Services\Views\Visitor::class
 );
 ```
 
@@ -481,37 +484,59 @@ $this->app->bind(
 You can also set the visitor instance using the `useVisitor` setter method on the `Views` builder.
 
 ```php
-use App\Support\Visitor;
+use App\Services\Views\Visitor;
 
 views($post)
-    ->useVisitor(new Visitor()) // or app(visitor::class)
+    ->useVisitor(new Visitor()) // or app(Visitor::class)
     ->record();
+```
+
+### Using your own `Views` Eloquent model
+
+Bind your custom `Views` implementation to the `\CyrildeWit\EloquentViewable\Contracts\Views`.
+
+Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Contracts\Views::class,
+    \App\Services\Views\Views::class
+);
 ```
 
 ### Using your own `View` Eloquent model
 
+Bind your custom `View` implementation to the `\CyrildeWit\EloquentViewable\Contracts\View`.
+
+Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
+
+
 ```php
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
-    \App\CustomView::class
+    \App\Models\View::class
 );
 ```
 
 ### Using a custom crawler detector
 
+Bind your custom `CrawlerDetector` implementation to the `\CyrildeWit\EloquentViewable\Contracts\CrawlerDetector`.
+
+Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
+
 ```php
 $this->app->singleton(
     \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
-    \App\Services\CrawlerDetector\CustomAdapter::class
+    \App\Services\Views\CustomCrawlerDetectorAdapter::class
 );
 ```
 
-### Adding macros to the Views class
+### Adding macros to the `Views` class
 
 ```php
 use CyrildeWit\EloquentViewable\Views;
 
-Views::macro('countAndCache', function () {
+Views::macro('countAndRemember', function () {
     return $this->remember()->count();
 });
 ```
@@ -519,9 +544,9 @@ Views::macro('countAndCache', function () {
 Now you're able to use this shorthand like this:
 
 ```php
-views($post)->countAndCache();
+views($post)->countAndRemember();
 
-Views::forViewable($post)->countAndCache();
+Views::forViewable($post)->countAndRemember();
 ```
 
 ## Upgrading

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [v6.0.0]
+
+### Added
+
+- Added `bool` return typehint to `record` method in `Views` contract.
+- Added `void` return typehint to `destroy` method in `Views` contract.
+- The `ViewRecordException` will be thrown when trying to record a view for a viewable type.
+- The `ViewRecorded` event will be fired when a new view is recorded.
+- Added `Views` typehint to global `views()` function.
+- Added `bool` return typehint to `isCrawler` method in `CrawlerDetector` contract.
+
+### Changed
+
+- Set required PHP versions in `composer.json` to `^7.4|^8.0`.
+- The creating of the `View` instance has been moved into its own method `protected function createView(): View`.
+- The `$viewable` argument of the `forViewable` method in `Views` contract cannot be nullable anymore.
+- Changed the method arguments of `orderByViews` and `orderByUniqueViews` query scope in `Viewable` contract and `InteractsWithViews` trait.
+- Changed the method arguments of `withViewsCount` query scope in `InteractsWithViews` trait.
+- Added nullable `Period` class typehint to `$period` argument of `period` method in `Views` contract.
+- Made `$name` argument nullable in `Views` contract.
+- Changed return typehint of `ip` method in `Visitor` contract to `?string`.
+- Change `DateTime` typehint to `DateTimeInterface` in `InvalidPeriod` exception.
+
+### Removed
+
+- Removed `lifetime_in_minutes` option from config file.
+
+### Fixed
+
+- Fixed `count` method of `Views` class to count all views, including the collections (#241).
+
 ## [v5.2.1] (2020-09-22)
 
 ### Changed
@@ -260,8 +291,10 @@ This major version contains some serious breaking changes! See the [upgrade guid
 
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
-
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.2.0...HEAD
+## [v5.2.1] (2020-09-22)
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.0.0...HEAD
+[v6.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.2.1...v6.0.0
+[v5.2.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.2.0...v5.2.1
 [v5.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.1.0...v5.2.0
 [v5.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.0.0...v5.1.0
 [v5.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v4.1.1...v5.0.0
