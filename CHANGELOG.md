@@ -5,7 +5,11 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [v6.0.1]
+
+### Fixed
+
+- Revert breaking change of `remember` method in `Views` class. The `$lifetime` variable has now a default value of `null`.
 
 ## [v6.0.0]
 

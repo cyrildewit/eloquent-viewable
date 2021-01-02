@@ -183,7 +183,7 @@ class Views implements ViewsContract
      *
      * @param  \DateTimeInterface|int|null  $lifetime
      */
-    public function remember($lifetime): ViewsContract
+    public function remember($lifetime = null): ViewsContract
     {
         if ($lifetime !== null) {
             $lifetime = $this->resolveCacheLifetime($lifetime);
