@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Upgrading from v6.0.1 to v6.0.2](#upgrading-from-v601-to-v602)
 - [Upgrading from v5.2.1 to v6.0.0](#upgrading-from-v521-to-v600)
 - [Upgrading from v5.2.0 to v5.2.1](#upgrading-from-v520-to-v521)
 - [Upgrading from v5.1.0 to v5.2.0](#upgrading-from-v510-to-v520)
@@ -12,6 +13,14 @@
 - [Upgrading from v2.1.0 to v2.2.0](#upgrading-from-v210-to-v220)
 - [Upgrading from v2.0.0 to v2.1.0](#upgrading-from-v200-to-v210)
 - [Upgrading from v1.0.5 to v2.0.0](#upgrading-from-v105-to-v200)
+
+## Upgrading from v6.0.1 to v6.0.2
+
+There are no manual changes needed.
+
+## Upgrading from v6.0.0 to v6.0.1
+
+There are no manual changes needed.
 
 ## Upgrading from v5.2.1 to v6.0.0
 
@@ -47,6 +56,12 @@ The parameters of the `orderByViews` query scope in the `Viewable` contract have
 -public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', $period = null): Builder;
 +public function scopeOrderByUniqueViews(Builder $query, string $direction = 'desc', ?Period $period = null, ?string $collection = null, string $as = 'unique_views_count'): Builder;
 ```
+
+### The default cache lifetime has been changed
+
+The default cache lifetime functionality has been removed. The default value is now `null`, which means it will be cached forever.
+
+Look for all occurrences of the `remember` method and pass the desired lifetime.
 
 ### Changes to the `Views` contract
 

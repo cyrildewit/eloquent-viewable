@@ -380,7 +380,7 @@ protected $removeViewsOnDelete = true;
 
 Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not possible. That's why you can make use of the in-built caching functionality.
 
-To cache the views count, simply add the `remember()` method to the chain.
+To cache the views count, simply add the `remember()` method to the chain. The default lifetime is forever.
 
 Examples:
 
@@ -392,12 +392,15 @@ views($post)->period(Period::pastMonths(2))->remember()->count();
 views($post)->period(Period::subHours(6))->remember()->count();
 ```
 
-The default lifetime is configurable through the config file. Alternatively, you can pass a custom lifetime to the `remember` method.
-
 ```php
-views($post)
-    ->remember(now()->addHours(6))
-    ->count();
+// Cache for 3600 seconds
+views($post)->remember(3600)->count();
+
+// Cache until the defined DateTime
+views($post)->remember(now()->addWeeks(2))->count();
+
+// Cache forever
+views($post)->remember()->count();
 ```
 
 ## Optimizing
