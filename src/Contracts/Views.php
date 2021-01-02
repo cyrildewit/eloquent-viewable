@@ -58,5 +58,5 @@ interface Views
      *
      * @param  \DateTimeInterface|int|null  $lifetime
      */
-    public function remember($lifetime): self;
+    public function remember($lifetime = null): self;
 }
