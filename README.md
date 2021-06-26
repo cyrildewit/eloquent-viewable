@@ -18,7 +18,7 @@ views($post)->count();
 // Return total views count that have been made since 20 February 2017
 views($post)->period(Period::since('2017-02-20'))->count();
 
-// Return total views count that have been made between 2014 and 216
+// Return total views count that have been made between 2014 and 2016
 views($post)->period(Period::create('2014', '2016'))->count();
 
 // Return total unique views count (based on visitor cookie)
