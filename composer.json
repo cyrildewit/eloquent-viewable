@@ -24,19 +24,20 @@
     ],
     "require": {
         "php": "^7.4|^8.0",
-        "illuminate/cache": "^6.0|^7.0|^8.0",
-        "illuminate/contracts": "^6.0|^7.0|^8.0",
-        "illuminate/cookie": "^6.0|^7.0|^8.0",
-        "illuminate/database": "^6.0|^7.0|^8.0",
-        "illuminate/http": "^6.0|^7.0|^8.0",
-        "illuminate/support": "^6.0|^7.0|^8.0",
+        "illuminate/cache": "^6.0|^7.0|^8.0|^9.0",
+        "illuminate/contracts": "^6.0|^7.0|^8.0|^9.0",
+        "illuminate/cookie": "^6.0|^7.0|^8.0|^9.0",
+        "illuminate/database": "^6.0|^7.0|^8.0|^9.0",
+        "illuminate/http": "^6.0|^7.0|^8.0|^9.0",
+        "illuminate/support": "^6.0|^7.0|^8.0|^9.0",
         "jaybizzle/crawler-detect": "^1.0",
         "nesbot/carbon": "^2.0"
     },
     "require-dev": {
-        "illuminate/config": "^6.0|^7.0|^8.0",
+        "illuminate/config": "^6.0|^7.0|^8.0|^9.0",
         "mockery/mockery": "^1.2.4",
-        "orchestra/testbench": "^4.9.1|^5.9.1|^6.6.1",
+        "orchestra/testbench": "^4.9.1|^5.9.1|^6.6.1|^7.0.0",
+        "laravel/legacy-factories": "^1.1|^1.3",
         "phpunit/phpunit": "^9.3.3"
     },
     "autoload": {
