@@ -47,6 +47,7 @@ class CreateViewsTable extends Migration
             $table->text('visitor')->nullable();
             $table->string('collection')->nullable();
             $table->timestamp('viewed_at')->useCurrent();
+            $table->ipAddress('ip')->nullable();
         });
     }
 
