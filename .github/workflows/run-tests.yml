@@ -27,9 +27,6 @@ jobs:
             laravel: ^6.0
           - php: 8.1
             laravel: ^7.0
-          - php: 8.1
-            laravel: ^8.0
-            stability: prefer-lowest
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
@@ -73,6 +70,16 @@ jobs:
         if: ${{ matrix.php == '8.0' && matrix.stability == 'prefer-lowest' && (matrix.laravel == '^6.0' || matrix.laravel == '^7.0') }}
         run: |
           composer require "mockery/mockery:^1.4.2" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Install minimum required packages on PHP 8.1 with prefer lowest stability
+        if: ${{ matrix.php == '8.1' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^8.0' }}
+        run: |
+          composer require "laravel/framework:^8.62.0" --no-interaction --no-update
+          composer require "laravel/legacy-factories:^1.1.1" --no-interaction --no-update
+          composer require "nesbot/carbon:^2.51.0" --no-interaction --no-update
+          composer require "symfony/http-foundation:^5.3.7" --no-interaction --no-update
+          composer require "symfony/console:^5.3.7" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Execute tests
