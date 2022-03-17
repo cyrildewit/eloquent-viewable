@@ -57,12 +57,6 @@ jobs:
           composer require "mockery/mockery:^1.4.2" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: Install fzaninotto/faker
-        if: ${{ matrix.php == '^7.4' }}
-        run: |
-          composer require "fzaninotto/faker:^1.9.1" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
-
       - name: Install laravel/legacy-factories 1.1 for Laravel 8.0
         if: ${{ matrix.laravel == '^8.0' }}
         run: |
