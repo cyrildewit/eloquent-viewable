@@ -75,7 +75,7 @@ composer install
 Then run PHPUnit:
 
 ```winbatch
-vendor/binphpunit
+vendor/bin/phpunit
 ```
 
 When you make a pull request, the tests will be automatically run again by [Travis CI](https://travis-ci.org/) on different PHP versions.
