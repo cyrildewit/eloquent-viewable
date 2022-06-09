@@ -19,9 +19,9 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
-use Illuminate\Support\Str;
 
 class Views implements ViewsContract
 {
@@ -121,7 +121,6 @@ class Views implements ViewsContract
         return $view->exists;
     }
 
-    
     /**
      * Record many views.
      *

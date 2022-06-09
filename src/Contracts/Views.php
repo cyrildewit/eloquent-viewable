@@ -27,7 +27,7 @@ interface Views
     public function record(): bool;
 
     /**
-     * Record many views
+     * Record many views.
      *
      * @return array|void
      */
