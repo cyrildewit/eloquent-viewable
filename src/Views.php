@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
+use Illuminate\Support\Str;
 
 class Views implements ViewsContract
 {
@@ -118,6 +119,34 @@ class Views implements ViewsContract
         event(new ViewRecorded($view = $this->createView()));
 
         return $view->exists;
+    }
+
+    
+    /**
+     * Record many views.
+     *
+     * @return array|void
+     */
+    public function recordMany(int $count)
+    {
+        if (! $this->shouldRecord()) {
+            return;
+        }
+
+        $views = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            $view = [];
+            $view['id'] = Str::uuid()->toString();
+            $view['viewable_id'] = $this->viewable->getKey();
+            $view['viewable_type'] = $this->viewable->getMorphClass();
+            $view['visitor'] = $this->visitor->id();
+            $view['collection'] = $this->collection;
+            $view['viewed_at'] = Carbon::now();
+            $views[] = $view;
+        }
+
+        return View::insert($views);
     }
 
     /**

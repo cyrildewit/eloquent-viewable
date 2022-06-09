@@ -27,6 +27,13 @@ interface Views
     public function record(): bool;
 
     /**
+     * Record many views
+     *
+     * @return array|void
+     */
+    public function recordMany(int $count);
+
+    /**
      * Destroy all views of the viewable model.
      */
     public function destroy(): void;
