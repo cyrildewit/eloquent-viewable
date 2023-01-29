@@ -71,7 +71,7 @@ trait InteractsWithViews
      */
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
-        return $query->withCount(["views as ${as}" => function (Builder $query) use ($period, $collection, $unique) {
+        return $query->withCount(["views as {$as}" => function (Builder $query) use ($period, $collection, $unique) {
             if ($period) {
                 $query->withinPeriod($period);
             }
