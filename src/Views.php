@@ -292,7 +292,7 @@ class Views implements ViewsContract
      */
     protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
-        return (CacheKey::fromViewable($this->viewable))->make($period, $unique, $collection);
+        return CacheKey::fromViewable($this->viewable)->make($period, $unique, $collection);
     }
 
     /**

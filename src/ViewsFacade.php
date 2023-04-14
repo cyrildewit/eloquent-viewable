@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @see \CyrildeWit\EloquentViewable\Views
+ *
  * @codeCoverageIgnore
  */
 class ViewsFacade extends Facade
