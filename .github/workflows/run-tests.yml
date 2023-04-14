@@ -20,6 +20,8 @@ jobs:
             testbench: ^6.6.1
           - laravel: ^9.0
             testbench: ^7.0
+          - laravel: ^9.0
+            testbench: ^7.0
           - laravel: ^10.0
             testbench: ^8.0
         exclude:
@@ -96,6 +98,12 @@ jobs:
           composer require "nesbot/carbon:^2.51.0" --no-interaction --no-update
           composer require "symfony/http-foundation:^5.3.7" --no-interaction --no-update
           composer require "symfony/console:^5.3.7" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+      
+      - name: Install minimum required packages on PHP 8.2 with prefer lowest stability
+        if: ${{ matrix.php == '8.2' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^9.0' }}
+        run: |
+          composer require "nesbot/carbon:^2.62.1" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Execute tests
