@@ -420,7 +420,8 @@ class ViewsTest extends TestCase
     {
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, function () {
-            return new class implements CrawlerDetector {
+            return new class implements CrawlerDetector
+            {
                 public function isCrawler(): bool
                 {
                     return true;

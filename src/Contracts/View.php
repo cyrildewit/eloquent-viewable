@@ -20,7 +20,7 @@ interface View
     /**
      * Scope a query to only include views within the period.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
      * @return \Illuminate\Database\Eloquent\Builder
      */
