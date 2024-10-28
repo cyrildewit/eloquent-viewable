@@ -78,7 +78,6 @@ In this documentation, you will find some helpful information about the use of t
     * [Remove views on delete](#remove-views-on-delete)
     * [Caching view counts](#caching-view-counts)
 3. [Optimizing](#optimizing)
-    * [Benchmarks](#benchmarks)
     * [Database indexes](#database-indexes)
     * [Caching](#caching)
 4. [Extending](#extending)
@@ -399,10 +398,6 @@ views($post)->remember()->count();
 ```
 
 ## Optimizing
-
-### Benchmarks
-
-<!-- todo -->
 
 ### Database indexes
 
