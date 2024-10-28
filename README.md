@@ -440,8 +440,6 @@ foreach($posts as $post) {
 }
 ```
 
-**To be updated! Laravel has a nice chunk and cursor feature what may come in handy.**
-
 ## Extending
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
