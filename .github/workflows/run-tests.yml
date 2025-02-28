@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4]
-        laravel: [^6.0, ^7.0, ^8.0, ^9.0, ^10.0, ^11.0]
+        laravel: [^6.0, ^7.0, ^8.0, ^9.0, ^10.0, ^11.0, ^12.0]
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: ^6.0
@@ -26,6 +26,8 @@ jobs:
             testbench: ^8.0
           - laravel: ^11.0
             testbench: ^9.0
+          - laravel: ^12.0
+            testbench: ^9.0
         exclude:
           - laravel: '^6.0'
             php: '8.0'
@@ -33,12 +35,20 @@ jobs:
             php: '8.1'
           - laravel: '^6.0'
             php: '8.2'
+          - laravel: '^6.0'
+            php: '8.3'
+          - laravel: '^6.0'
+            php: '8.4'
           - laravel: '^7.0'
             php: '8.0'
           - laravel: '^7.0'
             php: '8.1'
           - laravel: '^7.0'
             php: '8.2'
+          - laravel: '^7.0'
+            php: '8.3'
+          - laravel: '^7.0'
+            php: '8.4'
           - laravel: '^8.0'
             php: '8.2'
           - laravel: '^9.0'
@@ -52,6 +62,12 @@ jobs:
           - laravel: '^11.0'
             php: '8.0'
           - laravel: '^11.0'
+            php: '8.1'
+          - laravel: '^12.0'
+            php: '7.4'
+          - laravel: '^12.0'
+            php: '8.0'
+          - laravel: '^12.0'
             php: '8.1'
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
@@ -89,7 +105,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update --dev
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Install minimum required Mockery version on PHP 8 with prefer lowest stability
