@@ -11,14 +11,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4]
-        laravel: [^6.0, ^7.0, ^8.0, ^9.0, ^10.0, ^11.0, ^12.0]
-        stability: [prefer-lowest, prefer-stable]
+        php: [ 7.4, 8.0, 8.1, 8.2, 8.3, 8.4 ]
+        laravel: [ ^6.0, ^7.0, ^8.0, ^9.0, ^10.0, ^11.0, ^12.0 ]
+        stability: [ prefer-lowest, prefer-stable ]
         include:
           - laravel: ^6.0
             testbench: ^4.9.1
@@ -78,7 +78,7 @@ jobs:
           - laravel: '^12.0'
             php: '8.1'
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -125,7 +125,7 @@ jobs:
           composer require "symfony/http-foundation:^5.3.7" --no-interaction --no-update
           composer require "symfony/console:^5.3.7" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
-      
+
       - name: Install minimum required packages on PHP 8.2 with prefer lowest stability
         if: ${{ matrix.php == '8.2' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^9.0' }}
         run: |
@@ -133,7 +133,7 @@ jobs:
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Execute tests
-        run: vendor/bin/phpunit
+        run: composer run test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
