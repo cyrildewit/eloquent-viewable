@@ -68,13 +68,13 @@ The footer should contain any information about **Breaking Changes** and is also
 
 Before you can run the tests, you have to install the package dependencies via [Composer](https://getcomposer.org/)!
 
-```winbatch
+```bash
 composer install
 ```
 
 Then run PHPUnit:
 
-```winbatch
+```bash
 vendor/bin/phpunit
 ```
 
