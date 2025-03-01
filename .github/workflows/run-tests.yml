@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ ubuntu-latest ]
         php: [ 7.4, 8.0, 8.1, 8.2, 8.3, 8.4 ]
         laravel: [ ^6.0, ^7.0, ^8.0, ^9.0, ^10.0, ^11.0, ^12.0 ]
         stability: [ prefer-lowest, prefer-stable ]
@@ -114,7 +114,10 @@ jobs:
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Install minimum required Mockery version on PHP 8 with prefer lowest stability
-        if: ${{ matrix.php == '8.0' && matrix.stability == 'prefer-lowest' && (matrix.laravel == '^6.0' || matrix.laravel == '^7.0') }}
+        if: |
+          matrix.php == '8.0' &&
+          matrix.stability == 'prefer-lowest' &&
+          (matrix.laravel == '^6.0' || matrix.laravel == '^7.0' || matrix.laravel == '^7.0')
         run: |
           composer require "mockery/mockery:^1.4.2" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
