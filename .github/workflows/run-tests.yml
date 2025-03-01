@@ -138,11 +138,30 @@ jobs:
           composer require "nesbot/carbon:^2.62.1" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
+      - name: Install minimum required packages on PHP 8.1 with prefer lowest stability
+        if: ${{ matrix.php == '8.1' && matrix.stability == 'prefer-lowest' && matrix.laravel == '^8.0' }}
+        run: |
+          composer require "laravel/framework:^8.62.0" --no-interaction --no-update
+          composer require "laravel/legacy-factories:^1.1.1" --no-interaction --no-update
+          composer require "nesbot/carbon:^2.51.0" --no-interaction --no-update
+          composer require "symfony/http-foundation:^5.3.7" --no-interaction --no-update
+          composer require "symfony/console:^5.3.7" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Custom PHPUnit config for new versions
+        if: ${{ (matrix.php == '8.2' && matrix.laravel == '^11.0')
+          || (matrix.php == '8.2' && matrix.laravel == '^12.0')
+          || (matrix.php == '8.3' && matrix.laravel == '^12.0')
+          || (matrix.php == '8.3' && matrix.stability == 'prefer-stable' && matrix.laravel == '^11.0')
+          || (matrix.php == '8.4' && matrix.stability == 'prefer-stable' && matrix.laravel == '^11.0')
+          || (matrix.php == '8.4' && matrix.laravel == '^12.0') }}
+        run: cp phpunit.11.xml.dist phpunit.xml.dist
+
       - name: Execute tests
-        run: composer run test
+        run: composer run test:cov
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./build/logs/clover.xml
+          file: ./build/clover.xml
