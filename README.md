@@ -58,7 +58,7 @@ In this documentation, you will find some helpful information about the use of t
 ### Table of contents
 
 1. [Getting Started](#getting-started)
-    * [Requirements](#requirements)
+    * [Version Compatibility](#version-compatibility)
     * [Installation](#installation)
 2. [Usage](#usage)
     * [Preparing your model](#preparing-your-model)
@@ -89,17 +89,13 @@ In this documentation, you will find some helpful information about the use of t
 
 ## Getting Started
 
-### Requirements
+#### Version Compatibility
 
-This package requires **PHP 7.4+** and **Laravel 6+**.
+| Version | Laravel        | PHP Version |
+|---------|----------------|-------------|
+| ^7.0    | 6.x.x - 12.x.x | >= 7.4.0    |
 
 Support for Lumen is not maintained.
-
-#### Version information
-
-| Version | Illuminate     | Status         | PHP Version |
-|---------|----------------|----------------|-------------|
-| ^7.0    | 6.x.x - 11.x.x | Active support by contributions | >= 7.4.0    |
 
 ### Installation
 
