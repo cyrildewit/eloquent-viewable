@@ -36,7 +36,7 @@ jobs:
           - laravel: ^11.0
             testbench: ^9.0
           - laravel: ^12.0
-            testbench: ^9.0
+            testbench: ^10.0
         exclude:
           - laravel: '^6.0'
             php: '8.0'
