@@ -69,7 +69,7 @@ In this documentation, you will find some helpful information about the use of t
         * [Get views count of a specific period](#get-views-count-of-a-specific-period)
         * [Get total unique views count](#get-total-unique-views-count)
     * [Order models by views count](#order-models-by-views-count)
-        * [Order by views count](#ordery-by-views-count)
+        * [Order by views count](#order-by-views-count)
         * [Order by unique views count](#order-by-unique-views-count)
         * [Order by views count within the specified period](#order-by-views-count-within-the-specified-period)
         * [Order by views count within the specified collection](#order-by-views-count-within-the-specified-collection)
