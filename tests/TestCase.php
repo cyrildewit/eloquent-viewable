@@ -37,6 +37,8 @@ abstract class TestCase extends Orchestra
     {
         Mockery::close();
         Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     /**
