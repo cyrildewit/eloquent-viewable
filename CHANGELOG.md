@@ -5,6 +5,37 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v7.0.3]
+
+### Changed
+
+- Add support for Laravel 12
+
+## [v7.0.3]
+
+### Changed
+
+- Allow Carbon v3 as dependency
+
+## [v7.0.2]
+
+### Changed
+
+- Add support for Laravel 11
+
+## [v7.0.1]
+
+### Changed
+
+- Add support for Laravel 10
+- Fixed deprecated variable notation in string
+
+## [v6.1.0]
+
+### Changed
+
+- Add support for Laravel 9
+
 ## [v6.0.2]
 
 ### Fixed
@@ -302,7 +333,13 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 ## [v5.2.1] (2020-09-22)
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.0.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...HEAD
+[v7.0.3]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.2...v7.0.3
+[v7.0.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.1...v7.0.2
+[v7.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.1.0...v7.0.1
+[v6.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.0.2...v6.1.0
+[v6.0.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.0.1...v6.0.2
+[v6.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.0.0...v6.0.1
 [v6.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.2.1...v6.0.0
 [v5.2.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.2.0...v5.2.1
 [v5.2.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v5.1.0...v5.2.0
