@@ -12,11 +12,6 @@ use Illuminate\Container\Container;
 
 class ViewTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        Carbon::setTestNow();
-    }
-
     /** @test */
     public function it_can_have_a_custom_connection_through_config_file()
     {
