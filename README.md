@@ -2,16 +2,14 @@
     <a href="https://github.com/cyrildewit/eloquent-viewable">
         <img src="/art/banner-light.png" width="600" alt="Eloquent Viewable"/>
     </a>
-    <p align="center">
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="Latest Version" src="https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable"/></a>        
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable="><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable"/></a>
-        <a href="https://github.com/cyrildewit/eloquent-viewable/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/cyrildewit/eloquent-viewable/tests.yml?branch=8.x&label=Tests 8.x"/></a>
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="License" src="https://img.shields.io/packagist/l/cyrildewit/eloquent-viewable"/></a>
-        <a href="https://codecov.io/gh/cyrildewit/eloquent-viewablee"><img alt="License" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
-    </p>
 </div>
 
----
+[![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
+[![run-tests](https://github.com/cyrildewit/eloquent-viewable/workflows/run-tests/badge.svg)](https://github.com/cyrildewit/eloquent-viewable/actions)
+[![StyleCI](https://styleci.io/repos/94131608/shield?style=flat-square)](https://styleci.io/repos/94131608)
+[![Codecov branch](https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/master.svg?style=flat-square)](https://codecov.io/gh/cyrildewit/eloquent-viewable)
+[![Total Downloads](https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
+[![license](https://img.shields.io/github/license/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://github.com/cyrildewit/eloquent-viewable/blob/master/LICENSE.md)
 
 This Laravel >= 6.0 package allows you to associate views with Eloquent models.
 
