@@ -1,4 +1,8 @@
-# Eloquent Viewable
+<div align="center">
+    <a href="https://github.com/cyrildewit/eloquent-viewable">
+        <img src="/art/banner-light.png" width="600" alt="Eloquent Viewable"/>
+    </a>
+</div>
 
 [![Packagist](https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable.svg?style=flat-square)](https://packagist.org/packages/cyrildewit/eloquent-viewable)
 [![run-tests](https://github.com/cyrildewit/eloquent-viewable/workflows/run-tests/badge.svg)](https://github.com/cyrildewit/eloquent-viewable/actions)
