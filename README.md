@@ -1,19 +1,26 @@
 <div align="center">
-    <a href="https://github.com/cyrildewit/eloquent-viewable">
-        <img src="/art/banner-light.png" width="600" alt="Eloquent Viewable"/>
-    </a>
-    <p align="center">
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="Latest Version" src="https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable"/></a>        
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable="><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable"/></a>
-        <a href="https://github.com/cyrildewit/eloquent-viewable/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/cyrildewit/eloquent-viewable/tests.yml?branch=8.x&label=Tests 8.x"/></a>
-        <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="License" src="https://img.shields.io/packagist/l/cyrildewit/eloquent-viewable"/></a>
-        <a href="https://codecov.io/gh/cyrildewit/eloquent-viewablee"><img alt="License" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
-    </p>
+  <a href="https://github.com/cyrildewit/eloquent-viewable">
+    <img src="/art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
+  </a>
+
+  <h3 align="center">Eloquent Viewable</h3>
+
+  <p align="center">
+    A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models
+  </p>
+  <br>
+  <p align="center">
+    <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="Latest Version" src="https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable"/></a>        
+      <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable="><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable"/></a>
+      <a href="https://github.com/cyrildewit/eloquent-viewable/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/cyrildewit/eloquent-viewable/tests.yml?branch=8.x&label=Tests 8.x"/></a>
+      <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="License" src="https://img.shields.io/packagist/l/cyrildewit/eloquent-viewable"/></a>
+      <a href="https://codecov.io/gh/cyrildewit/eloquent-viewablee"><img alt="License" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
+  </p>
 </div>
 
 ---
 
-This Laravel >= 6.0 package allows you to associate views with Eloquent models.
+This Laravel package allows you to associate views with Eloquent models.
 
 Once installed you can do stuff like this:
 
