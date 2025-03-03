@@ -19,6 +19,7 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#introduction">Introduction</a></li>
     <li><a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#version-compatibility">Version Compatibility</a></li>
@@ -69,6 +70,10 @@
         <li><a href="#adding-macros-to-the-views-class">Adding macros to the Views class</a></li>
       </ul>
     </li>
+    <li><a href="#upgrading">Upgrading</a></li>
+    <li><a href="#changelog">Changelog</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#credits">Credits</a></li>
   </ol>
 </details>
 
