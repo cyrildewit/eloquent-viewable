@@ -1,68 +1,56 @@
 <div align="center">
   <a href="https://github.com/cyrildewit/eloquent-viewable">
-    <img src="/art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
+    <img src="art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
   </a>
   <h3 align="center">Eloquent Viewable</h3>
   <p align="center">
     A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models
   </p>
-  <br>
+  <br/>
   <p align="center">
     <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="Latest Version" src="https://img.shields.io/packagist/v/cyrildewit/eloquent-viewable"/></a>        
-      <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable="><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable"/></a>
+      <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/cyrildewit/eloquent-viewable"/></a>
       <a href="https://github.com/cyrildewit/eloquent-viewable/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/cyrildewit/eloquent-viewable/tests.yml?branch=8.x&label=Tests 8.x"/></a>
       <a href="https://packagist.org/packages/cyrildewit/eloquent-viewable"><img alt="License" src="https://img.shields.io/packagist/l/cyrildewit/eloquent-viewable"/></a>
-      <a href="https://codecov.io/gh/cyrildewit/eloquent-viewablee"><img alt="License" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
+      <a href="https://codecov.io/gh/cyrildewit/eloquent-viewable"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
   </p>
 </div>
 
----
+## Introduction
 
-**Eloquent Viewable** is a minimalistic and flexible analytics package for Laravel that enables seamless tracking of
-views for your Eloquent models. Whether you’re building a blog, an e-commerce platform, or any other application that
-benefits from tracking user interactions, this package provides a way to monitor views directly within your
-Laravel project without needing third-party analytics services.
+**Eloquent Viewable** is a flexible and minimalistic analytics package for Laravel that allows seamless tracking of
+views for Eloquent models. Whether you're running a blog, an e-commerce store, or a custom Laravel application, this
+package lets you log and analyze views without relying on external analytics services.
 
 ### Quick Example
 
 Once installed, you can track and retrieve views effortlessly:
 
 ```php
-// Return total views count
+// Return total view count
 views($post)->count();
 
-// Return total views count that have been made since 20 February 2017
-views($post)->period(Period::since('2017-02-20'))->count();
-
-// Return total unique views count (based on visitor cookie)
-views($post)->unique()->count();
+// Return total unique view count since 20 February 2017
+views($post)->unique()->period(Period::since('2017-02-20'))->count();
 
 // Record a view
 views($post)->record();
-
-// Record a view with a cooldown period
-views($post)->cooldown(now()->addHours(2))->record();
 ```
 
-### Features
+### Key Features
 
-* Associate views with Eloquent models
-* Get total views count
-* Get views count of a specific period
-* Get unique views count
-* Get views count of a viewable type (Eloquent model class)
-* Order viewables by views
-* Set a cooldown between views
-* Elegant cache wrapper built-in
-* Ignore views from crawlers, ignored IP addresses or requests with DNT header
+- Track **total** and **unique** views for any Eloquent model
+- Query views by custom date ranges or time periods
+- Prevent duplicate views with a configurable **cooldown system**
+- Order models by views and unique visitors
+- Optimize performance with **built-in caching**
+- Ignore views from **crawlers, blocked IPs, and DNT users**
 
-## Introduction
+### How It Works
 
 Tracking views is more than just incrementing a counter — it requires a thoughtful approach to ensure accuracy, prevent
 artificial inflation, and allow for meaningful analytics. Eloquent Viewable takes a flexible and database-driven
 approach to view tracking, giving you control over how views are recorded, counted, and retrieved.
-
-### Design Approach
 
 **1. Persistent View Logging**
 
@@ -115,49 +103,14 @@ capabilities. However, since every view is stored, applications with extremely h
 - **Database maintenance** — Table partitioning, periodic pruning or archival of old view records
 - **Cache tuning** – Adjusting caching strategies based on performance needs
 
-## Documentation
-
-In this documentation, you will find some helpful information about the use of this Laravel package.
-
-### Table of contents
-
-1. [Getting Started](#getting-started)
-    * [Version Compatibility](#version-compatibility)
-    * [Installation](#installation)
-2. [Usage](#usage)
-    * [Preparing your model](#preparing-your-model)
-    * [Recording views](#recording-views)
-    * [Setting a cooldown](#setting-a-cooldown)
-    * [Retrieving views counts](#retrieving-views-counts)
-        * [Get total views count](#get-total-views-count)
-        * [Get views count of a specific period](#get-views-count-of-a-specific-period)
-        * [Get total unique views count](#get-total-unique-views-count)
-    * [Order models by views count](#order-models-by-views-count)
-        * [Order by views count](#order-by-views-count)
-        * [Order by unique views count](#order-by-unique-views-count)
-        * [Order by views count within the specified period](#order-by-views-count-within-the-specified-period)
-        * [Order by views count within the specified collection](#order-by-views-count-within-the-specified-collection)
-    * [Get views count of viewable type](#get-views-count-of-viewable-type)
-    * [View collections](#view-collections)
-    * [Remove views on delete](#remove-views-on-delete)
-    * [Caching view counts](#caching-view-counts)
-3. [Optimizing](#optimizing)
-    * [Database indexes](#database-indexes)
-    * [Caching](#caching)
-4. [Extending](#extending)
-    * [Custom information about visitor](#custom-information-about-visitor)
-    * [Using your own Views Eloquent model](#using-your-own-views-eloquent-model)
-    * [Using your own View Eloquent model](#using-your-own-view-eloquent-model)
-    * [Using a custom crawler detector](#using-a-custom-crawler-detector)
-    * [Adding macros to the Views class](#adding-macros-to-the-views-class)
-
 ## Getting Started
 
-#### Version Compatibility
+### Version Compatibility
 
-| Version | Laravel        | PHP Version |
-|---------|----------------|-------------|
-| ^7.0    | 6.x.x - 12.x.x | >= 7.4.0    |
+| Package Version                                                            | Laravel    | PHP  |
+|----------------------------------------------------------------------------|------------|------|
+| [8.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#8.x-dev) | 12.x       | 8.4+ |
+| [7.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#7.x-dev) | 6.x – 12.x | 7.4+ |
 
 Support for Lumen is not maintained.
 
@@ -165,25 +118,25 @@ Support for Lumen is not maintained.
 
 First, you need to install the package via Composer:
 
-```winbatch
+```bash
 composer require cyrildewit/eloquent-viewable
 ```
 
 Secondly, you can publish the migrations with:
 
-```winbatch
+```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
 Finally, you need to run the `migrate` command:
 
-```winbatch
+```bash
 php artisan migrate
 ```
 
 You can optionally publish the config file with:
 
-```winbatch
+```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
@@ -206,8 +159,8 @@ If you prefer to register packages manually, you can add the following provider 
 
 To associate views with a model, the model **must** implement the following interface and trait:
 
-* **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
-* **Trait:** `CyrildeWit\EloquentViewable\InteractsWithViews`
+- **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
+- **Trait:** `CyrildeWit\EloquentViewable\InteractsWithViews`
 
 Example:
 
@@ -226,13 +179,15 @@ class Post extends Model implements Viewable
 
 ### Recording views
 
-To make a view record, you can call the `record` method on the fluent `Views` instance.
+To track a view, simply call the `record` method on the fluent `Views` instance:
 
 ```php
 views($post)->record();
 ```
 
-The best place where you should record a visitors's view would be inside your controller. For example:
+**Where Should You Record Views?**
+
+The recommended place to record views is inside your controller’s method that handles displaying the model. For example:
 
 ```php
 // PostController.php
@@ -244,8 +199,11 @@ public function show(Post $post)
 }
 ```
 
-**Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example
-also a crawler.
+This ensures that views are only recorded when the page is actually rendered for a user.
+
+> [!WARNING]  
+> By default, this package **automatically ignores views from crawlers** to prevent inaccurate counts. Keep this in mind
+> when testing—tools like **Postman** are often detected as crawlers and will not trigger a recorded view.
 
 ### Setting a cooldown
 
@@ -270,24 +228,24 @@ views($post)
 
 #### How it works
 
-When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session
-with an expiration datetime. Whenever the visitor views the item again, this package will checks his session and decide
-if the view should be saved in the database or not.
+When recording a view with a session delay, this package also saves a snapshot of the view in the visitor’s session with
+an expiration datetime. Whenever the visitor views the item again, the package checks their session and decides whether
+the view should be saved in the database.
 
-### Retrieving views counts
+### Retrieving view counts
 
-#### Get total views count
+#### Get total view count
 
 ```php
 views($post)->count();
 ```
 
-#### Get views count of a specific period
+#### Get view count for a specific period
 
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get views count from 2017 upto 2018
+// Example: get view count from 2017 upto 2018
 views($post)
     ->period(Period::create('2017', '2018'))
     ->count();
@@ -296,7 +254,7 @@ views($post)
 The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as
 follows:
 
-##### Between two datetimes
+##### Specifying a date range
 
 ```php
 $startDateTime = Carbon::createFromDate(2017, 4, 12);
@@ -305,19 +263,19 @@ $endDateTime = '2017-06-12';
 Period::create($startDateTime, $endDateTime);
 ```
 
-##### Since a datetime
+##### Since a specific date
 
 ```php
 Period::since(Carbon::create(2017));
 ```
 
-##### Upto a datetime
+##### Up to a specific date
 
 ```php
 Period::upto(Carbon::createFromDate(2018, 6, 1));
 ```
 
-##### Since past
+##### For past period
 
 Uses `Carbon::today()` as start datetime minus the given unit.
 
@@ -328,7 +286,7 @@ Period::pastMonths(int $months);
 Period::pastYears(int $years);
 ```
 
-##### Since sub
+##### For custom time subtraction
 
 Uses `Carbon::now()` as start datetime minus the given unit.
 
@@ -342,9 +300,9 @@ Period::subMonths(int $months);
 Period::subYears(int $years);
 ```
 
-#### Get total unique views count
+#### Get unique view count
 
-If you only want to retrieve the unique views count, you can simply add the `unique` method to the chain.
+If you only want to retrieve the unique view count, you can simply add the `unique` method to the chain.
 
 ```php
 views($post)
@@ -352,25 +310,25 @@ views($post)
     ->count();
 ```
 
-### Order models by views count
+### Ordering models by view count
 
 The `Viewable` trait adds two scopes to your model: `orderByViews` and `orderByUniqueViews`.
 
-#### Order by views count
+#### Order by view count
 
 ```php
 Post::orderByViews()->get(); // descending
 Post::orderByViews('asc')->get(); // ascending
 ```
 
-#### Order by unique views count
+#### Order by unique view count
 
 ```php
 Post::orderByUniqueViews()->get(); // descending
 Post::orderByUniqueViews('asc')->get(); // ascending
 ```
 
-#### Order by views count within the specified period
+#### Order by view count within the specified period
 
 ```php
 Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
@@ -384,7 +342,7 @@ Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
 Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
 ```
 
-#### Order by views count within the specified collection
+#### Order by view count within the specified collection
 
 ```php
 Post::orderByViews('asc', null, 'custom-collection')->get();  // descending
@@ -394,7 +352,7 @@ Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // descendin
 Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // ascending
 ```
 
-### Get views count of viewable type
+### Get view count of viewable type
 
 If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the
 `views()` helper like so:
@@ -421,7 +379,7 @@ views($post)
     ->record();
 ```
 
-To retrieve the views count in a specific collection, you can reuse the same `collection()` method.
+To retrieve the view count in a specific collection, you can reuse the same `collection()` method.
 
 ```php
 views($post)
@@ -431,7 +389,7 @@ views($post)
 
 ### Remove views on delete
 
-To automatically delete all views of an viewable Eloquent model on delete, you can enable it by setting the
+To automatically delete all views associated with a viewable Eloquent model when it is deleted, set the
 `removeViewsOnDelete` property to `true` in your model definition.
 
 ```php
@@ -440,10 +398,10 @@ protected $removeViewsOnDelete = true;
 
 ### Caching view counts
 
-Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching
+Caching the view count can be challenging in some scenarios. The period can be for example dynamic which makes caching
 not possible. That's why you can make use of the in-built caching functionality.
 
-To cache the views count, simply add the `remember()` method to the chain. The default lifetime is forever.
+To cache the view count, simply add the `remember()` method to the chain. The default lifetime is forever.
 
 Examples:
 
@@ -477,8 +435,8 @@ views, this may speed up your queries in some cases.
 
 ### Caching
 
-Caching views counts can have a big impact on the performance of your application. You can read the documentation about
-caching the views count [here](#caching-view-counts)
+Caching view counts can have a big impact on the performance of your application. You can read the documentation about
+caching the view count [here](#caching-view-counts)
 
 Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and
 `orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize
@@ -493,7 +451,7 @@ $posts = Post::latest()->orderByUniqueViews()->paginate(20);
 
 This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a
 `unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views
-count. This can easily be achieved using a schedued Laravel command.
+count. This can easily be achieved using a scheduled Laravel command.
 
 There may be a faster way to do this, but such command can be like:
 
@@ -509,10 +467,10 @@ foreach($posts as $post) {
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
-* `CyrildeWit\EloquentViewable\Views`
-* `CyrildeWit\EloquentViewable\View`
-* `CyrildeWit\EloquentViewable\Visitor`
-* `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
+- `CyrildeWit\EloquentViewable\Views`
+- `CyrildeWit\EloquentViewable\View`
+- `CyrildeWit\EloquentViewable\Visitor`
+- `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 _**Note:** Don't forget that all custom classes must implement their original interfaces_
 
@@ -521,10 +479,10 @@ _**Note:** Don't forget that all custom classes must implement their original in
 The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The
 following information is provided:
 
-* a unique identifier (stored in a cookie)
-* ip address
-* check for Do No Track header
-* check for crawler
+- a unique identifier (stored in a cookie)
+- ip address
+- check for Do No Track header
+- check for crawler
 
 The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using
 the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
@@ -635,23 +593,23 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Credits
 
-* **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
+- **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
 
 See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who
 participated in this project.
 
 **Helpful Resources:**
 
-* [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - *
+- [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - *
   *[Stidges](https://github.com/stidges)**
 
 ## Alternatives
 
-* [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
-* [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
-* [awssat/laravel-visaits](https://github.com/awssat/laravel-visits)
-* [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
-* [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
+- [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
+- [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
+- [awssat/laravel-visaits](https://github.com/awssat/laravel-visits)
+- [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
+- [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
 
 Feel free to add more alternatives!
 
