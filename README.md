@@ -2,9 +2,7 @@
   <a href="https://github.com/cyrildewit/eloquent-viewable">
     <img src="/art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
   </a>
-
   <h3 align="center">Eloquent Viewable</h3>
-
   <p align="center">
     A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models
   </p>
@@ -25,6 +23,8 @@ views for your Eloquent models. Whether you’re building a blog, an e-commerce 
 benefits from tracking user interactions, this package provides a way to monitor views directly within your
 Laravel project without needing third-party analytics services.
 
+### Quick Example
+
 Once installed, you can track and retrieve views effortlessly:
 
 ```php
@@ -44,24 +44,7 @@ views($post)->record();
 views($post)->cooldown(now()->addHours(2))->record();
 ```
 
-## Introduction
-
-Tracking website views is more complex than it seems. Especially when you need precise metrics that are conform to your
-definition of a visitor view. When should a view for example be counted? Many page visits from one visitor in a short
-period of time can be considered as one actual view. A visitor may do it on purpose by refreshing the page. In this
-situation it's preferred to not increase the counter. This package attempts to solve this by storing every
-view with context about who made that view. The default strategy used for identifying visitors is a long-lived cookie.
-This allows us to deduplicate views from the same visitor when performing a count query.
-
-Maintaining a view log enables us to gain more detailed insights as well. For example, if we want to know how many
-people has viewed a specific blog post between January 10 and February 17 in 2018, we can do the following:
-`views($post)->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The main advantage of capturing everything
-is the ability to get detailed insights. It's however not without a cost, which is the rapid size increase of your
-database.
-
 ### Features
-
-Here are some of the main features:
 
 * Associate views with Eloquent models
 * Get total views count
@@ -72,6 +55,65 @@ Here are some of the main features:
 * Set a cooldown between views
 * Elegant cache wrapper built-in
 * Ignore views from crawlers, ignored IP addresses or requests with DNT header
+
+## Introduction
+
+Tracking views is more than just incrementing a counter — it requires a thoughtful approach to ensure accuracy, prevent
+artificial inflation, and allow for meaningful analytics. Eloquent Viewable takes a flexible and database-driven
+approach to view tracking, giving you control over how views are recorded, counted, and retrieved.
+
+### Design Approach
+
+**1. Persistent View Logging**
+
+Unlike simplistic counters, this package logs each view as a separate database record. This allows for powerful queries,
+such as filtering views by time range, visitor uniqueness, or any other stored metadata.
+
+```php
+views($post)->period(Period::create('2018-01-10', '2018-02-17'))->count();
+```
+
+**2. Context-Aware Visitor Identification & Cooldown Protection**
+
+To prevent inflated view counts, Eloquent Viewable uses a long-lived cookie by default to identify unique visitors. This
+enables deduplication, ensuring that repeated page refreshes do not artificially increase the view count.
+
+Additionally, the cooldown feature prevents multiple views from being recorded within a specified time frame. By
+default, this uses the session storage to track when a visitor last viewed a model. If a visitor revisits within the
+cooldown period, the view won’t be recorded again.
+
+```php
+views($post)->cooldown(now()->addHours(2))->record();
+```
+
+**3. Optimized for Performance with Built-in Caching**
+
+Since logging every view individually can lead to database growth, this package includes an elegant caching solution to
+reduce query load. Instead of querying raw view records every time, you can cache the results:
+
+```php
+views($post)->remember(180)->count();
+```
+
+**4. Ignoring Views from Crawlers & Unwanted Requests**
+
+To prevent misleading statistics, Eloquent Viewable automatically ignores views from web crawlers, ignored IP addresses,
+and users with the “Do Not Track” (DNT) header enabled.
+
+```php
+// Configure ignored crawlers, IPs, and DNT settings in config/eloquent-viewable.php
+'ignore_crawlers' => true,
+'ignored_ip_addresses' => ['192.168.1.1', '10.0.0.1'],
+'respect_dnt_header' => true,
+```
+
+**5. Evaluating the Trade-offs**
+
+The main advantage of this approach is its granularity—you get precise, configurable view tracking with powerful query
+capabilities. However, since every view is stored, applications with extremely high traffic may need to consider:
+
+- **Database maintenance** — Table partitioning, periodic pruning or archival of old view records
+- **Cache tuning** – Adjusting caching strategies based on performance needs
 
 ## Documentation
 
