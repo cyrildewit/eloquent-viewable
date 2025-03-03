@@ -15,6 +15,62 @@
       <a href="https://codecov.io/gh/cyrildewit/eloquent-viewable"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/cyrildewit/eloquent-viewable/8.x.svg"/></a>
   </p>
 </div>
+<hr/>
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#version-compatibility">Version Compatibility</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#preparing-your-model">Preparing your model</a></li>
+        <li><a href="#recording-views">Recording views</a></li>
+        <li><a href="#setting-a-cooldown">Setting a cooldown</a></li>
+        <li><a href="#retrieving-view-counts">Retrieving view counts</a>
+          <ul>
+            <li><a href="#get-total-view-count">Get total view count</a></li>
+            <li><a href="#get-view-count-for-a-specific-period">Get view count for a specific period</a>
+            </li>
+            <li><a href="#get-unique-view-count">Get unique view count</a></li>
+          </ul>
+        </li>
+        <li><a href="#ordering-models-by-view-count">Ordering models by view count</a>
+          <ul>
+            <li><a href="#order-by-view-count">Order by view count</a></li>
+            <li><a href="#order-by-unique-view-count">Order by unique view count</a></li>
+            <li><a href="#order-by-view-count-within-the-specified-period">Order by view count within the
+              specified period</a></li>
+            <li><a href="#order-by-view-count-within-the-specified-collection">Order by view count within
+              the specified collection</a></li>
+          </ul>
+        </li>
+        <li><a href="#get-view-count-of-viewable-type">Get view count of viewable type</a></li>
+        <li><a href="#view-collections">View collections</a></li>
+        <li><a href="#remove-views-on-delete">Remove views on delete</a></li>
+        <li><a href="#caching-view-counts">Caching view counts</a></li>
+      </ul>
+    </li>
+    <li><a href="#optimizing">Optimizing</a>
+      <ul>
+        <li><a href="#database-indexes">Database indexes</a></li>
+        <li><a href="#caching">Caching</a></li>
+      </ul>
+    </li>
+    <li><a href="#extending">Extending</a>
+      <ul>
+        <li><a href="#custom-information-about-visitor">Custom information about visitor</a></li>
+        <li><a href="#using-your-own-views-eloquent-model">Using your own Views Eloquent model</a></li>
+        <li><a href="#using-your-own-view-eloquent-model">Using your own View Eloquent model</a></li>
+        <li><a href="#using-a-custom-crawler-detector">Using a custom crawler detector</a></li>
+        <li><a href="#adding-macros-to-the-views-class">Adding macros to the Views class</a></li>
+      </ul>
+    </li>
+  </ol>
+</details>
 
 ## Introduction
 
@@ -52,56 +108,11 @@ Tracking views is more than just incrementing a counter — it requires a though
 artificial inflation, and allow for meaningful analytics. Eloquent Viewable takes a flexible and database-driven
 approach to view tracking, giving you control over how views are recorded, counted, and retrieved.
 
-**1. Persistent View Logging**
-
-Unlike simplistic counters, this package logs each view as a separate database record. This allows for powerful queries,
-such as filtering views by time range, visitor uniqueness, or any other stored metadata.
-
-```php
-views($post)->period(Period::create('2018-01-10', '2018-02-17'))->count();
-```
-
-**2. Context-Aware Visitor Identification & Cooldown Protection**
-
-To prevent inflated view counts, Eloquent Viewable uses a long-lived cookie by default to identify unique visitors. This
-enables deduplication, ensuring that repeated page refreshes do not artificially increase the view count.
-
-Additionally, the cooldown feature prevents multiple views from being recorded within a specified time frame. By
-default, this uses the session storage to track when a visitor last viewed a model. If a visitor revisits within the
-cooldown period, the view won’t be recorded again.
-
-```php
-views($post)->cooldown(now()->addHours(2))->record();
-```
-
-**3. Optimized for Performance with Built-in Caching**
-
-Since logging every view individually can lead to database growth, this package includes an elegant caching solution to
-reduce query load. Instead of querying raw view records every time, you can cache the results:
-
-```php
-views($post)->remember(180)->count();
-```
-
-**4. Ignoring Views from Crawlers & Unwanted Requests**
-
-To prevent misleading statistics, Eloquent Viewable automatically ignores views from web crawlers, ignored IP addresses,
-and users with the “Do Not Track” (DNT) header enabled.
-
-```php
-// Configure ignored crawlers, IPs, and DNT settings in config/eloquent-viewable.php
-'ignore_crawlers' => true,
-'ignored_ip_addresses' => ['192.168.1.1', '10.0.0.1'],
-'respect_dnt_header' => true,
-```
-
-**5. Evaluating the Trade-offs**
-
-The main advantage of this approach is its granularity—you get precise, configurable view tracking with powerful query
-capabilities. However, since every view is stored, applications with extremely high traffic may need to consider:
-
-- **Database maintenance** — Table partitioning, periodic pruning or archival of old view records
-- **Cache tuning** – Adjusting caching strategies based on performance needs
+- **Persistent View Logging:** Every view is stored as a database record, allowing queries based on time range, visitor uniqueness, and other metadata.
+- **Visitor Identification & Cooldown Protection:** Unique visitors are identified using long-lived cookies, and cooldown periods prevent duplicate views within a short timeframe to be stored.
+- **Optimized Count Performance:** Built-in caching reduces database load while maintaining accuracy.
+- **Crawler & Visitor Filtering:** Views from crawlers, ignored IPs, and DNT-enabled users are automatically excluded.
+- **Scalability Considerations:**  Storing every view individually allows for detailed tracking but increases database load. For high-traffic applications, caching, pruning old records, and partitioning strategies may be necessary.
 
 ## Getting Started
 
