@@ -20,9 +20,12 @@
 
 ---
 
-This Laravel package allows you to associate views with Eloquent models.
+**Eloquent Viewable** is a minimalistic and flexible analytics package for Laravel that enables seamless tracking of
+views for your Eloquent models. Whether you’re building a blog, an e-commerce platform, or any other application that
+benefits from tracking user interactions, this package provides a way to monitor views directly within your
+Laravel project without needing third-party analytics services.
 
-Once installed you can do stuff like this:
+Once installed, you can track and retrieve views effortlessly:
 
 ```php
 // Return total views count
@@ -31,24 +34,30 @@ views($post)->count();
 // Return total views count that have been made since 20 February 2017
 views($post)->period(Period::since('2017-02-20'))->count();
 
-// Return total views count that have been made between 2014 and 2016
-views($post)->period(Period::create('2014', '2016'))->count();
-
 // Return total unique views count (based on visitor cookie)
 views($post)->unique()->count();
 
 // Record a view
 views($post)->record();
 
-// Record a view with a cooldown
+// Record a view with a cooldown period
 views($post)->cooldown(now()->addHours(2))->record();
 ```
 
-## Overview
+## Introduction
 
-Sometimes you don't want to pull in a third-party service like Google Analytics to track your application's page views. Then this package comes in handy. Eloquent Viewable allows you to easiliy associate views with Eloquent models. It's designed with simplicity in mind.
+Tracking website views is more complex than it seems. Especially when you need precise metrics that are conform to your
+definition of a visitor view. When should a view for example be counted? Many page visits from one visitor in a short
+period of time can be considered as one actual view. A visitor may do it on purpose by refreshing the page. In this
+situation it's preferred to not increase the counter. This package attempts to solve this by storing every
+view with context about who made that view. The default strategy used for identifying visitors is a long-lived cookie.
+This allows us to deduplicate views from the same visitor when performing a count query.
 
-This package stores each view record individually in the database. The advantage of this is that it allows us to make very specific counts. For example, if we want to know how many people has viewed a specific post between January 10 and February 17 in 2018, we can do the following: `views($post)->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The disadvantage of this is that your database can **grow rapidly in size** depending on the amount of visitors your application has.
+Maintaining a view log enables us to gain more detailed insights as well. For example, if we want to know how many
+people has viewed a specific blog post between January 10 and February 17 in 2018, we can do the following:
+`views($post)->period(Period::create('10-01-2018', '17-02-2018'))->count();`. The main advantage of capturing everything
+is the ability to get detailed insights. It's however not without a cost, which is the rapid size increase of your
+database.
 
 ### Features
 
@@ -193,11 +202,13 @@ public function show(Post $post)
 }
 ```
 
-**Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example also a crawler.
+**Note:** This package filters out crawlers by default. Be aware of this when testing, because Postman is for example
+also a crawler.
 
 ### Setting a cooldown
 
-You may use the `cooldown` method on the `Views` instance to add a cooldown between view records. When you set a cooldown, you need to specify the number of minutes.
+You may use the `cooldown` method on the `Views` instance to add a cooldown between view records. When you set a
+cooldown, you need to specify the number of minutes.
 
 ```php
 views($post)
@@ -217,7 +228,9 @@ views($post)
 
 #### How it works
 
-When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session with an expiration datetime. Whenever the visitor views the item again, this package will checks his session and decide if the view should be saved in the database or not.
+When recording a view with a session delay, this package will also save a snapshot of the view in the visitor's session
+with an expiration datetime. Whenever the visitor views the item again, this package will checks his session and decide
+if the view should be saved in the database or not.
 
 ### Retrieving views counts
 
@@ -238,7 +251,8 @@ views($post)
     ->count();
 ```
 
-The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as follows:
+The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as
+follows:
 
 ##### Between two datetimes
 
@@ -340,13 +354,15 @@ Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // ascending
 
 ### Get views count of viewable type
 
-If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the `views()` helper like so:
+If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the
+`views()` helper like so:
 
 ```php
 views(new Post())->count();
 ```
 
-You can also pass a fully qualified class name. The package will then resolve an instance from the application container.
+You can also pass a fully qualified class name. The package will then resolve an instance from the application
+container.
 
 ```php
 views(Post::class)->count();
@@ -373,7 +389,8 @@ views($post)
 
 ### Remove views on delete
 
-To automatically delete all views of an viewable Eloquent model on delete, you can enable it by setting the `removeViewsOnDelete` property to `true` in your model definition.
+To automatically delete all views of an viewable Eloquent model on delete, you can enable it by setting the
+`removeViewsOnDelete` property to `true` in your model definition.
 
 ```php
 protected $removeViewsOnDelete = true;
@@ -381,7 +398,8 @@ protected $removeViewsOnDelete = true;
 
 ### Caching view counts
 
-Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching not possible. That's why you can make use of the in-built caching functionality.
+Caching the views count can be challenging in some scenarios. The period can be for example dynamic which makes caching
+not possible. That's why you can make use of the in-built caching functionality.
 
 To cache the views count, simply add the `remember()` method to the chain. The default lifetime is forever.
 
@@ -412,21 +430,28 @@ views($post)->remember()->count();
 
 The default `views` table migration file has already two indexes for `viewable_id` and `viewable_type`.
 
-If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of views, this may speed up your queries in some cases.
+If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of
+views, this may speed up your queries in some cases.
 
 ### Caching
 
-Caching views counts can have a big impact on the performance of your application. You can read the documentation about caching the views count [here](#caching-view-counts)
+Caching views counts can have a big impact on the performance of your application. You can read the documentation about
+caching the views count [here](#caching-view-counts)
 
-Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and `orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize these queries, you can add an extra column or multiple columns to your viewable database table with these counts.
+Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and
+`orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize
+these queries, you can add an extra column or multiple columns to your viewable database table with these counts.
 
-Example: we want to order our blog posts by **unique views** count. The first thing that may come to your mind is to use the `orderByUniqueViews` query scope.
+Example: we want to order our blog posts by **unique views** count. The first thing that may come to your mind is to use
+the `orderByUniqueViews` query scope.
 
 ```php
 $posts = Post::latest()->orderByUniqueViews()->paginate(20);
 ```
 
-This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a `unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views count. This can easily be achieved using a schedued Laravel command.
+This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a
+`unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views
+count. This can easily be achieved using a schedued Laravel command.
 
 There may be a faster way to do this, but such command can be like:
 
@@ -451,20 +476,23 @@ _**Note:** Don't forget that all custom classes must implement their original in
 
 ### Custom information about visitor
 
-The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The following information is provided:
+The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The
+following information is provided:
 
 * a unique identifier (stored in a cookie)
 * ip address
 * check for Do No Track header
 * check for crawler
 
-The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
+The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using
+the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
 
 You can override the `Visitor` class globally or locally.
 
 #### Create your own `Visitor` class
 
-Create you own `Visitor` class in your Laravel application and implement the `CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
+Create you own `Visitor` class in your Laravel application and implement the
+`CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
 
 Alternatively, you can extend the default `Visitor` class that comes with this package.
 
@@ -495,7 +523,8 @@ views($post)
 
 Bind your custom `Views` implementation to the `\CyrildeWit\EloquentViewable\Contracts\Views`.
 
-Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
+Change the following code snippet and place it in the `register` method in a service provider (for example
+`AppServiceProvider`).
 
 ```php
 $this->app->bind(
@@ -508,8 +537,8 @@ $this->app->bind(
 
 Bind your custom `View` implementation to the `\CyrildeWit\EloquentViewable\Contracts\View`.
 
-Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
-
+Change the following code snippet and place it in the `register` method in a service provider (for example
+`AppServiceProvider`).
 
 ```php
 $this->app->bind(
@@ -522,7 +551,8 @@ $this->app->bind(
 
 Bind your custom `CrawlerDetector` implementation to the `\CyrildeWit\EloquentViewable\Contracts\CrawlerDetector`.
 
-Change the following code snippet and place it in the `register` method in a service provider (for example `AppServiceProvider`).
+Change the following code snippet and place it in the `register` method in a service provider (for example
+`AppServiceProvider`).
 
 ```php
 $this->app->singleton(
@@ -565,17 +595,19 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 * **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
 
-See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who
+participated in this project.
 
 **Helpful Resources:**
 
-* [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - **[Stidges](https://github.com/stidges)**
+* [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - *
+  *[Stidges](https://github.com/stidges)**
 
 ## Alternatives
 
 * [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
 * [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
-* [awssat/laravel-visits](https://github.com/awssat/laravel-visits)
+* [awssat/laravel-visaits](https://github.com/awssat/laravel-visits)
 * [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
 * [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
 
