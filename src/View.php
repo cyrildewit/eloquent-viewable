@@ -13,25 +13,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class View extends Model implements ViewContract
 {
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
     protected $guarded = [];
 
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
     public $timestamps = false;
 
-    /**
-     * Get the table associated with the model.
-     *
-     * @return string
-     */
     public function getTable()
     {
         return Container::getInstance()
@@ -39,11 +24,6 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
-    /**
-     * Get the current connection name for the model.
-     *
-     * @return string
-     */
     public function getConnectionName()
     {
         return Container::getInstance()
@@ -51,11 +31,6 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
-    /**
-     * Get the viewable model to which this View belongs.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
-     */
     public function viewable(): MorphTo
     {
         return $this->morphTo();
@@ -63,10 +38,6 @@ class View extends Model implements ViewContract
 
     /**
      * Scope a query to only include views within the period.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeWithinPeriod(Builder $query, Period $period)
     {
@@ -86,10 +57,6 @@ class View extends Model implements ViewContract
 
     /**
      * Scope a query to only include views withing the collection.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string|null  $collection
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeCollection(Builder $query, ?string $collection = null)
     {
