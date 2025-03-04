@@ -34,6 +34,7 @@
     },
     "require-dev": {
         "illuminate/config": "^12.0",
+        "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^10.0",
         "phpunit/phpunit": "^11.5.3"
@@ -52,7 +53,9 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit",
+        "lint": "pint",
+        "test:lint": "pint --test",
+        "test": "phpunit",
         "test:coverage": "vendor/bin/phpunit --coverage-clover build/coverage.xml"
     },
     "config": {
