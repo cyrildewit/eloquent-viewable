@@ -65,7 +65,7 @@ class Visitor implements VisitorContract
      */
     public function hasDoNotTrackHeader(): bool
     {
-        return 1 === (int) $this->request()->header(self::DNT);
+        return (int) $this->request()->header(self::DNT) === 1;
     }
 
     /**

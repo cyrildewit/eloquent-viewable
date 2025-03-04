@@ -24,6 +24,6 @@ class ViewsHelperTest extends TestCase
 
     public function test_it_accepts_an_empty_model_instance_as_viewable(): void
     {
-        $this->assertInstanceOf(Views::class, views(new Post()));
+        $this->assertInstanceOf(Views::class, views(new Post));
     }
 }

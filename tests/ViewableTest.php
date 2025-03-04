@@ -13,7 +13,7 @@ class ViewableTest extends TestCase
 {
     protected Post $post;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 

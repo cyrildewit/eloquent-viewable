@@ -26,8 +26,6 @@ interface Viewable
 
     /**
      * Get the views the model has.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
     public function views(): MorphMany;
 

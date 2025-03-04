@@ -24,9 +24,6 @@ class ViewableObserver
 
     /**
      * Determine if should remove views on model delete (defaults to true).
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
-     * @return bool
      */
     private function removeViewsOnDelete(Viewable $viewable): bool
     {

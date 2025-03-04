@@ -20,10 +20,9 @@ use Illuminate\Support\Facades\Config;
 
 class ViewsTest extends TestCase
 {
-    /** @var Post */
     protected Post $post;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -60,7 +59,7 @@ class ViewsTest extends TestCase
         $this->expectException(Exception::class);
 
         Container::getInstance()->make(Views::class)
-            ->forViewable(new Post())
+            ->forViewable(new Post)
             ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
     }
@@ -255,9 +254,9 @@ class ViewsTest extends TestCase
         TestHelper::createView($apartment);
         TestHelper::createView($apartment);
 
-        Container::getInstance()->make(Views::class)->forViewable(new Post())->destroy();
+        Container::getInstance()->make(Views::class)->forViewable(new Post)->destroy();
 
-        $this->assertEquals(0, Container::getInstance()->make(Views::class)->forViewable(new Post())->count());
+        $this->assertEquals(0, Container::getInstance()->make(Views::class)->forViewable(new Post)->count());
     }
 
     public function test_it_can_count_the_views_by_type(): void
@@ -272,7 +271,7 @@ class ViewsTest extends TestCase
         TestHelper::createView($apartment);
         TestHelper::createView($apartment);
 
-        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable(new Post())->count());
+        $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable(new Post)->count());
     }
 
     public function test_it_can_count_the_unique_views_by_type(): void
@@ -287,8 +286,8 @@ class ViewsTest extends TestCase
         TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
         TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
 
-        $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable(new Post())->unique()->count());
-        $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable(new Post())->unique()->count());
+        $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count());
+        $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count());
     }
 
     public function test_it_can_remember_the_views_counts(): void
@@ -333,7 +332,7 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(10)->count());
     }
 
-    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_DateTimeInterface(): void
+    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_date_time_interface(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -347,7 +346,7 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count());
     }
 
-    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_CarbonInterface(): void
+    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_carbon_interface(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
