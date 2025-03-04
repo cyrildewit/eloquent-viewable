@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use Illuminate\Support\Facades\File;
 use Mockery;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-abstract class TestCase extends Orchestra
+class TestCase extends Orchestra
 {
-    /**
-     * Setup the test environment.
-     *
-     * @return void
-     */
     public function setUp(): void
     {
         parent::setUp();
@@ -26,11 +22,6 @@ abstract class TestCase extends Orchestra
         $this->migrateUnitTestTables();
     }
 
-    /**
-     * Clean up the testing environment before the next test.
-     *
-     * @return void
-     */
     protected function tearDown(): void
     {
         Mockery::close();
@@ -39,25 +30,14 @@ abstract class TestCase extends Orchestra
         parent::tearDown();
     }
 
-    /**
-     * Load package service provider.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return array
-     */
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [
-            \CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
+            EloquentViewableServiceProvider::class,
         ];
     }
 
-    /**
-     * Publish package migrations.
-     *
-     * @return void
-     */
-    protected function publishPackageMigrations()
+    protected function publishPackageMigrations(): void
     {
         $this->artisan('vendor:publish', [
             '--force' => '',
@@ -65,45 +45,24 @@ abstract class TestCase extends Orchestra
         ]);
     }
 
-    /**
-     * Delete all published migrations.
-     *
-     * @return void
-     */
-    protected function destroyPackageMigrations()
+    protected function destroyPackageMigrations(): void
     {
         File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
     }
 
-    /**
-     * Perform package database migrations.
-     *
-     * @return void
-     */
-    protected function migratePackageTables()
+    protected function migratePackageTables(): void
     {
         $this->loadMigrationsFrom([
             '--realpath' => true,
         ]);
     }
 
-    /**
-     * Perform unit test database migrations.
-     *
-     * @return void
-     */
-    protected function migrateUnitTestTables()
+    protected function migrateUnitTestTables(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
     }
 
-    /**
-     * Define environment setup.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return void
-     */
-    protected function getEnvironmentSetUp($app)
+    protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('database.default', 'sqlite');
         $app['config']->set('database.connections.sqlite', [
