@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\Config;
 
 class CacheKeyTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
-    protected $post;
+    protected Post $post;
 
     public function setUp(): void
     {
@@ -24,8 +23,7 @@ class CacheKeyTest extends TestCase
         Config::set('eloquent-viewable.cache.key', 'test-namespace');
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_default_parameters()
+    public function test_it_can_make_a_key_from_default_parameters(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
@@ -41,8 +39,7 @@ class CacheKeyTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_period_with_startdatetime()
+    public function test_it_can_make_a_key_from_period_with_startdatetime(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
@@ -58,8 +55,7 @@ class CacheKeyTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_period_with_enddatetime()
+    public function test_it_can_make_a_key_from_period_with_enddatetime(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
@@ -75,8 +71,7 @@ class CacheKeyTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_period_with_past_or_sub_datetimes()
+    public function test_it_can_make_a_key_from_period_with_past_or_sub_datetimes(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
@@ -102,8 +97,7 @@ class CacheKeyTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_type_unique()
+    public function test_it_can_make_a_key_from_type_unique(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
@@ -119,8 +113,7 @@ class CacheKeyTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_make_a_key_from_collection()
+    public function test_it_can_make_a_key_from_collection(): void
     {
         $firstPostCacheKey = new CacheKey($this->firstPost);
         $secondPostCacheKey = new CacheKey($this->secondPost);
