@@ -11,7 +11,7 @@ class ViewableObserverTest extends TestCase
 {
     protected Post $post;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -31,7 +31,7 @@ class ViewableObserverTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    public function test_it_does_not_destroy_all_views_when_viewable_gets_deleted_and_removeViewsOnDelete_is_set_to_false(): void
+    public function test_it_does_not_destroy_all_views_when_viewable_gets_deleted_and_remove_views_on_delete_is_set_to_false(): void
     {
         $this->post->removeViewsOnDelete = false;
 
