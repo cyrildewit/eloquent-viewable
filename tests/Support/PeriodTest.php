@@ -12,16 +12,14 @@ use Exception;
 
 class PeriodTest extends TestCase
 {
-    /** @test */
-    public function it_can_instantiate_class()
+    public function test_it_can_instantiate_class(): void
     {
         $period = $this->app->make(Period::class);
 
         $this->assertInstanceOf(Period::class, $period);
     }
 
-    /** @test */
-    public function it_can_construct_a_new_period_instance()
+    public function test_it_can_construct_a_new_period_instance(): void
     {
         $startDateTime = Carbon::yesterday();
         $endDateTime = Carbon::today();
@@ -32,8 +30,7 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
     }
 
-    /** @test */
-    public function it_can_construct_a_new_period_instance_with_strings_as_arguments()
+    public function test_it_can_construct_a_new_period_instance_with_strings_as_arguments(): void
     {
         $startDateTime = '2018-07-16';
         $endDateTime = '2018-12-23';
@@ -44,8 +41,7 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
     }
 
-    /** @test */
-    public function it_can_construct_a_new_period_instance_with_start_datetime_argument_as_string()
+    public function test_it_can_construct_a_new_period_instance_with_start_datetime_argument_as_string(): void
     {
         $startDateTime = '2018-07-16';
 
@@ -55,8 +51,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function it_can_construct_a_new_period_instance_with_end_datetime_argument_as_string()
+    public function test_it_can_construct_a_new_period_instance_with_end_datetime_argument_as_string(): void
     {
         $endDateTime = '2018-07-16';
 
@@ -66,19 +61,17 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
     }
 
-    /** @test */
-    public function it_will_throw_an_exception_if_the_start_date_time_comes_after_the_end_date_time()
+    public function test_it_will_throw_an_exception_if_the_start_date_time_comes_after_the_end_date_time(): void
     {
-        $startDateTime = Carbon::create(2018, 1, 1);
-        $endDateTime = Carbon::create(2017, 1, 1);
+        $startDateTime = Carbon::create(2018);
+        $endDateTime = Carbon::create(2017);
 
         $this->expectException(InvalidPeriod::class);
 
-        $period = new Period($startDateTime, $endDateTime);
+        new Period($startDateTime, $endDateTime);
     }
 
-    /** @test */
-    public function static_create_can_construct_a_new_period_instance()
+    public function static_create_can_construct_a_new_period_instance(): void
     {
         $startDateTime = Carbon::yesterday();
         $endDateTime = Carbon::today();
@@ -89,8 +82,7 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
     }
 
-    /** @test */
-    public function static_since_can_construct_a_new_period_instance()
+    public function static_since_can_construct_a_new_period_instance(): void
     {
         $startDateTime = Carbon::yesterday();
 
@@ -100,8 +92,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_upto_can_construct_a_new_period_instance()
+    public function static_upto_can_construct_a_new_period_instance(): void
     {
         $endDateTime = Carbon::yesterday();
 
@@ -111,8 +102,7 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
     }
 
-    /** @test */
-    public function static_pastDays_can_construct_a_new_period_instance()
+    public function static_pastDays_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -122,8 +112,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_pastWeeks_can_construct_a_new_period_instance()
+    public function static_pastWeeks_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -133,8 +122,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_pastMonths_can_construct_a_new_period_instance()
+    public function static_pastMonths_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -144,8 +132,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_pastYears_can_construct_a_new_period_instance()
+    public function static_pastYears_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -155,18 +142,16 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_sub_throws_exception_when_subTypeMethod_is_not_callable()
+    public function static_sub_throws_exception_when_subTypeMethod_is_not_callable(): void
     {
         $this->expectException(Exception::class);
 
         Carbon::setTestNow(Carbon::now());
 
-        $period = Period::sub(Carbon::now(), 'keepDreaming', Period::SUB_SECONDS, 2);
+        Period::sub(Carbon::now(), 'keepDreaming', Period::SUB_SECONDS, 2);
     }
 
-    /** @test */
-    public function static_subSeconds_can_construct_a_new_period_instance()
+    public function static_subSeconds_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -176,8 +161,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subMinutes_can_construct_a_new_period_instance()
+    public function static_subMinutes_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -187,8 +171,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subHours_can_construct_a_new_period_instance()
+    public function static_subHours_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -198,8 +181,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subDays_can_construct_a_new_period_instance()
+    public function static_subDays_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -209,8 +191,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subWeeks_can_construct_a_new_period_instance()
+    public function static_subWeeks_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -220,8 +201,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subMonths_can_construct_a_new_period_instance()
+    public function static_subMonths_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -231,8 +211,7 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_subYears_can_construct_a_new_period_instance()
+    public function static_subYears_can_construct_a_new_period_instance(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -242,16 +221,14 @@ class PeriodTest extends TestCase
         $this->assertNull($period->getEndDateTime());
     }
 
-    /** @test */
-    public function static_sub_will_thow_an_exception_if_subtype_method_is_not_callable()
+    public function static_sub_will_throw_an_exception_if_subtype_method_is_not_callable(): void
     {
         $this->expectException(Exception::class);
 
-        $period = Period::sub(Carbon::now(), 'wrongMethod', Period::SUB_YEARS, 1);
+        Period::sub(Carbon::now(), 'wrongMethod', Period::SUB_YEARS, 1);
     }
 
-    /** @test */
-    public function setStartDateTime_can_set_a_new_start_date_time()
+    public function setStartDateTime_can_set_a_new_start_date_time(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -264,8 +241,7 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getStartDateTime(), Carbon::now());
     }
 
-    /** @test */
-    public function setEndDateTime_can_set_a_new_start_date_time()
+    public function setEndDateTime_can_set_a_new_start_date_time(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -278,40 +254,35 @@ class PeriodTest extends TestCase
         $this->assertEquals($period->getEndDateTime(), Carbon::now());
     }
 
-    /** @test */
-    public function hasFixedDateTimes_can_determine_if_datetimes_are_fixed()
+    public function hasFixedDateTimes_can_determine_if_datetimes_are_fixed(): void
     {
         $period = Period::pastDays(3);
 
         $this->assertFalse($period->hasFixedDateTimes());
     }
 
-    /** @test */
-    public function getStartDateTimeString_returns_start_date_time_as_string()
+    public function getStartDateTimeString_returns_start_date_time_as_string(): void
     {
         $period = Period::since($startDateTime = Carbon::parse('2019-03-12'));
 
         $this->assertEquals($startDateTime->toDateTimeString(), $period->getStartDateTimeString());
     }
 
-    /** @test */
-    public function getEndDateTimeString_returns_end_date_time_as_string()
+    public function getEndDateTimeString_returns_end_date_time_as_string(): void
     {
         $period = Period::upto($endDateTime = Carbon::parse('2019-03-12'));
 
         $this->assertEquals($endDateTime->toDateTimeString(), $period->getEndDateTimeString());
     }
 
-    /** @test */
-    public function getSubType_returns_sub_type()
+    public function getSubType_returns_sub_type(): void
     {
         $period = Period::pastDays(3);
 
         $this->assertEquals(Period::PAST_DAYS, $period->getSubType());
     }
 
-    /** @test */
-    public function getSubValue_returns_sub_type()
+    public function getSubValue_returns_sub_type(): void
     {
         $period = Period::pastDays(3);
 
