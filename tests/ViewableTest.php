@@ -18,7 +18,7 @@ class ViewableTest extends TestCase
     {
         parent::setUp();
 
-        $this->post = factory(Post::class)->create();
+        $this->post = Post::factory()->create();
     }
 
     /** @test */
@@ -31,9 +31,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_views_in_descending_order()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         TestHelper::createView($postOne);
         TestHelper::createView($postOne);
@@ -56,9 +56,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_unique_views_in_descending_order()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Unque views: 3
         TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
@@ -91,9 +91,9 @@ class ViewableTest extends TestCase
         Carbon::setTestNow(Carbon::now());
 
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Views within period: 3
         TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
@@ -123,9 +123,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_views_in_a_specific_collection_descending()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Views in collection: 0
         TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
@@ -155,9 +155,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_views_in_a_specific_collection_ascending()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Views in collection: 0
         TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
@@ -187,9 +187,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_views_in_ascending_order()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         TestHelper::createView($postOne);
         TestHelper::createView($postOne);
@@ -212,9 +212,9 @@ class ViewableTest extends TestCase
     public function it_can_be_ordered_by_unique_views_in_ascending_order()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Unque views: 3
         TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
@@ -247,9 +247,9 @@ class ViewableTest extends TestCase
         Carbon::setTestNow(Carbon::now());
 
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $postThree = factory(Post::class)->create();
-        $postFour = factory(Post::class)->create();
+        $postTwo = Post::factory()->create();
+        $postThree = Post::factory()->create();
+        $postFour = Post::factory()->create();
 
         // Views within period: 3
         TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
