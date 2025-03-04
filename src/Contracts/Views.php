@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
+use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Support\Period;
+use DateTimeInterface;
 
 interface Views
 {
     /**
      * Set the viewable model.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable
-     * @return $this
      */
     public function forViewable(Viewable $viewable): self;
 
@@ -33,10 +32,8 @@ interface Views
 
     /**
      * Set the cooldown.
-     *
-     * @param  \DateTimeInterface|int|null  $cooldown
      */
-    public function cooldown($cooldown): self;
+    public function cooldown(DateTimeInterface|int|null $cooldown): self;
 
     /**
      * Set the period.
@@ -55,8 +52,11 @@ interface Views
 
     /**
      * Cache the current views count.
-     *
-     * @param  \DateTimeInterface|int|null  $lifetime
      */
-    public function remember($lifetime = null): self;
+    public function remember(DateTimeInterface|int|null $lifetime = null): self;
+
+    /**
+     * Set the visitor.
+     */
+    public function useVisitor(VisitorContract $visitor): self;
 }

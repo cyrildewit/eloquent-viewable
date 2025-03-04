@@ -17,8 +17,6 @@ interface View
 
     /**
      * Scope a query to only include views within the period.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeWithinPeriod(Builder $query, Period $period);
+    public function scopeWithinPeriod(Builder $query, Period $period): void;
 }

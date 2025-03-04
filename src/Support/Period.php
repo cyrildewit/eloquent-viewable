@@ -15,30 +15,30 @@ class Period
     /**
      * Available past types.
      */
-    const PAST_DAYS = 'PAST_DAYS';
+    const string PAST_DAYS = 'PAST_DAYS';
 
-    const PAST_WEEKS = 'PAST_WEEKS';
+    const string PAST_WEEKS = 'PAST_WEEKS';
 
-    const PAST_MONTHS = 'PAST_MONTHS';
+    const string PAST_MONTHS = 'PAST_MONTHS';
 
-    const PAST_YEARS = 'PAST_YEARS';
+    const string PAST_YEARS = 'PAST_YEARS';
 
     /**
      * Available sub types.
      */
-    const SUB_SECONDS = 'SUB_SECONDS';
+    const string SUB_SECONDS = 'SUB_SECONDS';
 
-    const SUB_MINUTES = 'SUB_MINUTES';
+    const string SUB_MINUTES = 'SUB_MINUTES';
 
-    const SUB_HOURS = 'SUB_HOURS';
+    const string SUB_HOURS = 'SUB_HOURS';
 
-    const SUB_DAYS = 'SUB_DAYS';
+    const string SUB_DAYS = 'SUB_DAYS';
 
-    const SUB_WEEKS = 'SUB_WEEKS';
+    const string SUB_WEEKS = 'SUB_WEEKS';
 
-    const SUB_MONTHS = 'SUB_MONTHS';
+    const string SUB_MONTHS = 'SUB_MONTHS';
 
-    const SUB_YEARS = 'SUB_YEARS';
+    const string SUB_YEARS = 'SUB_YEARS';
 
     protected ?CarbonInterface $startDateTime;
 
@@ -50,12 +50,10 @@ class Period
 
     protected int $subValue;
 
-    /**
-     * @param  \DateTimeInterface|string|null  $startDateTime
-     * @param  \DateTimeInterface|string|null  $endDateTime
-     */
-    public function __construct($startDateTime = null, $endDateTime = null)
-    {
+    public function __construct(
+        DateTimeInterface|string|null $startDateTime = null,
+        DateTimeInterface|string|null $endDateTime = null,
+    ) {
         $startDateTime = $this->resolveDateTime($startDateTime);
         $endDateTime = $this->resolveDateTime($endDateTime);
 
@@ -72,8 +70,8 @@ class Period
     /**
      * Create a new Period instance.
      *
-     * @param  \DateTimeInterface|string|null  $startDateTime
-     * @param  \DateTimeInterface|string|null  $endDateTime
+     * @param \DateTimeInterface|string|null $startDateTime
+     * @param \DateTimeInterface|string|null $endDateTime
      */
     public static function create($startDateTime = null, $endDateTime = null): self
     {
@@ -83,7 +81,7 @@ class Period
     /**
      * Create a new Period instance with only a start date time.
      *
-     * @param  \DateTimeInterface|string|null  $startDateTime
+     * @param \DateTimeInterface|string|null $startDateTime
      */
     public static function since($startDateTime = null): self
     {
@@ -93,7 +91,7 @@ class Period
     /**
      * Create a new Period instance with only a end date time.
      *
-     * @param  \DateTimeInterface|string|null  $endDateTime
+     * @param \DateTimeInterface|string|null $endDateTime
      */
     public static function upto($endDateTime = null): self
     {
@@ -217,7 +215,7 @@ class Period
      */
     public static function subToday(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
+        $subTypeMethod = 'sub' . ucfirst(strtolower(Str::after($subType, 'PAST_')));
         $today = Carbon::today();
 
         return self::sub($today, $subTypeMethod, $subType, $subValue);
@@ -230,7 +228,7 @@ class Period
      */
     public static function subNow(string $subType, int $subValue): self
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
+        $subTypeMethod = 'sub' . ucfirst(strtolower(Str::after($subType, 'SUB_')));
         $now = Carbon::now();
 
         return self::sub($now, $subTypeMethod, $subType, $subValue);
@@ -279,12 +277,12 @@ class Period
 
     public function getStartDateTimestamp(): ?int
     {
-        return $this->startDateTime !== null ? $this->startDateTime->getTimestamp() : null;
+        return $this->startDateTime?->getTimestamp();
     }
 
     public function getEndDateTimestamp(): ?int
     {
-        return $this->endDateTime !== null ? $this->endDateTime->getTimestamp() : null;
+        return $this->endDateTime?->getTimestamp();
     }
 
     public function getSubType(): string
@@ -332,14 +330,12 @@ class Period
         return $this;
     }
 
-    protected function resolveDateTime($dateTime)
+    protected function resolveDateTime(DateTimeInterface|string $dateTime): CarbonInterface
     {
         if ($dateTime instanceof DateTimeInterface) {
             return Carbon::instance($dateTime);
         }
 
-        if (is_string($dateTime)) {
-            return Carbon::parse($dateTime);
-        }
+        return Carbon::parse($dateTime);
     }
 }

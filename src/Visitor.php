@@ -15,10 +15,8 @@ class Visitor implements VisitorContract
 {
     /**
      * PHP stores the DNT header under the "HTTP_DNT" key instead of "DNT".
-     *
-     * @var string
      */
-    const DNT = 'HTTP_DNT';
+    const string DNT = 'HTTP_DNT';
 
     protected string $visitorCookieKey;
 
