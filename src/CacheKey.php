@@ -23,12 +23,7 @@ class CacheKey
         return new static($viewable);
     }
 
-    /**
-     * Make the cache key.
-     *
-     * @return string
-     */
-    public function make(?Period $period = null, bool $unique = false, ?string $collection = null)
+    public function make(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
         $key = $this->getCachePrefix();
         $key .= $this->getConnectionName();

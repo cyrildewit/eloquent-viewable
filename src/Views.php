@@ -20,7 +20,6 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
-use InvalidArgumentException;
 
 class Views implements ViewsContract
 {
@@ -58,16 +57,13 @@ class Views implements ViewsContract
         $this->visitor = $visitor;
     }
 
-    public function forViewable(Viewable $viewable): ViewsContract
+    public function forViewable(Viewable $viewable): self
     {
         $this->viewable = $viewable;
 
         return $this;
     }
 
-    /**
-     * Get the views count.
-     */
     public function count(): int
     {
         $query = $this->resolveViewableQuery();
@@ -101,9 +97,7 @@ class Views implements ViewsContract
     }
 
     /**
-     * Record a view for the viewable Eloquent model.
-     *
-     * @throws \CyrildeWit\EloquentViewable\Exceptions\ViewRecordException
+     * @throws ViewRecordException
      */
     public function record(): bool
     {
@@ -120,20 +114,12 @@ class Views implements ViewsContract
         return $view->exists;
     }
 
-    /**
-     * Destroy all views of the viewable model.
-     */
     public function destroy(): void
     {
         $this->resolveViewableQuery()->delete();
     }
 
-    /**
-     * Set the cooldown.
-     *
-     * @param  \DateTimeInterface|int|null  $cooldown
-     */
-    public function cooldown($cooldown): ViewsContract
+    public function cooldown(DateTimeInterface|int|null $cooldown): self
     {
         if (is_int($cooldown)) {
             $cooldown = Carbon::now()->addMinutes($cooldown);
@@ -148,29 +134,20 @@ class Views implements ViewsContract
         return $this;
     }
 
-    /**
-     * Set the period.
-     */
-    public function period(?Period $period): ViewsContract
+    public function period(?Period $period): self
     {
         $this->period = $period;
 
         return $this;
     }
 
-    /**
-     * Set the collection.
-     */
-    public function collection(?string $name): ViewsContract
+    public function collection(?string $name): self
     {
         $this->collection = $name;
 
         return $this;
     }
 
-    /**
-     * Fetch only unique views.
-     */
     public function unique(bool $state = true): ViewsContract
     {
         $this->unique = $state;
@@ -178,11 +155,6 @@ class Views implements ViewsContract
         return $this;
     }
 
-    /**
-     * Cache the current views count.
-     *
-     * @param  \DateTimeInterface|int|null  $lifetime
-     */
     public function remember($lifetime = null): ViewsContract
     {
         if ($lifetime !== null) {
@@ -194,11 +166,6 @@ class Views implements ViewsContract
         return $this;
     }
 
-    /**
-     * Set the visitor.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Visitor
-     */
     public function useVisitor(VisitorContract $visitor): ViewsContract
     {
         $this->visitor = $visitor;
@@ -206,9 +173,6 @@ class Views implements ViewsContract
         return $this;
     }
 
-    /**
-     * Determine if we should record the view.
-     */
     protected function shouldRecord(): bool
     {
         // If ignore bots is true and the current visitor is a bot, return false
@@ -233,9 +197,6 @@ class Views implements ViewsContract
         return true;
     }
 
-    /**
-     * Create a new view instance.
-     */
     protected function createView(): ViewContract
     {
         $view = Container::getInstance()->make(ViewContract::class);
@@ -249,17 +210,11 @@ class Views implements ViewsContract
         ]);
     }
 
-    /**
-     * Determine if we should cache the views count.
-     */
     protected function shouldCache(): bool
     {
         return $this->cacheLifetime !== null;
     }
 
-    /**
-     * Resolve the viewable query builder instance.
-     */
     protected function resolveViewableQuery(): Builder
     {
         // If null, we take for granted that we need to count the viewable type
@@ -274,33 +229,18 @@ class Views implements ViewsContract
         return $this->viewable->views()->getQuery();
     }
 
-    /**
-     * Make a cache key for the viewable with custom query options.
-     */
     protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
         return CacheKey::fromViewable($this->viewable)->make($period, $unique, $collection);
     }
 
-    /**
-     * Resolve cache lifetime.
-     *
-     * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
-     */
-    protected function resolveCacheLifetime($lifetime): CarbonInterface
+    protected function resolveCacheLifetime(DateTimeInterface|int $lifetime): CarbonInterface
     {
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
 
-        if ($lifetime instanceof CarbonInterface) {
-            return $lifetime;
-        }
+        return Carbon::instance($lifetime);
 
-        if ($lifetime instanceof DateTimeInterface) {
-            return Carbon::instance($lifetime);
-        }
-
-        throw new InvalidArgumentException("Argument $lifetime must be of type int, \Carbon\CarbonInterface or \DateTimeInterface");
     }
 }
