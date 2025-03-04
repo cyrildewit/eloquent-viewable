@@ -167,7 +167,7 @@ jobs:
         run: cp phpunit.11.xml.dist phpunit.xml.dist
 
       - name: Execute tests
-        run: composer run test:cov
+        run: composer run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
