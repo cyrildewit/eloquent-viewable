@@ -18,8 +18,8 @@ class CacheKeyTest extends TestCase
     {
         parent::setUp();
 
-        $this->firstPost = factory(Post::class)->create();
-        $this->secondPost = factory(Post::class)->create();
+        $this->firstPost = Post::factory()->create();
+        $this->secondPost = Post::factory()->create();
 
         Config::set('eloquent-viewable.cache.key', 'test-namespace');
     }
