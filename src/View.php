@@ -39,7 +39,7 @@ class View extends Model implements ViewContract
     /**
      * Scope a query to only include views within the period.
      */
-    public function scopeWithinPeriod(Builder $query, Period $period)
+    public function scopeWithinPeriod(Builder $query, Period $period): void
     {
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
@@ -51,15 +51,13 @@ class View extends Model implements ViewContract
         } elseif ($startDateTime !== null && $endDateTime !== null) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
-
-        return $query;
     }
 
     /**
      * Scope a query to only include views withing the collection.
      */
-    public function scopeCollection(Builder $query, ?string $collection = null)
+    public function scopeCollection(Builder $query, ?string $collection = null): void
     {
-        return $query->where('collection', $collection);
+        $query->where('collection', $collection);
     }
 }
