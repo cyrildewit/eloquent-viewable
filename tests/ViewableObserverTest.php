@@ -16,7 +16,7 @@ class ViewableObserverTest extends TestCase
     {
         parent::setUp();
 
-        $this->post = factory(Post::class)->create();
+        $this->post = Post::factory()->create();
     }
 
     /** @test */
