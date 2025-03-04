@@ -16,19 +16,28 @@ class Period
      * Available past types.
      */
     const PAST_DAYS = 'PAST_DAYS';
+
     const PAST_WEEKS = 'PAST_WEEKS';
+
     const PAST_MONTHS = 'PAST_MONTHS';
+
     const PAST_YEARS = 'PAST_YEARS';
 
     /**
      * Available sub types.
      */
     const SUB_SECONDS = 'SUB_SECONDS';
+
     const SUB_MINUTES = 'SUB_MINUTES';
+
     const SUB_HOURS = 'SUB_HOURS';
+
     const SUB_DAYS = 'SUB_DAYS';
+
     const SUB_WEEKS = 'SUB_WEEKS';
+
     const SUB_MONTHS = 'SUB_MONTHS';
+
     const SUB_YEARS = 'SUB_YEARS';
 
     protected ?CarbonInterface $startDateTime;
