@@ -135,38 +135,25 @@ Support for Lumen is not maintained.
 First, you need to install the package via Composer:
 
 ```bash
-composer require cyrildewit/eloquent-viewable
+composer require cyrildewit/eloquent-viewable:^8
 ```
 
-Secondly, you can publish the migrations with:
+Publish the database migrations and review them:
 
 ```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
-Finally, you need to run the `migrate` command:
+Run the database migrations to create the necessary tables:
 
 ```bash
 php artisan migrate
 ```
 
-You can optionally publish the config file with:
+You can optionally publish the config file:
 
 ```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
-```
-
-#### Register service provider manually
-
-If you prefer to register packages manually, you can add the following provider to your application's providers list.
-
-```php
-// config/app.php
-
-'providers' => [
-    // ...
-    CyrildeWit\EloquentViewable\EloquentViewableServiceProvider::class,
-];
 ```
 
 ## Usage
