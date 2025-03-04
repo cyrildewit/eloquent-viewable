@@ -8,9 +8,11 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use Illuminate\Support\Facades\File;
 use Mockery;
-use Orchestra\Testbench\TestCase as Orchestra;
+use Orchestra\Testbench\Attributes\WithEnv;
+use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
-class TestCase extends Orchestra
+#[WithEnv('DB_CONNECTION', 'testing')]
+abstract class TestCase extends OrchestraTestCase
 {
     public function setUp(): void
     {
@@ -60,15 +62,5 @@ class TestCase extends Orchestra
     protected function migrateUnitTestTables(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
-    }
-
-    protected function getEnvironmentSetUp($app): void
-    {
-        $app['config']->set('database.default', 'sqlite');
-        $app['config']->set('database.connections.sqlite', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
     }
 }
