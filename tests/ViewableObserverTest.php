@@ -9,8 +9,7 @@ use CyrildeWit\EloquentViewable\View;
 
 class ViewableObserverTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
-    protected $post;
+    protected Post $post;
 
     public function setUp(): void
     {
@@ -19,8 +18,7 @@ class ViewableObserverTest extends TestCase
         $this->post = Post::factory()->create();
     }
 
-    /** @test */
-    public function it_can_destroy_all_views_when_viewable_gets_deleted()
+    public function test_it_can_destroy_all_views_when_viewable_gets_deleted(): void
     {
         TestHelper::createView($this->post);
         TestHelper::createView($this->post);
@@ -33,8 +31,7 @@ class ViewableObserverTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    /** @test */
-    public function it_does_not_destroy_all_views_when_viewable_gets_deleted_and_removeViewsOnDelete_is_set_to_false()
+    public function test_it_does_not_destroy_all_views_when_viewable_gets_deleted_and_removeViewsOnDelete_is_set_to_false(): void
     {
         $this->post->removeViewsOnDelete = false;
 

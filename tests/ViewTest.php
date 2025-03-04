@@ -12,16 +12,14 @@ use Illuminate\Container\Container;
 
 class ViewTest extends TestCase
 {
-    /** @test */
-    public function it_can_have_a_custom_connection_through_config_file()
+    public function test_it_can_have_a_custom_connection_through_config_file(): void
     {
         Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'sqlite']);
 
         $this->assertEquals('sqlite', (new View)->getConnection()->getName());
     }
 
-    /** @test */
-    public function it_can_fill_visitor()
+    public function test_it_can_fill_visitor(): void
     {
         $view = new View([
             'visitor' => 'uniqueString',
@@ -30,8 +28,7 @@ class ViewTest extends TestCase
         $this->assertEquals('uniqueString', $view->getAttribute('visitor'));
     }
 
-    /** @test */
-    public function it_can_fill_visitor_with_null()
+    public function test_it_can_fill_visitor_with_null(): void
     {
         $view = new View([
             'visitor' => null,
@@ -40,7 +37,7 @@ class ViewTest extends TestCase
         $this->assertNull($view->getAttribute('visitor'));
     }
 
-    public function it_can_fill_collection()
+    public function test_it_can_fill_collection(): void
     {
         $view = new View([
             'collection' => null,
@@ -49,8 +46,7 @@ class ViewTest extends TestCase
         $this->assertNull($view->getAttribute('collection'));
     }
 
-    /** @test */
-    public function it_can_fill_viewed_at()
+    public function test_it_can_fill_viewed_at(): void
     {
         Carbon::setTestNow($now = Carbon::create(2018, 1, 12));
 
@@ -61,8 +57,7 @@ class ViewTest extends TestCase
         $this->assertEquals('2018-01-12', $view->viewed_at->format('Y-m-d'));
     }
 
-    /** @test */
-    public function it_can_belong_to_viewable_model()
+    public function test_it_can_belong_to_viewable_model(): void
     {
         $post = Post::factory()->create();
 
@@ -74,8 +69,7 @@ class ViewTest extends TestCase
         $this->assertInstanceOf(Post::class, View::first()->viewable);
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_only_start_date_time()
+    public function test_it_can_scope_to_within_period_with_only_start_date_time(): void
     {
         $post = Post::factory()->create();
 
@@ -85,8 +79,7 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_only_end_date_time()
+    public function test_it_can_scope_to_within_period_with_only_end_date_time(): void
     {
         $post = Post::factory()->create();
 
@@ -96,8 +89,7 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_both_start_and_end_date_time()
+    public function test_it_can_scope_to_within_period_with_both_start_and_end_date_time(): void
     {
         $post = Post::factory()->create();
 
@@ -107,8 +99,7 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_collection_null()
+    public function test_it_can_scope_to_collection_null(): void
     {
         $post = Post::factory()->create();
 
@@ -118,8 +109,7 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_collection_custom()
+    public function test_it_can_scope_to_collection_custom(): void
     {
         $post = Post::factory()->create();
 

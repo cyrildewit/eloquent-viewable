@@ -10,14 +10,7 @@ use CyrildeWit\EloquentViewable\View;
 
 class TestHelper
 {
-    /**
-     * Helper function to create a view.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Contracts\Viewable  $viewable
-     * @param  array  $data
-     * @return \CyrildeWit\EloquentViewable\View
-     */
-    public static function createView(Viewable $viewable, $data = [])
+    public static function createView(Viewable $viewable, $data = []): View
     {
         return View::create([
             'viewable_id' => $viewable->getKey(),
