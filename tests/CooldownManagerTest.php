@@ -15,7 +15,7 @@ class CooldownManagerTest extends TestCase
     /** @test */
     public function push_can_add_an_item()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = Container::getInstance()
             ->make('config')
@@ -31,7 +31,7 @@ class CooldownManagerTest extends TestCase
     /** @test */
     public function push_can_add_an_item_with_collection()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
 
@@ -45,7 +45,7 @@ class CooldownManagerTest extends TestCase
     /** @test */
     public function push_does_not_add_an_item_if_already_added()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $postBaseKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
@@ -59,7 +59,7 @@ class CooldownManagerTest extends TestCase
     /** @test */
     public function it_can_forget_expired_views()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
@@ -77,7 +77,7 @@ class CooldownManagerTest extends TestCase
     /** @test */
     public function it_can_forget_expired_views_with_collection()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 

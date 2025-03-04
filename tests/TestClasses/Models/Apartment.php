@@ -6,22 +6,18 @@ namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\InteractsWithViews;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ApartmentFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Apartment extends Model implements Viewable
 {
-    use InteractsWithViews;
+    use HasFactory, InteractsWithViews;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'apartments';
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
     protected $guarded = [];
+
+    protected static function newFactory(): ApartmentFactory
+    {
+        return ApartmentFactory::new();
+    }
 }
