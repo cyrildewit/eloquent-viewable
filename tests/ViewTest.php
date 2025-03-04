@@ -14,9 +14,9 @@ class ViewTest extends TestCase
 {
     public function test_it_can_have_a_custom_connection_through_config_file(): void
     {
-        Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'sqlite']);
+        Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'testing']);
 
-        $this->assertEquals('sqlite', (new View)->getConnection()->getName());
+        $this->assertEquals('testing', (new View)->getConnection()->getName());
     }
 
     public function test_it_can_fill_visitor(): void
@@ -71,7 +71,7 @@ class ViewTest extends TestCase
 
     public function test_it_can_scope_to_within_period_with_only_start_date_time(): void
     {
-        $post = Post::factory()->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" >= ?',
@@ -81,7 +81,7 @@ class ViewTest extends TestCase
 
     public function test_it_can_scope_to_within_period_with_only_end_date_time(): void
     {
-        $post = Post::factory()->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" <= ?',
@@ -91,7 +91,7 @@ class ViewTest extends TestCase
 
     public function test_it_can_scope_to_within_period_with_both_start_and_end_date_time(): void
     {
-        $post = Post::factory()->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" between ? and ?',
@@ -101,7 +101,7 @@ class ViewTest extends TestCase
 
     public function test_it_can_scope_to_collection_null(): void
     {
-        $post = Post::factory()->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" is null',
@@ -111,7 +111,7 @@ class ViewTest extends TestCase
 
     public function test_it_can_scope_to_collection_custom(): void
     {
-        $post = Post::factory()->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" = ?',
