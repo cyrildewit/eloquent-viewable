@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests;
 
 use Carbon\Carbon;
-use Closure;
 use Illuminate\Support\Facades\File;
 use Mockery;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -25,7 +24,6 @@ abstract class TestCase extends Orchestra
         $this->publishPackageMigrations();
         $this->migratePackageTables();
         $this->migrateUnitTestTables();
-        $this->registerPackageFactories();
     }
 
     /**
@@ -97,28 +95,6 @@ abstract class TestCase extends Orchestra
     protected function migrateUnitTestTables()
     {
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
-    }
-
-    /**
-     * Register package related model factories.
-     *
-     * @return void
-     */
-    protected function registerPackageFactories()
-    {
-        $this->withFactories(realpath(__DIR__.'/database/factories'));
-    }
-
-    /**
-     * Mock an instance of an object in the container.
-     *
-     * @param  string  $abstract
-     * @param  \Closure|null  $mock
-     * @return object
-     */
-    protected function mock($abstract, Closure $mock = null)
-    {
-        return $this->instance($abstract, Mockery::mock(...array_filter(func_get_args())));
     }
 
     /**

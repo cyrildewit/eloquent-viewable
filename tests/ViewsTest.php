@@ -27,7 +27,7 @@ class ViewsTest extends TestCase
     {
         parent::setUp();
 
-        $this->post = factory(Post::class)->create();
+        $this->post = Post::factory()->create();
     }
 
     /** @test */
@@ -244,7 +244,7 @@ class ViewsTest extends TestCase
     public function it_can_destroy_the_views()
     {
         $post = $this->post;
-        $apartment = factory(Apartment::class)->create();
+        $apartment = Apartment::factory()->create();
 
         TestHelper::createView($post);
         TestHelper::createView($post);
@@ -262,8 +262,8 @@ class ViewsTest extends TestCase
     public function it_can_destroy_the_views_of_a_viewable_type()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $apartment = factory(Apartment::class)->create();
+        $postTwo = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
 
         TestHelper::createView($postOne);
         TestHelper::createView($postOne);
@@ -282,8 +282,8 @@ class ViewsTest extends TestCase
     public function it_can_count_the_views_by_type()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $apartment = factory(Apartment::class)->create();
+        $postTwo = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
 
         TestHelper::createView($postOne);
         TestHelper::createView($postTwo);
@@ -298,8 +298,8 @@ class ViewsTest extends TestCase
     public function it_can_count_the_unique_views_by_type()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $apartment = factory(Apartment::class)->create();
+        $postTwo = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
 
         TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
         TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
@@ -398,8 +398,8 @@ class ViewsTest extends TestCase
     public function it_can_remember_the_views_counts_of_a_type()
     {
         $postOne = $this->post;
-        $postTwo = factory(Post::class)->create();
-        $apartment = factory(Apartment::class)->create();
+        $postTwo = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
 
         Container::getInstance()->make(Views::class)->forViewable($postOne)->record();
         Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();

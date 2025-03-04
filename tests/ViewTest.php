@@ -64,9 +64,9 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_belong_to_viewable_model()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
-        $view = factory(View::class)->create([
+        View::create([
             'viewable_id' => $post->getKey(),
             'viewable_type' => $post->getMorphClass(),
         ]);
@@ -77,7 +77,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_scope_to_within_period_with_only_start_date_time()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" >= ?',
@@ -88,7 +88,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_scope_to_within_period_with_only_end_date_time()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" <= ?',
@@ -99,7 +99,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_scope_to_within_period_with_both_start_and_end_date_time()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" between ? and ?',
@@ -110,7 +110,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_scope_to_collection_null()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" is null',
@@ -121,7 +121,7 @@ class ViewTest extends TestCase
     /** @test */
     public function it_can_scope_to_collection_custom()
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" = ?',
