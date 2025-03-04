@@ -56,7 +56,7 @@ class View extends Model implements ViewContract
     /**
      * Scope a query to only include views withing the collection.
      */
-    public function scopeCollection(Builder $query, string $collection = null): void
+    public function scopeCollection(Builder $query, ?string $collection = null): void
     {
         $query->where('collection', $collection);
     }

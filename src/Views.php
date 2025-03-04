@@ -208,8 +208,6 @@ class Views implements ViewsContract
 
     /**
      * Determine if we should record the view.
-     *
-     * @return bool
      */
     protected function shouldRecord(): bool
     {
@@ -237,8 +235,6 @@ class Views implements ViewsContract
 
     /**
      * Create a new view instance.
-     *
-     * @return \CyrildeWit\EloquentViewable\Contracts\View
      */
     protected function createView(): ViewContract
     {
@@ -255,8 +251,6 @@ class Views implements ViewsContract
 
     /**
      * Determine if we should cache the views count.
-     *
-     * @return bool
      */
     protected function shouldCache(): bool
     {
@@ -265,8 +259,6 @@ class Views implements ViewsContract
 
     /**
      * Resolve the viewable query builder instance.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     protected function resolveViewableQuery(): Builder
     {
@@ -284,11 +276,6 @@ class Views implements ViewsContract
 
     /**
      * Make a cache key for the viewable with custom query options.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @param  bool  $unique
-     * @param  string|null  $collection
-     * @return string
      */
     protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
@@ -299,7 +286,6 @@ class Views implements ViewsContract
      * Resolve cache lifetime.
      *
      * @param  \Carbon\CarbonInterface|\DateTimeInterface|int
-     * @return \Carbon\CarbonInterface
      */
     protected function resolveCacheLifetime($lifetime): CarbonInterface
     {
