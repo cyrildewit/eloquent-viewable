@@ -6,7 +6,7 @@ We accept contributions via pull requests on [GitHub]. Please review these guide
 
 ## Guidelines
 
-* Please follow the [PSR-2 Coding Style Guide](https://www.php-fig.org/psr/psr-2/), enforced by [StyleCI].
+* Please follow the [PSR-2 Coding Style Guide](https://www.php-fig.org/psr/psr-2/).
 * One pull request per feature (send multiple if you want to do more than one thing).
 * Add tests if you've added something new (ensure that the current tests pass).
 * Send a coherent commit history (make sure each individual commit in your pull request is meaningful).
@@ -80,7 +80,4 @@ vendor/bin/phpunit
 
 When you make a pull request, the tests will be automatically run again by [Travis CI](https://travis-ci.org/) on different PHP versions.
 
-StyleCI is also active to automatically fix any code style issues.
-
 [GitHub]: https://github.com/cyrildewit/laravel-page-view-counter/pulls
-[StyleCI]: https://styleci.io/
