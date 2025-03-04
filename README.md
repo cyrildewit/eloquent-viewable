@@ -597,7 +597,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Credits
 
-- **Cyril de Wit** - _Initial work_ - [cyrildewit](https://github.com/cyrildewit)
+- **Cyril de Wit** - _Author_ - [cyrildewit](https://github.com/cyrildewit)
 
 See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who
 participated in this project.
@@ -606,16 +606,6 @@ participated in this project.
 
 - [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - *
   *[Stidges](https://github.com/stidges)**
-
-## Alternatives
-
-- [antonioribeiro/tracker](https://github.com/antonioribeiro/tracker)
-- [foothing/laravel-simple-pageviews](https://github.com/foothing/laravel-simple-pageviews)
-- [awssat/laravel-visaits](https://github.com/awssat/laravel-visits)
-- [Kryptonit3/Counter](https://github.com/Kryptonit3/Counter)
-- [fraank/ViewCounter](https://github.com/fraank/ViewCounter)
-
-Feel free to add more alternatives!
 
 ## License
 
