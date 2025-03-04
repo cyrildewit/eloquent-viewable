@@ -1,9 +1,6 @@
 {
     "name": "cyrildewit/eloquent-viewable",
     "description": "A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models",
-    "type": "library",
-    "license": "MIT",
-    "homepage": "https://github.com/cyrildewit/eloquent-viewable",
     "keywords": [
         "laravel",
         "eloquent",
@@ -14,6 +11,8 @@
         "hits",
         "counter"
     ],
+    "homepage": "https://github.com/cyrildewit/eloquent-viewable",
+    "license": "MIT",
     "authors": [
         {
             "name": "Cyril de Wit",
@@ -60,13 +59,13 @@
     "config": {
         "sort-packages": true
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "extra": {
         "laravel": {
             "providers": [
                 "CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
