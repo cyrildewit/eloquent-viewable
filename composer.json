@@ -54,7 +54,7 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
-        "test:cov": "vendor/bin/phpunit --coverage-clover build/coverage.xml"
+        "test:coverage": "vendor/bin/phpunit --coverage-clover build/coverage.xml"
     },
     "config": {
         "sort-packages": true
