@@ -1,6 +1,6 @@
 {
     "name": "cyrildewit/eloquent-viewable",
-    "description": "Laravel package that allows you to associate views with Eloquent models",
+    "description": "A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/cyrildewit/eloquent-viewable",
@@ -18,7 +18,7 @@
         {
             "name": "Cyril de Wit",
             "email": "info@cyrildewit.nl",
-            "homepage": "http://cyrildewit.nl",
+            "homepage": "https://cyrildewit.nl",
             "role": "Developer"
         }
     ],
