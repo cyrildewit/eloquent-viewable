@@ -475,7 +475,8 @@ If you want to extend or replace one of the core classes with your own implement
 - `CyrildeWit\EloquentViewable\Visitor`
 - `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
-_**Note:** Don't forget that all custom classes must implement their original interfaces_
+> [!NOTE]
+> Don't forget that all custom classes must implement their original interfaces._
 
 ### Custom information about visitor
 
