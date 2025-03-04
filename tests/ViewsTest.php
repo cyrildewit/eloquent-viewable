@@ -17,6 +17,7 @@ use DateTime;
 use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Config;
+use TypeError;
 
 class ViewsTest extends TestCase
 {
@@ -362,7 +363,7 @@ class ViewsTest extends TestCase
 
     public function test_it_throws_an_exception_when_remember_lifetime_is_of_incorrect_type(): void
     {
-        $this->expectException(Exception::class);
+        $this->expectException(TypeError::class);
 
         Container::getInstance()->make(Views::class)->forViewable($this->post)->remember('not good')->count();
     }
