@@ -56,7 +56,7 @@
         "lint": "pint",
         "test:lint": "pint --test",
         "test": "phpunit",
-        "test:coverage": "vendor/bin/phpunit --coverage-clover build/coverage.xml"
+        "test:coverage": "phpunit --coverage-clover build/coverage.xml"
     },
     "config": {
         "sort-packages": true
