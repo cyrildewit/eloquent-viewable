@@ -86,7 +86,7 @@ class CooldownManager
      * Returns for example:
      * => `eloquent-viewable.session.key.app-models-post`
      */
-    protected function createNamespaceKey(Viewable $viewable, string $collection = null): string
+    protected function createNamespaceKey(Viewable $viewable, ?string $collection = null): string
     {
         $key = $this->primaryKey;
         $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
