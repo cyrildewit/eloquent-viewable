@@ -60,7 +60,7 @@ trait InteractsWithViews
         Builder $query,
         string $direction = 'desc',
         $period = null,
-        string $collection = null,
+        ?string $collection = null,
         string $as = 'unique_views_count'
     ): Builder {
         return $query->orderByViews($direction, $period, $collection, true, $as);
