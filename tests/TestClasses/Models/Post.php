@@ -12,16 +12,5 @@ class Post extends Model implements Viewable
 {
     use InteractsWithViews;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'posts';
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
     protected $guarded = [];
 }

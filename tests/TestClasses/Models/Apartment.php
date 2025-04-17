@@ -12,16 +12,5 @@ class Apartment extends Model implements Viewable
 {
     use InteractsWithViews;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'apartments';
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
     protected $guarded = [];
 }
