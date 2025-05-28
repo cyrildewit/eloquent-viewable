@@ -50,7 +50,7 @@ trait InteractsWithViews
         string $as = 'views_count'
     ): Builder {
         return $query->withViewsCount($period, $collection, $unique, $as)
-            ->orderBy($as, $direction);
+            ->orderBy('id', $direction);
     }
 
     /**
