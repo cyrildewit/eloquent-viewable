@@ -48,7 +48,7 @@ return [
     'cooldown' => [
 
         /*
-         * Everthing will be stored under the following key in the session.
+         * Everything will be stored under the following key in the session.
          */
         'key' => 'cyrildewit.eloquent-viewable.cooldowns',
 
