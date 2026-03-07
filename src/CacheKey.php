@@ -91,8 +91,8 @@ class CacheKey
         }
 
         if ($period && $period->hasFixedDateTimes()) {
-            $startDateTime = $period->getStartDateTimestamp();
-            $endDateTime = $period->getEndDateTimestamp();
+            $startDateTime = $period->getStartDateTime()?->timestamp;
+            $endDateTime = $period->getEndDateTime()?->timestamp;
 
             return "{$startDateTime}|{$endDateTime}".'.';
         }
