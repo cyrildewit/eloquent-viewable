@@ -6,3 +6,6 @@ composer.lock
 .phpunit.cache
 .phpunit.result.cache
 /build
+
+# Editors
+/.idea
