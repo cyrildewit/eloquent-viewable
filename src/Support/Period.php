@@ -50,21 +50,17 @@ class Period
 
     protected int $subValue;
 
+    /**
+     * @throws InvalidPeriod
+     */
     public function __construct(
         DateTimeInterface|string|null $startDateTime = null,
         DateTimeInterface|string|null $endDateTime = null,
     ) {
-        $startDateTime = $this->resolveDateTime($startDateTime);
-        $endDateTime = $this->resolveDateTime($endDateTime);
+        $this->startDateTime = $this->resolveDateTime($startDateTime);
+        $this->endDateTime = $this->resolveDateTime($endDateTime);
 
-        if ($startDateTime instanceof DateTimeInterface && $endDateTime instanceof DateTimeInterface) {
-            if ($startDateTime > $endDateTime) {
-                throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime($startDateTime, $endDateTime);
-            }
-        }
-
-        $this->startDateTime = $startDateTime;
-        $this->endDateTime = $endDateTime;
+        $this->guardChronologicalOrder();
     }
 
     /**
@@ -341,5 +337,22 @@ class Period
         }
 
         return Carbon::parse($dateTime);
+    }
+
+    /**
+     * @throws InvalidPeriod
+     */
+    protected function guardChronologicalOrder(): void
+    {
+        if ($this->startDateTime === null || $this->endDateTime === null) {
+            return;
+        }
+
+        if ($this->startDateTime > $this->endDateTime) {
+            throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime(
+                $this->startDateTime,
+                $this->endDateTime,
+            );
+        }
     }
 }
