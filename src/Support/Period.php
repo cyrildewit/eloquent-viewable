@@ -12,9 +12,6 @@ use Illuminate\Support\Str;
 
 class Period
 {
-    /**
-     * Available past types.
-     */
     const string PAST_DAYS = 'PAST_DAYS';
 
     const string PAST_WEEKS = 'PAST_WEEKS';
@@ -23,9 +20,6 @@ class Period
 
     const string PAST_YEARS = 'PAST_YEARS';
 
-    /**
-     * Available sub types.
-     */
     const string SUB_SECONDS = 'SUB_SECONDS';
 
     const string SUB_MINUTES = 'SUB_MINUTES';
@@ -206,8 +200,8 @@ class Period
      */
     public static function subToday(string $subType, int $subValue): static
     {
-        $subTypeMethod = 'sub' . ucfirst(strtolower(Str::after($subType, 'PAST_')));
         $today = Carbon::today();
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
 
         return self::sub($today, $subTypeMethod, $subType, $subValue);
     }
@@ -217,10 +211,10 @@ class Period
      *
      * Start Date Time: Carbon::now()->sub<subType>(<subValue>);
      */
-    public static function subNow(string $subType, int $subValue): self
+    public static function subNow(string $subType, int $subValue): static
     {
-        $subTypeMethod = 'sub' . ucfirst(strtolower(Str::after($subType, 'SUB_')));
         $now = Carbon::now();
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
 
         return self::sub($now, $subTypeMethod, $subType, $subValue);
     }
