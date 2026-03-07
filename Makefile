@@ -12,3 +12,7 @@ install: ## Install the composer dependencies
 
 test: ## Run the tests
 	docker compose run --rm composer test
+
+lint: ## Run the linter
+	docker compose run --rm composer lint
+
