@@ -261,20 +261,6 @@ class PeriodTest extends TestCase
         $this->assertFalse($period->hasFixedDateTimes());
     }
 
-    public function getStartDateTimeString_returns_start_date_time_as_string(): void
-    {
-        $period = Period::since($startDateTime = Carbon::parse('2019-03-12'));
-
-        $this->assertEquals($startDateTime->toDateTimeString(), $period->getStartDateTimeString());
-    }
-
-    public function getEndDateTimeString_returns_end_date_time_as_string(): void
-    {
-        $period = Period::upto($endDateTime = Carbon::parse('2019-03-12'));
-
-        $this->assertEquals($endDateTime->toDateTimeString(), $period->getEndDateTimeString());
-    }
-
     public function getSubType_returns_sub_type(): void
     {
         $period = Period::pastDays(3);

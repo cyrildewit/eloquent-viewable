@@ -84,7 +84,7 @@ class CacheKey
         return $this->viewable->getKey().'.' ?? '';
     }
 
-    protected function getPeriodSlug($period = null): string
+    protected function getPeriodSlug(?Period $period = null): string
     {
         if (! $period) {
             return '|'.'.';
