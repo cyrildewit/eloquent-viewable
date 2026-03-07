@@ -330,8 +330,12 @@ class Period
         return $this;
     }
 
-    protected function resolveDateTime(DateTimeInterface|string $dateTime): CarbonInterface
+    protected function resolveDateTime(DateTimeInterface|string|null $dateTime): ?CarbonInterface
     {
+        if ($dateTime === null) {
+            return null;
+        }
+
         if ($dateTime instanceof DateTimeInterface) {
             return Carbon::instance($dateTime);
         }
