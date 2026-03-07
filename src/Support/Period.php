@@ -261,27 +261,7 @@ class Period
         return $this->fixedDateTimes;
     }
 
-    public function getStartDateTimeString(): string
-    {
-        return $this->startDateTime !== null ? $this->startDateTime->toDateTimeString() : '';
-    }
-
-    public function getEndDateTimeString(): string
-    {
-        return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
-    }
-
-    public function getStartDateTimestamp(): ?int
-    {
-        return $this->startDateTime?->getTimestamp();
-    }
-
-    public function getEndDateTimestamp(): ?int
-    {
-        return $this->endDateTime?->getTimestamp();
-    }
-
-    public function getSubType(): string
+    public function getSubType(): ?string
     {
         return $this->subType;
     }
