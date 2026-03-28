@@ -91,7 +91,7 @@ In this documentation, you will find some helpful information about the use of t
 
 | Version | Laravel        | PHP Version |
 |---------|----------------|-------------|
-| ^7.0    | 6.x.x - 12.x.x | >= 7.4.0    |
+| ^7.0    | 6.x.x - 13.x.x | >= 7.4.0    |
 
 Support for Lumen is not maintained.
 
