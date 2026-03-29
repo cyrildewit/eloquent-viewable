@@ -19,13 +19,7 @@ trait InteractsWithViews
 {
     public static function bootInteractsWithViews(): void
     {
-        $callback = fn () => static::observe(ViewableObserver::class);
-
-        if (method_exists(static::class, 'whenBooted')) {
-            static::whenBooted($callback);
-        } else {
-            $callback();
-        }
+        static::whenBooted(fn () => static::observe(ViewableObserver::class));
     }
 
     /**
