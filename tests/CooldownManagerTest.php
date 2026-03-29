@@ -9,9 +9,11 @@ use CyrildeWit\EloquentViewable\CooldownManager;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Session;
+use PHPUnit\Framework\Attributes\Test;
 
 class CooldownManagerTest extends TestCase
 {
+    #[Test]
     public function push_can_add_an_item(): void
     {
         $post = Post::factory()->create();
@@ -27,6 +29,7 @@ class CooldownManagerTest extends TestCase
         $this->assertTrue(Session::has($postSessionKey));
     }
 
+    #[Test]
     public function push_can_add_an_item_with_collection(): void
     {
         $post = Post::factory()->create();
@@ -40,6 +43,7 @@ class CooldownManagerTest extends TestCase
         $this->assertTrue(Session::has($postSessionKey));
     }
 
+    #[Test]
     public function push_does_not_add_an_item_if_already_added(): void
     {
         $post = Post::factory()->create();
@@ -53,7 +57,8 @@ class CooldownManagerTest extends TestCase
         $this->assertCount(1, Session::get($postBaseKey));
     }
 
-    public function test_it_can_forget_expired_views(): void
+    #[Test]
+    public function it_can_forget_expired_views(): void
     {
         $post = Post::factory()->create();
         $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
@@ -70,7 +75,8 @@ class CooldownManagerTest extends TestCase
         $this->assertCount(1, Session::get($postNamespaceKey));
     }
 
-    public function test_it_can_forget_expired_views_with_collection(): void
+    #[Test]
+    public function it_can_forget_expired_views_with_collection(): void
     {
         $post = Post::factory()->create();
         $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));

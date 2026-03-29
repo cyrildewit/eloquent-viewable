@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories;
 
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Apartment>
+ * @extends Factory<Post>
  */
 class PostFactory extends Factory
 {
