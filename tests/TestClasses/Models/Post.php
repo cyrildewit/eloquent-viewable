@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model implements Viewable
 {
+    /** @use HasFactory<PostFactory> */
     use HasFactory, InteractsWithViews;
 
     protected $guarded = [];

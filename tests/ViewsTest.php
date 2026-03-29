@@ -17,6 +17,7 @@ use DateTime;
 use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Config;
+use PHPUnit\Framework\Attributes\Test;
 use TypeError;
 
 class ViewsTest extends TestCase
@@ -30,7 +31,8 @@ class ViewsTest extends TestCase
         $this->post = Post::factory()->create();
     }
 
-    public function test_it_is_macroable(): void
+    #[Test]
+    public function it_is_macroable(): void
     {
         Views::macro('newMethod', function () {
             return 'someValue';
@@ -39,14 +41,16 @@ class ViewsTest extends TestCase
         $this->assertEquals('someValue', Container::getInstance()->make(Views::class)->newMethod());
     }
 
-    public function test_it_can_record_a_view(): void
+    #[Test]
+    public function it_can_record_a_view(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
         $this->assertEquals(1, View::count());
     }
 
-    public function test_it_can_record_multiple_views(): void
+    #[Test]
+    public function it_can_record_multiple_views(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -55,7 +59,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, View::count());
     }
 
-    public function test_it_throws_an_exception_when_recording_a_view_for_a_viewable_type(): void
+    #[Test]
+    public function it_throws_an_exception_when_recording_a_view_for_a_viewable_type(): void
     {
         $this->expectException(Exception::class);
 
@@ -65,7 +70,8 @@ class ViewsTest extends TestCase
             ->record();
     }
 
-    public function test_it_does_not_record_views_if_cooldown_is_active(): void
+    #[Test]
+    public function it_does_not_record_views_if_cooldown_is_active(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -80,7 +86,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(1, View::count());
     }
 
-    public function test_it_does_not_record_views_if_session_delay_is_active_with_collection(): void
+    #[Test]
+    public function it_does_not_record_views_if_session_delay_is_active_with_collection(): void
     {
         views($this->post)
             ->collection('test')
@@ -95,7 +102,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(1, View::count());
     }
 
-    public function test_it_can_record_a_view_with_cooldown_where_lifetime_is_an_integer(): void
+    #[Test]
+    public function it_can_record_a_view_with_cooldown_where_lifetime_is_an_integer(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -110,7 +118,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(1, View::count());
     }
 
-    public function test_it_does_not_record_views_if_cooldown_is_active_with_collection(): void
+    #[Test]
+    public function it_does_not_record_views_if_cooldown_is_active_with_collection(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -127,7 +136,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(1, View::count());
     }
 
-    public function test_it_can_remove_a_cooldown(): void
+    #[Test]
+    public function it_can_remove_a_cooldown(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -142,7 +152,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(2, View::count());
     }
 
-    public function test_it_can_record_a_view_under_a_collection(): void
+    #[Test]
+    public function it_can_record_a_view_under_a_collection(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -156,7 +167,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(1, View::where('collection', 'customCollection')->count());
     }
 
-    public function test_it_can_remove_the_collection(): void
+    #[Test]
+    public function it_can_remove_the_collection(): void
     {
         Container::getInstance()->make(Views::class)
             ->forViewable($this->post)
@@ -170,7 +182,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(2, View::where('collection', null)->count());
     }
 
-    public function test_it_can_count_the_views(): void
+    #[Test]
+    public function it_can_count_the_views(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -179,7 +192,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
     }
 
-    public function test_it_can_count_the_unique_views(): void
+    #[Test]
+    public function it_can_count_the_unique_views(): void
     {
         TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
         TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
@@ -188,7 +202,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable($this->post)->unique()->count());
     }
 
-    public function test_it_can_count_the_views_of_a_period(): void
+    #[Test]
+    public function it_can_count_the_views_of_a_period(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -204,7 +219,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(4, Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count());
     }
 
-    public function test_it_can_remove_the_period(): void
+    #[Test]
+    public function it_can_remove_the_period(): void
     {
         Carbon::setTestNow(Carbon::now());
 
@@ -214,7 +230,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable($this->post)->period(null)->count());
     }
 
-    public function test_it_can_count_the_views_with_a_collection(): void
+    #[Test]
+    public function it_can_count_the_views_with_a_collection(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
@@ -224,7 +241,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->count());
     }
 
-    public function test_it_can_destroy_the_views(): void
+    #[Test]
+    public function it_can_destroy_the_views(): void
     {
         $post = $this->post;
         $apartment = Apartment::factory()->create();
@@ -241,7 +259,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(0, Container::getInstance()->make(Views::class)->forViewable($post)->count());
     }
 
-    public function test_it_can_destroy_the_views_of_a_viewable_type(): void
+    #[Test]
+    public function it_can_destroy_the_views_of_a_viewable_type(): void
     {
         $postOne = $this->post;
         $postTwo = Post::factory()->create();
@@ -260,7 +279,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(0, Container::getInstance()->make(Views::class)->forViewable(new Post)->count());
     }
 
-    public function test_it_can_count_the_views_by_type(): void
+    #[Test]
+    public function it_can_count_the_views_by_type(): void
     {
         $postOne = $this->post;
         $postTwo = Post::factory()->create();
@@ -275,7 +295,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable(new Post)->count());
     }
 
-    public function test_it_can_count_the_unique_views_by_type(): void
+    #[Test]
+    public function it_can_count_the_unique_views_by_type(): void
     {
         $postOne = $this->post;
         $postTwo = Post::factory()->create();
@@ -291,7 +312,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(2, Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count());
     }
 
-    public function test_it_can_remember_the_views_counts(): void
+    #[Test]
+    public function it_can_remember_the_views_counts(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -305,7 +327,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count());
     }
 
-    public function test_it_can_remove_the_remember_lifetime(): void
+    #[Test]
+    public function it_can_remove_the_remember_lifetime(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -319,7 +342,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(5, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->remember()->count());
     }
 
-    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_integers(): void
+    #[Test]
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_integers(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -333,7 +357,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(10)->count());
     }
 
-    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_date_time_interface(): void
+    #[Test]
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_date_time_interface(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -347,7 +372,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count());
     }
 
-    public function test_it_can_remember_the_views_counts_with_custom_lifetime_as_carbon_interface(): void
+    #[Test]
+    public function it_can_remember_the_views_counts_with_custom_lifetime_as_carbon_interface(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -361,14 +387,16 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(Carbon::now()->addHours(2))->count());
     }
 
-    public function test_it_throws_an_exception_when_remember_lifetime_is_of_incorrect_type(): void
+    #[Test]
+    public function it_throws_an_exception_when_remember_lifetime_is_of_incorrect_type(): void
     {
         $this->expectException(TypeError::class);
 
         Container::getInstance()->make(Views::class)->forViewable($this->post)->remember('not good')->count();
     }
 
-    public function test_it_can_remember_the_views_counts_of_a_type(): void
+    #[Test]
+    public function it_can_remember_the_views_counts_of_a_type(): void
     {
         $postOne = $this->post;
         $postTwo = Post::factory()->create();
@@ -388,7 +416,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(3, views(Post::class)->remember(60)->count());
     }
 
-    public function test_it_does_not_record_bot_views(): void
+    #[Test]
+    public function it_does_not_record_bot_views(): void
     {
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, function () {
@@ -407,7 +436,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    public function test_it_does_not_record_views_from_visitors_with_dnt_header(): void
+    #[Test]
+    public function it_does_not_record_views_from_visitors_with_dnt_header(): void
     {
         Config::set('eloquent-viewable.honor_dnt', true);
 
@@ -423,7 +453,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    public function test_it_does_not_record_views_from_ignored_ip_addresses(): void
+    #[Test]
+    public function it_does_not_record_views_from_ignored_ip_addresses(): void
     {
         Config::set('eloquent-viewable.ignored_ip_addresses', [
             '127.20.22.6',
@@ -441,7 +472,8 @@ class ViewsTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    public function test_it_can_set_the_visitor_instance(): void
+    #[Test]
+    public function it_can_set_the_visitor_instance(): void
     {
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 

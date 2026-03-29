@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Apartment extends Model implements Viewable
 {
+    /** @use HasFactory<ApartmentFactory> */
     use HasFactory, InteractsWithViews;
 
     protected $guarded = [];
