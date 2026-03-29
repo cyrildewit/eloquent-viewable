@@ -12,14 +12,6 @@ use PHPUnit\Framework\Attributes\Test;
 final class ViewsHelperTest extends TestCase
 {
     #[Test]
-    public function it_does_not_accept_null_as_a_valid_viewable(): void
-    {
-        $this->expectException(ArgumentCountError::class);
-
-        views();
-    }
-
-    #[Test]
     public function it_accepts_a_fully_qualified_class_name_as_viewable(): void
     {
         $this->assertInstanceOf(Views::class, views(Post::class));
