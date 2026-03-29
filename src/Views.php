@@ -37,25 +37,7 @@ class Views implements ViewsContract
 
     protected ?DateTimeInterface $cacheLifetime = null;
 
-    protected VisitorContract $visitor;
-
-    protected CooldownManager $cooldownManager;
-
-    protected ConfigRepository $config;
-
-    protected CacheRepository $cache;
-
-    public function __construct(
-        ConfigRepository $config,
-        CacheRepository $cache,
-        CooldownManager $cooldownManager,
-        VisitorContract $visitor
-    ) {
-        $this->config = $config;
-        $this->cache = $cache;
-        $this->cooldownManager = $cooldownManager;
-        $this->visitor = $visitor;
-    }
+    public function __construct(protected ConfigRepository $config, protected CacheRepository $cache, protected CooldownManager $cooldownManager, protected VisitorContract $visitor) {}
 
     public function forViewable(Viewable $viewable): self
     {
@@ -79,17 +61,17 @@ class Views implements ViewsContract
             }
         }
 
-        $query->when($this->period, function ($query, $period) {
+        $query->when($this->period, function ($query, $period): void {
             $query->withinPeriod($period);
         });
 
-        $query->when($this->collection, function ($query, $collection) {
+        $query->when($this->collection, function ($query, $collection): void {
             $query->collection($collection);
         });
 
         $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
 
-        if ($this->shouldCache() && $this->cacheLifetime !== null) {
+        if ($this->shouldCache() && $this->cacheLifetime instanceof DateTimeInterface) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
@@ -190,11 +172,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        if ($this->cooldown !== null && ! $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection)) {
-            return false;
-        }
-
-        return true;
+        return ! ($this->cooldown instanceof DateTimeInterface && ! $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection));
     }
 
     protected function createView(): ViewContract
@@ -212,7 +190,7 @@ class Views implements ViewsContract
 
     protected function shouldCache(): bool
     {
-        return $this->cacheLifetime !== null;
+        return $this->cacheLifetime instanceof DateTimeInterface;
     }
 
     protected function resolveViewableQuery(): Builder

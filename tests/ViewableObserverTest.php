@@ -8,9 +8,9 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use PHPUnit\Framework\Attributes\Test;
 
-class ViewableObserverTest extends TestCase
+final class ViewableObserverTest extends TestCase
 {
-    protected Post $post;
+    private Post $post;
 
     protected function setUp(): void
     {

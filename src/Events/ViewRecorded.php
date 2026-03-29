@@ -11,10 +11,5 @@ class ViewRecorded
 {
     use SerializesModels;
 
-    public View $view;
-
-    public function __construct(View $view)
-    {
-        $this->view = $view;
-    }
+    public function __construct(public View $view) {}
 }

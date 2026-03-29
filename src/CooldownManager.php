@@ -12,16 +12,13 @@ use Illuminate\Contracts\Session\Session;
 
 class CooldownManager
 {
-    protected Session $session;
-
     /**
      * The primary key under which history is stored.
      */
     protected string $primaryKey;
 
-    public function __construct(ConfigRepository $config, Session $session)
+    public function __construct(ConfigRepository $config, protected Session $session)
     {
-        $this->session = $session;
         $this->primaryKey = $config['eloquent-viewable']['cooldown']['key'];
     }
 
@@ -104,8 +101,7 @@ class CooldownManager
     protected function createViewableKey(Viewable $viewable, ?string $collection = null): string
     {
         $key = $this->createNamespaceKey($viewable, $collection);
-        $key .= ".{$viewable->getKey()}";
 
-        return $key;
+        return $key.".{$viewable->getKey()}";
     }
 }

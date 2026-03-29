@@ -15,6 +15,7 @@ class Post extends Model implements Viewable
     /** @use HasFactory<PostFactory> */
     use HasFactory, InteractsWithViews;
 
+    #[\Override]
     protected $guarded = [];
 
     protected static function newFactory(): PostFactory

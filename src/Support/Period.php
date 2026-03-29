@@ -40,9 +40,9 @@ class Period
 
     protected bool $fixedDateTimes = true;
 
-    protected ?string $subType;
+    protected ?string $subType = null;
 
-    protected ?int $subValue;
+    protected ?int $subValue = null;
 
     /**
      * @throws InvalidPeriod
@@ -319,7 +319,7 @@ class Period
      */
     protected function guardChronologicalOrder(): void
     {
-        if ($this->startDateTime === null || $this->endDateTime === null) {
+        if (! $this->startDateTime instanceof CarbonInterface || ! $this->endDateTime instanceof CarbonInterface) {
             return;
         }
 

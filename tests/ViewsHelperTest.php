@@ -9,7 +9,7 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Views;
 use PHPUnit\Framework\Attributes\Test;
 
-class ViewsHelperTest extends TestCase
+final class ViewsHelperTest extends TestCase
 {
     #[Test]
     public function it_does_not_accept_null_as_a_valid_viewable(): void

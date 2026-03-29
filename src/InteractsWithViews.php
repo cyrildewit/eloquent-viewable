@@ -17,12 +17,7 @@ use Illuminate\Support\Facades\DB;
  **/
 trait InteractsWithViews
 {
-    /**
-     * Viewable boot logic.
-     *
-     * @return void
-     */
-    public static function bootInteractsWithViews()
+    public static function bootInteractsWithViews(): void
     {
         $callback = fn () => static::observe(ViewableObserver::class);
 
@@ -77,8 +72,8 @@ trait InteractsWithViews
      */
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
-        return $query->withCount(["views as {$as}" => function (Builder $query) use ($period, $collection, $unique) {
-            if ($period) {
+        return $query->withCount(["views as {$as}" => function (Builder $query) use ($period, $collection, $unique): void {
+            if ($period instanceof Period) {
                 $query->withinPeriod($period);
             }
 
