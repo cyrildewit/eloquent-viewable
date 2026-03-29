@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Support;
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestCase;
 use Exception;
 use PHPUnit\Framework\Attributes\Test;
 
-class PeriodTest extends TestCase
+final class PeriodTest extends TestCase
 {
     #[Test]
     public function it_can_instantiate_class(): void
@@ -53,7 +54,7 @@ class PeriodTest extends TestCase
         $period = new Period('2018-07-16');
 
         $this->assertEquals($period->getStartDateTime(), Carbon::parse($startDateTime));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -63,7 +64,7 @@ class PeriodTest extends TestCase
 
         $period = new Period(null, $endDateTime);
 
-        $this->assertNull($period->getStartDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getStartDateTime());
         $this->assertEquals($period->getEndDateTime(), Carbon::parse($endDateTime));
     }
 
@@ -98,7 +99,7 @@ class PeriodTest extends TestCase
         $period = Period::since($startDateTime);
 
         $this->assertEquals($period->getStartDateTime(), $startDateTime);
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -108,7 +109,7 @@ class PeriodTest extends TestCase
 
         $period = Period::upto($endDateTime);
 
-        $this->assertNull($period->getStartDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getStartDateTime());
         $this->assertEquals($period->getEndDateTime(), $endDateTime);
     }
 
@@ -120,7 +121,7 @@ class PeriodTest extends TestCase
         $period = Period::pastDays(5);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subDays(5));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -131,7 +132,7 @@ class PeriodTest extends TestCase
         $period = Period::pastWeeks(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subWeeks(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -142,7 +143,7 @@ class PeriodTest extends TestCase
         $period = Period::pastMonths(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subMonths(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -153,7 +154,7 @@ class PeriodTest extends TestCase
         $period = Period::pastYears(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::today()->subYears(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -174,7 +175,7 @@ class PeriodTest extends TestCase
         $period = Period::subSeconds(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subSeconds(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -185,7 +186,7 @@ class PeriodTest extends TestCase
         $period = Period::subMinutes(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subMinutes(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -196,7 +197,7 @@ class PeriodTest extends TestCase
         $period = Period::subHours(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subHours(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -207,7 +208,7 @@ class PeriodTest extends TestCase
         $period = Period::subDays(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subDays(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -218,7 +219,7 @@ class PeriodTest extends TestCase
         $period = Period::subWeeks(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subWeeks(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -229,7 +230,7 @@ class PeriodTest extends TestCase
         $period = Period::subMonths(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subMonths(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -240,7 +241,7 @@ class PeriodTest extends TestCase
         $period = Period::subYears(2);
 
         $this->assertEquals($period->getStartDateTime(), Carbon::now()->subYears(2));
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
     }
 
     #[Test]
@@ -258,7 +259,7 @@ class PeriodTest extends TestCase
 
         $period = Period::create();
 
-        $this->assertNull($period->getStartDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getStartDateTime());
 
         $period->setStartDateTime(Carbon::now());
 
@@ -272,7 +273,7 @@ class PeriodTest extends TestCase
 
         $period = Period::create();
 
-        $this->assertNull($period->getEndDateTime());
+        $this->assertNotInstanceOf(CarbonInterface::class, $period->getEndDateTime());
 
         $period->setEndDateTime(Carbon::now());
 
@@ -292,7 +293,7 @@ class PeriodTest extends TestCase
     {
         $period = Period::pastDays(3);
 
-        $this->assertEquals(Period::PAST_DAYS, $period->getSubType());
+        $this->assertSame(Period::PAST_DAYS, $period->getSubType());
     }
 
     #[Test]
@@ -300,6 +301,6 @@ class PeriodTest extends TestCase
     {
         $period = Period::pastDays(3);
 
-        $this->assertEquals(3, $period->getSubValue());
+        $this->assertSame(3, $period->getSubValue());
     }
 }

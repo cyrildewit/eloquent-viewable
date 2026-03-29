@@ -20,9 +20,9 @@ use Illuminate\Support\Facades\Config;
 use PHPUnit\Framework\Attributes\Test;
 use TypeError;
 
-class ViewsTest extends TestCase
+final class ViewsTest extends TestCase
 {
-    protected Post $post;
+    private Post $post;
 
     protected function setUp(): void
     {
@@ -34,9 +34,7 @@ class ViewsTest extends TestCase
     #[Test]
     public function it_is_macroable(): void
     {
-        Views::macro('newMethod', function () {
-            return 'someValue';
-        });
+        Views::macro('newMethod', fn (): string => 'someValue');
 
         $this->assertEquals('someValue', Container::getInstance()->make(Views::class)->newMethod());
     }
@@ -408,26 +406,24 @@ class ViewsTest extends TestCase
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
 
-        $this->assertEquals(3, views(Post::class)->remember(60)->count());
+        $this->assertSame(3, views(Post::class)->remember(60)->count());
 
         Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();
         Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
 
-        $this->assertEquals(3, views(Post::class)->remember(60)->count());
+        $this->assertSame(3, views(Post::class)->remember(60)->count());
     }
 
     #[Test]
     public function it_does_not_record_bot_views(): void
     {
         // Faking that the visitor is a bot
-        $this->app->bind(CrawlerDetector::class, function () {
-            return new class implements CrawlerDetector
+        $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
+        {
+            public function isCrawler(): bool
             {
-                public function isCrawler(): bool
-                {
-                    return true;
-                }
-            };
+                return true;
+            }
         });
 
         Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
@@ -441,7 +437,7 @@ class ViewsTest extends TestCase
     {
         Config::set('eloquent-viewable.honor_dnt', true);
 
-        $this->mock(Visitor::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock): void {
             $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });
@@ -461,7 +457,7 @@ class ViewsTest extends TestCase
             '10.10.30.40',
         ]);
 
-        $this->mock(Visitor::class, function ($mock) {
+        $this->mock(Visitor::class, function ($mock): void {
             $mock->shouldReceive('ip')->andReturn('127.20.22.6');
             $mock->shouldReceive('isCrawler')->andReturn(false);
         });

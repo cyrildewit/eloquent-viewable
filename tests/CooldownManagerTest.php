@@ -11,7 +11,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Session;
 use PHPUnit\Framework\Attributes\Test;
 
-class CooldownManagerTest extends TestCase
+final class CooldownManagerTest extends TestCase
 {
     #[Test]
     public function push_can_add_an_item(): void

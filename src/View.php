@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
@@ -13,10 +14,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class View extends Model implements ViewContract
 {
+    #[\Override]
     protected $guarded = [];
 
+    #[\Override]
     public $timestamps = false;
 
+    #[\Override]
     public function getTable()
     {
         return Container::getInstance()
@@ -24,6 +28,7 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
+    #[\Override]
     public function getConnectionName()
     {
         return Container::getInstance()
@@ -44,11 +49,11 @@ class View extends Model implements ViewContract
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        if ($startDateTime !== null && $endDateTime === null) {
+        if ($startDateTime instanceof CarbonInterface && ! $endDateTime instanceof CarbonInterface) {
             $query->where('viewed_at', '>=', $startDateTime);
-        } elseif ($startDateTime === null && $endDateTime !== null) {
+        } elseif (! $startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
             $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime !== null && $endDateTime !== null) {
+        } elseif ($startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
     }

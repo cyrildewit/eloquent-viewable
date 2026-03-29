@@ -10,7 +10,7 @@ class CreateApartmentsTable extends Migration
 {
     public function up(): void
     {
-        Schema::create('apartments', function (Blueprint $table) {
+        Schema::create('apartments', function (Blueprint $table): void {
             $table->increments('id');
             $table->string('name');
             $table->text('description');

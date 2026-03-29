@@ -20,18 +20,12 @@ class Visitor implements VisitorContract
 
     protected string $visitorCookieKey;
 
-    protected Request $request;
-
-    protected CrawlerDetector $crawlerDetector;
-
     public function __construct(
-        Request $request,
-        CrawlerDetector $crawlerDetector,
+        protected Request $request,
+        protected CrawlerDetector $crawlerDetector,
         ConfigRepository $config
     ) {
         $this->visitorCookieKey = $config['eloquent-viewable']['visitor_cookie_key'];
-        $this->request = $request;
-        $this->crawlerDetector = $crawlerDetector;
     }
 
     /**

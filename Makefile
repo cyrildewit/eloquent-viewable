@@ -16,3 +16,6 @@ test: ## Run the tests
 lint: ## Run the linter
 	docker compose run --rm composer lint
 
+rector: ## Run the linter
+	docker compose run --rm composer rector
+

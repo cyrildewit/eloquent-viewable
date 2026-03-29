@@ -11,12 +11,7 @@ use Illuminate\Support\Str;
 
 class CacheKey
 {
-    protected Viewable $viewable;
-
-    public function __construct(Viewable $viewable)
-    {
-        $this->viewable = $viewable;
-    }
+    public function __construct(protected Viewable $viewable) {}
 
     public static function fromViewable(Viewable $viewable): CacheKey
     {
@@ -34,9 +29,8 @@ class CacheKey
         $key .= $this->getKeySlug();
         $key .= $this->getPeriodSlug($period);
         $key .= $this->getUniqueSlug($unique);
-        $key .= $this->getCollectionSlug($collection);
 
-        return $key;
+        return $key.$this->getCollectionSlug($collection);
     }
 
     protected function getCachePrefix(): string
@@ -86,8 +80,8 @@ class CacheKey
 
     protected function getPeriodSlug(?Period $period = null): string
     {
-        if (! $period) {
-            return '|'.'.';
+        if (! $period instanceof Period) {
+            return '|.';
         }
 
         if ($period && $period->hasFixedDateTimes()) {
@@ -97,7 +91,7 @@ class CacheKey
             return "{$startDateTime}|{$endDateTime}".'.';
         }
 
-        [$subType, $subValueType] = explode('_', strtolower($period->getSubType()));
+        [$subType, $subValueType] = explode('_', strtolower((string) $period->getSubType()));
 
         return "{$subType}{$period->getSubValue()}{$subValueType}|".'.';
     }

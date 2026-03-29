@@ -10,9 +10,9 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use PHPUnit\Framework\Attributes\Test;
 
-class ViewableTest extends TestCase
+final class ViewableTest extends TestCase
 {
-    protected Post $post;
+    private Post $post;
 
     protected function setUp(): void
     {

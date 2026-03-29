@@ -15,6 +15,7 @@ class Apartment extends Model implements Viewable
     /** @use HasFactory<ApartmentFactory> */
     use HasFactory, InteractsWithViews;
 
+    #[\Override]
     protected $guarded = [];
 
     protected static function newFactory(): ApartmentFactory

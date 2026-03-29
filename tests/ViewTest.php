@@ -11,7 +11,7 @@ use CyrildeWit\EloquentViewable\View;
 use Illuminate\Container\Container;
 use PHPUnit\Framework\Attributes\Test;
 
-class ViewTest extends TestCase
+final class ViewTest extends TestCase
 {
     #[Test]
     public function it_can_have_a_custom_connection_through_config_file(): void

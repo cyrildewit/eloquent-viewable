@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ApartmentFactory extends Factory
 {
+    #[\Override]
     protected $model = Apartment::class;
 
     public function definition(): array
