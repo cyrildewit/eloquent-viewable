@@ -190,7 +190,7 @@ jobs:
         run: composer run test:cov
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./build/clover.xml
