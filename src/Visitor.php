@@ -28,9 +28,6 @@ class Visitor implements VisitorContract
         $this->visitorCookieKey = $config['eloquent-viewable']['visitor_cookie_key'];
     }
 
-    /**
-     * Get the unique ID that represents the visitor.
-     */
     public function id(): string
     {
         if (! Cookie::has($this->visitorCookieKey)) {
@@ -44,57 +41,36 @@ class Visitor implements VisitorContract
         return Cookie::get($this->visitorCookieKey);
     }
 
-    /**
-     * Get the visitor IP address.
-     */
     public function ip(): ?string
     {
         return $this->request()->ip();
     }
 
-    /**
-     * Determine if the visitor has a "Do Not Track" header.
-     */
     public function hasDoNotTrackHeader(): bool
     {
         return (int) $this->request()->header(self::DNT) === 1;
     }
 
-    /**
-     * Determine if the visitor is a crawler.
-     */
     public function isCrawler(): bool
     {
         return $this->crawlerDetector()->isCrawler();
     }
 
-    /**
-     * Returns the request instance.
-     */
     protected function request(): Request
     {
         return $this->request;
     }
 
-    /**
-     * Returns the crawler detector instance.
-     */
     protected function crawlerDetector(): CrawlerDetector
     {
         return $this->crawlerDetector;
     }
 
-    /**
-     * Generate a unique visitor id.
-     */
     protected function generateUniqueCookieValue(): string
     {
         return Str::random(80);
     }
 
-    /**
-     * Get the expiration in minutes.
-     */
     protected function cookieExpirationInMinutes(): int
     {
         return 2628000; // aka 5 years

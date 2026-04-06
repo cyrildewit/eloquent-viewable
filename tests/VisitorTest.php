@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Visitor;
-use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -19,7 +18,7 @@ final class VisitorTest extends TestCase
             $mock->shouldReceive('ip')->once()->andReturn('241.224.55.106');
         });
 
-        $visitor = Container::getInstance()->make(Visitor::class);
+        $visitor = $this->app->make(Visitor::class);
 
         $this->assertEquals('241.224.55.106', $visitor->ip());
     }
@@ -31,7 +30,7 @@ final class VisitorTest extends TestCase
             $mock->shouldReceive('header')->once()->andReturn('1');
         });
 
-        $visitor = Container::getInstance()->make(Visitor::class);
+        $visitor = $this->app->make(Visitor::class);
 
         $this->assertTrue($visitor->hasDoNotTrackHeader());
     }
@@ -43,7 +42,7 @@ final class VisitorTest extends TestCase
             $mock->shouldReceive('isCrawler')->once()->andReturn(true);
         });
 
-        $visitor = Container::getInstance()->make(Visitor::class);
+        $visitor = $this->app->make(Visitor::class);
 
         $this->assertTrue($visitor->isCrawler());
     }
