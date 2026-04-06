@@ -1,9 +1,6 @@
 {
     "name": "cyrildewit/eloquent-viewable",
-    "description": "Laravel package that allows you to associate views with Eloquent models",
-    "type": "library",
-    "license": "MIT",
-    "homepage": "https://github.com/cyrildewit/eloquent-viewable",
+    "description": "A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models",
     "keywords": [
         "laravel",
         "eloquent",
@@ -14,31 +11,34 @@
         "hits",
         "counter"
     ],
+    "homepage": "https://github.com/cyrildewit/eloquent-viewable",
+    "license": "MIT",
     "authors": [
         {
             "name": "Cyril de Wit",
             "email": "info@cyrildewit.nl",
-            "homepage": "http://cyrildewit.nl",
+            "homepage": "https://cyrildewit.nl",
             "role": "Developer"
         }
     ],
     "require": {
-        "php": "^7.4|^8.0",
-        "illuminate/cache": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/contracts": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/cookie": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/database": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/http": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/support": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
+        "php": "^8.5",
+        "illuminate/cache": "^13.0",
+        "illuminate/contracts": "^13.0",
+        "illuminate/cookie": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/support": "^13.0",
         "jaybizzle/crawler-detect": "^1.0",
-        "nesbot/carbon": "^2.0|^3.0"
+        "nesbot/carbon": "^3.0"
     },
     "require-dev": {
-        "illuminate/config": "^6.0|^7.0|^8.74|^9.0|^10.0|^11.0|^12.0|^13.0",
+        "illuminate/config": "^13.0",
+        "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
-        "orchestra/testbench": "^4.9.1|^5.9.1|^6.6.1|^7.0.0|^8.0.0|^9.0.0|^10.0.0",
-        "laravel/legacy-factories": "^1.1|^1.3",
-        "phpunit/phpunit": "^9.6.0|^10.0|^11.0"
+        "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^13.0",
+        "rector/rector": "^2.3"
     },
     "autoload": {
         "psr-4": {
@@ -54,19 +54,22 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit",
-        "test:cov": "vendor/bin/phpunit --coverage-clover build/coverage.xml"
+        "lint": "pint",
+        "test:lint": "pint --test",
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-clover build/coverage.xml",
+        "rector": "rector"
     },
     "config": {
         "sort-packages": true
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "extra": {
         "laravel": {
             "providers": [
                 "CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

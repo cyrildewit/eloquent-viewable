@@ -9,19 +9,20 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use Illuminate\Container\Container;
+use PHPUnit\Framework\Attributes\Test;
 
-class ViewTest extends TestCase
+final class ViewTest extends TestCase
 {
-    /** @test */
-    public function it_can_have_a_custom_connection_through_config_file()
+    #[Test]
+    public function it_can_have_a_custom_connection_through_config_file(): void
     {
-        Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'sqlite']);
+        Container::getInstance()->make('config')->get(['eloquent-viewable.models.view.connection', 'testing']);
 
-        $this->assertEquals('sqlite', (new View)->getConnection()->getName());
+        $this->assertEquals('testing', (new View)->getConnection()->getName());
     }
 
-    /** @test */
-    public function it_can_fill_visitor()
+    #[Test]
+    public function it_can_fill_visitor(): void
     {
         $view = new View([
             'visitor' => 'uniqueString',
@@ -30,8 +31,8 @@ class ViewTest extends TestCase
         $this->assertEquals('uniqueString', $view->getAttribute('visitor'));
     }
 
-    /** @test */
-    public function it_can_fill_visitor_with_null()
+    #[Test]
+    public function it_can_fill_visitor_with_null(): void
     {
         $view = new View([
             'visitor' => null,
@@ -40,7 +41,8 @@ class ViewTest extends TestCase
         $this->assertNull($view->getAttribute('visitor'));
     }
 
-    public function it_can_fill_collection()
+    #[Test]
+    public function it_can_fill_collection(): void
     {
         $view = new View([
             'collection' => null,
@@ -49,8 +51,8 @@ class ViewTest extends TestCase
         $this->assertNull($view->getAttribute('collection'));
     }
 
-    /** @test */
-    public function it_can_fill_viewed_at()
+    #[Test]
+    public function it_can_fill_viewed_at(): void
     {
         Carbon::setTestNow($now = Carbon::create(2018, 1, 12));
 
@@ -61,12 +63,12 @@ class ViewTest extends TestCase
         $this->assertEquals('2018-01-12', $view->viewed_at->format('Y-m-d'));
     }
 
-    /** @test */
-    public function it_can_belong_to_viewable_model()
+    #[Test]
+    public function it_can_belong_to_viewable_model(): void
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
 
-        $view = factory(View::class)->create([
+        View::create([
             'viewable_id' => $post->getKey(),
             'viewable_type' => $post->getMorphClass(),
         ]);
@@ -74,10 +76,10 @@ class ViewTest extends TestCase
         $this->assertInstanceOf(Post::class, View::first()->viewable);
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_only_start_date_time()
+    #[Test]
+    public function it_can_scope_to_within_period_with_only_start_date_time(): void
     {
-        $post = factory(Post::class)->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" >= ?',
@@ -85,10 +87,10 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_only_end_date_time()
+    #[Test]
+    public function it_can_scope_to_within_period_with_only_end_date_time(): void
     {
-        $post = factory(Post::class)->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" <= ?',
@@ -96,10 +98,10 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_within_period_with_both_start_and_end_date_time()
+    #[Test]
+    public function it_can_scope_to_within_period_with_both_start_and_end_date_time(): void
     {
-        $post = factory(Post::class)->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "viewed_at" between ? and ?',
@@ -107,10 +109,10 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_collection_null()
+    #[Test]
+    public function it_can_scope_to_collection_null(): void
     {
-        $post = factory(Post::class)->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" is null',
@@ -118,10 +120,10 @@ class ViewTest extends TestCase
         );
     }
 
-    /** @test */
-    public function it_can_scope_to_collection_custom()
+    #[Test]
+    public function it_can_scope_to_collection_custom(): void
     {
-        $post = factory(Post::class)->create();
+        Post::factory()->create();
 
         $this->assertEquals(
             'select * from "views" where "collection" = ?',

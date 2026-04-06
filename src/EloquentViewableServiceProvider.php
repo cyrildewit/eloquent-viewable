@@ -9,18 +9,13 @@ use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
 use Illuminate\Cache\Repository as CacheRepository;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
-    /**
-     * Perform post-registration booting of services.
-     *
-     * @return void
-     */
-    public function boot()
+    public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $config = $this->app->config['eloquent-viewable'];
@@ -39,12 +34,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Register bindings in the container.
-     *
-     * @return void
-     */
-    public function register()
+    #[\Override]
+    public function register(): void
     {
         $this->mergeConfigFrom(
             __DIR__.'/../config/eloquent-viewable.php',
@@ -53,11 +44,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->when(Views::class)
             ->needs(CacheRepository::class)
-            ->give(function (): CacheRepository {
-                return $this->app['cache']->store(
-                    $this->app['config']['eloquent-viewable']['cache']['store']
-                );
-            });
+            ->give(fn (): CacheRepository => $this->app['cache']->store(
+                $this->app['config']['eloquent-viewable']['cache']['store']
+            ));
 
         $this->app->bind(ViewsContract::class, Views::class);
 
@@ -65,7 +54,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->bind(VisitorContract::class, Visitor::class);
 
-        $this->app->bind(CrawlerDetectAdapter::class, function ($app) {
+        $this->app->bind(CrawlerDetectAdapter::class, function (Application $app): CrawlerDetectAdapter {
             $detector = new CrawlerDetect(
                 $app['request']->headers->all(),
                 $app['request']->server('HTTP_USER_AGENT')

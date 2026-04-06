@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
@@ -13,25 +14,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class View extends Model implements ViewContract
 {
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
+    #[\Override]
     protected $guarded = [];
 
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
+    #[\Override]
     public $timestamps = false;
 
-    /**
-     * Get the table associated with the model.
-     *
-     * @return string
-     */
+    #[\Override]
     public function getTable()
     {
         return Container::getInstance()
@@ -39,11 +28,7 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.table_name', parent::getTable());
     }
 
-    /**
-     * Get the current connection name for the model.
-     *
-     * @return string
-     */
+    #[\Override]
     public function getConnectionName()
     {
         return Container::getInstance()
@@ -51,11 +36,6 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
-    /**
-     * Get the viewable model to which this View belongs.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
-     */
     public function viewable(): MorphTo
     {
         return $this->morphTo();
@@ -63,36 +43,26 @@ class View extends Model implements ViewContract
 
     /**
      * Scope a query to only include views within the period.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  \CyrildeWit\EloquentViewable\Support\Period  $period
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeWithinPeriod(Builder $query, Period $period)
+    public function scopeWithinPeriod(Builder $query, Period $period): void
     {
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        if ($startDateTime !== null && $endDateTime === null) {
+        if ($startDateTime instanceof CarbonInterface && ! $endDateTime instanceof CarbonInterface) {
             $query->where('viewed_at', '>=', $startDateTime);
-        } elseif ($startDateTime === null && $endDateTime !== null) {
+        } elseif (! $startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
             $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime !== null && $endDateTime !== null) {
+        } elseif ($startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
             $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
         }
-
-        return $query;
     }
 
     /**
      * Scope a query to only include views withing the collection.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string|null  $collection
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeCollection(Builder $query, ?string $collection = null)
+    public function scopeCollection(Builder $query, ?string $collection = null): void
     {
-        return $query->where('collection', $collection);
+        $query->where('collection', $collection);
     }
 }

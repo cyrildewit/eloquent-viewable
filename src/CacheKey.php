@@ -11,27 +11,14 @@ use Illuminate\Support\Str;
 
 class CacheKey
 {
-    protected Viewable $viewable;
-
-    public function __construct(Viewable $viewable)
-    {
-        $this->viewable = $viewable;
-    }
+    public function __construct(protected Viewable $viewable) {}
 
     public static function fromViewable(Viewable $viewable): CacheKey
     {
         return new static($viewable);
     }
 
-    /**
-     * Make the cache key.
-     *
-     * @param  \CyrildeWit\EloquentViewable\Support\Period|null  $period
-     * @param  bool  $unique
-     * @param  string|null  $collection
-     * @return string
-     */
-    public function make(?Period $period = null, bool $unique = false, ?string $collection = null)
+    public function make(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
         $key = $this->getCachePrefix();
         $key .= $this->getConnectionName();
@@ -42,9 +29,8 @@ class CacheKey
         $key .= $this->getKeySlug();
         $key .= $this->getPeriodSlug($period);
         $key .= $this->getUniqueSlug($unique);
-        $key .= $this->getCollectionSlug($collection);
 
-        return $key;
+        return $key.$this->getCollectionSlug($collection);
     }
 
     protected function getCachePrefix(): string
@@ -92,20 +78,20 @@ class CacheKey
         return $this->viewable->getKey().'.' ?? '';
     }
 
-    protected function getPeriodSlug($period = null): string
+    protected function getPeriodSlug(?Period $period = null): string
     {
-        if (! $period) {
-            return '|'.'.';
+        if (! $period instanceof Period) {
+            return '|.';
         }
 
         if ($period && $period->hasFixedDateTimes()) {
-            $startDateTime = $period->getStartDateTimestamp();
-            $endDateTime = $period->getEndDateTimestamp();
+            $startDateTime = $period->getStartDateTime()?->timestamp;
+            $endDateTime = $period->getEndDateTime()?->timestamp;
 
             return "{$startDateTime}|{$endDateTime}".'.';
         }
 
-        [$subType, $subValueType] = explode('_', strtolower($period->getSubType()));
+        [$subType, $subValueType] = explode('_', strtolower((string) $period->getSubType()));
 
         return "{$subType}{$period->getSubValue()}{$subValueType}|".'.';
     }

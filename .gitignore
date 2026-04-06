@@ -1,5 +1,11 @@
-tmp/
-vendor/
+# Composer Related
 composer.lock
+/vendor
+
+# Caches
+.phpunit.cache
 .phpunit.result.cache
-build/
+/build
+
+# Editors
+/.idea

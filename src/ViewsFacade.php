@@ -8,7 +8,7 @@ use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \CyrildeWit\EloquentViewable\Views
+ * @see Views
  *
  * @codeCoverageIgnore
  */

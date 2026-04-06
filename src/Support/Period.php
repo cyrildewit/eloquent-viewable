@@ -12,24 +12,27 @@ use Illuminate\Support\Str;
 
 class Period
 {
-    /**
-     * Available past types.
-     */
-    const PAST_DAYS = 'PAST_DAYS';
-    const PAST_WEEKS = 'PAST_WEEKS';
-    const PAST_MONTHS = 'PAST_MONTHS';
-    const PAST_YEARS = 'PAST_YEARS';
+    const string PAST_DAYS = 'PAST_DAYS';
 
-    /**
-     * Available sub types.
-     */
-    const SUB_SECONDS = 'SUB_SECONDS';
-    const SUB_MINUTES = 'SUB_MINUTES';
-    const SUB_HOURS = 'SUB_HOURS';
-    const SUB_DAYS = 'SUB_DAYS';
-    const SUB_WEEKS = 'SUB_WEEKS';
-    const SUB_MONTHS = 'SUB_MONTHS';
-    const SUB_YEARS = 'SUB_YEARS';
+    const string PAST_WEEKS = 'PAST_WEEKS';
+
+    const string PAST_MONTHS = 'PAST_MONTHS';
+
+    const string PAST_YEARS = 'PAST_YEARS';
+
+    const string SUB_SECONDS = 'SUB_SECONDS';
+
+    const string SUB_MINUTES = 'SUB_MINUTES';
+
+    const string SUB_HOURS = 'SUB_HOURS';
+
+    const string SUB_DAYS = 'SUB_DAYS';
+
+    const string SUB_WEEKS = 'SUB_WEEKS';
+
+    const string SUB_MONTHS = 'SUB_MONTHS';
+
+    const string SUB_YEARS = 'SUB_YEARS';
 
     protected ?CarbonInterface $startDateTime;
 
@@ -37,56 +40,45 @@ class Period
 
     protected bool $fixedDateTimes = true;
 
-    protected string $subType;
+    protected ?string $subType = null;
 
-    protected int $subValue;
+    protected ?int $subValue = null;
 
     /**
-     * @param  \DateTimeInterface|string|null  $startDateTime
-     * @param  \DateTimeInterface|string|null  $endDateTime
+     * @throws InvalidPeriod
      */
-    public function __construct($startDateTime = null, $endDateTime = null)
-    {
-        $startDateTime = $this->resolveDateTime($startDateTime);
-        $endDateTime = $this->resolveDateTime($endDateTime);
+    public function __construct(
+        DateTimeInterface|string|null $startDateTime = null,
+        DateTimeInterface|string|null $endDateTime = null,
+    ) {
+        $this->startDateTime = $this->resolveDateTime($startDateTime);
+        $this->endDateTime = $this->resolveDateTime($endDateTime);
 
-        if ($startDateTime instanceof DateTimeInterface && $endDateTime instanceof DateTimeInterface) {
-            if ($startDateTime > $endDateTime) {
-                throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime($startDateTime, $endDateTime);
-            }
-        }
-
-        $this->startDateTime = $startDateTime;
-        $this->endDateTime = $endDateTime;
+        $this->guardChronologicalOrder();
     }
 
     /**
-     * Create a new Period instance.
-     *
-     * @param  \DateTimeInterface|string|null  $startDateTime
-     * @param  \DateTimeInterface|string|null  $endDateTime
+     * @throws InvalidPeriod
      */
-    public static function create($startDateTime = null, $endDateTime = null): self
-    {
+    public static function create(
+        DateTimeInterface|string|null $startDateTime = null,
+        DateTimeInterface|string|null $endDateTime = null
+    ): static {
         return new static($startDateTime, $endDateTime);
     }
 
     /**
-     * Create a new Period instance with only a start date time.
-     *
-     * @param  \DateTimeInterface|string|null  $startDateTime
+     * @throws InvalidPeriod
      */
-    public static function since($startDateTime = null): self
+    public static function since(DateTimeInterface|string|null $startDateTime = null): static
     {
         return new static($startDateTime);
     }
 
     /**
-     * Create a new Period instance with only a end date time.
-     *
-     * @param  \DateTimeInterface|string|null  $endDateTime
+     * @throws InvalidPeriod
      */
-    public static function upto($endDateTime = null): self
+    public static function upto(DateTimeInterface|string|null $endDateTime = null): static
     {
         return new static(null, $endDateTime);
     }
@@ -96,7 +88,7 @@ class Period
      *
      * Start Date Time: Carbon::today()->subDays(2);
      */
-    public static function pastDays(int $days): self
+    public static function pastDays(int $days): static
     {
         return self::subToday(self::PAST_DAYS, $days);
     }
@@ -106,7 +98,7 @@ class Period
      *
      * Start Date Time: Carbon::today()->subWeeks(2);
      */
-    public static function pastWeeks(int $weeks): self
+    public static function pastWeeks(int $weeks): static
     {
         return self::subToday(self::PAST_WEEKS, $weeks);
     }
@@ -116,7 +108,7 @@ class Period
      *
      * Start Date Time: Carbon::today()->subMonths(2);
      */
-    public static function pastMonths(int $months): self
+    public static function pastMonths(int $months): static
     {
         return self::subToday(self::PAST_MONTHS, $months);
     }
@@ -126,7 +118,7 @@ class Period
      *
      * Start Date Time: Carbon::today()->subYears(2);
      */
-    public static function pastYears(int $years): self
+    public static function pastYears(int $years): static
     {
         return self::subToday(self::PAST_YEARS, $years);
     }
@@ -136,7 +128,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subSeconds(2);
      */
-    public static function subSeconds(int $seconds): self
+    public static function subSeconds(int $seconds): static
     {
         return self::subNow(self::SUB_SECONDS, $seconds);
     }
@@ -146,7 +138,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subMinutes(2);
      */
-    public static function subMinutes(int $minutes): self
+    public static function subMinutes(int $minutes): static
     {
         return self::subNow(self::SUB_MINUTES, $minutes);
     }
@@ -156,7 +148,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subHours(2);
      */
-    public static function subHours(int $hours): self
+    public static function subHours(int $hours): static
     {
         return self::subNow(self::SUB_HOURS, $hours);
     }
@@ -166,7 +158,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subDays(2);
      */
-    public static function subDays(int $days): self
+    public static function subDays(int $days): static
     {
         return self::subNow(self::SUB_DAYS, $days);
     }
@@ -176,7 +168,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subWeeks(2);
      */
-    public static function subWeeks(int $weeks): self
+    public static function subWeeks(int $weeks): static
     {
         return self::subNow(self::SUB_WEEKS, $weeks);
     }
@@ -186,7 +178,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->subMonths(2);
      */
-    public static function subMonths(int $months): self
+    public static function subMonths(int $months): static
     {
         return self::subNow(self::SUB_MONTHS, $months);
     }
@@ -196,7 +188,7 @@ class Period
      *
      * Start Date Time: Carbon::now()->suYears(2);
      */
-    public static function subYears(int $years): self
+    public static function subYears(int $years): static
     {
         return self::subNow(self::SUB_YEARS, $years);
     }
@@ -206,10 +198,10 @@ class Period
      *
      * Start Date Time: Carbon::today()->sub<subType>(<subValue>);
      */
-    public static function subToday(string $subType, int $subValue): self
+    public static function subToday(string $subType, int $subValue): static
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
         $today = Carbon::today();
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'PAST_')));
 
         return self::sub($today, $subTypeMethod, $subType, $subValue);
     }
@@ -219,10 +211,10 @@ class Period
      *
      * Start Date Time: Carbon::now()->sub<subType>(<subValue>);
      */
-    public static function subNow(string $subType, int $subValue): self
+    public static function subNow(string $subType, int $subValue): static
     {
-        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
         $now = Carbon::now();
+        $subTypeMethod = 'sub'.ucfirst(strtolower(Str::after($subType, 'SUB_')));
 
         return self::sub($now, $subTypeMethod, $subType, $subValue);
     }
@@ -231,9 +223,15 @@ class Period
      * Create a new Period instance with a start date time of startDateTime minus the given subType.
      *
      * Start Date Time: <startDateTime>->sub<subType>(<subValue>);
+     *
+     * @throws InvalidPeriod
      */
-    public static function sub(DateTimeInterface $startDateTime, string $subTypeMethod, string $subType, int $subValue): self
-    {
+    public static function sub(
+        CarbonInterface $startDateTime,
+        string $subTypeMethod,
+        string $subType,
+        int $subValue
+    ): static {
         $startDateTime = $startDateTime->$subTypeMethod($subValue);
 
         $period = new static($startDateTime);
@@ -243,12 +241,12 @@ class Period
             ->setSubValue($subValue);
     }
 
-    public function getStartDateTime(): ?DateTimeInterface
+    public function getStartDateTime(): ?CarbonInterface
     {
         return $this->startDateTime;
     }
 
-    public function getEndDateTime(): ?DateTimeInterface
+    public function getEndDateTime(): ?CarbonInterface
     {
         return $this->endDateTime;
     }
@@ -258,32 +256,12 @@ class Period
         return $this->fixedDateTimes;
     }
 
-    public function getStartDateTimeString(): string
-    {
-        return $this->startDateTime !== null ? $this->startDateTime->toDateTimeString() : '';
-    }
-
-    public function getEndDateTimeString(): string
-    {
-        return $this->endDateTime !== null ? $this->endDateTime->toDateTimeString() : '';
-    }
-
-    public function getStartDateTimestamp(): ?int
-    {
-        return $this->startDateTime !== null ? $this->startDateTime->getTimestamp() : null;
-    }
-
-    public function getEndDateTimestamp(): ?int
-    {
-        return $this->endDateTime !== null ? $this->endDateTime->getTimestamp() : null;
-    }
-
-    public function getSubType(): string
+    public function getSubType(): ?string
     {
         return $this->subType;
     }
 
-    public function getSubValue(): int
+    public function getSubValue(): ?int
     {
         return $this->subValue;
     }
@@ -323,14 +301,33 @@ class Period
         return $this;
     }
 
-    protected function resolveDateTime($dateTime)
+    protected function resolveDateTime(DateTimeInterface|string|null $dateTime): ?CarbonInterface
     {
+        if ($dateTime === null) {
+            return null;
+        }
+
         if ($dateTime instanceof DateTimeInterface) {
             return Carbon::instance($dateTime);
         }
 
-        if (is_string($dateTime)) {
-            return Carbon::parse($dateTime);
+        return Carbon::parse($dateTime);
+    }
+
+    /**
+     * @throws InvalidPeriod
+     */
+    protected function guardChronologicalOrder(): void
+    {
+        if (! $this->startDateTime instanceof CarbonInterface || ! $this->endDateTime instanceof CarbonInterface) {
+            return;
+        }
+
+        if ($this->startDateTime > $this->endDateTime) {
+            throw InvalidPeriod::startDateTimeCannotBeAfterEndDateTime(
+                $this->startDateTime,
+                $this->endDateTime,
+            );
         }
     }
 }

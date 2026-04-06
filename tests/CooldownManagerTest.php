@@ -8,14 +8,15 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\CooldownManager;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Container\Container;
-use Session;
+use Illuminate\Support\Facades\Session;
+use PHPUnit\Framework\Attributes\Test;
 
-class CooldownManagerTest extends TestCase
+final class CooldownManagerTest extends TestCase
 {
-    /** @test */
-    public function push_can_add_an_item()
+    #[Test]
+    public function push_can_add_an_item(): void
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = Container::getInstance()
             ->make('config')
@@ -28,10 +29,10 @@ class CooldownManagerTest extends TestCase
         $this->assertTrue(Session::has($postSessionKey));
     }
 
-    /** @test */
-    public function push_can_add_an_item_with_collection()
+    #[Test]
+    public function push_can_add_an_item_with_collection(): void
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
         $postSessionKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
 
@@ -42,10 +43,10 @@ class CooldownManagerTest extends TestCase
         $this->assertTrue(Session::has($postSessionKey));
     }
 
-    /** @test */
-    public function push_does_not_add_an_item_if_already_added()
+    #[Test]
+    public function push_does_not_add_an_item_if_already_added(): void
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $postBaseKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
@@ -56,34 +57,34 @@ class CooldownManagerTest extends TestCase
         $this->assertCount(1, Session::get($postBaseKey));
     }
 
-    /** @test */
-    public function it_can_forget_expired_views()
+    #[Test]
+    public function it_can_forget_expired_views(): void
     {
-        $post = factory(Post::class)->create();
-        $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $post = Post::factory()->create();
+        $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
-        $cooldownManager->push($post, Carbon::today()->addHours(1));
+        $cooldownManager->push($post, Carbon::today()->addHour());
         $cooldownManager->push($post, Carbon::today()->addHours(2));
 
         Carbon::setTestNow(Carbon::tomorrow());
 
         $cooldownManager->push($post, Carbon::today()->addHours(2));
 
-        $this->assertCount(1, Session::get($postNamespacKey));
+        $this->assertCount(1, Session::get($postNamespaceKey));
     }
 
-    /** @test */
-    public function it_can_forget_expired_views_with_collection()
+    #[Test]
+    public function it_can_forget_expired_views_with_collection(): void
     {
-        $post = factory(Post::class)->create();
+        $post = Post::factory()->create();
         $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
         $cooldownManager = Container::getInstance()->make(CooldownManager::class);
 
         $cooldownManager->push($post, Carbon::today());
         $cooldownManager->push($post, Carbon::today(), 'some-collection');
-        $cooldownManager->push($post, Carbon::today()->addHours(1));
+        $cooldownManager->push($post, Carbon::today()->addHour());
         $cooldownManager->push($post, Carbon::today()->addHours(2));
         $cooldownManager->push($post, Carbon::today()->addHours(2), 'some-collection');
 

@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**.php'
+      - '.github/workflows/tests.yml'
+      - 'phpunit.xml.dist'
+      - 'composer.json'
+      - 'composer.lock'
+
+permissions:
+    contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        php: [ 8.5 ]
+        laravel: [ ^13.0 ]
+        stability: [ prefer-lowest, prefer-stable ]
+        include:
+          - laravel: ^13.0
+            testbench: ^11.0
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: xdebug
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update --dev
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Execute tests
+        run: composer run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./build/clover.xml

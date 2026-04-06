@@ -6,21 +6,21 @@ namespace CyrildeWit\EloquentViewable\Tests;
 
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
+use PHPUnit\Framework\Attributes\Test;
 
-class ViewableObserverTest extends TestCase
+final class ViewableObserverTest extends TestCase
 {
-    /** @var \CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post */
-    protected $post;
+    private Post $post;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 
-        $this->post = factory(Post::class)->create();
+        $this->post = Post::factory()->create();
     }
 
-    /** @test */
-    public function it_can_destroy_all_views_when_viewable_gets_deleted()
+    #[Test]
+    public function it_can_destroy_all_views_when_viewable_gets_deleted(): void
     {
         TestHelper::createView($this->post);
         TestHelper::createView($this->post);
@@ -33,8 +33,8 @@ class ViewableObserverTest extends TestCase
         $this->assertEquals(0, View::count());
     }
 
-    /** @test */
-    public function it_does_not_destroy_all_views_when_viewable_gets_deleted_and_removeViewsOnDelete_is_set_to_false()
+    #[Test]
+    public function it_does_not_destroy_all_views_when_viewable_gets_deleted_and_remove_views_on_delete_is_set_to_false(): void
     {
         $this->post->removeViewsOnDelete = false;
 
