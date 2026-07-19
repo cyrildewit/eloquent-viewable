@@ -93,4 +93,24 @@ class CooldownManagerTest extends TestCase
 
         $this->assertCount(1, Session::get($postNamespacKey));
     }
+
+    /** @test */
+    public function it_can_forget_expired_views_when_expires_at_is_stored_as_a_string()
+    {
+        $post = factory(Post::class)->create();
+        $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
+        $postSessionKey = $postNamespaceKey.'.'.$post->getKey();
+        $cooldownManager = Container::getInstance()->make(CooldownManager::class);
+
+        // Simulate what the JSON session serializer produces on a subsequent
+        // request: expires_at comes back as an ISO-8601 string, not a Carbon.
+        Session::put($postSessionKey, [
+            'viewable_id' => $post->getKey(),
+            'expires_at' => Carbon::yesterday()->toJSON(),
+        ]);
+
+        $cooldownManager->push($post, Carbon::tomorrow());
+
+        $this->assertCount(1, Session::get($postNamespaceKey));
+    }
 }
