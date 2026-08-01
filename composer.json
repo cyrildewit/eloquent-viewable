@@ -34,6 +34,7 @@
     },
     "require-dev": {
         "illuminate/config": "^13.0",
+        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^11.0",
@@ -58,6 +59,7 @@
         "test:lint": "pint --test",
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-clover build/coverage.xml",
+        "test:types": "phpstan analyse --memory-limit=512M",
         "rector": "rector"
     },
     "config": {

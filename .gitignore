@@ -7,5 +7,8 @@ composer.lock
 .phpunit.result.cache
 /build
 
+# PHPStan
+/phpstan.neon
+
 # Editors
 /.idea

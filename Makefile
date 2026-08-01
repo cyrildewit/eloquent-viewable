@@ -19,3 +19,6 @@ lint: ## Run the linter
 rector: ## Run Rector
 	docker compose run --rm composer rector
 
+types: ## Run the static analysis
+	docker compose run --rm composer test:types
+

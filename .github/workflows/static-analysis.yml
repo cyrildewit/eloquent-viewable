@@ -53,3 +53,7 @@ jobs:
 
       - name: Rector
         run: composer run rector -- --dry-run
+
+      - name: Types
+        if: matrix.stability == 'prefer-stable'
+        run: composer run test:types
