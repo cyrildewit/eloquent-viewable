@@ -80,3 +80,7 @@ The `views()` helper now type-hints its argument as `Viewable|string`. Passing a
 -function views($viewable): Views;
 +function views(Viewable|string $viewable): Views;
 ```
+
+### Final exceptions
+
+The `InvalidPeriod` and `ViewRecordException` exceptions are now `final`. If you extended either of them, catch them or wrap your own exception around them instead of subclassing.

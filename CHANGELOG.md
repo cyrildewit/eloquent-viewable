@@ -20,6 +20,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Changed the `cooldown()` and `remember()` parameters on the `Views` contract to be typed `DateTimeInterface|int|null`
 - Changed the `scopeWithinPeriod()` method on the `View` contract to declare a `void` return type
 - Narrowed `Period::sub()` to accept `CarbonInterface`, and `Period::getStartDateTime()`/`getEndDateTime()` to return `?CarbonInterface`
+- Marked the `InvalidPeriod` and `ViewRecordException` exceptions as `final` (breaking only for code that extends them)
 - Modernized the `create_views_table` migration stub (typed properties and return types; no schema changes)
 
 ### Removed
