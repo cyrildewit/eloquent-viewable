@@ -21,7 +21,7 @@ class View extends Model implements ViewContract
     public $timestamps = false;
 
     #[\Override]
-    public function getTable()
+    public function getTable(): string
     {
         return Container::getInstance()
             ->make('config')
@@ -29,7 +29,7 @@ class View extends Model implements ViewContract
     }
 
     #[\Override]
-    public function getConnectionName()
+    public function getConnectionName(): ?string
     {
         return Container::getInstance()
             ->make('config')

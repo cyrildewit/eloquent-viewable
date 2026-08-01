@@ -62,11 +62,11 @@ class Views implements ViewsContract
             }
         }
 
-        $query->when($this->period, function ($query, $period): void {
+        $query->when($this->period, function (Builder $query, Period $period): void {
             $query->withinPeriod($period);
         });
 
-        $query->when($this->collection, function ($query, $collection): void {
+        $query->when($this->collection, function (Builder $query, string $collection): void {
             $query->collection($collection);
         });
 
