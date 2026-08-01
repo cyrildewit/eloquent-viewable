@@ -2,23 +2,13 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
-
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Views;
-use PHPUnit\Framework\Attributes\Test;
 
-final class ViewsHelperTest extends TestCase
-{
-    #[Test]
-    public function it_accepts_a_fully_qualified_class_name_as_viewable(): void
-    {
-        $this->assertInstanceOf(Views::class, views(Post::class));
-    }
+it('accepts a fully qualified class name as viewable', function () {
+    expect(views(Post::class))->toBeInstanceOf(Views::class);
+});
 
-    #[Test]
-    public function it_accepts_an_empty_model_instance_as_viewable(): void
-    {
-        $this->assertInstanceOf(Views::class, views(new Post));
-    }
-}
+it('accepts an empty model instance as viewable', function () {
+    expect(views(new Post))->toBeInstanceOf(Views::class);
+});
