@@ -2,50 +2,36 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
-
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\View;
-use PHPUnit\Framework\Attributes\Test;
 
-final class ViewableObserverTest extends TestCase
-{
-    private Post $post;
+beforeEach(function () {
+    $this->post = Post::factory()->create();
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+it('can destroy all views when viewable gets deleted', function () {
+    TestHelper::createView($this->post);
+    TestHelper::createView($this->post);
+    TestHelper::createView($this->post);
 
-        $this->post = Post::factory()->create();
-    }
+    expect(View::count())->toBe(3);
 
-    #[Test]
-    public function it_can_destroy_all_views_when_viewable_gets_deleted(): void
-    {
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
+    $this->post->delete();
 
-        $this->assertEquals(3, View::count());
+    expect(View::count())->toBe(0);
+});
 
-        $this->post->delete();
+it('does not destroy all views when viewable gets deleted and remove views on delete is set to false', function () {
+    $this->post->removeViewsOnDelete = false;
 
-        $this->assertEquals(0, View::count());
-    }
+    TestHelper::createView($this->post);
+    TestHelper::createView($this->post);
+    TestHelper::createView($this->post);
 
-    #[Test]
-    public function it_does_not_destroy_all_views_when_viewable_gets_deleted_and_remove_views_on_delete_is_set_to_false(): void
-    {
-        $this->post->removeViewsOnDelete = false;
+    expect(View::count())->toBe(3);
 
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
+    $this->post->delete();
 
-        $this->assertEquals(3, View::count());
-
-        $this->post->delete();
-
-        $this->assertEquals(3, View::count());
-    }
-}
+    expect(View::count())->toBe(3);
+});
