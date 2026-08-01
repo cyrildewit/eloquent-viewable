@@ -5,6 +5,29 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v8.0.0]
+
+See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed migration instructions.
+
+### Added
+
+- Added native type declarations across the public API
+
+### Changed
+
+- Raised the minimum PHP version to `^8.5`
+- The `Views` contract now declares the existing `useVisitor()` method (breaking only for classes that implement `Contracts\Views` directly)
+- Changed the `cooldown()` and `remember()` parameters on the `Views` contract to be typed `DateTimeInterface|int|null`
+- Changed the `scopeWithinPeriod()` method on the `View` contract to declare a `void` return type
+- Narrowed `Period::sub()` to accept `CarbonInterface`, and `Period::getStartDateTime()`/`getEndDateTime()` to return `?CarbonInterface`
+- Modernized the `create_views_table` migration stub (typed properties and return types; no schema changes)
+
+### Removed
+
+- Dropped support for Laravel 6 through 12 (`illuminate/*` now requires `^13.0`)
+- Dropped support for Carbon 2 (`nesbot/carbon` now requires `^3.0`)
+- Removed the `getStartDateTimeString()`, `getEndDateTimeString()`, `getStartDateTimestamp()` and `getEndDateTimestamp()` getters from `Period`
+
 ## [v7.1.1]
 
 ### Fixed
@@ -345,7 +368,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 ## [v5.2.1] (2020-09-22)
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v8.0.0...HEAD
+[v8.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.1...v8.0.0
 [v7.1.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.0...v7.1.1
 [v7.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...v7.1.0
 [v7.0.3]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.2...v7.0.3
