@@ -8,15 +8,15 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->post = Post::factory()->create();
 });
 
-it('has a views relationship', function () {
+it('has a views relationship', function (): void {
     expect($this->post->views())->toBeInstanceOf(MorphMany::class);
 });
 
-it('can be ordered by views in descending order', function () {
+it('can be ordered by views in descending order', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -39,7 +39,7 @@ it('can be ordered by views in descending order', function () {
     expect(Post::orderByViews()->pluck('id'))->toEqual(collect([1, 4, 3, 2]));
 });
 
-it('can be ordered by unique views in descending order', function () {
+it('can be ordered by unique views in descending order', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -70,7 +70,7 @@ it('can be ordered by unique views in descending order', function () {
     expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(collect([3, 1, 2, 4]));
 });
 
-it('can be ordered by views within a specific period in descending order', function () {
+it('can be ordered by views within a specific period in descending order', function (): void {
     Carbon::setTestNow(Carbon::now());
 
     $postOne = $this->post;
@@ -102,7 +102,7 @@ it('can be ordered by views within a specific period in descending order', funct
     expect(Post::orderByViews('desc', Period::pastDays(10))->pluck('id'))->toEqual(collect([4, 1, 3, 2]));
 });
 
-it('can be ordered by views in a specific collection descending', function () {
+it('can be ordered by views in a specific collection descending', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -132,7 +132,7 @@ it('can be ordered by views in a specific collection descending', function () {
     expect(Post::orderByViews('desc', null, 'good_collection')->pluck('id'))->toEqual(collect([3, 2, 4, 1]));
 });
 
-it('can be ordered by views in a specific collection ascending', function () {
+it('can be ordered by views in a specific collection ascending', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -162,7 +162,7 @@ it('can be ordered by views in a specific collection ascending', function () {
     expect(Post::orderByViews('asc', null, 'good_collection')->pluck('id'))->toEqual(collect([1, 4, 2, 3]));
 });
 
-it('can be ordered by views in ascending order', function () {
+it('can be ordered by views in ascending order', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -185,7 +185,7 @@ it('can be ordered by views in ascending order', function () {
     expect(Post::orderByViews('asc')->pluck('id'))->toEqual(collect([2, 3, 4, 1]));
 });
 
-it('can be ordered by unique views in ascending order', function () {
+it('can be ordered by unique views in ascending order', function (): void {
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
     $postThree = Post::factory()->create();
@@ -216,7 +216,7 @@ it('can be ordered by unique views in ascending order', function () {
     expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(collect([4, 2, 1, 3]));
 });
 
-it('can be ordered by unique views within a specific period in ascending order', function () {
+it('can be ordered by unique views within a specific period in ascending order', function (): void {
     Carbon::setTestNow(Carbon::now());
 
     $postOne = $this->post;

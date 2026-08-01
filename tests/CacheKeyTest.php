@@ -7,14 +7,14 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Support\Facades\Config;
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->firstPost = Post::factory()->create();
     $this->secondPost = Post::factory()->create();
 
     Config::set('eloquent-viewable.cache.key', 'test-namespace');
 });
 
-it('can make a key from default parameters', function () {
+it('can make a key from default parameters', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
@@ -25,7 +25,7 @@ it('can make a key from default parameters', function () {
         ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal');
 });
 
-it('can make a key from period with startdatetime', function () {
+it('can make a key from period with startdatetime', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
@@ -36,7 +36,7 @@ it('can make a key from period with startdatetime', function () {
         ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.1334275200|.normal');
 });
 
-it('can make a key from period with enddatetime', function () {
+it('can make a key from period with enddatetime', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
@@ -47,7 +47,7 @@ it('can make a key from period with enddatetime', function () {
         ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|1726531200.normal');
 });
 
-it('can make a key from period with past or sub datetimes', function () {
+it('can make a key from period with past or sub datetimes', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
@@ -64,7 +64,7 @@ it('can make a key from period with past or sub datetimes', function () {
         ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.sub3weeks|.normal');
 });
 
-it('can make a key from type unique', function () {
+it('can make a key from type unique', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
@@ -75,7 +75,7 @@ it('can make a key from type unique', function () {
         ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.unique');
 });
 
-it('can make a key from collection', function () {
+it('can make a key from collection', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
 
