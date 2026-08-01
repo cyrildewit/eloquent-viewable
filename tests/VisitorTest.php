@@ -2,48 +2,36 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
-
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\Attributes\Test;
 
-final class VisitorTest extends TestCase
-{
-    #[Test]
-    public function it_can_get_the_ip_address_from_the_request(): void
-    {
-        $this->mock(Request::class, function ($mock): void {
-            $mock->shouldReceive('ip')->once()->andReturn('241.224.55.106');
-        });
+it('can get the ip address from the request', function () {
+    $this->mock(Request::class, function ($mock): void {
+        $mock->shouldReceive('ip')->once()->andReturn('241.224.55.106');
+    });
 
-        $visitor = $this->app->make(Visitor::class);
+    $visitor = $this->app->make(Visitor::class);
 
-        $this->assertEquals('241.224.55.106', $visitor->ip());
-    }
+    expect($visitor->ip())->toBe('241.224.55.106');
+});
 
-    #[Test]
-    public function it_can_determine_if_the_visitor_has_a_do_not_tracker_header_from_the_request(): void
-    {
-        $this->mock(Request::class, function ($mock): void {
-            $mock->shouldReceive('header')->once()->andReturn('1');
-        });
+it('can determine if the visitor has a do not tracker header from the request', function () {
+    $this->mock(Request::class, function ($mock): void {
+        $mock->shouldReceive('header')->once()->andReturn('1');
+    });
 
-        $visitor = $this->app->make(Visitor::class);
+    $visitor = $this->app->make(Visitor::class);
 
-        $this->assertTrue($visitor->hasDoNotTrackHeader());
-    }
+    expect($visitor->hasDoNotTrackHeader())->toBeTrue();
+});
 
-    #[Test]
-    public function it_can_determine_if_the_visitor_is_a_crawler_from_the_crawler_detector(): void
-    {
-        $this->mock(CrawlerDetector::class, function ($mock): void {
-            $mock->shouldReceive('isCrawler')->once()->andReturn(true);
-        });
+it('can determine if the visitor is a crawler from the crawler detector', function () {
+    $this->mock(CrawlerDetector::class, function ($mock): void {
+        $mock->shouldReceive('isCrawler')->once()->andReturn(true);
+    });
 
-        $visitor = $this->app->make(Visitor::class);
+    $visitor = $this->app->make(Visitor::class);
 
-        $this->assertTrue($visitor->isCrawler());
-    }
-}
+    expect($visitor->isCrawler())->toBeTrue();
+});

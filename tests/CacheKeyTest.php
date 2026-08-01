@@ -2,139 +2,86 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
-
 use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Support\Facades\Config;
-use PHPUnit\Framework\Attributes\Test;
 
-final class CacheKeyTest extends TestCase
-{
-    private Post $firstPost;
+beforeEach(function () {
+    $this->firstPost = Post::factory()->create();
+    $this->secondPost = Post::factory()->create();
 
-    private Post $secondPost;
+    Config::set('eloquent-viewable.cache.key', 'test-namespace');
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+it('can make a key from default parameters', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->firstPost = Post::factory()->create();
-        $this->secondPost = Post::factory()->create();
+    expect($firstPostCacheKey->make())
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal');
 
-        Config::set('eloquent-viewable.cache.key', 'test-namespace');
-    }
+    expect($secondPostCacheKey->make())
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal');
+});
 
-    #[Test]
-    public function it_can_make_a_key_from_default_parameters(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
+it('can make a key from period with startdatetime', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal',
-            $firstPostCacheKey->make()
-        );
+    expect($firstPostCacheKey->make(Period::since('2019-03-21')))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.1553126400|.normal');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal',
-            $secondPostCacheKey->make()
-        );
-    }
+    expect($secondPostCacheKey->make(Period::since('2012-04-13')))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.1334275200|.normal');
+});
 
-    #[Test]
-    public function it_can_make_a_key_from_period_with_startdatetime(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
+it('can make a key from period with enddatetime', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.1553126400|.normal',
-            $firstPostCacheKey->make(Period::since('2019-03-21'))
-        );
+    expect($firstPostCacheKey->make(Period::upto('2020-07-03')))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|1593734400.normal');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.1334275200|.normal',
-            $secondPostCacheKey->make(Period::since('2012-04-13'))
-        );
-    }
+    expect($secondPostCacheKey->make(Period::upto('2024-09-17')))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|1726531200.normal');
+});
 
-    #[Test]
-    public function it_can_make_a_key_from_period_with_enddatetime(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
+it('can make a key from period with past or sub datetimes', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|1593734400.normal',
-            $firstPostCacheKey->make(Period::upto('2020-07-03'))
-        );
+    expect($firstPostCacheKey->make(Period::pastDays(2)))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.past2days|.normal');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|1726531200.normal',
-            $secondPostCacheKey->make(Period::upto('2024-09-17'))
-        );
-    }
+    expect($firstPostCacheKey->make(Period::subSeconds(34)))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.sub34seconds|.normal');
 
-    #[Test]
-    public function it_can_make_a_key_from_period_with_past_or_sub_datetimes(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
+    expect($secondPostCacheKey->make(Period::pastYears(3)))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.past3years|.normal');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.past2days|.normal',
-            $firstPostCacheKey->make(Period::pastDays(2))
-        );
+    expect($secondPostCacheKey->make(Period::subWeeks(3)))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.sub3weeks|.normal');
+});
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.sub34seconds|.normal',
-            $firstPostCacheKey->make(Period::subSeconds(34))
-        );
+it('can make a key from type unique', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.past3years|.normal',
-            $secondPostCacheKey->make(Period::pastYears(3))
-        );
+    expect($firstPostCacheKey->make(null, true))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.unique');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.sub3weeks|.normal',
-            $secondPostCacheKey->make(Period::subWeeks(3))
-        );
-    }
+    expect($secondPostCacheKey->make(null, true))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.unique');
+});
 
-    #[Test]
-    public function it_can_make_a_key_from_type_unique(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
+it('can make a key from collection', function () {
+    $firstPostCacheKey = new CacheKey($this->firstPost);
+    $secondPostCacheKey = new CacheKey($this->secondPost);
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.unique',
-            $firstPostCacheKey->make(null, true)
-        );
+    expect($firstPostCacheKey->make(null, false, 'some-collection'))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal.some-collection');
 
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.unique',
-            $secondPostCacheKey->make(null, true)
-        );
-    }
-
-    #[Test]
-    public function it_can_make_a_key_from_collection(): void
-    {
-        $firstPostCacheKey = new CacheKey($this->firstPost);
-        $secondPostCacheKey = new CacheKey($this->secondPost);
-
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal.some-collection',
-            $firstPostCacheKey->make(null, false, 'some-collection')
-        );
-
-        $this->assertSame(
-            'test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal.some-collection',
-            $secondPostCacheKey->make(null, false, 'some-collection')
-        );
-    }
-}
+    expect($secondPostCacheKey->make(null, false, 'some-collection'))
+        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal.some-collection');
+});
