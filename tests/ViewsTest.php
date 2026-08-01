@@ -143,7 +143,7 @@ describe('counting', function (): void {
         views($this->post)->record();
         views($this->post)->record();
 
-        expect(views($this->post)->count())->toBe(3);
+        expect($this->post)->toHaveViewsCount(3);
     });
 
     it('can count the unique views', function (): void {
@@ -151,7 +151,7 @@ describe('counting', function (): void {
         TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
         TestHelper::createView($this->post, ['visitor' => 'visitor_two']);
 
-        expect(views($this->post)->unique()->count())->toBe(2);
+        expect($this->post)->toHaveUniqueViewsCount(2);
     });
 
     it('can count the views of a period', function (): void {
@@ -198,7 +198,7 @@ describe('counting', function (): void {
         TestHelper::createView($apartment);
         TestHelper::createView($apartment);
 
-        expect(views(new Post)->count())->toBe(3);
+        expect(new Post)->toHaveViewsCount(3);
     });
 
     it('can count the unique views by type', function (): void {
@@ -212,8 +212,7 @@ describe('counting', function (): void {
         TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
         TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
 
-        expect(views(new Post)->unique()->count())->toBe(2)
-            ->toBe(2);
+        expect(new Post)->toHaveUniqueViewsCount(2);
     });
 });
 
@@ -231,7 +230,7 @@ describe('destroying', function (): void {
 
         views($post)->destroy();
 
-        expect(views($post)->count())->toBe(0);
+        expect($post)->toHaveViewsCount(0);
     });
 
     it('can destroy the views of a viewable type', function (): void {
@@ -249,7 +248,7 @@ describe('destroying', function (): void {
 
         views(new Post)->destroy();
 
-        expect(views(new Post)->count())->toBe(0);
+        expect(new Post)->toHaveViewsCount(0);
     });
 });
 
