@@ -19,7 +19,7 @@ class CooldownManager
 
     public function __construct(ConfigRepository $config, protected Session $session)
     {
-        $this->primaryKey = $config['eloquent-viewable']['cooldown']['key'];
+        $this->primaryKey = (string) $config->get('eloquent-viewable.cooldown.key');
     }
 
     /**

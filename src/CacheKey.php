@@ -75,7 +75,7 @@ class CacheKey
             return '';
         }
 
-        return $this->viewable->getKey().'.' ?? '';
+        return $this->viewable->getKey().'.';
     }
 
     protected function getPeriodSlug(?Period $period = null): string
@@ -84,7 +84,7 @@ class CacheKey
             return '|.';
         }
 
-        if ($period && $period->hasFixedDateTimes()) {
+        if ($period->hasFixedDateTimes()) {
             $startDateTime = $period->getStartDateTime()?->timestamp;
             $endDateTime = $period->getEndDateTime()?->timestamp;
 
