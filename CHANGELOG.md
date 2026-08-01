@@ -26,6 +26,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Modernized the `create_views_table` migration stub (typed properties and return types)
 - Changed the `visitor` column in the `create_views_table` migration stub from `text` to `string` (`VARCHAR(255)`) so it can be indexed directly (only affects newly published migrations)
 - Changed the default config `models.view.connection` and `cache.store` to `null`, so they now defer to the application's default database connection and cache store instead of reading `env('DB_CONNECTION')` and the deprecated `env('CACHE_DRIVER')` (only affects newly published config)
+- Migrated the test suite from PHPUnit to [Pest](https://pestphp.com/) (development only; no impact on consumers)
 
 ### Removed
 
