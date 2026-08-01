@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin Model
+ */
 interface View
 {
     /**
@@ -24,4 +27,11 @@ interface View
      * @param  Builder<Model>  $query
      */
     public function scopeWithinPeriod(Builder $query, Period $period): void;
+
+    /**
+     * Scope a query to only include views within the collection.
+     *
+     * @param  Builder<Model>  $query
+     */
+    public function scopeCollection(Builder $query, ?string $collection = null): void;
 }

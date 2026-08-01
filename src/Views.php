@@ -92,9 +92,9 @@ class Views implements ViewsContract
             return false;
         }
 
-        event(new ViewRecorded($view = $this->createView()));
+        event(new ViewRecorded($this->createView()));
 
-        return $view->exists;
+        return true;
     }
 
     public function destroy(): void
@@ -178,15 +178,16 @@ class Views implements ViewsContract
 
     protected function createView(): ViewContract
     {
-        $view = Container::getInstance()->make(ViewContract::class);
-
-        return $view->create([
+        /** @var ViewContract $view */
+        $view = Container::getInstance()->make(ViewContract::class)->create([
             'viewable_id' => $this->viewable->getKey(),
             'viewable_type' => $this->viewable->getMorphClass(),
             'visitor' => $this->visitor->id(),
             'collection' => $this->collection,
             'viewed_at' => Carbon::now(),
         ]);
+
+        return $view;
     }
 
     protected function shouldCache(): bool

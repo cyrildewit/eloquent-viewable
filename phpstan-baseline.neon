@@ -19,24 +19,6 @@ parameters:
 			path: src/View.php
 
 		-
-			message: '#^Access to an undefined property CyrildeWit\\EloquentViewable\\Contracts\\View\:\:\$exists\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Call to an undefined method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:create\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Call to an undefined method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Views.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:collection\(\)\.$#'
 			identifier: method.notFound
 			count: 1
