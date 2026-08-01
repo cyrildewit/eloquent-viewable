@@ -19,8 +19,8 @@ it('can construct a new period instance', function (): void {
 
     $period = new Period($startDateTime, $endDateTime);
 
-    expect($period->getStartDateTime())->toEqual($startDateTime);
-    expect($period->getEndDateTime())->toEqual($endDateTime);
+    expect($period->getStartDateTime())->toEqual($startDateTime)
+        ->and($period->getEndDateTime())->toEqual($endDateTime);
 });
 
 it('can construct a new period instance with strings as arguments', function (): void {
@@ -29,8 +29,8 @@ it('can construct a new period instance with strings as arguments', function ():
 
     $period = new Period('2018-07-16', '2018-12-23');
 
-    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime));
-    expect($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
+    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime))
+        ->and($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
 });
 
 it('can construct a new period instance with start datetime argument as string', function (): void {
@@ -38,8 +38,8 @@ it('can construct a new period instance with start datetime argument as string',
 
     $period = new Period('2018-07-16');
 
-    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 it('can construct a new period instance with end datetime argument as string', function (): void {
@@ -47,8 +47,8 @@ it('can construct a new period instance with end datetime argument as string', f
 
     $period = new Period(null, $endDateTime);
 
-    expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-    expect($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
+    expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class)
+        ->and($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
 });
 
 it('will throw an exception if the start date time comes after the end date time', function (): void {
@@ -64,8 +64,8 @@ test('static create can construct a new period instance', function (): void {
 
     $period = Period::create($startDateTime, $endDateTime);
 
-    expect($period->getStartDateTime())->toEqual($startDateTime);
-    expect($period->getEndDateTime())->toEqual($endDateTime);
+    expect($period->getStartDateTime())->toEqual($startDateTime)
+        ->and($period->getEndDateTime())->toEqual($endDateTime);
 });
 
 test('static since can construct a new period instance', function (): void {
@@ -73,8 +73,8 @@ test('static since can construct a new period instance', function (): void {
 
     $period = Period::since($startDateTime);
 
-    expect($period->getStartDateTime())->toEqual($startDateTime);
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual($startDateTime)
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static upto can construct a new period instance', function (): void {
@@ -82,8 +82,8 @@ test('static upto can construct a new period instance', function (): void {
 
     $period = Period::upto($endDateTime);
 
-    expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-    expect($period->getEndDateTime())->toEqual($endDateTime);
+    expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class)
+        ->and($period->getEndDateTime())->toEqual($endDateTime);
 });
 
 test('static past days can construct a new period instance', function (): void {
@@ -91,8 +91,8 @@ test('static past days can construct a new period instance', function (): void {
 
     $period = Period::pastDays(5);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subDays(5));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::today()->subDays(5))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static past weeks can construct a new period instance', function (): void {
@@ -100,8 +100,8 @@ test('static past weeks can construct a new period instance', function (): void 
 
     $period = Period::pastWeeks(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subWeeks(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::today()->subWeeks(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static past months can construct a new period instance', function (): void {
@@ -109,8 +109,8 @@ test('static past months can construct a new period instance', function (): void
 
     $period = Period::pastMonths(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subMonths(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::today()->subMonths(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static past years can construct a new period instance', function (): void {
@@ -118,8 +118,8 @@ test('static past years can construct a new period instance', function (): void 
 
     $period = Period::pastYears(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subYears(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::today()->subYears(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub throws exception when sub type method is not callable', function (): void {
@@ -134,8 +134,8 @@ test('static sub seconds can construct a new period instance', function (): void
 
     $period = Period::subSeconds(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subSeconds(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subSeconds(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub minutes can construct a new period instance', function (): void {
@@ -143,8 +143,8 @@ test('static sub minutes can construct a new period instance', function (): void
 
     $period = Period::subMinutes(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMinutes(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMinutes(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub hours can construct a new period instance', function (): void {
@@ -152,8 +152,8 @@ test('static sub hours can construct a new period instance', function (): void {
 
     $period = Period::subHours(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subHours(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subHours(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub days can construct a new period instance', function (): void {
@@ -161,8 +161,8 @@ test('static sub days can construct a new period instance', function (): void {
 
     $period = Period::subDays(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subDays(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subDays(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub weeks can construct a new period instance', function (): void {
@@ -170,8 +170,8 @@ test('static sub weeks can construct a new period instance', function (): void {
 
     $period = Period::subWeeks(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subWeeks(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subWeeks(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub months can construct a new period instance', function (): void {
@@ -179,8 +179,8 @@ test('static sub months can construct a new period instance', function (): void 
 
     $period = Period::subMonths(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMonths(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMonths(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub years can construct a new period instance', function (): void {
@@ -188,8 +188,8 @@ test('static sub years can construct a new period instance', function (): void {
 
     $period = Period::subYears(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subYears(2));
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->subYears(2))
+        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 test('static sub will throw an exception if subtype method is not callable', function (): void {
