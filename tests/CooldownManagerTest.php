@@ -8,7 +8,7 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Session;
 
-test('push can add an item', function () {
+test('push can add an item', function (): void {
     $post = Post::factory()->create();
     $cooldownManager = Container::getInstance()->make(CooldownManager::class);
     $postSessionKey = Container::getInstance()
@@ -22,7 +22,7 @@ test('push can add an item', function () {
     expect(Session::has($postSessionKey))->toBeTrue();
 });
 
-test('push can add an item with collection', function () {
+test('push can add an item with collection', function (): void {
     $post = Post::factory()->create();
     $cooldownManager = Container::getInstance()->make(CooldownManager::class);
     $postSessionKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
@@ -34,7 +34,7 @@ test('push can add an item with collection', function () {
     expect(Session::has($postSessionKey))->toBeTrue();
 });
 
-test('push does not add an item if already added', function () {
+test('push does not add an item if already added', function (): void {
     $post = Post::factory()->create();
     $postBaseKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
     $cooldownManager = Container::getInstance()->make(CooldownManager::class);
@@ -46,7 +46,7 @@ test('push does not add an item if already added', function () {
     expect(Session::get($postBaseKey))->toHaveCount(1);
 });
 
-it('can forget expired views', function () {
+it('can forget expired views', function (): void {
     $post = Post::factory()->create();
     $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
     $cooldownManager = Container::getInstance()->make(CooldownManager::class);
@@ -62,7 +62,7 @@ it('can forget expired views', function () {
     expect(Session::get($postNamespaceKey))->toHaveCount(1);
 });
 
-it('can forget expired views with collection', function () {
+it('can forget expired views with collection', function (): void {
     $post = Post::factory()->create();
     $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
     $cooldownManager = Container::getInstance()->make(CooldownManager::class);
@@ -80,7 +80,7 @@ it('can forget expired views with collection', function () {
     expect(Session::get($postNamespacKey))->toHaveCount(1);
 });
 
-it('can forget expired views when expires at is stored as a string', function () {
+it('can forget expired views when expires at is stored as a string', function (): void {
     $post = Post::factory()->create();
     $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
     $postSessionKey = $postNamespaceKey.'.'.$post->getKey();
