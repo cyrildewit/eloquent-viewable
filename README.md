@@ -334,15 +334,15 @@ Post::orderByUniqueViews('asc')->get(); // ascending
 #### Order by view count within the specified period
 
 ```php
-Post::orderByViews('asc', Period::pastDays(3))->get();  // descending
-Post::orderByViews('desc', Period::pastDays(3))->get(); // ascending
+Post::orderByViews('asc', Period::pastDays(3))->get();  // ascending
+Post::orderByViews('desc', Period::pastDays(3))->get(); // descending
 ```
 
 And of course, it's also possible with the unique views variant:
 
 ```php
-Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // descending
-Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // ascending
+Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // ascending
+Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // descending
 ```
 
 #### Order by view count within the specified collection
