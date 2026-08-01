@@ -9,22 +9,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
+/**
+ * @mixin Model
+ */
 interface Viewable
 {
-    /**
-     * Get the value of the model's primary key.
-     *
-     * @return mixed
-     */
-    public function getKey();
-
-    /**
-     * Get the class name for polymorphic relations.
-     *
-     * @return string
-     */
-    public function getMorphClass();
-
     /**
      * Get the views the model has.
      *
