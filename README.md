@@ -114,7 +114,7 @@ artificial inflation, and allow for meaningful analytics. Eloquent Viewable take
 approach to view tracking, giving you control over how views are recorded, counted, and retrieved.
 
 - **Persistent View Logging:** Every view is stored as a database record, allowing queries based on time range, visitor uniqueness, and other metadata.
-- **Visitor Identification & Cooldown Protection:** Unique visitors are identified using long-lived cookies, and cooldown periods prevent duplicate views within a short timeframe to be stored.
+- **Visitor Identification & Cooldown Protection:** Unique visitors are identified using long-lived cookies, and cooldown periods prevent duplicate views within a short timeframe from being stored.
 - **Optimized Count Performance:** Built-in caching reduces database load while maintaining accuracy.
 - **Crawler & Visitor Filtering:** Views from crawlers, ignored IPs, and DNT-enabled users are automatically excluded.
 - **Scalability Considerations:**  Storing every view individually allows for detailed tracking but increases database load. For high-traffic applications, caching, pruning old records, and partitioning strategies may be necessary.
@@ -248,7 +248,7 @@ views($post)->count();
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get view count from 2017 upto 2018
+// Example: get view count from 2017 up to 2018
 views($post)
     ->period(Period::create('2017', '2018'))
     ->count();
@@ -348,11 +348,11 @@ Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // descending
 #### Order by view count within the specified collection
 
 ```php
-Post::orderByViews('asc', null, 'custom-collection')->get();  // descending
-Post::orderByViews('desc', null, 'custom-collection')->get(); // ascending
+Post::orderByViews('asc', null, 'custom-collection')->get();  // ascending
+Post::orderByViews('desc', null, 'custom-collection')->get(); // descending
 
-Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // descending
-Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // ascending
+Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // ascending
+Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // descending
 ```
 
 ### Get view count of viewable type
@@ -439,7 +439,7 @@ views, this may speed up your queries in some cases.
 ### Caching
 
 Caching view counts can have a big impact on the performance of your application. You can read the documentation about
-caching the view count [here](#caching-view-counts)
+caching the view count [here](#caching-view-counts).
 
 Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and
 `orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize
@@ -476,7 +476,7 @@ If you want to extend or replace one of the core classes with your own implement
 - `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 
 > [!NOTE]
-> Don't forget that all custom classes must implement their original interfaces._
+> Don't forget that all custom classes must implement their original interfaces.
 
 ### Custom information about visitor
 

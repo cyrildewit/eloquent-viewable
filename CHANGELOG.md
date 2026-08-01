@@ -148,13 +148,13 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 
 - The `CyrildeWit\EloquentViewable\Viewable` trait has been renamed to `CyrildeWit\EloquentViewable\InteractsWithViews`.
 - Renamed `session.key` to `cooldown.key` in configuration file.
-- Changed the `Views` class constructor arguments. Added the `Visitor` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `rawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`.
+- Changed the `Views` class constructor arguments. Added the `Visitor` as first argument and removed `VisitorCookieRepository $visitorCookieRepository`, `CrawlerDetector $crawlerDetector` and `IpAddressResolver $ipAddressResolver`.
 - Replaced calls to `$this->crawlerDetector` in `Views` with new `Visitor` class implementation.
 - Replaced calls to `requestHasDoNotTrackHeader` in `Views` with new `Visitor` class implementation.
 - Changed type of primary key from `increments` to `bigIncrements` in `views` table migration.
 - Bumped minimum requirements for Laravel framework components to `^6.0|^7.0`.
 - Removed check for provided viewable type in `getConnectionName()`, `getDatabaseName()`, `getModelSlug()` and `getKeySlug` in `CacheKey::class`.
-- Renamed `ViewSessionHistory` class to `CooldownMananger`.
+- Renamed `ViewSessionHistory` class to `CooldownManager`.
 - Changed constructor of `CooldownManager` class. The `Illuminate\Contracts\Config\Repository` has been added as first parameter and the cooldown key is now retrieved from this instance.
 - The `Views` class now implements the `Views` contract.
 - The constructor of the `Views` class has been changed.
@@ -175,13 +175,13 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Removed `Enums\SortDirection` class.
 - Removed `OrderByViewsScope` class.
 - Removed the `countByType` method from the `Views` class.
-- Removed the `VisitorCookieRepository` (logic is move to the `Visitor` class).
+- Removed the `VisitorCookieRepository` (logic is moved to the `Visitor` class).
 
 ## [v4.1.1] (2019-10-18)
 
 ### Fixed
 
-- Update required dependencies in composer.json to adhere to new Laravel 6 verison scheme
+- Update required dependencies in composer.json to adhere to new Laravel 6 version scheme
 
 ## [v4.1.0] (2019-09-03)
 
@@ -258,7 +258,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Added `HeaderResolver` contract with implementation
 - Added `VisitorCookieRepository` class
 - Added global helper `views`
-- Added `collection` column to views table shema
+- Added `collection` column to views table schema
 - Added `withinPeriod` scope to `View` model
 - Added `uniqueVisitor` scope to `View` model
 
@@ -351,7 +351,7 @@ This major version contains some serious breaking changes! See the [upgrade guid
 
 ### Added
 
-- Added `visitor` collumn to the  `create_views_table` migration stub
+- Added `visitor` column to the  `create_views_table` migration stub
 
 ### Changed
 
