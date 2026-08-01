@@ -26,34 +26,31 @@ it('is macroable', function (): void {
 });
 
 it('can record a view', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(1);
 });
 
 it('can record multiple views', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(3);
 });
 
 it('throws an exception when recording a view for a viewable type', function (): void {
-    expect(fn () => Container::getInstance()->make(Views::class)
-        ->forViewable(new Post)
+    expect(fn (): bool => views(new Post)
         ->cooldown(Carbon::now()->addMinutes(10))
         ->record())->toThrow(Exception::class);
 });
 
 it('does not record views if cooldown is active', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(Carbon::now()->addMinutes(10))
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(Carbon::now()->addMinutes(10))
         ->record();
 
@@ -75,13 +72,11 @@ it('does not record views if session delay is active with collection', function 
 });
 
 it('can record a view with cooldown where lifetime is an integer', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(10)
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(10)
         ->record();
 
@@ -89,14 +84,12 @@ it('can record a view with cooldown where lifetime is an integer', function (): 
 });
 
 it('does not record views if cooldown is active with collection', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->collection('test')
         ->cooldown(Carbon::now()->addMinutes(10))
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->collection('test')
         ->cooldown(Carbon::now()->addMinutes(10))
         ->record();
@@ -105,13 +98,11 @@ it('does not record views if cooldown is active with collection', function (): v
 });
 
 it('can remove a cooldown', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(null)
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->cooldown(null)
         ->record();
 
@@ -119,37 +110,33 @@ it('can remove a cooldown', function (): void {
 });
 
 it('can record a view under a collection', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->collection('customCollection')
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->record();
 
     expect(View::where('collection', 'customCollection')->count())->toBe(1);
 });
 
 it('can remove the collection', function (): void {
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->collection(null)
         ->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->record();
 
     expect(View::where('collection', null)->count())->toBe(2);
 });
 
 it('can count the views', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->count())->toBe(3);
+    expect(views($this->post)->count())->toBe(3);
 });
 
 it('can count the unique views', function (): void {
@@ -157,7 +144,7 @@ it('can count the unique views', function (): void {
     TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
     TestHelper::createView($this->post, ['visitor' => 'visitor_two']);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->unique()->count())->toBe(2);
+    expect(views($this->post)->unique()->count())->toBe(2);
 });
 
 it('can count the views of a period', function (): void {
@@ -170,9 +157,9 @@ it('can count the views of a period', function (): void {
     TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
     TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
-        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4)
-        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(4);
+    expect(views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
+        ->and(views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4)
+        ->and(views($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(4);
 });
 
 it('can remove the period', function (): void {
@@ -181,16 +168,16 @@ it('can remove the period', function (): void {
     TestHelper::createView($this->post);
     TestHelper::createView($this->post);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(null)->count())->toBe(2);
+    expect(views($this->post)->period(null)->count())->toBe(2);
 });
 
 it('can count the views with a collection', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->collection('custom')->record();
+    views($this->post)->collection('custom')->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->count())->toBe(2)
-        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->count())->toBe(3);
+    expect(views($this->post)->collection('custom')->count())->toBe(2)
+        ->and(views($this->post)->count())->toBe(3);
 });
 
 it('can destroy the views', function (): void {
@@ -204,9 +191,9 @@ it('can destroy the views', function (): void {
     TestHelper::createView($apartment);
     TestHelper::createView($apartment);
 
-    Container::getInstance()->make(Views::class)->forViewable($post)->destroy();
+    views($post)->destroy();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($post)->count())->toBe(0);
+    expect(views($post)->count())->toBe(0);
 });
 
 it('can destroy the views of a viewable type', function (): void {
@@ -222,9 +209,9 @@ it('can destroy the views of a viewable type', function (): void {
     TestHelper::createView($apartment);
     TestHelper::createView($apartment);
 
-    Container::getInstance()->make(Views::class)->forViewable(new Post)->destroy();
+    views(new Post)->destroy();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->count())->toBe(0);
+    expect(views(new Post)->count())->toBe(0);
 });
 
 it('can count the views by type', function (): void {
@@ -238,7 +225,7 @@ it('can count the views by type', function (): void {
     TestHelper::createView($apartment);
     TestHelper::createView($apartment);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->count())->toBe(3);
+    expect(views(new Post)->count())->toBe(3);
 });
 
 it('can count the unique views by type', function (): void {
@@ -252,77 +239,77 @@ it('can count the unique views by type', function (): void {
     TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
     TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count())->toBe(2)
+    expect(views(new Post)->unique()->count())->toBe(2)
         ->toBe(2);
 });
 
 it('can remember the views counts', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count())->toBe(3);
+    expect(views($this->post)->remember(60)->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count())->toBe(3);
+    expect(views($this->post)->remember(60)->count())->toBe(3);
 });
 
 it('can remove the remember lifetime', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->count())->toBe(3);
+    expect(views($this->post)->remember(60)->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(60)->remember()->count())->toBe(5);
+    expect(views($this->post)->remember(60)->remember()->count())->toBe(5);
 });
 
 it('can remember the views counts with custom lifetime as integers', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(10)->count())->toBe(3);
+    expect(views($this->post)->remember(10)->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(10)->count())->toBe(3);
+    expect(views($this->post)->remember(10)->count())->toBe(3);
 });
 
 it('can remember the views counts with custom lifetime as date time interface', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
+    expect(views($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
+    expect(views($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
 });
 
 it('can remember the views counts with custom lifetime as carbon interface', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
+    expect(views($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
+    expect(views($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
 });
 
 it('throws an exception when remember lifetime is of incorrect type', function (): void {
-    expect(fn () => Container::getInstance()->make(Views::class)->forViewable($this->post)->remember('not good')->count())
+    expect(fn (): int => views($this->post)->remember('not good')->count())
         ->toThrow(TypeError::class);
 });
 
@@ -331,16 +318,16 @@ it('can remember the views counts of a type', function (): void {
     $postTwo = Post::factory()->create();
     $apartment = Apartment::factory()->create();
 
-    Container::getInstance()->make(Views::class)->forViewable($postOne)->record();
-    Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();
-    Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();
-    Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
-    Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
+    views($postOne)->record();
+    views($postTwo)->record();
+    views($postTwo)->record();
+    views($apartment)->record();
+    views($apartment)->record();
 
     expect(views(Post::class)->remember(60)->count())->toBe(3);
 
-    Container::getInstance()->make(Views::class)->forViewable($postTwo)->record();
-    Container::getInstance()->make(Views::class)->forViewable($apartment)->record();
+    views($postTwo)->record();
+    views($apartment)->record();
 
     expect(views(Post::class)->remember(60)->count())->toBe(3);
 });
@@ -355,8 +342,8 @@ it('does not record bot views', function (): void {
         }
     });
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(0);
 });
@@ -369,9 +356,9 @@ it('does not record views from visitors with dnt header', function (): void {
         $mock->shouldReceive('isCrawler')->andReturn(false);
     });
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(0);
 });
@@ -387,23 +374,22 @@ it('does not record views from ignored ip addresses', function (): void {
         $mock->shouldReceive('isCrawler')->andReturn(false);
     });
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(0);
 });
 
 it('can set the visitor instance', function (): void {
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
 
-    Container::getInstance()->make(Views::class)
-        ->forViewable($this->post)
+    views($this->post)
         ->useVisitor(
             Container::getInstance()->make(TestVisitor::class)
         )
         ->record();
 
-    Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
+    views($this->post)->record();
 
     expect(View::count())->toBe(2);
 });
