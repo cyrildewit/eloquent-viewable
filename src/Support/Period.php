@@ -186,7 +186,7 @@ class Period
     /**
      * Create a new Period instance with a start date time of now minus the given years.
      *
-     * Start Date Time: Carbon::now()->suYears(2);
+     * Start Date Time: Carbon::now()->subYears(2);
      */
     public static function subYears(int $years): static
     {
