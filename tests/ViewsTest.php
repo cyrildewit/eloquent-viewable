@@ -269,44 +269,22 @@ it('can remove the remember lifetime', function (): void {
     expect(views($this->post)->remember(60)->remember()->count())->toBe(5);
 });
 
-it('can remember the views counts with custom lifetime as integers', function (): void {
+it('can remember the views counts with a custom lifetime', function (DateTimeInterface|int $lifetime): void {
     views($this->post)->record();
     views($this->post)->record();
     views($this->post)->record();
 
-    expect(views($this->post)->remember(10)->count())->toBe(3);
+    expect(views($this->post)->remember($lifetime)->count())->toBe(3);
 
     views($this->post)->record();
     views($this->post)->record();
 
-    expect(views($this->post)->remember(10)->count())->toBe(3);
-});
-
-it('can remember the views counts with custom lifetime as date time interface', function (): void {
-    views($this->post)->record();
-    views($this->post)->record();
-    views($this->post)->record();
-
-    expect(views($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
-
-    views($this->post)->record();
-    views($this->post)->record();
-
-    expect(views($this->post)->remember(new DateTime('2050-01-01'))->count())->toBe(3);
-});
-
-it('can remember the views counts with custom lifetime as carbon interface', function (): void {
-    views($this->post)->record();
-    views($this->post)->record();
-    views($this->post)->record();
-
-    expect(views($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
-
-    views($this->post)->record();
-    views($this->post)->record();
-
-    expect(views($this->post)->remember(Carbon::now()->addHours(2))->count())->toBe(3);
-});
+    expect(views($this->post)->remember($lifetime)->count())->toBe(3);
+})->with([
+    'integer' => 10,
+    'DateTime interface' => new DateTime('2050-01-01'),
+    'Carbon interface' => Carbon::now()->addHours(2),
+]);
 
 it('throws an exception when remember lifetime is of incorrect type', function (): void {
     expect(fn (): int => views($this->post)->remember('not good')->count())
