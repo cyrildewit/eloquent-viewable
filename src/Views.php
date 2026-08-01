@@ -18,6 +18,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 
@@ -193,6 +194,9 @@ class Views implements ViewsContract
         return $this->cacheLifetime instanceof DateTimeInterface;
     }
 
+    /**
+     * @return Builder<Model>
+     */
     protected function resolveViewableQuery(): Builder
     {
         // If null, we take for granted that we need to count the viewable type

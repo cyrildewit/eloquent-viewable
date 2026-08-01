@@ -36,6 +36,9 @@ class View extends Model implements ViewContract
             ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
     }
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function viewable(): MorphTo
     {
         return $this->morphTo();
@@ -43,6 +46,8 @@ class View extends Model implements ViewContract
 
     /**
      * Scope a query to only include views within the period.
+     *
+     * @param  Builder<Model>  $query
      */
     public function scopeWithinPeriod(Builder $query, Period $period): void
     {
@@ -60,6 +65,8 @@ class View extends Model implements ViewContract
 
     /**
      * Scope a query to only include views within the collection.
+     *
+     * @param  Builder<Model>  $query
      */
     public function scopeCollection(Builder $query, ?string $collection = null): void
     {

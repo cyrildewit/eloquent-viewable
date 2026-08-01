@@ -25,48 +25,6 @@ parameters:
 			path: src/CacheKey.php
 
 		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:scopeWithinPeriod\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/View.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:viewable\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\MorphTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/View.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\Viewable\:\:scopeOrderByUniqueViews\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/Viewable.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\Viewable\:\:scopeOrderByUniqueViews\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/Viewable.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\Viewable\:\:scopeOrderByViews\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/Viewable.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\Viewable\:\:scopeOrderByViews\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/Viewable.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Contracts\\Viewable\:\:views\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\MorphMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Contracts/Viewable.php
-
-		-
 			message: '#^Unsafe usage of new static\(\)\.$#'
 			identifier: new.static
 			count: 1
@@ -77,18 +35,6 @@ parameters:
 			identifier: new.static
 			count: 1
 			path: src/Exceptions/ViewRecordException.php
-
-		-
-			message: '#^PHPDoc tag @method for method CyrildeWit\\EloquentViewable\\InteractsWithViews\:\:orderByUniqueViews\(\) return type contains generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/InteractsWithViews.php
-
-		-
-			message: '#^PHPDoc tag @method for method CyrildeWit\\EloquentViewable\\InteractsWithViews\:\:orderByViews\(\) return type contains generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/InteractsWithViews.php
 
 		-
 			message: '#^Trait CyrildeWit\\EloquentViewable\\InteractsWithViews is used zero times and is not analysed\.$#'
@@ -109,20 +55,8 @@ parameters:
 			path: src/Support/Period.php
 
 		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\View\:\:scopeCollection\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/View.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\View\:\:scopeWithinPeriod\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/View.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\View\:\:viewable\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\MorphTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
+			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphTo\<Illuminate\\Database\\Eloquent\\Model, \$this\(CyrildeWit\\EloquentViewable\\View\)\>\) of method CyrildeWit\\EloquentViewable\\View\:\:viewable\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphTo\<Illuminate\\Database\\Eloquent\\Model, Illuminate\\Database\\Eloquent\\Model\>\) of method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:viewable\(\)$#'
+			identifier: method.childReturnType
 			count: 1
 			path: src/View.php
 
@@ -145,19 +79,13 @@ parameters:
 			path: src/Views.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:collection\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:collection\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Views.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:withinPeriod\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:withinPeriod\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Views\:\:resolveViewableQuery\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
-			identifier: missingType.generics
 			count: 1
 			path: src/Views.php
