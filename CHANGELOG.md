@@ -23,7 +23,8 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Marked the `InvalidPeriod` and `ViewRecordException` exceptions as `final` (breaking only for code that extends them)
 - The `Viewable` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` instead of redeclaring the `getKey()` and `getMorphClass()` methods
 - The `View` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` and declares the existing `scopeCollection()` method (breaking only for classes that implement `Contracts\View` directly)
-- Modernized the `create_views_table` migration stub (typed properties and return types; no schema changes)
+- Modernized the `create_views_table` migration stub (typed properties and return types)
+- Changed the `visitor` column in the `create_views_table` migration stub from `text` to `string` (`VARCHAR(255)`) so it can be indexed directly (only affects newly published migrations)
 
 ### Removed
 

@@ -431,10 +431,12 @@ views($post)->remember()->count();
 
 ### Database indexes
 
-The default `views` table migration file has already two indexes for `viewable_id` and `viewable_type`.
+The default `views` table migration file already has a composite index on `viewable_type` and `viewable_id` (created by
+`morphs()`).
 
 If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of
-views, this may speed up your queries in some cases.
+views, this may speed up unique view counts (`->unique()`) in some cases. The `visitor` column is a `string`
+(`VARCHAR(255)`), so it can be indexed directly.
 
 ### Caching
 

@@ -16,9 +16,19 @@ This release raises the minimum requirements. Make sure your application meets a
 - **Laravel 13** only — the `illuminate/*` dependencies are now constrained to `^13.0`. Support for Laravel 6 through 12 has been dropped.
 - **Carbon `^3.0`** only. Support for Carbon 2 has been dropped.
 
-### No database changes
+### `visitor` column type
 
-The published `create_views_table` migration is unchanged. If you have already published and run the migration, **no schema migration is required** for v8.
+The `create_views_table` migration stub now defines the `visitor` column as a `string` (`VARCHAR(255)`) instead of `text`, so it can be indexed directly (for example to speed up `->unique()` counts).
+
+This only affects **newly published** migrations. If you have already run the migration, no change is required — everything keeps working on the existing `text` column. If you want to adopt the new type on an existing table, add a migration:
+
+```php
+Schema::table('views', function (Blueprint $table) {
+    $table->string('visitor')->nullable()->change();
+});
+```
+
+Note that on large tables this rewrites the table, and any `visitor` value longer than 255 characters would be truncated (the built-in visitor identifier is 80 characters).
 
 ### Removed `Period` getters
 
