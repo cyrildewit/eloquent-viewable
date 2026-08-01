@@ -40,6 +40,7 @@
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^5.0",
         "pestphp/pest-plugin-rector": "^5.0",
+        "pestphp/pest-plugin-type-coverage": "^5.0",
         "rector/rector": "^2.3"
     },
     "autoload": {
@@ -61,6 +62,7 @@
         "test": "pest",
         "test:coverage": "pest --coverage-clover build/coverage.xml",
         "test:types": "phpstan analyse --memory-limit=512M",
+        "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
         "rector": "rector"
     },
     "config": {

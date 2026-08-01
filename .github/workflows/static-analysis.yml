@@ -51,3 +51,6 @@ jobs:
 
       - name: Types
         run: composer run test:types
+
+      - name: Type Coverage
+        run: composer run test:type-coverage
