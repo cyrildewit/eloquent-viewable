@@ -7,10 +7,10 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 use DateTimeInterface;
 use Exception;
 
-class InvalidPeriod extends Exception
+final class InvalidPeriod extends Exception
 {
     public static function startDateTimeCannotBeAfterEndDateTime(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): static
     {
-        return new static("Start date `{$startDateTime->format('Y-m-d')}` cannot be after end date `{$endDateTime->format('Y-m-d')}`.");
+        return new self("Start date `{$startDateTime->format('Y-m-d')}` cannot be after end date `{$endDateTime->format('Y-m-d')}`.");
     }
 }

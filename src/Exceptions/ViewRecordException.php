@@ -6,10 +6,10 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 
 use Exception;
 
-class ViewRecordException extends Exception
+final class ViewRecordException extends Exception
 {
     public static function cannotRecordViewForViewableType(): static
     {
-        return new static('Cannot record a view for a viewable type.');
+        return new self('Cannot record a view for a viewable type.');
     }
 }

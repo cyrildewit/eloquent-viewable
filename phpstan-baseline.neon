@@ -19,40 +19,10 @@ parameters:
 			path: src/CacheKey.php
 
 		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 1
-			path: src/CacheKey.php
-
-		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 1
-			path: src/Exceptions/InvalidPeriod.php
-
-		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 1
-			path: src/Exceptions/ViewRecordException.php
-
-		-
 			message: '#^Trait CyrildeWit\\EloquentViewable\\InteractsWithViews is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1
 			path: src/InteractsWithViews.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\Support\\Period\:\:sub\(\) should return static\(CyrildeWit\\EloquentViewable\\Support\\Period\) but returns CyrildeWit\\EloquentViewable\\Support\\Period\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Support/Period.php
-
-		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 4
-			path: src/Support/Period.php
 
 		-
 			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphTo\<Illuminate\\Database\\Eloquent\\Model, \$this\(CyrildeWit\\EloquentViewable\\View\)\>\) of method CyrildeWit\\EloquentViewable\\View\:\:viewable\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\MorphTo\<Illuminate\\Database\\Eloquent\\Model, Illuminate\\Database\\Eloquent\\Model\>\) of method CyrildeWit\\EloquentViewable\\Contracts\\View\:\:viewable\(\)$#'

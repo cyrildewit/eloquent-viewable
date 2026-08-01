@@ -15,7 +15,7 @@ class CacheKey
 
     public static function fromViewable(Viewable $viewable): CacheKey
     {
-        return new static($viewable);
+        return new self($viewable);
     }
 
     public function make(?Period $period = null, bool $unique = false, ?string $collection = null): string

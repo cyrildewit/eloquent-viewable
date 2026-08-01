@@ -10,6 +10,9 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use DateTimeInterface;
 use Illuminate\Support\Str;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 class Period
 {
     const string PAST_DAYS = 'PAST_DAYS';
@@ -242,9 +245,11 @@ class Period
 
         $period = new static($startDateTime);
 
-        return $period->setFixedDateTimes(false)
+        $period->setFixedDateTimes(false)
             ->setSubType($subType)
             ->setSubValue($subValue);
+
+        return $period;
     }
 
     public function getStartDateTime(): ?CarbonInterface
