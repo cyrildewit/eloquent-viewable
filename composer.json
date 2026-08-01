@@ -60,7 +60,7 @@
         "lint": "pint",
         "test:lint": "pint --test",
         "test": "pest",
-        "test:coverage": "pest --coverage-clover build/coverage.xml",
+        "test:coverage": "pest --coverage-clover build/coverage.xml --min=99",
         "test:types": "phpstan analyse --memory-limit=512M",
         "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
         "rector": "rector"
