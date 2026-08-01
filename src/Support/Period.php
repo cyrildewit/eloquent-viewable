@@ -197,6 +197,8 @@ class Period
      * Create a new Period instance with a start date time of today minus the given subType.
      *
      * Start Date Time: Carbon::today()->sub<subType>(<subValue>);
+     *
+     * @internal
      */
     public static function subToday(string $subType, int $subValue): static
     {
@@ -210,6 +212,8 @@ class Period
      * Create a new Period instance with a start date time of now minus the given subType.
      *
      * Start Date Time: Carbon::now()->sub<subType>(<subValue>);
+     *
+     * @internal
      */
     public static function subNow(string $subType, int $subValue): static
     {
@@ -223,6 +227,8 @@ class Period
      * Create a new Period instance with a start date time of startDateTime minus the given subType.
      *
      * Start Date Time: <startDateTime>->sub<subType>(<subValue>);
+     *
+     * @internal
      *
      * @throws InvalidPeriod
      */
@@ -287,6 +293,9 @@ class Period
         return $this;
     }
 
+    /**
+     * @internal
+     */
     public function setSubType(string $subType): self
     {
         $this->subType = $subType;
@@ -294,6 +303,9 @@ class Period
         return $this;
     }
 
+    /**
+     * @internal
+     */
     public function setSubValue(int $subValue): self
     {
         $this->subValue = $subValue;
