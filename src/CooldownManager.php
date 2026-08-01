@@ -63,7 +63,7 @@ class CooldownManager
     /**
      * Remove all expired cooldowns from the session.
      */
-    protected function forgetExpiredCooldowns(string $key)
+    protected function forgetExpiredCooldowns(string $key): void
     {
         $currentTime = Carbon::now();
         $viewHistory = $this->session->get($key, []);
