@@ -170,9 +170,9 @@ it('can count the views of a period', function (): void {
     TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
     TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6);
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4);
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(4);
+    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
+        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4)
+        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(4);
 });
 
 it('can remove the period', function (): void {
@@ -189,8 +189,8 @@ it('can count the views with a collection', function (): void {
     Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->record();
     Container::getInstance()->make(Views::class)->forViewable($this->post)->record();
 
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->count())->toBe(2);
-    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->count())->toBe(3);
+    expect(Container::getInstance()->make(Views::class)->forViewable($this->post)->collection('custom')->count())->toBe(2)
+        ->and(Container::getInstance()->make(Views::class)->forViewable($this->post)->count())->toBe(3);
 });
 
 it('can destroy the views', function (): void {
@@ -252,8 +252,8 @@ it('can count the unique views by type', function (): void {
     TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
     TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
 
-    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count())->toBe(2);
-    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count())->toBe(2);
+    expect(Container::getInstance()->make(Views::class)->forViewable(new Post)->unique()->count())->toBe(2)
+        ->toBe(2);
 });
 
 it('can remember the views counts', function (): void {
