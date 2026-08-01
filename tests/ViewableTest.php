@@ -2,281 +2,253 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
-
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use PHPUnit\Framework\Attributes\Test;
 
-final class ViewableTest extends TestCase
-{
-    private Post $post;
+beforeEach(function () {
+    $this->post = Post::factory()->create();
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+it('has a views relationship', function () {
+    expect($this->post->views())->toBeInstanceOf(MorphMany::class);
+});
 
-        $this->post = Post::factory()->create();
-    }
+it('can be ordered by views in descending order', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-    #[Test]
-    public function it_has_a_views_relationship(): void
-    {
-        $this->assertInstanceOf(MorphMany::class, $this->post->views());
-    }
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
 
-    #[Test]
-    public function it_can_be_ordered_by_views_in_descending_order(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    TestHelper::createView($postTwo);
 
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
+    TestHelper::createView($postThree);
+    TestHelper::createView($postThree);
 
-        TestHelper::createView($postTwo);
+    TestHelper::createView($postFour);
+    TestHelper::createView($postFour);
+    TestHelper::createView($postFour);
 
-        TestHelper::createView($postThree);
-        TestHelper::createView($postThree);
+    expect(Post::orderByViews()->pluck('id'))->toEqual(collect([1, 4, 3, 2]));
+});
 
-        TestHelper::createView($postFour);
-        TestHelper::createView($postFour);
-        TestHelper::createView($postFour);
+it('can be ordered by unique views in descending order', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-        $this->assertEquals(collect([1, 4, 3, 2]), Post::orderByViews()->pluck('id'));
-    }
+    // Unique views: 3
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
 
-    #[Test]
-    public function it_can_be_ordered_by_unique_views_in_descending_order(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Unique views: 2
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
 
-        // Unique views: 3
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
+    // Unique views: 4
+    TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_three']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_four']);
 
-        // Unique views: 2
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
+    // Unique views: 1
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
 
-        // Unique views: 4
-        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_three']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_four']);
+    expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(collect([3, 1, 2, 4]));
+});
 
-        // Unique views: 1
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
+it('can be ordered by views within a specific period in descending order', function () {
+    Carbon::setTestNow(Carbon::now());
 
-        $this->assertEquals(collect([3, 1, 2, 4]), Post::orderByUniqueViews()->pluck('id'));
-    }
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-    #[Test]
-    public function it_can_be_ordered_by_views_within_a_specific_period_in_descending_order(): void
-    {
-        Carbon::setTestNow(Carbon::now());
+    // Views within period: 3
+    TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
+    TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
+    TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
+    TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Views within period: 1
+    TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()]);
+    TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        // Views within period: 3
-        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()]);
-        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createView($postOne, ['viewed_at' => Carbon::now()->subDays(13)]);
+    // Views within period: 2
+    TestHelper::createView($postThree, ['viewed_at' => Carbon::now()]);
+    TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
+    TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
 
-        // Views within period: 1
-        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()]);
-        TestHelper::createView($postTwo, ['viewed_at' => Carbon::now()->subDays(13)]);
+    // Views within period: 4
+    TestHelper::createView($postFour, ['viewed_at' => Carbon::now()]);
+    TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(3)]);
+    TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(4)]);
+    TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(7)]);
 
-        // Views within period: 2
-        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()]);
-        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createView($postThree, ['viewed_at' => Carbon::now()->subDays(13)]);
+    expect(Post::orderByViews('desc', Period::pastDays(10))->pluck('id'))->toEqual(collect([4, 1, 3, 2]));
+});
 
-        // Views within period: 4
-        TestHelper::createView($postFour, ['viewed_at' => Carbon::now()]);
-        TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(3)]);
-        TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(4)]);
-        TestHelper::createView($postFour, ['viewed_at' => Carbon::now()->subDays(7)]);
+it('can be ordered by views in a specific collection descending', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-        $this->assertEquals(collect([4, 1, 3, 2]), Post::orderByViews('desc', Period::pastDays(10))->pluck('id'));
-    }
+    // Views in collection: 0
+    TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postOne);
 
-    #[Test]
-    public function it_can_be_ordered_by_views_in_a_specific_collection_descending(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Views in collection: 2
+    TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+    TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+    TestHelper::createView($postTwo);
 
-        // Views in collection: 0
-        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postOne);
+    // Views in collection: 3
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postThree);
 
-        // Views in collection: 2
-        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
-        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
-        TestHelper::createView($postTwo);
+    // Views in collection: 1
+    TestHelper::createView($postFour, ['collection' => 'good_collection']);
+    TestHelper::createView($postFour);
 
-        // Views in collection: 3
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postThree);
+    expect(Post::orderByViews('desc', null, 'good_collection')->pluck('id'))->toEqual(collect([3, 2, 4, 1]));
+});
 
-        // Views in collection: 1
-        TestHelper::createView($postFour, ['collection' => 'good_collection']);
-        TestHelper::createView($postFour);
+it('can be ordered by views in a specific collection ascending', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-        $this->assertEquals(collect([3, 2, 4, 1]), Post::orderByViews('desc', null, 'good_collection')->pluck('id'));
-    }
+    // Views in collection: 0
+    TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postOne);
 
-    #[Test]
-    public function it_can_be_ordered_by_views_in_a_specific_collection_ascending(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Views in collection: 2
+    TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+    TestHelper::createView($postTwo, ['collection' => 'good_collection']);
+    TestHelper::createView($postTwo);
 
-        // Views in collection: 0
-        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postOne, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postOne);
+    // Views in collection: 3
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'good_collection']);
+    TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
+    TestHelper::createView($postThree);
 
-        // Views in collection: 2
-        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
-        TestHelper::createView($postTwo, ['collection' => 'good_collection']);
-        TestHelper::createView($postTwo);
+    // Views in collection: 1
+    TestHelper::createView($postFour, ['collection' => 'good_collection']);
+    TestHelper::createView($postFour);
 
-        // Views in collection: 3
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'good_collection']);
-        TestHelper::createView($postThree, ['collection' => 'wrong_collection']);
-        TestHelper::createView($postThree);
+    expect(Post::orderByViews('asc', null, 'good_collection')->pluck('id'))->toEqual(collect([1, 4, 2, 3]));
+});
 
-        // Views in collection: 1
-        TestHelper::createView($postFour, ['collection' => 'good_collection']);
-        TestHelper::createView($postFour);
+it('can be ordered by views in ascending order', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-        $this->assertEquals(collect([1, 4, 2, 3]), Post::orderByViews('asc', null, 'good_collection')->pluck('id'));
-    }
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
+    TestHelper::createView($postOne);
 
-    #[Test]
-    public function it_can_be_ordered_by_views_in_ascending_order(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    TestHelper::createView($postTwo);
 
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
+    TestHelper::createView($postThree);
+    TestHelper::createView($postThree);
 
-        TestHelper::createView($postTwo);
+    TestHelper::createView($postFour);
+    TestHelper::createView($postFour);
+    TestHelper::createView($postFour);
 
-        TestHelper::createView($postThree);
-        TestHelper::createView($postThree);
+    expect(Post::orderByViews('asc')->pluck('id'))->toEqual(collect([2, 3, 4, 1]));
+});
 
-        TestHelper::createView($postFour);
-        TestHelper::createView($postFour);
-        TestHelper::createView($postFour);
+it('can be ordered by unique views in ascending order', function () {
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-        $this->assertEquals(collect([2, 3, 4, 1]), Post::orderByViews('asc')->pluck('id'));
-    }
+    // Unique views: 3
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
 
-    #[Test]
-    public function it_can_be_ordered_by_unique_views_in_ascending_order(): void
-    {
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Unique views: 2
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
 
-        // Unique views: 3
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_three']);
+    // Unique views: 4
+    TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_three']);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_four']);
 
-        // Unique views: 2
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
+    // Unique views: 1
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
 
-        // Unique views: 4
-        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_three']);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_four']);
+    expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(collect([4, 2, 1, 3]));
+});
 
-        // Unique views: 1
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one']);
+it('can be ordered by unique views within a specific period in ascending order', function () {
+    Carbon::setTestNow(Carbon::now());
 
-        $this->assertEquals(collect([4, 2, 1, 3]), Post::orderByUniqueViews('asc')->pluck('id'));
-    }
+    $postOne = $this->post;
+    $postTwo = Post::factory()->create();
+    $postThree = Post::factory()->create();
+    $postFour = Post::factory()->create();
 
-    #[Test]
-    public function it_can_be_ordered_by_unique_views_within_a_specific_period_in_ascending_order(): void
-    {
-        Carbon::setTestNow(Carbon::now());
+    // Views within period: 3
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(8)]);
+    TestHelper::createView($postOne, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(13)]);
 
-        $postOne = $this->post;
-        $postTwo = Post::factory()->create();
-        $postThree = Post::factory()->create();
-        $postFour = Post::factory()->create();
+    // Views within period: 1
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
+    TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
 
-        // Views within period: 3
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(2)]);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createView($postOne, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(13)]);
+    // Views within period: 2
+    TestHelper::createView($postThree, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(8)]);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
+    TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
 
-        // Views within period: 1
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(13)]);
+    // Views within period: 4
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(3)]);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(4)]);
+    TestHelper::createView($postFour, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(7)]);
 
-        // Views within period: 2
-        TestHelper::createView($postThree, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(8)]);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
-        TestHelper::createView($postThree, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(13)]);
-
-        // Views within period: 4
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_one', 'viewed_at' => Carbon::now()]);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_two', 'viewed_at' => Carbon::now()->subDays(3)]);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_three', 'viewed_at' => Carbon::now()->subDays(4)]);
-        TestHelper::createView($postFour, ['visitor' => 'visitor_four', 'viewed_at' => Carbon::now()->subDays(7)]);
-
-        $this->assertEquals(collect([2, 3, 1, 4]), Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'));
-    }
-}
+    expect(Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'))->toEqual(collect([2, 3, 1, 4]));
+});
