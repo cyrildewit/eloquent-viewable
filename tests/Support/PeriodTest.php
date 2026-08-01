@@ -303,4 +303,20 @@ final class PeriodTest extends TestCase
 
         $this->assertSame(3, $period->getSubValue());
     }
+
+    #[Test]
+    public function get_sub_type_returns_null_when_the_period_is_not_created_from_a_sub_type(): void
+    {
+        $period = Period::create(Carbon::yesterday(), Carbon::today());
+
+        $this->assertNull($period->getSubType());
+    }
+
+    #[Test]
+    public function get_sub_value_returns_null_when_the_period_is_not_created_from_a_sub_type(): void
+    {
+        $period = Period::create(Carbon::yesterday(), Carbon::today());
+
+        $this->assertNull($period->getSubValue());
+    }
 }
