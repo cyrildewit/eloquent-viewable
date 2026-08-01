@@ -16,12 +16,8 @@ permissions:
 jobs:
   static:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        stability: [ prefer-lowest, prefer-stable ]
 
-    name: Static Tests
+    name: Static Analysis
 
     steps:
       - name: Checkout code
@@ -32,7 +28,6 @@ jobs:
         with:
           php-version: 8.5
           extensions: mbstring
-          coverage: xdebug
 
       - name: Get composer cache directory
         id: composer-cache
@@ -46,7 +41,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install composer dependencies
-        run: composer update --${{ matrix.stability }} --no-interaction --ansi
+        run: composer update --prefer-stable --no-interaction --ansi
 
       - name: Style
         run: composer run test:lint
@@ -55,5 +50,4 @@ jobs:
         run: composer run rector -- --dry-run
 
       - name: Types
-        if: matrix.stability == 'prefer-stable'
         run: composer run test:types
