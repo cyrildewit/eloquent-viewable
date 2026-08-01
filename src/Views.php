@@ -172,7 +172,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        return ! ($this->cooldown instanceof DateTimeInterface && ! $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection));
+        return ! $this->cooldown instanceof DateTimeInterface || $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection);
     }
 
     protected function createView(): ViewContract
