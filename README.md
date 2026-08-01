@@ -125,7 +125,7 @@ approach to view tracking, giving you control over how views are recorded, count
 
 | Package Version                                                            | Laravel    | PHP  |
 |----------------------------------------------------------------------------|------------|------|
-| [8.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#8.x-dev) | 13.x       | 8.4+ |
+| [8.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#8.x-dev) | 13.x       | 8.5+ |
 | [7.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#7.x-dev) | 6.x – 13.x | 7.4+ |
 
 Support for Lumen is not maintained.
