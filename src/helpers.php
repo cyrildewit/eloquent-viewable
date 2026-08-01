@@ -6,7 +6,9 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views;
 use Illuminate\Container\Container;
 
+// @codeCoverageIgnoreStart
 if (! function_exists('views')) {
+    // @codeCoverageIgnoreEnd
     function views(Viewable|string $viewable): Views
     {
         $builder = Container::getInstance()->make(Views::class);

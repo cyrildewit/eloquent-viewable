@@ -35,3 +35,13 @@ it('can determine if the visitor is a crawler from the crawler detector', functi
 
     expect($visitor->isCrawler())->toBeTrue();
 });
+
+it('returns the existing visitor id from the cookie', function (): void {
+    $key = config('eloquent-viewable.visitor_cookie_key');
+
+    $this->app['request']->cookies->set($key, 'existing-visitor-id');
+
+    $visitor = $this->app->make(Visitor::class);
+
+    expect($visitor->id())->toBe('existing-visitor-id');
+});
