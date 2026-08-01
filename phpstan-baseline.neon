@@ -19,18 +19,6 @@ parameters:
 			path: src/CacheKey.php
 
 		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\CacheKey\:\:getCollectionSlug\(\) has parameter \$collection with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/CacheKey.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\CacheKey\:\:getUniqueSlug\(\) has parameter \$unique with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/CacheKey.php
-
-		-
 			message: '#^Unsafe usage of new static\(\)\.$#'
 			identifier: new.static
 			count: 1
@@ -77,18 +65,6 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Contracts/Viewable.php
-
-		-
-			message: '#^Method CyrildeWit\\EloquentViewable\\CooldownManager\:\:createCooldown\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/CooldownManager.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Contracts\\Foundation\\Application\:\:\$config\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/EloquentViewableServiceProvider.php
 
 		-
 			message: '#^Unsafe usage of new static\(\)\.$#'
@@ -181,25 +157,7 @@ parameters:
 			path: src/Views.php
 
 		-
-			message: '#^Instanceof between CyrildeWit\\EloquentViewable\\Contracts\\Viewable and CyrildeWit\\EloquentViewable\\Contracts\\Viewable will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Views.php
-
-		-
 			message: '#^Method CyrildeWit\\EloquentViewable\\Views\:\:resolveViewableQuery\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
 			identifier: missingType.generics
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Unable to resolve the template type TKey in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Unable to resolve the template type TValue in call to function collect$#'
-			identifier: argument.templateType
 			count: 1
 			path: src/Views.php

@@ -83,7 +83,7 @@ class Views implements ViewsContract
      */
     public function record(): bool
     {
-        if ($this->viewable instanceof Viewable && $this->viewable->getKey() === null) {
+        if ($this->viewable->getKey() === null) {
             throw ViewRecordException::cannotRecordViewForViewableType();
         }
 
@@ -168,7 +168,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        if (collect($this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->visitor->ip())) {
+        if (collect((array) $this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->visitor->ip())) {
             return false;
         }
 

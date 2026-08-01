@@ -51,6 +51,8 @@ class CooldownManager
 
     /**
      * Create a cooldown for given viewable model.
+     *
+     * @return array{viewable_id: mixed, expires_at: DateTimeInterface}
      */
     protected function createCooldown(Viewable $viewable, DateTimeInterface $expiresAt): array
     {

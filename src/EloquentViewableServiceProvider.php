@@ -18,8 +18,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $config = $this->app->config['eloquent-viewable'];
-
             $this->publishes([
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');

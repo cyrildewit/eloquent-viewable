@@ -96,12 +96,12 @@ class CacheKey
         return "{$subType}{$period->getSubValue()}{$subValueType}|".'.';
     }
 
-    protected function getUniqueSlug($unique = false): string
+    protected function getUniqueSlug(bool $unique = false): string
     {
         return $unique ? 'unique' : 'normal';
     }
 
-    protected function getCollectionSlug($collection = null): string
+    protected function getCollectionSlug(?string $collection = null): string
     {
         return $collection ? ".{$collection}" : '';
     }
