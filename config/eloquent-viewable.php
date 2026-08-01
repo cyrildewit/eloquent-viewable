@@ -29,7 +29,7 @@ return [
     'cache' => [
 
         /*
-         * Everthing will be stored under the following key.
+         * Everything will be stored under the following key.
          */
         'key' => 'cyrildewit.eloquent-viewable.cache',
 

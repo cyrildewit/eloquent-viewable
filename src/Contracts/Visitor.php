@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 interface Visitor
 {
     /**
-     * Get the unique ID that represent's the visitor.
+     * Get the unique ID that represents the visitor.
      */
     public function id(): string;
 

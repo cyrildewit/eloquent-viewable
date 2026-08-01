@@ -59,7 +59,7 @@ class View extends Model implements ViewContract
     }
 
     /**
-     * Scope a query to only include views withing the collection.
+     * Scope a query to only include views within the collection.
      */
     public function scopeCollection(Builder $query, ?string $collection = null): void
     {

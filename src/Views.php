@@ -162,7 +162,7 @@ class Views implements ViewsContract
             return false;
         }
 
-        // If we honor to the DNT header and the current request contains the
+        // If we honor the DNT header and the current request contains the
         // DNT header, return false
         if ($this->config->get('eloquent-viewable.honor_dnt', false) && $this->visitor->hasDoNotTrackHeader()) {
             return false;
