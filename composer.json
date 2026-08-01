@@ -38,6 +38,7 @@
         "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^5.0",
         "phpunit/phpunit": "^13.0",
         "rector/rector": "^2.3"
     },
@@ -63,7 +64,10 @@
         "rector": "rector"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
     "extra": {
         "laravel": {
