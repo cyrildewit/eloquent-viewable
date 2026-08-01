@@ -15,7 +15,12 @@ return [
         'view' => [
 
             'table_name' => 'views',
-            'connection' => env('DB_CONNECTION', 'mysql'),
+
+            /*
+             * The database connection used to store views. When `null`, the
+             * application's default database connection is used.
+             */
+            'connection' => null,
 
         ],
 
@@ -34,9 +39,10 @@ return [
         'key' => 'cyrildewit.eloquent-viewable.cache',
 
         /*
-         * Here you may define the cache store that should be used.
+         * Here you may define the cache store that should be used. When
+         * `null`, the application's default cache store is used.
          */
-        'store' => env('CACHE_DRIVER', 'file'),
+        'store' => null,
 
     ],
 

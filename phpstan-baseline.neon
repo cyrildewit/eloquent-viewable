@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
-			identifier: larastan.noEnvCallsOutsideOfConfig
-			count: 2
-			path: config/eloquent-viewable.php
-
-		-
 			message: '#^Trait CyrildeWit\\EloquentViewable\\InteractsWithViews is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1
