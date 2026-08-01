@@ -58,8 +58,8 @@
     "scripts": {
         "lint": "pint",
         "test:lint": "pint --test",
-        "test": "phpunit",
-        "test:coverage": "phpunit --coverage-clover build/coverage.xml",
+        "test": "pest",
+        "test:coverage": "pest --coverage-clover build/coverage.xml",
         "test:types": "phpstan analyse --memory-limit=512M",
         "rector": "rector"
     },

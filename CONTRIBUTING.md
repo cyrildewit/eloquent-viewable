@@ -72,12 +72,14 @@ Before you can run the tests, you have to install the package dependencies via [
 composer install
 ```
 
-Then run PHPUnit:
+Then run [Pest](https://pestphp.com/):
 
 ```bash
-vendor/bin/phpunit
+composer test
 ```
 
-When you make a pull request, the tests will be automatically run again by [Travis CI](https://travis-ci.org/) on different PHP versions.
+You can also invoke the test runner directly with `vendor/bin/pest`.
+
+When you make a pull request, the tests will be automatically run again by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).
 
 [GitHub]: https://github.com/cyrildewit/laravel-page-view-counter/pulls
