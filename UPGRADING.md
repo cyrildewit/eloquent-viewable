@@ -30,7 +30,14 @@ Schema::table('views', function (Blueprint $table) {
 
 Note that on large tables this rewrites the table, and any `visitor` value longer than 255 characters would be truncated (the built-in visitor identifier is 80 characters).
 
-### Removed `Period` getters
+### Config defaults for connection and cache store
+
+The default config now uses `null` for `models.view.connection` and `cache.store` instead of reading `env('DB_CONNECTION')` and `env('CACHE_DRIVER')`. A `null` value defers to the application's default database connection and default cache store.
+
+This only affects **newly published** config. If you have already published `config/eloquent-viewable.php`, your copy still contains the old `env()` calls and keeps working. Two things to be aware of when adopting the new defaults:
+
+- `CACHE_DRIVER` was renamed to `CACHE_STORE` in Laravel 11. If your published config still reads `env('CACHE_DRIVER', 'file')` while your app only sets `CACHE_STORE`, view counts are cached to the `file` store regardless of your configured cache. Setting `cache.store` to `null` (or `env('CACHE_STORE')`) resolves this.
+- Switching `cache.store` to `null` means view counts are cached in your application's **default** cache store. If you relied on the previous `file` fallback, set `cache.store` explicitly instead.
 
 The following getters were removed from `CyrildeWit\EloquentViewable\Support\Period`:
 
