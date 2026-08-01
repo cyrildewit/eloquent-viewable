@@ -86,41 +86,19 @@ test('static upto can construct a new period instance', function (): void {
         ->and($period->getEndDateTime())->toEqual($endDateTime);
 });
 
-test('static past days can construct a new period instance', function (): void {
+test('static past {method} can construct a new period instance', function (string $periodMethod, string $carbonMethod, int $value): void {
     Carbon::setTestNow(Carbon::now());
 
-    $period = Period::pastDays(5);
+    $period = Period::{$periodMethod}($value);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subDays(5))
+    expect($period->getStartDateTime())->toEqual(Carbon::today()->{$carbonMethod}($value))
         ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static past weeks can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::pastWeeks(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subWeeks(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static past months can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::pastMonths(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subMonths(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static past years can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::pastYears(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::today()->subYears(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
+})->with([
+    'days' => ['pastDays', 'subDays', 5],
+    'weeks' => ['pastWeeks', 'subWeeks', 2],
+    'months' => ['pastMonths', 'subMonths', 2],
+    'years' => ['pastYears', 'subYears', 2],
+]);
 
 test('static sub throws exception when sub type method is not callable', function (): void {
     Carbon::setTestNow(Carbon::now());
@@ -129,68 +107,16 @@ test('static sub throws exception when sub type method is not callable', functio
         ->toThrow(Exception::class);
 });
 
-test('static sub seconds can construct a new period instance', function (): void {
+test('static sub {method} can construct a new period instance', function (string $method): void {
     Carbon::setTestNow(Carbon::now());
 
-    $period = Period::subSeconds(2);
+    $period = Period::{$method}(2);
 
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subSeconds(2))
+    expect($period->getStartDateTime())->toEqual(Carbon::now()->{$method}(2))
         ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub minutes can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subMinutes(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMinutes(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub hours can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subHours(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subHours(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub days can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subDays(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subDays(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub weeks can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subWeeks(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subWeeks(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub months can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subMonths(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subMonths(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
-
-test('static sub years can construct a new period instance', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::subYears(2);
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now()->subYears(2))
-        ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-});
+})->with([
+    'subSeconds', 'subMinutes', 'subHours', 'subDays', 'subWeeks', 'subMonths', 'subYears',
+]);
 
 test('static sub will throw an exception if subtype method is not callable', function (): void {
     expect(fn (): Period => Period::sub(Carbon::now(), 'wrongMethod', Period::SUB_YEARS, 1))
