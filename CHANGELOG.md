@@ -22,6 +22,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Narrowed `Period::sub()` to accept `CarbonInterface`, and `Period::getStartDateTime()`/`getEndDateTime()` to return `?CarbonInterface`
 - Marked the `InvalidPeriod` and `ViewRecordException` exceptions as `final` (breaking only for code that extends them)
 - The `Viewable` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` instead of redeclaring the `getKey()` and `getMorphClass()` methods
+- The `View` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` and declares the existing `scopeCollection()` method (breaking only for classes that implement `Contracts\View` directly)
 - Modernized the `create_views_table` migration stub (typed properties and return types; no schema changes)
 
 ### Removed

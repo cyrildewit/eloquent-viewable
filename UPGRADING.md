@@ -42,11 +42,13 @@ Derive these values from the `DateTimeInterface` getters instead:
 
 ### Changes to the `View` contract
 
-The `scopeWithinPeriod` method now declares a `void` return type. If you implement `CyrildeWit\EloquentViewable\Contracts\View`, update your signature:
+The `scopeWithinPeriod` method now declares a `void` return type. The contract also uses `@mixin \Illuminate\Database\Eloquent\Model` (so every Eloquent method resolves on it) and now declares the `scopeCollection()` method that already existed on the `View` model. This only affects you if you implement `CyrildeWit\EloquentViewable\Contracts\View` directly — update your signature and add the `scopeCollection()` declaration:
 
 ```diff
 -public function scopeWithinPeriod(Builder $query, Period $period);
 +public function scopeWithinPeriod(Builder $query, Period $period): void;
+
++public function scopeCollection(Builder $query, ?string $collection = null): void;
 ```
 
 ### Changes to the `Views` contract
