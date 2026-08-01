@@ -84,12 +84,19 @@ Parameters are now natively typed, and the contract now declares the `useVisitor
 
 ### Changes to `Period`
 
-The `Period` class now works exclusively with Carbon instances internally, and a couple of getters can now return `null`.
+`Period` is now a `final`, immutable (`readonly`) value object. The way you create and read periods is unchanged — the factory methods (`create()`, `since()`, `upto()`, `pastDays()`, `subDays()`, …) and `getStartDateTime()`/`getEndDateTime()` all work exactly as before. `getStartDateTime()`/`getEndDateTime()` return `?CarbonInterface`.
 
-- `Period::sub()` narrowed its first parameter from `DateTimeInterface` to `CarbonInterface`. Passing a plain `\DateTime` or `\DateTimeImmutable` will no longer work — wrap it with `Carbon::instance(...)` first.
-- `getStartDateTime()` and `getEndDateTime()` now return `?CarbonInterface` (was `?DateTimeInterface`).
-- `getSubType()` now returns `?string` (was `string`).
-- `getSubValue()` now returns `?int` (was `int`).
+The following were removed and have no replacement, as they only existed to support the internal cache key:
+
+- The `Period::PAST_*` and `Period::SUB_*` constants.
+- The `sub()`, `subToday()` and `subNow()` static helpers.
+- The `getSubType()`, `getSubValue()` and `hasFixedDateTimes()` methods.
+
+Because `Period` is now immutable, its setters were also removed. Build a new period instead of mutating one:
+
+- `setStartDateTime()`, `setEndDateTime()`, `setFixedDateTimes()`, `setSubType()`, `setSubValue()`.
+
+If you extended `Period`, note it is now `final` and can no longer be subclassed.
 
 ### Changes to the `views()` helper
 

@@ -19,7 +19,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - The `Views` contract now declares the existing `useVisitor()` method (breaking only for classes that implement `Contracts\Views` directly)
 - Changed the `cooldown()` and `remember()` parameters on the `Views` contract to be typed `DateTimeInterface|int|null`
 - Changed the `scopeWithinPeriod()` method on the `View` contract to declare a `void` return type
-- Narrowed `Period::sub()` to accept `CarbonInterface`, and `Period::getStartDateTime()`/`getEndDateTime()` to return `?CarbonInterface`
+- Narrowed `Period::getStartDateTime()`/`getEndDateTime()` to return `?CarbonInterface`
 - Marked the `InvalidPeriod` and `ViewRecordException` exceptions as `final` (breaking only for code that extends them)
 - The `Viewable` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` instead of redeclaring the `getKey()` and `getMorphClass()` methods
 - The `View` contract now uses `@mixin \Illuminate\Database\Eloquent\Model` and declares the existing `scopeCollection()` method (breaking only for classes that implement `Contracts\View` directly)
@@ -27,12 +27,15 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 - Changed the `visitor` column in the `create_views_table` migration stub from `text` to `string` (`VARCHAR(255)`) so it can be indexed directly (only affects newly published migrations)
 - Changed the default config `models.view.connection` and `cache.store` to `null`, so they now defer to the application's default database connection and cache store instead of reading `env('DB_CONNECTION')` and the deprecated `env('CACHE_DRIVER')` (only affects newly published config)
 - Migrated the test suite from PHPUnit to [Pest](https://pestphp.com/) (development only; no impact on consumers)
+- Redesigned `Period` as a `final`, immutable (`readonly`) value object; relative periods are now built with the new `Support\PeriodInterval` and `Support\PeriodAnchor` enums, and date parsing defers to `Carbon::make()` (the factory methods, `getStartDateTime()`/`getEndDateTime()`, and the cache-key format are unchanged)
 
 ### Removed
 
 - Dropped support for Laravel 6 through 12 (`illuminate/*` now requires `^13.0`)
 - Dropped support for Carbon 2 (`nesbot/carbon` now requires `^3.0`)
 - Removed the `getStartDateTimeString()`, `getEndDateTimeString()`, `getStartDateTimestamp()` and `getEndDateTimestamp()` getters from `Period`
+- Removed the `Period::PAST_*` and `Period::SUB_*` constants and the `sub()`, `subToday()` and `subNow()` static helpers
+- Removed the `Period::getSubType()`, `getSubValue()`, `hasFixedDateTimes()`, `setStartDateTime()`, `setEndDateTime()`, `setFixedDateTimes()`, `setSubType()` and `setSubValue()` methods (`Period` is now immutable)
 
 ## [v7.1.1]
 
