@@ -24,38 +24,33 @@ it('can construct a new period instance', function (): void {
 });
 
 it('can construct a new period instance with strings as arguments', function (): void {
-    $startDateTime = '2018-07-16';
-    $endDateTime = '2018-12-23';
-
     $period = new Period('2018-07-16', '2018-12-23');
 
-    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime))
-        ->and($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
+    expect($period->getStartDateTime())->toEqual(Carbon::parse('2018-07-16'))
+        ->and($period->getEndDateTime())->toEqual(Carbon::parse('2018-12-23'));
 });
 
 it('can construct a new period instance with start datetime argument as string', function (): void {
-    $startDateTime = '2018-07-16';
-
     $period = new Period('2018-07-16');
 
-    expect($period->getStartDateTime())->toEqual(Carbon::parse($startDateTime))
+    expect($period->getStartDateTime())->toEqual(Carbon::parse('2018-07-16'))
         ->and($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
 });
 
 it('can construct a new period instance with end datetime argument as string', function (): void {
-    $endDateTime = '2018-07-16';
-
-    $period = new Period(null, $endDateTime);
+    $period = new Period(null, '2018-07-16');
 
     expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class)
-        ->and($period->getEndDateTime())->toEqual(Carbon::parse($endDateTime));
+        ->and($period->getEndDateTime())->toEqual(Carbon::parse('2018-07-16'));
 });
 
 it('will throw an exception if the start date time comes after the end date time', function (): void {
-    $startDateTime = Carbon::create(2018);
-    $endDateTime = Carbon::create(2017);
+    expect(fn (): Period => new Period(Carbon::create(2018), Carbon::create(2017)))
+        ->toThrow(InvalidPeriod::class);
+});
 
-    expect(fn (): Period => new Period($startDateTime, $endDateTime))->toThrow(InvalidPeriod::class);
+it('is immutable', function (): void {
+    expect(new ReflectionClass(Period::class))->isFinal()->toBeTrue();
 });
 
 test('static create can construct a new period instance', function (): void {
@@ -100,13 +95,6 @@ test('static past {method} can construct a new period instance', function (strin
     'years' => ['pastYears', 'subYears', 2],
 ]);
 
-test('static sub throws exception when sub type method is not callable', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    expect(fn (): Period => Period::sub(Carbon::now(), 'keepDreaming', Period::SUB_SECONDS, 2))
-        ->toThrow(Exception::class);
-});
-
 test('static sub {method} can construct a new period instance', function (string $method): void {
     Carbon::setTestNow(Carbon::now());
 
@@ -118,61 +106,24 @@ test('static sub {method} can construct a new period instance', function (string
     'subSeconds', 'subMinutes', 'subHours', 'subDays', 'subWeeks', 'subMonths', 'subYears',
 ]);
 
-test('static sub will throw an exception if subtype method is not callable', function (): void {
-    expect(fn (): Period => Period::sub(Carbon::now(), 'wrongMethod', Period::SUB_YEARS, 1))
-        ->toThrow(Exception::class);
-});
+test('relative periods expose a stable cache signature', function (string $method, int $value, string $signature): void {
+    expect(Period::{$method}($value)->cacheSignature())->toBe($signature);
+})->with([
+    ['pastDays', 3, 'past3days'],
+    ['pastWeeks', 2, 'past2weeks'],
+    ['pastMonths', 6, 'past6months'],
+    ['pastYears', 1, 'past1years'],
+    ['subSeconds', 34, 'sub34seconds'],
+    ['subMinutes', 5, 'sub5minutes'],
+    ['subHours', 12, 'sub12hours'],
+    ['subDays', 7, 'sub7days'],
+    ['subWeeks', 3, 'sub3weeks'],
+    ['subMonths', 2, 'sub2months'],
+    ['subYears', 4, 'sub4years'],
+]);
 
-test('set start date time can set a new start date time', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::create();
-
-    expect($period->getStartDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-
-    $period->setStartDateTime(Carbon::now());
-
-    expect($period->getStartDateTime())->toEqual(Carbon::now());
-});
-
-test('set end date time can set a new start date time', function (): void {
-    Carbon::setTestNow(Carbon::now());
-
-    $period = Period::create();
-
-    expect($period->getEndDateTime())->not->toBeInstanceOf(CarbonInterface::class);
-
-    $period->setEndDateTime(Carbon::now());
-
-    expect($period->getEndDateTime())->toEqual(Carbon::now());
-});
-
-test('has fixed date times can determine if datetimes are fixed', function (): void {
-    $period = Period::pastDays(3);
-
-    expect($period->hasFixedDateTimes())->toBeFalse();
-});
-
-test('get sub type returns sub type', function (): void {
-    $period = Period::pastDays(3);
-
-    expect($period->getSubType())->toBe(Period::PAST_DAYS);
-});
-
-test('get sub value returns sub type', function (): void {
-    $period = Period::pastDays(3);
-
-    expect($period->getSubValue())->toBe(3);
-});
-
-test('get sub type returns null when the period is not created from a sub type', function (): void {
+test('absolute periods have no cache signature', function (): void {
     $period = Period::create(Carbon::yesterday(), Carbon::today());
 
-    expect($period->getSubType())->toBeNull();
-});
-
-test('get sub value returns null when the period is not created from a sub type', function (): void {
-    $period = Period::create(Carbon::yesterday(), Carbon::today());
-
-    expect($period->getSubValue())->toBeNull();
+    expect($period->cacheSignature())->toBeNull();
 });

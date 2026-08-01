@@ -84,16 +84,16 @@ class CacheKey
             return '|.';
         }
 
-        if ($period->hasFixedDateTimes()) {
-            $startDateTime = $period->getStartDateTime()?->timestamp;
-            $endDateTime = $period->getEndDateTime()?->timestamp;
+        $signature = $period->cacheSignature();
 
-            return "{$startDateTime}|{$endDateTime}".'.';
+        if ($signature !== null) {
+            return "{$signature}|".'.';
         }
 
-        [$subType, $subValueType] = explode('_', strtolower((string) $period->getSubType()));
+        $startDateTime = $period->getStartDateTime()?->timestamp;
+        $endDateTime = $period->getEndDateTime()?->timestamp;
 
-        return "{$subType}{$period->getSubValue()}{$subValueType}|".'.';
+        return "{$startDateTime}|{$endDateTime}".'.';
     }
 
     protected function getUniqueSlug(bool $unique = false): string
