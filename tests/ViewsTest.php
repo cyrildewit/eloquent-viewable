@@ -116,6 +116,62 @@ describe('queueing', function (): void {
 
         expect(View::count())->toBe(1);
     });
+
+    it('does not queue bot views', function (): void {
+        $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
+        {
+            public function isCrawler(): bool
+            {
+                return true;
+            }
+        });
+
+        Bus::fake();
+
+        expect(views($this->post)->queue()->record())->toBeFalse();
+
+        Bus::assertNotDispatched(StoreView::class);
+    });
+
+    it('does not queue views from visitors with the dnt header', function (): void {
+        Config::set('eloquent-viewable.honor_dnt', true);
+
+        $this->mock(Visitor::class, function ($mock): void {
+            $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
+            $mock->shouldReceive('isCrawler')->andReturn(false);
+        });
+
+        Bus::fake();
+
+        expect(views($this->post)->queue()->record())->toBeFalse();
+
+        Bus::assertNotDispatched(StoreView::class);
+    });
+
+    it('does not queue views from ignored ip addresses', function (): void {
+        Config::set('eloquent-viewable.ignored_ip_addresses', ['127.20.22.6']);
+
+        $this->mock(Visitor::class, function ($mock): void {
+            $mock->shouldReceive('ip')->andReturn('127.20.22.6');
+            $mock->shouldReceive('isCrawler')->andReturn(false);
+        });
+
+        Bus::fake();
+
+        expect(views($this->post)->queue()->record())->toBeFalse();
+
+        Bus::assertNotDispatched(StoreView::class);
+    });
+
+    it('does not queue views that are on cooldown', function (): void {
+        Bus::fake();
+
+        views($this->post)->queue()->cooldown(10)->record();
+
+        expect(views($this->post)->queue()->cooldown(10)->record())->toBeFalse();
+
+        Bus::assertDispatchedTimes(StoreView::class, 1);
+    });
 });
 
 describe('cooldowns', function (): void {
