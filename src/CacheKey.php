@@ -6,103 +6,55 @@ namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Container\Container;
-use Illuminate\Support\Str;
 
-class CacheKey
+/**
+ * Builds the cache key under which a viewable's view count is memoized.
+ *
+ * The key is a hybrid of two parts joined by a colon:
+ *
+ *   {prefix}:{morph class}:{key}:{digest}
+ *
+ * The head ({prefix}:{morph class}:{key}) is a human-readable, best-effort
+ * label that keeps entries identifiable when inspecting the cache store. It is
+ * not relied upon for uniqueness. The digest is a collision-safe hash over the
+ * full identity of the count being cached, so two configurations only ever
+ * share a key when they are genuinely the same count.
+ */
+final readonly class CacheKey
 {
-    public function __construct(protected Viewable $viewable) {}
-
-    public static function fromViewable(Viewable $viewable): CacheKey
-    {
-        return new self($viewable);
-    }
+    public function __construct(
+        private Viewable $viewable,
+        private string $prefix,
+    ) {}
 
     public function make(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
-        $key = $this->getCachePrefix();
-        $key .= $this->getConnectionName();
-        $key .= $this->getDatabaseName();
-        $key .= $this->getViewableTypeSlug();
-        $key .= $this->getTableSlug();
-        $key .= $this->getModelSlug();
-        $key .= $this->getKeySlug();
-        $key .= $this->getPeriodSlug($period);
-        $key .= $this->getUniqueSlug($unique);
-
-        return $key.$this->getCollectionSlug($collection);
+        return $this->head().':'.$this->digest($period, $unique, $collection);
     }
 
-    protected function getCachePrefix(): string
+    private function head(): string
     {
-        return Container::getInstance()
-            ->make('config')
-            ->get('eloquent-viewable.cache.key').':';
-    }
+        $key = $this->viewable->getKey();
 
-    protected function getConnectionName(): string
-    {
-        return $this->viewable->getConnection()->getName().':';
-    }
-
-    protected function getDatabaseName(): string
-    {
-        return $this->viewable->getConnection()->getDatabaseName().':';
-    }
-
-    protected function getViewableTypeSlug(): string
-    {
-        if ($this->viewable->getKey() === null) {
-            return 'type.';
+        if ($key === null) {
+            return "{$this->prefix}:type:{$this->viewable->getMorphClass()}";
         }
 
-        return '';
+        return "{$this->prefix}:{$this->viewable->getMorphClass()}:{$key}";
     }
 
-    protected function getTableSlug(): string
+    private function digest(?Period $period, bool $unique, ?string $collection): string
     {
-        return Str::slug($this->viewable->getTable()).':';
-    }
+        $connection = $this->viewable->getConnection();
 
-    protected function getModelSlug(): string
-    {
-        return Str::slug($this->viewable->getMorphClass()).'.';
-    }
-
-    protected function getKeySlug(): string
-    {
-        if ($this->viewable->getKey() === null) {
-            return '';
-        }
-
-        return $this->viewable->getKey().'.';
-    }
-
-    protected function getPeriodSlug(?Period $period = null): string
-    {
-        if (! $period instanceof Period) {
-            return '|.';
-        }
-
-        $signature = $period->cacheSignature();
-
-        if ($signature !== null) {
-            return "{$signature}|".'.';
-        }
-
-        $startDateTime = $period->getStartDateTime()?->timestamp;
-        $endDateTime = $period->getEndDateTime()?->timestamp;
-
-        return "{$startDateTime}|{$endDateTime}".'.';
-    }
-
-    protected function getUniqueSlug(bool $unique = false): string
-    {
-        return $unique ? 'unique' : 'normal';
-    }
-
-    protected function getCollectionSlug(?string $collection = null): string
-    {
-        return $collection ? ".{$collection}" : '';
+        return hash('xxh128', serialize([
+            $connection->getName(),
+            $connection->getDatabaseName(),
+            $this->viewable->getMorphClass(),
+            $this->viewable->getKey(),
+            $period?->cacheSignature(),
+            $unique,
+            $collection,
+        ]));
     }
 }

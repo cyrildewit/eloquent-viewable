@@ -214,7 +214,10 @@ class Views implements ViewsContract
 
     protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
     {
-        return CacheKey::fromViewable($this->viewable)->make($period, $unique, $collection);
+        return (new CacheKey(
+            $this->viewable,
+            (string) $this->config->get('eloquent-viewable.cache.key'),
+        ))->make($period, $unique, $collection);
     }
 
     protected function resolveCacheLifetime(DateTimeInterface|int $lifetime): CarbonInterface

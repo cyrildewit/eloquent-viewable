@@ -4,75 +4,81 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\CacheKey;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use Illuminate\Support\Facades\Config;
+
+function cacheKey(object $viewable): CacheKey
+{
+    return new CacheKey($viewable, 'test-namespace');
+}
 
 beforeEach(function (): void {
     $this->firstPost = Post::factory()->create();
     $this->secondPost = Post::factory()->create();
-
-    Config::set('eloquent-viewable.cache.key', 'test-namespace');
 });
 
-it('can make a key for a viewable type without a key', function (): void {
-    $cacheKey = new CacheKey(new Post);
-
-    expect($cacheKey->make())
-        ->toBe('test-namespace:testing::memory::type.posts:cyrildewiteloquentviewableteststestclassesmodelspost.|.normal');
+it('is deterministic for identical inputs', function (): void {
+    expect(cacheKey($this->firstPost)->make(Period::pastDays(2), true, 'reads'))
+        ->toBe(cacheKey($this->firstPost)->make(Period::pastDays(2), true, 'reads'));
 });
 
-it('can make a key from default parameters', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
+it('prefixes the key with a readable head', function (): void {
+    $morphClass = $this->firstPost->getMorphClass();
 
-    expect($firstPostCacheKey->make())
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal')
-        ->and($secondPostCacheKey->make())->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal');
+    expect(cacheKey($this->firstPost)->make())
+        ->toStartWith("test-namespace:{$morphClass}:{$this->firstPost->getKey()}:");
 });
 
-it('can make a key from period with startdatetime', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
+it('labels a viewable type without a key in the head', function (): void {
+    $post = new Post;
 
-    expect($firstPostCacheKey->make(Period::since('2019-03-21')))
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.1553126400|.normal')
-        ->and($secondPostCacheKey->make(Period::since('2012-04-13')))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.1334275200|.normal');
+    expect(cacheKey($post)->make())
+        ->toStartWith('test-namespace:type:'.$post->getMorphClass().':');
 });
 
-it('can make a key from period with enddatetime', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
-
-    expect($firstPostCacheKey->make(Period::upto('2020-07-03')))
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|1593734400.normal')
-        ->and($secondPostCacheKey->make(Period::upto('2024-09-17')))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|1726531200.normal');
+it('produces a distinct key per model instance', function (): void {
+    expect(cacheKey($this->firstPost)->make())
+        ->not->toBe(cacheKey($this->secondPost)->make());
 });
 
-it('can make a key from period with past or sub datetimes', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
+it('never collides across different viewable types', function (): void {
+    $apartment = Apartment::factory()->create();
 
-    expect($firstPostCacheKey->make(Period::pastDays(2)))
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.past2days|.normal')
-        ->and($firstPostCacheKey->make(Period::subSeconds(34)))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.sub34seconds|.normal')
-        ->and($secondPostCacheKey->make(Period::pastYears(3)))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.past3years|.normal')
-        ->and($secondPostCacheKey->make(Period::subWeeks(3)))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.sub3weeks|.normal');
+    expect(cacheKey($this->firstPost)->make())
+        ->not->toBe(cacheKey($apartment)->make());
 });
 
-it('can make a key from type unique', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
+it('changes the key when the period changes', function (): void {
+    $default = cacheKey($this->firstPost)->make();
 
-    expect($firstPostCacheKey->make(null, true))
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.unique')
-        ->and($secondPostCacheKey->make(null, true))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.unique');
+    expect(cacheKey($this->firstPost)->make(Period::since('2019-03-21')))
+        ->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(Period::upto('2020-07-03')))->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(Period::pastDays(2)))->not->toBe($default);
 });
 
-it('can make a key from collection', function (): void {
-    $firstPostCacheKey = new CacheKey($this->firstPost);
-    $secondPostCacheKey = new CacheKey($this->secondPost);
+it('distinguishes relative periods from one another', function (): void {
+    expect(cacheKey($this->firstPost)->make(Period::pastDays(2)))
+        ->not->toBe(cacheKey($this->firstPost)->make(Period::pastDays(3)))
+        ->and(cacheKey($this->firstPost)->make(Period::subSeconds(34)))
+        ->not->toBe(cacheKey($this->firstPost)->make(Period::subWeeks(3)));
+});
 
-    expect($firstPostCacheKey->make(null, false, 'some-collection'))
-        ->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.1.|.normal.some-collection')
-        ->and($secondPostCacheKey->make(null, false, 'some-collection'))->toBe('test-namespace:testing::memory::posts:cyrildewiteloquentviewableteststestclassesmodelspost.2.|.normal.some-collection');
+it('changes the key when the unique flag changes', function (): void {
+    expect(cacheKey($this->firstPost)->make(null, true))
+        ->not->toBe(cacheKey($this->firstPost)->make(null, false));
+});
+
+it('changes the key when the collection changes', function (): void {
+    $default = cacheKey($this->firstPost)->make();
+
+    expect(cacheKey($this->firstPost)->make(null, false, 'some-collection'))
+        ->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(null, false, 'other-collection'))
+        ->not->toBe(cacheKey($this->firstPost)->make(null, false, 'some-collection'));
+});
+
+it('changes the key when the prefix changes', function (): void {
+    expect((new CacheKey($this->firstPost, 'one'))->make())
+        ->not->toBe((new CacheKey($this->firstPost, 'two'))->make());
 });

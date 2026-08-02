@@ -128,8 +128,10 @@ test('relative periods expose a stable cache signature', function (string $metho
     ['subYears', 4, 'sub4years'],
 ]);
 
-test('absolute periods have no cache signature', function (): void {
-    $period = Period::create(Carbon::yesterday(), Carbon::today());
+test('absolute periods expose a timestamp-based cache signature', function (): void {
+    $start = Carbon::yesterday();
+    $end = Carbon::today();
 
-    expect($period->cacheSignature())->toBeNull();
+    expect(Period::create($start, $end)->cacheSignature())
+        ->toBe("{$start->timestamp}-{$end->timestamp}");
 });
