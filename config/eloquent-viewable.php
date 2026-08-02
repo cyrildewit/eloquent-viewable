@@ -48,6 +48,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Queue Configuration
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, views are dispatched to the queue and stored by a worker
+    | instead of during the request. This defers the database write to speed
+    | up response times. You may also queue individual views on the fly using
+    | the `queue()` method: `views($post)->queue()->record()`.
+    |
+    */
+    'queue' => [
+
+        /*
+         * Whether views should be queued before they are stored by default.
+         */
+        'enabled' => false,
+
+        /*
+         * The queue connection used to store views. When `null`, the
+         * application's default queue connection is used.
+         */
+        'connection' => null,
+
+        /*
+         * The queue used to store views. When `null`, the default queue
+         * of the connection is used.
+         */
+        'queue' => null,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Cooldown Configuration
     |--------------------------------------------------------------------------
     */

@@ -6,15 +6,17 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
+use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTimeInterface;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,9 +37,11 @@ class Views implements ViewsContract
 
     protected ?string $collection = null;
 
+    protected ?bool $queue = null;
+
     protected ?DateTimeInterface $cacheLifetime = null;
 
-    public function __construct(protected ConfigRepository $config, protected CacheRepository $cache, protected CooldownManager $cooldownManager, protected VisitorContract $visitor) {}
+    public function __construct(protected ConfigRepository $config, protected CacheRepository $cache, protected CooldownManager $cooldownManager, protected VisitorContract $visitor, protected Dispatcher $dispatcher, protected CreateViewContract $createView) {}
 
     public function forViewable(Viewable $viewable): self
     {
@@ -98,7 +102,19 @@ class Views implements ViewsContract
             return false;
         }
 
-        event(new ViewRecorded($this->createView()));
+        $pending = $this->resolvePendingView();
+
+        if ($this->shouldQueue()) {
+            $this->dispatcher->dispatch(
+                (new StoreView($pending))
+                    ->onConnection($this->config->get('eloquent-viewable.queue.connection'))
+                    ->onQueue($this->config->get('eloquent-viewable.queue.queue'))
+            );
+
+            return true;
+        }
+
+        $this->createView->handle($pending);
 
         return true;
     }
@@ -133,6 +149,13 @@ class Views implements ViewsContract
     public function collection(?string $name): self
     {
         $this->collection = $name;
+
+        return $this;
+    }
+
+    public function queue(bool $state = true): self
+    {
+        $this->queue = $state;
 
         return $this;
     }
@@ -182,18 +205,20 @@ class Views implements ViewsContract
         return ! $this->cooldown instanceof DateTimeInterface || $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection);
     }
 
-    protected function createView(): ViewContract
+    protected function resolvePendingView(): PendingView
     {
-        /** @var ViewContract $view */
-        $view = Container::getInstance()->make(ViewContract::class)->create([
-            'viewable_id' => $this->viewable->getKey(),
-            'viewable_type' => $this->viewable->getMorphClass(),
-            'visitor' => $this->visitor->id(),
-            'collection' => $this->collection,
-            'viewed_at' => Carbon::now(),
-        ]);
+        return new PendingView(
+            viewableId: $this->viewable->getKey(),
+            viewableType: $this->viewable->getMorphClass(),
+            visitor: $this->visitor->id(),
+            collection: $this->collection,
+            viewedAt: Carbon::now(),
+        );
+    }
 
-        return $view;
+    protected function shouldQueue(): bool
+    {
+        return $this->queue ?? (bool) $this->config->get('eloquent-viewable.queue.enabled', false);
     }
 
     protected function shouldCache(): bool

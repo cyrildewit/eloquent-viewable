@@ -46,6 +46,11 @@ interface Views
     public function collection(?string $name): self;
 
     /**
+     * Queue the view before it is stored.
+     */
+    public function queue(bool $state = true): self;
+
+    /**
      * Fetch only unique views.
      */
     public function unique(bool $state = true): self;
