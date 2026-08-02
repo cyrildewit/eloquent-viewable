@@ -45,6 +45,16 @@ describe('recording', function (): void {
             ->cooldown(Carbon::now()->addMinutes(10))
             ->record())->toThrow(Exception::class);
     });
+
+    it('returns true when a view is recorded', function (): void {
+        expect(views($this->post)->record())->toBeTrue();
+    });
+
+    it('returns false when a view is not recorded', function (): void {
+        views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record();
+
+        expect(views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeFalse();
+    });
 });
 
 describe('cooldowns', function (): void {

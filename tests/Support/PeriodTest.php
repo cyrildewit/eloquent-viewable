@@ -44,6 +44,12 @@ it('can construct a new period instance with end datetime argument as string', f
         ->and($period->getEndDateTime())->toEqual(Carbon::parse('2018-07-16'));
 });
 
+it('does not throw when the start and end date times are equal', function (): void {
+    $dateTime = Carbon::parse('2020-01-01');
+
+    expect(fn (): Period => new Period($dateTime, $dateTime))->not->toThrow(InvalidPeriod::class);
+});
+
 it('will throw an exception if the start date time comes after the end date time', function (): void {
     expect(fn (): Period => new Period(Carbon::create(2018), Carbon::create(2017)))
         ->toThrow(InvalidPeriod::class);

@@ -51,6 +51,6 @@ jobs:
         run: bash scripts/patch-pest-mutate.sh
 
       - name: Mutation testing
-        run: vendor/bin/pest --mutate --everything --covered-only --min=80
+        run: vendor/bin/pest --mutate --everything --covered-only --min=82
         env:
           XDEBUG_MODE: coverage

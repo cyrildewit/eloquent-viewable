@@ -14,6 +14,13 @@ beforeEach(function (): void {
     Config::set('eloquent-viewable.cache.key', 'test-namespace');
 });
 
+it('can make a key for a viewable type without a key', function (): void {
+    $cacheKey = new CacheKey(new Post);
+
+    expect($cacheKey->make())
+        ->toBe('test-namespace:testing::memory::type.posts:cyrildewiteloquentviewableteststestclassesmodelspost.|.normal');
+});
+
 it('can make a key from default parameters', function (): void {
     $firstPostCacheKey = new CacheKey($this->firstPost);
     $secondPostCacheKey = new CacheKey($this->secondPost);
