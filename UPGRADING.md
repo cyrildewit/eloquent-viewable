@@ -39,6 +39,19 @@ This only affects **newly published** config. If you have already published `con
 - `CACHE_DRIVER` was renamed to `CACHE_STORE` in Laravel 11. If your published config still reads `env('CACHE_DRIVER', 'file')` while your app only sets `CACHE_STORE`, view counts are cached to the `file` store regardless of your configured cache. Setting `cache.store` to `null` (or `env('CACHE_STORE')`) resolves this.
 - Switching `cache.store` to `null` means view counts are cached in your application's **default** cache store. If you relied on the previous `file` fallback, set `cache.store` explicitly instead.
 
+### Cache key format
+
+The internal `CacheKey` class now builds cache keys as a readable prefix followed by a hash of the count's full identity (`{prefix}:{morph class}:{key}:{digest}`), instead of the previous concatenated string of slugs. This produces shorter, fixed-length keys that stay well under backend limits (such as Memcached's 250-byte cap) and cannot collide across different models.
+
+**No action is required.** This only affects view counts cached via `remember()`. Existing entries under the old key format are simply never read again. The first `count()` after upgrading recomputes the value from the `views` table and re-caches it under the new key. Nothing is lost, since the database remains the source of truth. Old entries expire on their own; run `php artisan cache:clear` (or clear the `eloquent-viewable` store) after deploying if you would rather remove them immediately.
+
+The cache key string is an internal implementation detail. If you constructed `CacheKey` directly (it is not part of the public API), note that it now requires the cache-key prefix as a second constructor argument and no longer exposes the `fromViewable()` factory:
+
+```diff
+-CacheKey::fromViewable($viewable)->make($period, $unique, $collection);
++(new CacheKey($viewable, config('eloquent-viewable.cache.key')))->make($period, $unique, $collection);
+```
+
 The following getters were removed from `CyrildeWit\EloquentViewable\Support\Period`:
 
 ```diff
