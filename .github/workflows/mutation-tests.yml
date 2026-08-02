@@ -1,0 +1,56 @@
+name: Mutation Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly (Mondays 04:00 UTC). Mutation testing is slow and must run
+    # serially, so we track the score on a cadence rather than gating pushes.
+    - cron: '0 4 * * 1'
+
+permissions:
+    contents: read
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    name: Mutation Tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          extensions: mbstring
+          coverage: xdebug
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: composer update --prefer-stable --no-interaction --ansi
+
+      # TEMPORARY: pest-plugin-mutate 5.0.0 crashes on php-code-coverage 14
+      # ("Call to a member function getData() on array"). This applies the fix
+      # from https://github.com/pestphp/pest-plugin-mutate/pull/38
+      # (bug: https://github.com/pestphp/pest/issues/1790). Remove this step and
+      # scripts/patch-pest-mutate.sh once pest-plugin-mutate > 5.0.0 ships it.
+      - name: Patch pest-plugin-mutate
+        run: bash scripts/patch-pest-mutate.sh
+
+      - name: Mutation testing
+        run: vendor/bin/pest --mutate --everything --covered-only --min=80
+        env:
+          XDEBUG_MODE: coverage
