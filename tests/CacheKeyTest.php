@@ -79,6 +79,6 @@ it('changes the key when the collection changes', function (): void {
 });
 
 it('changes the key when the prefix changes', function (): void {
-    expect((new CacheKey($this->firstPost, 'one'))->make())
-        ->not->toBe((new CacheKey($this->firstPost, 'two'))->make());
+    expect(new CacheKey($this->firstPost, 'one')->make())
+        ->not->toBe(new CacheKey($this->firstPost, 'two')->make());
 });
