@@ -2,11 +2,12 @@
 
 Thank you for considering contributing to Eloquent Viewable!
 
-We accept contributions via pull requests on [GitHub]. Please review these guidelines before submitting any pull requests.
+We accept contributions via pull requests on [GitHub]. Please review these guidelines before submitting any pull
+requests.
 
 ## Guidelines
 
-* Please follow the [PSR-2 Coding Style Guide](https://www.php-fig.org/psr/psr-2/).
+* Code style is enforced with [Pint](https://laravel.com/docs/pint); run `make lint` before committing.
 * One pull request per feature (send multiple if you want to do more than one thing).
 * Add tests if you've added something new (ensure that the current tests pass).
 * Send a coherent commit history (make sure each individual commit in your pull request is meaningful).
@@ -16,7 +17,8 @@ We accept contributions via pull requests on [GitHub]. Please review these guide
 
 ### Git Commit Guidelines
 
-Just like [Angular](https://github.com/angular/material/blob/master/.github/CONTRIBUTING.md#-git-commit-guidelines), we have very precise rules over how our git commit messages can be formatted. This section is almost fully adapted. &copy; Angular 2018.
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for our git commit messages. A
+consistent format keeps the commit history readable and makes it easy to generate the changelog.
 
 #### Commit Message Format
 
@@ -56,30 +58,65 @@ The subject contains a succinct description of the change:
 
 ##### Body
 
-Just as in the **subject**, use the imperative, present tense: "change" not "changed" nor "changes" The body should include the motivation for the change and contrast this with previous behavior.
+Just as in the **subject**, use the imperative, present tense: "change" not "changed" nor "changes" The body should
+include the motivation for the change and contrast this with previous behavior.
 
 ##### Footer
 
-The footer should contain any information about **Breaking Changes** and is also the place to reference GitHub issues that this commit **Closes**.
+The footer is optional and may contain one or more footers, each on its own line. Use it to reference GitHub issues
+that this commit closes (e.g. `Closes #123`) and to describe breaking changes.
 
-> Breaking Changes are intended to highlight (in the ChangeLog) changes that will require community users to modify their code with this commit.
+A breaking change must be signalled in one of two ways:
 
-## Running Tests
+* append a `!` after the type/scope, e.g. `feat(views)!: drop support for Laravel 10`, or
+* start a footer line with `BREAKING CHANGE:` followed by a description of what changed.
 
-Before you can run the tests, you have to install the package dependencies via [Composer](https://getcomposer.org/)!
+Both may be combined. The description explains what breaks and what community users must do to adapt, and is
+highlighted in the changelog.
 
-```bash
-composer install
+```
+feat(views)!: drop support for Laravel 10
+
+BREAKING CHANGE: the minimum supported Laravel version is now 11. Upgrade your application before updating.
 ```
 
-Then run [Pest](https://pestphp.com/):
+## Local Development
+
+Development runs entirely inside Docker, so you don't need PHP or [Composer](https://getcomposer.org/) installed
+locally. Everything is driven through the `Makefile`. Run `make` (or `make help`) at any time to see the available
+targets.
+
+Before doing anything else, build the images and install the dependencies:
 
 ```bash
-composer test
+make build
+make install
 ```
 
-You can also invoke the test runner directly with `vendor/bin/pest`.
+By default the images use PHP 8.5. To build against a different version, pass it through `ARGS`:
 
-When you make a pull request, the tests will be automatically run again by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).
+```bash
+make build ARGS="--build-arg PHP=8.4"
+```
+
+### Common tasks
+
+| Command         | Description                                               |
+|-----------------|-----------------------------------------------------------|
+| `make test`     | Run the [Pest](https://pestphp.com/) test suite           |
+| `make lint`     | Fix code style with [Pint](https://laravel.com/docs/pint) |
+| `make types`    | Run the [PHPStan](https://phpstan.org/) static analysis   |
+| `make rector`   | Run [Rector](https://getrector.com/)                      |
+| `make mutation` | Run mutation testing (see note below)                     |
+
+Each target is a thin wrapper around a Composer script executed in the `composer` container, e.g. `make test` runs
+`docker compose run --rm composer test`. If you prefer, you can invoke those scripts directly:
+
+```bash
+docker compose run --rm composer test
+```
+
+When you make a pull request, the tests will be automatically run again
+by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).
 
 [GitHub]: https://github.com/cyrildewit/laravel-page-view-counter/pulls
