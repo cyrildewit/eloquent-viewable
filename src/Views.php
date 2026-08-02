@@ -19,7 +19,6 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 
 class Views implements ViewsContract
@@ -49,11 +48,11 @@ class Views implements ViewsContract
 
     public function count(): int
     {
-        $query = $this->resolveViewableQuery();
+        $cacheKey = $this->shouldCache()
+            ? $this->makeCacheKey($this->period, $this->unique, $this->collection)
+            : null;
 
-        $cacheKey = $this->makeCacheKey($this->period, $this->unique, $this->collection);
-
-        if ($this->shouldCache()) {
+        if ($cacheKey !== null) {
             $cachedViewsCount = $this->cache->get($cacheKey);
 
             // Return cached views count if it exists
@@ -62,21 +61,28 @@ class Views implements ViewsContract
             }
         }
 
-        $query->when($this->period, function (Builder $query, Period $period): void {
-            $query->withinPeriod($period);
-        });
+        $viewsCount = $this->queryViewsCount();
 
-        $query->when($this->collection, function (Builder $query, string $collection): void {
-            $query->collection($collection);
-        });
-
-        $viewsCount = $this->unique ? $query->count(DB::raw('DISTINCT visitor')) : $query->count();
-
-        if ($this->shouldCache() && $this->cacheLifetime instanceof DateTimeInterface) {
+        if ($cacheKey !== null) {
             $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
         }
 
         return $viewsCount;
+    }
+
+    protected function queryViewsCount(): int
+    {
+        $query = $this->resolveViewableQuery();
+
+        if ($this->period !== null) {
+            $query->withinPeriod($this->period);
+        }
+
+        if ($this->collection !== null) {
+            $query->collection($this->collection);
+        }
+
+        return $this->unique ? $query->distinct()->count('visitor') : $query->count();
     }
 
     /**
