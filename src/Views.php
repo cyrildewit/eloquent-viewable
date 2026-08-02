@@ -74,7 +74,7 @@ class Views implements ViewsContract
     {
         $query = $this->resolveViewableQuery();
 
-        if ($this->period !== null) {
+        if ($this->period instanceof Period) {
             $query->withinPeriod($this->period);
         }
 
