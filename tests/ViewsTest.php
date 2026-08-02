@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
@@ -16,6 +17,7 @@ use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
     $this->post = Post::factory()->create();
@@ -56,6 +58,14 @@ describe('recording', function (): void {
         views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record();
 
         expect(views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeFalse();
+    });
+
+    it('dispatches a ViewRecorded event when a view is recorded synchronously', function (): void {
+        Event::fake();
+
+        views($this->post)->record();
+
+        Event::assertDispatched(ViewRecorded::class);
     });
 });
 
@@ -112,9 +122,13 @@ describe('queueing', function (): void {
     });
 
     it('stores the view when the queued job is processed', function (): void {
-        views($this->post)->queue()->record();
+        views($this->post)->queue()->collection('custom')->record();
 
-        expect(View::count())->toBe(1);
+        $view = View::sole();
+
+        expect($view->viewable_id)->toBe($this->post->getKey())
+            ->and($view->viewable_type)->toBe($this->post->getMorphClass())
+            ->and($view->collection)->toBe('custom');
     });
 
     it('does not queue bot views', function (): void {
