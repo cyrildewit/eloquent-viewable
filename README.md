@@ -681,11 +681,6 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 See also the list of [contributors](https://github.com/cyrildewit/eloquent-viewable/graphs/contributors) who
 participated in this project.
 
-**Helpful Resources:**
-
-- [Implementing A Page View Counter In Laravel](https://stidges.com/implementing-a-page-view-counter-in-laravel) - *
-  *[Stidges](https://github.com/stidges)**
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
