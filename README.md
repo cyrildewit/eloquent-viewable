@@ -82,8 +82,10 @@
 ## Introduction
 
 **Eloquent Viewable** is a flexible and minimalistic analytics package for Laravel that allows seamless tracking of
-views for Eloquent models. Whether you're running a blog, an e-commerce store, or a custom Laravel application, this
-package lets you log and analyze views without relying on external analytics services.
+views for Eloquent models. Rather than incrementing a single counter, it stores each view as its own database record,
+so you can analyze totals, unique visitors, and custom time periods entirely within your own application. Whether
+you're running a blog, an e-commerce store, or a custom Laravel application, this package lets you log and analyze
+views without relying on external analytics services.
 
 ### Quick Example
 
@@ -108,18 +110,6 @@ views($post)->record();
 - Order models by views and unique visitors
 - Optimize performance with **built-in caching**
 - Ignore views from **crawlers, blocked IPs, and DNT users**
-
-### How It Works
-
-Tracking views is more than just incrementing a counter — it requires a thoughtful approach to ensure accuracy, prevent
-artificial inflation, and allow for meaningful analytics. Eloquent Viewable takes a flexible and database-driven
-approach to view tracking, giving you control over how views are recorded, counted, and retrieved.
-
-- **Persistent View Logging:** Every view is stored as a database record, allowing queries based on time range, visitor uniqueness, and other metadata.
-- **Visitor Identification & Cooldown Protection:** Unique visitors are identified using long-lived cookies, and cooldown periods prevent duplicate views within a short timeframe from being stored.
-- **Optimized Count Performance:** Built-in caching reduces database load while maintaining accuracy.
-- **Crawler & Visitor Filtering:** Views from crawlers, ignored IPs, and DNT-enabled users are automatically excluded.
-- **Scalability Considerations:**  Storing every view individually allows for detailed tracking but increases database load. For high-traffic applications, caching, pruning old records, and partitioning strategies may be necessary.
 
 ## Getting Started
 
@@ -471,6 +461,14 @@ views($post)->remember()->count();
 ```
 
 ## Optimizing
+
+Storing every view as its own record is what makes detailed, time-based analytics possible, but it also means the
+`views` table grows with traffic. For high-traffic applications, keep the following scalability considerations in mind:
+
+- **Caching** counts (see below) to reduce load on the growing table.
+- **Removing old records** you no longer need. The package does not prune records for you, so if you don't need a full
+  history you can periodically delete rows from the `views` table yourself (for example with a scheduled command).
+- **Table partitioning** at very large scale to keep queries fast.
 
 ### Database indexes
 
