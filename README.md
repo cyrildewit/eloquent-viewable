@@ -67,6 +67,7 @@
         <li><a href="#custom-information-about-visitor">Custom information about visitor</a></li>
         <li><a href="#using-your-own-views-eloquent-model">Using your own Views Eloquent model</a></li>
         <li><a href="#using-your-own-view-eloquent-model">Using your own View Eloquent model</a></li>
+        <li><a href="#customizing-how-views-are-created">Customizing how views are created</a></li>
         <li><a href="#using-a-custom-crawler-detector">Using a custom crawler detector</a></li>
         <li><a href="#adding-macros-to-the-views-class">Adding macros to the Views class</a></li>
       </ul>
@@ -518,6 +519,7 @@ If you want to extend or replace one of the core classes with your own implement
 - `CyrildeWit\EloquentViewable\View`
 - `CyrildeWit\EloquentViewable\Visitor`
 - `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
+- `CyrildeWit\EloquentViewable\Actions\CreateView`
 
 > [!NOTE]
 > Don't forget that all custom classes must implement their original interfaces.
@@ -593,6 +595,41 @@ $this->app->bind(
     \CyrildeWit\EloquentViewable\Contracts\View::class,
     \App\Models\View::class
 );
+```
+
+### Customizing how views are created
+
+The `CreateView` action is responsible for turning a resolved `PendingView` into a stored view and dispatching the
+`ViewRecorded` event. Both the synchronous and queued recording paths go through this action, so it is the single place
+to hook into if you want to change how a view is persisted (for example to add extra attributes, write to a different
+store, or skip the event).
+
+Bind your custom implementation to the `\CyrildeWit\EloquentViewable\Contracts\CreateView` contract.
+
+Change the following code snippet and place it in the `register` method in a service provider (for example
+`AppServiceProvider`).
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Contracts\CreateView::class,
+    \App\Actions\Views\CreateView::class
+);
+```
+
+Your implementation receives the `PendingView` value object and must return a `View` instance.
+
+```php
+use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\PendingView;
+
+final class CreateView implements CreateViewContract
+{
+    public function handle(PendingView $pending): ViewContract
+    {
+        // ...
+    }
+}
 ```
 
 ### Using a custom crawler detector
