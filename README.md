@@ -30,6 +30,7 @@
       <ul>
         <li><a href="#preparing-your-model">Preparing your model</a></li>
         <li><a href="#recording-views">Recording views</a></li>
+        <li><a href="#queueing-view-recording">Queueing view recording</a></li>
         <li><a href="#setting-a-cooldown">Setting a cooldown</a></li>
         <li><a href="#retrieving-view-counts">Retrieving view counts</a>
           <ul>
@@ -207,6 +208,47 @@ This ensures that views are only recorded when the page is actually rendered for
 > [!WARNING]  
 > By default, this package **automatically ignores views from crawlers** to prevent inaccurate counts. Keep this in mind
 > when testing—tools like **Postman** are often detected as crawlers and will not trigger a recorded view.
+
+### Queueing view recording
+
+By default, views are stored during the request. On high-traffic pages you can defer the
+database write to a queued job instead. This keeps the request fast and moves the insert to
+a queue worker.
+
+Queue an individual view on the fly using the `queue()` method:
+
+```php
+views($post)->queue()->record();
+```
+
+Or enable queueing globally in the `eloquent-viewable.php` config file:
+
+```php
+'queue' => [
+    'enabled' => true,      // queue every recorded view
+    'connection' => null,   // null uses the default queue connection
+    'queue' => null,        // null uses the connection's default queue
+],
+```
+
+When queueing is enabled globally, you can still force an individual view to be recorded
+synchronously:
+
+```php
+views($post)->queue(false)->record();
+```
+
+All filtering still runs during the request, including crawler detection, the Do Not Track
+header, ignored IP addresses and cooldowns. Bots and views on cooldown are therefore never
+queued; only the database write is deferred.
+
+> [!WARNING]  
+> When a view is queued, the `ViewRecorded` event is dispatched from the queue worker
+> instead of the request. Its listeners therefore run **without request context**. The
+> session, cookies, `request()` and `auth()->user()` are unavailable and will return empty
+> or `null` values. If a listener needs request-derived data (such as the authenticated
+> user or the IP address), capture it during the request instead of reading it inside the
+> listener.
 
 ### Setting a cooldown
 
