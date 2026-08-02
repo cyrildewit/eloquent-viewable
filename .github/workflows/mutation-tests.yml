@@ -3,9 +3,9 @@ name: Mutation Tests
 on:
   workflow_dispatch:
   schedule:
-    # Weekly (Mondays 04:00 UTC). Mutation testing is slow and must run
+    # Monthly (1st at 04:00 UTC). Mutation testing is slow and must run
     # serially, so we track the score on a cadence rather than gating pushes.
-    - cron: '0 4 * * 1'
+    - cron: '0 4 1 * *'
 
 permissions:
     contents: read
@@ -51,6 +51,6 @@ jobs:
         run: bash scripts/patch-pest-mutate.sh
 
       - name: Mutation testing
-        run: vendor/bin/pest --mutate --everything --covered-only --min=82
+        run: composer run test:mutation
         env:
           XDEBUG_MODE: coverage

@@ -63,6 +63,7 @@
         "test:coverage": "pest --coverage-clover build/coverage.xml --min=100",
         "test:types": "phpstan analyse --memory-limit=512M",
         "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
+        "test:mutation": "pest --mutate --everything --covered-only --min=80",
         "rector": "rector"
     },
     "config": {

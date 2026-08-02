@@ -22,3 +22,7 @@ rector: ## Run Rector
 types: ## Run the static analysis
 	docker compose run --rm composer test:types
 
+mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate patch)
+	./scripts/patch-pest-mutate.sh
+	docker compose run --rm -e XDEBUG_MODE=coverage composer test:mutation
+
