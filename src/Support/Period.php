@@ -23,11 +23,12 @@ final readonly class Period
         DateTimeInterface|string|null $endDateTime = null,
         /**
          * A stable signature for relative periods that keeps the cache key from
-         * drifting as wall-clock time moves; `null` for absolute periods.
+         * drifting as wall-clock time moves. Null for absolute periods, which
+         * are identified by their timestamps instead.
          *
          * @internal
          */
-        private ?string $cacheSignature = null,
+        private ?string $relativeSignature = null,
     ) {
         $this->startDateTime = Carbon::make($startDateTime);
         $this->endDateTime = Carbon::make($endDateTime);
@@ -127,11 +128,15 @@ final readonly class Period
     }
 
     /**
+     * A stable string that identifies this period for caching, immune to
+     * wall-clock drift for relative periods.
+     *
      * @internal
      */
-    public function cacheSignature(): ?string
+    public function cacheSignature(): string
     {
-        return $this->cacheSignature;
+        return $this->relativeSignature
+            ?? "{$this->startDateTime?->timestamp}-{$this->endDateTime?->timestamp}";
     }
 
     /**
