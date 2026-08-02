@@ -10,7 +10,6 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Facades\DB;
 
 /**
  * @method static self|Builder<Model> orderByViews(string $direction = 'desc', $period = null, string $collection = null, bool $unique = false, $as = 'views_count')
@@ -77,7 +76,7 @@ trait InteractsWithViews
             }
 
             if ($unique) {
-                $query->select(DB::raw('count(DISTINCT visitor)'));
+                $query->selectRaw('count(distinct visitor)');
             }
         }]);
     }
