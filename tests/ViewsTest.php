@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
@@ -13,6 +14,7 @@ use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
 
 beforeEach(function (): void {
@@ -54,6 +56,65 @@ describe('recording', function (): void {
         views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record();
 
         expect(views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeFalse();
+    });
+});
+
+describe('queueing', function (): void {
+    it('does not queue the view by default', function (): void {
+        Bus::fake();
+
+        views($this->post)->record();
+
+        Bus::assertNotDispatched(StoreView::class);
+    });
+
+    it('queues the view when queue() is used', function (): void {
+        Bus::fake();
+
+        $result = views($this->post)->queue()->record();
+
+        expect($result)->toBeTrue();
+
+        Bus::assertDispatched(StoreView::class);
+    });
+
+    it('queues the view when enabled in the config', function (): void {
+        Config::set('eloquent-viewable.queue.enabled', true);
+
+        Bus::fake();
+
+        views($this->post)->record();
+
+        Bus::assertDispatched(StoreView::class);
+    });
+
+    it('can force synchronous recording when queueing is enabled in the config', function (): void {
+        Config::set('eloquent-viewable.queue.enabled', true);
+
+        Bus::fake();
+
+        views($this->post)->queue(false)->record();
+
+        Bus::assertNotDispatched(StoreView::class);
+
+        expect(View::count())->toBe(1);
+    });
+
+    it('dispatches on the configured connection and queue', function (): void {
+        Config::set('eloquent-viewable.queue.connection', 'redis');
+        Config::set('eloquent-viewable.queue.queue', 'views');
+
+        Bus::fake();
+
+        views($this->post)->queue()->record();
+
+        Bus::assertDispatched(StoreView::class, fn (StoreView $job): bool => $job->connection === 'redis' && $job->queue === 'views');
+    });
+
+    it('stores the view when the queued job is processed', function (): void {
+        views($this->post)->queue()->record();
+
+        expect(View::count())->toBe(1);
     });
 });
 
