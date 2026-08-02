@@ -106,7 +106,7 @@ class Views implements ViewsContract
 
         if ($this->shouldQueue()) {
             $this->dispatcher->dispatch(
-                (new StoreView($pending))
+                new StoreView($pending)
                     ->onConnection($this->config->get('eloquent-viewable.queue.connection'))
                     ->onQueue($this->config->get('eloquent-viewable.queue.queue'))
             );

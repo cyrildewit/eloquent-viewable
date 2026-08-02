@@ -21,7 +21,7 @@ it('stores the pending view through the create view action', function (): void {
         viewedAt: Carbon::now(),
     );
 
-    (new StoreView($pending))->handle(
+    new StoreView($pending)->handle(
         Container::getInstance()->make(CreateViewContract::class)
     );
 
