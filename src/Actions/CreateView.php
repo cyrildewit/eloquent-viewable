@@ -10,11 +10,11 @@ use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\PendingView;
 use Illuminate\Contracts\Events\Dispatcher;
 
-final class CreateView implements CreateViewContract
+final readonly class CreateView implements CreateViewContract
 {
     public function __construct(
-        protected ViewContract $view,
-        protected Dispatcher $events,
+        private ViewContract $view,
+        private Dispatcher $events,
     ) {}
 
     public function handle(PendingView $pending): ViewContract
