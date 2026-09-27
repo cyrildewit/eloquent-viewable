@@ -12,3 +12,8 @@ composer.lock
 
 # Editors
 /.idea
+
+# Claude Code
+/.claude/worktrees
+/.claude/settings.local.json
+/.claude/*.local.json
