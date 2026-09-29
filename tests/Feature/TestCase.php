@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests;
+namespace CyrildeWit\EloquentViewable\Tests\Feature;
 
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use Illuminate\Support\Facades\File;
@@ -34,6 +34,6 @@ abstract class TestCase extends OrchestraTestCase
             '--realpath' => true,
         ]);
 
-        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }

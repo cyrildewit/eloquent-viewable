@@ -7,10 +7,11 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Support\Period;
 
-it('can instantiate class', function (): void {
-    $period = $this->app->make(Period::class);
+it('can be constructed without arguments', function (): void {
+    $period = new Period;
 
-    expect($period)->toBeInstanceOf(Period::class);
+    expect($period->getStartDateTime())->toBeNull()
+        ->and($period->getEndDateTime())->toBeNull();
 });
 
 it('can construct a new period instance', function (): void {
