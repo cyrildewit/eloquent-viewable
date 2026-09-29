@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - `Visitor` now receives the cookie jar through its constructor (`Illuminate\Contracts\Cookie\QueueingFactory`) and reads the existing visitor cookie from the injected request, instead of going through the `Cookie` facade (breaking only for subclasses that override the constructor)
+- The `views()` helper now throws an `InvalidArgumentException` when given a class name that does not implement `Contracts\Viewable`, instead of a `TypeError` from deeper inside the package
 
 ### Fixed
 
