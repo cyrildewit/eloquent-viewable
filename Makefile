@@ -13,6 +13,15 @@ install: ## Install the composer dependencies
 test: ## Run the tests
 	docker compose run --rm composer test
 
+test-arch: ## Run the architecture tests
+	docker compose run --rm composer test:arch
+
+test-unit: ## Run the unit tests (no Laravel application is booted)
+	docker compose run --rm composer test:unit
+
+test-feature: ## Run the feature tests (booted through Testbench)
+	docker compose run --rm composer test:feature
+
 lint: ## Run the linter
 	docker compose run --rm composer lint
 
