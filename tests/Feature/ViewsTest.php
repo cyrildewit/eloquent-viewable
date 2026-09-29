@@ -20,6 +20,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 
+dataset('recording modes', [
+    'synchronously' => [false],
+    'queued' => [true],
+]);
+
 beforeEach(function (): void {
     $this->post = Post::factory()->create();
 });
@@ -131,8 +136,10 @@ describe('queueing', function (): void {
             ->and($view->viewable_type)->toBe($this->post->getMorphClass())
             ->and($view->collection)->toBe('custom');
     });
+});
 
-    it('does not queue bot views', function (): void {
+describe('skipping views', function (): void {
+    it('skips views from bots', function (bool $queued): void {
         $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
         {
             public function isCrawler(): bool
@@ -143,12 +150,13 @@ describe('queueing', function (): void {
 
         Bus::fake();
 
-        expect(views($this->post)->queue()->record())->toBeFalse();
+        expect(views($this->post)->queue($queued)->record())->toBeFalse()
+            ->and(View::count())->toBe(0);
 
-        Bus::assertNotDispatched(StoreView::class);
-    });
+        Bus::assertNothingDispatched();
+    })->with('recording modes');
 
-    it('does not queue views from visitors with the dnt header', function (): void {
+    it('skips views from visitors with the do not track header when honoured', function (bool $queued): void {
         Config::set('eloquent-viewable.honor_dnt', true);
 
         $this->mock(Visitor::class, function ($mock): void {
@@ -158,13 +166,14 @@ describe('queueing', function (): void {
 
         Bus::fake();
 
-        expect(views($this->post)->queue()->record())->toBeFalse();
+        expect(views($this->post)->queue($queued)->record())->toBeFalse()
+            ->and(View::count())->toBe(0);
 
-        Bus::assertNotDispatched(StoreView::class);
-    });
+        Bus::assertNothingDispatched();
+    })->with('recording modes');
 
-    it('does not queue views from ignored ip addresses', function (): void {
-        Config::set('eloquent-viewable.ignored_ip_addresses', ['127.20.22.6']);
+    it('skips views from ignored ip addresses', function (bool $queued): void {
+        Config::set('eloquent-viewable.ignored_ip_addresses', ['127.20.22.6', '10.10.30.40']);
 
         $this->mock(Visitor::class, function ($mock): void {
             $mock->shouldReceive('ip')->andReturn('127.20.22.6');
@@ -173,35 +182,24 @@ describe('queueing', function (): void {
 
         Bus::fake();
 
-        expect(views($this->post)->queue()->record())->toBeFalse();
+        expect(views($this->post)->queue($queued)->record())->toBeFalse()
+            ->and(View::count())->toBe(0);
 
-        Bus::assertNotDispatched(StoreView::class);
-    });
+        Bus::assertNothingDispatched();
+    })->with('recording modes');
 
-    it('does not queue views that are on cooldown', function (): void {
+    it('skips views while a cooldown is active', function (bool $queued): void {
         Bus::fake();
 
-        views($this->post)->queue()->cooldown(10)->record();
+        expect(views($this->post)->queue($queued)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeTrue()
+            ->and(views($this->post)->queue($queued)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeFalse()
+            ->and(View::count())->toBe($queued ? 0 : 1);
 
-        expect(views($this->post)->queue()->cooldown(10)->record())->toBeFalse();
-
-        Bus::assertDispatchedTimes(StoreView::class, 1);
-    });
+        Bus::assertDispatchedTimes(StoreView::class, $queued ? 1 : 0);
+    })->with('recording modes');
 });
 
 describe('cooldowns', function (): void {
-    it('does not record views if cooldown is active', function (): void {
-        views($this->post)
-            ->cooldown(Carbon::now()->addMinutes(10))
-            ->record();
-
-        views($this->post)
-            ->cooldown(Carbon::now()->addMinutes(10))
-            ->record();
-
-        expect(View::count())->toBe(1);
-    });
-
     it('can record a view with cooldown where lifetime is an integer', function (): void {
         views($this->post)
             ->cooldown(10)
@@ -467,54 +465,6 @@ describe('visitor handling', function (): void {
         'Googlebot' => ['Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', false],
         'Chrome' => ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36', true],
     ]);
-
-    it('does not record bot views', function (): void {
-        // Faking that the visitor is a bot
-        $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
-        {
-            public function isCrawler(): bool
-            {
-                return true;
-            }
-        });
-
-        views($this->post)->record();
-        views($this->post)->record();
-
-        expect(View::count())->toBe(0);
-    });
-
-    it('does not record views from visitors with dnt header', function (): void {
-        Config::set('eloquent-viewable.honor_dnt', true);
-
-        $this->mock(Visitor::class, function ($mock): void {
-            $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
-            $mock->shouldReceive('isCrawler')->andReturn(false);
-        });
-
-        views($this->post)->record();
-        views($this->post)->record();
-        views($this->post)->record();
-
-        expect(View::count())->toBe(0);
-    });
-
-    it('does not record views from ignored ip addresses', function (): void {
-        Config::set('eloquent-viewable.ignored_ip_addresses', [
-            '127.20.22.6',
-            '10.10.30.40',
-        ]);
-
-        $this->mock(Visitor::class, function ($mock): void {
-            $mock->shouldReceive('ip')->andReturn('127.20.22.6');
-            $mock->shouldReceive('isCrawler')->andReturn(false);
-        });
-
-        views($this->post)->record();
-        views($this->post)->record();
-
-        expect(View::count())->toBe(0);
-    });
 
     it('can set the visitor instance', function (): void {
         views($this->post)->record();
