@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Feature;
 
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
-use Illuminate\Support\Facades\File;
 use Orchestra\Testbench\Attributes\WithEnv;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
@@ -21,19 +20,12 @@ abstract class TestCase extends OrchestraTestCase
 
     protected function defineDatabaseMigrations(): void
     {
-        // Start from a clean slate, publish and migrate the package's own
-        // migrations, then migrate the models used only by the test suite.
-        File::cleanDirectory('vendor/orchestra/testbench-core/laravel/database/migrations');
+        require_once __DIR__.'/../../migrations/create_views_table.php.stub';
+        require_once __DIR__.'/../database/migrations/2018_02_22_194715_create_posts_table.php';
+        require_once __DIR__.'/../database/migrations/2018_02_22_194716_create_apartments_table.php';
 
-        $this->artisan('vendor:publish', [
-            '--force' => '',
-            '--tag' => 'migrations',
-        ]);
-
-        $this->loadMigrationsFrom([
-            '--realpath' => true,
-        ]);
-
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        new \CreateViewsTable()->up();
+        new \CreatePostsTable()->up();
+        new \CreateApartmentsTable()->up();
     }
 }
