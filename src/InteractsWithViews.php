@@ -10,6 +10,7 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Query\Expression;
 
 /**
  * @method static self|Builder<Model> orderByViews(string $direction = 'desc', $period = null, string $collection = null, bool $unique = false, $as = 'views_count')
@@ -66,7 +67,14 @@ trait InteractsWithViews
      */
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
-        return $query->withCount(["views as {$as}" => function (Builder $query) use ($period, $collection, $unique): void {
+        // Laravel keeps only the first select column of a withCount constraint,
+        // so the distinct count has to be passed as the aggregate expression
+        // rather than selected inside the closure.
+        $column = $unique
+            ? new Expression('distinct '.$query->getQuery()->getGrammar()->wrap($this->views()->getRelated()->qualifyColumn('visitor')))
+            : '*';
+
+        return $query->withAggregate(["views as {$as}" => function (Builder $query) use ($period, $collection): void {
             if ($period instanceof Period) {
                 $query->withinPeriod($period);
             }
@@ -74,10 +82,6 @@ trait InteractsWithViews
             if ($collection) {
                 $query->collection($collection);
             }
-
-            if ($unique) {
-                $query->selectRaw('count(distinct visitor)');
-            }
-        }]);
+        }], $column, 'count');
     }
 }
