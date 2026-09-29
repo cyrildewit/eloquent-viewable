@@ -64,7 +64,7 @@ it('can be ordered by unique views in descending order', function (): void {
 });
 
 it('can be ordered by views within a specific period in descending order', function (): void {
-    Carbon::setTestNow(Carbon::now());
+    $this->freezeTime();
 
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
@@ -195,7 +195,7 @@ it('can be ordered by unique views in ascending order', function (): void {
 });
 
 it('can be ordered by unique views within a specific period in ascending order', function (): void {
-    Carbon::setTestNow(Carbon::now());
+    $this->freezeTime();
 
     $postOne = $this->post;
     $postTwo = Post::factory()->create();
@@ -307,7 +307,7 @@ it('can load the unique views count', function (): void {
 });
 
 it('can load the views count within a period and collection', function (): void {
-    Carbon::setTestNow(Carbon::now());
+    $this->freezeTime();
 
     ViewFactory::new()->for($this->post, 'viewable')->inCollection('reads')->count(2)->create();
     ViewFactory::new()->for($this->post, 'viewable')->inCollection('reads')->viewedAt(Carbon::now()->subDays(5))->create();
