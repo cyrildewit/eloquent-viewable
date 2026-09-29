@@ -8,9 +8,9 @@ use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\TestVisitor;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitor;
@@ -288,9 +288,8 @@ describe('counting', function (): void {
     });
 
     it('can count the unique views', function (): void {
-        TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
-        TestHelper::createView($this->post, ['visitor' => 'visitor_one']);
-        TestHelper::createView($this->post, ['visitor' => 'visitor_two']);
+        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_two')->create();
 
         expect($this->post)->toHaveUniqueViewsCount(2);
     });
@@ -298,12 +297,12 @@ describe('counting', function (): void {
     it('can count the views of a period', function (): void {
         Carbon::setTestNow(Carbon::now());
 
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-01-10')]);
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-01-15')]);
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-02-10')]);
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-02-15')]);
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-10')]);
-        TestHelper::createView($this->post, ['viewed_at' => Carbon::parse('2018-03-15')]);
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-10'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-15'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-10'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-15'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-10'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-15'))->create();
 
         expect(views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
             ->and(views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4)
@@ -313,8 +312,7 @@ describe('counting', function (): void {
     it('can remove the period', function (): void {
         Carbon::setTestNow(Carbon::now());
 
-        TestHelper::createView($this->post);
-        TestHelper::createView($this->post);
+        ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
 
         expect(views($this->post)->period(null)->count())->toBe(2);
     });
@@ -333,11 +331,9 @@ describe('counting', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        TestHelper::createView($postOne);
-        TestHelper::createView($postTwo);
-        TestHelper::createView($postTwo);
-        TestHelper::createView($apartment);
-        TestHelper::createView($apartment);
+        ViewFactory::new()->for($postOne, 'viewable')->create();
+        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
+        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
 
         expect(new Post)->toHaveViewsCount(3);
     });
@@ -347,11 +343,11 @@ describe('counting', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        TestHelper::createView($postOne, ['visitor' => 'visitor_one']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_two']);
-        TestHelper::createView($postTwo, ['visitor' => 'visitor_one']);
-        TestHelper::createView($apartment, ['visitor' => 'visitor_three']);
-        TestHelper::createView($apartment, ['visitor' => 'visitor_one']);
+        ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->create();
+        ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_two')->create();
+        ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_one')->create();
+        ViewFactory::new()->for($apartment, 'viewable')->fromVisitor('visitor_three')->create();
+        ViewFactory::new()->for($apartment, 'viewable')->fromVisitor('visitor_one')->create();
 
         expect(new Post)->toHaveUniqueViewsCount(2);
     });
@@ -362,12 +358,8 @@ describe('destroying', function (): void {
         $post = $this->post;
         $apartment = Apartment::factory()->create();
 
-        TestHelper::createView($post);
-        TestHelper::createView($post);
-        TestHelper::createView($post);
-        TestHelper::createView($post);
-        TestHelper::createView($apartment);
-        TestHelper::createView($apartment);
+        ViewFactory::new()->for($post, 'viewable')->count(4)->create();
+        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
 
         views($post)->destroy();
 
@@ -379,13 +371,9 @@ describe('destroying', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postOne);
-        TestHelper::createView($postTwo);
-        TestHelper::createView($postTwo);
-        TestHelper::createView($apartment);
-        TestHelper::createView($apartment);
+        ViewFactory::new()->for($postOne, 'viewable')->count(3)->create();
+        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
+        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
 
         views(new Post)->destroy();
 

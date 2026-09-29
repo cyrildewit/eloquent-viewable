@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use CyrildeWit\EloquentViewable\Tests\TestHelper;
 use CyrildeWit\EloquentViewable\View;
 
 beforeEach(function (): void {
@@ -11,9 +11,7 @@ beforeEach(function (): void {
 });
 
 it('can destroy all views when viewable gets deleted', function (): void {
-    TestHelper::createView($this->post);
-    TestHelper::createView($this->post);
-    TestHelper::createView($this->post);
+    ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
 
     expect(View::count())->toBe(3);
 
@@ -25,9 +23,7 @@ it('can destroy all views when viewable gets deleted', function (): void {
 it('does not destroy all views when viewable gets deleted and remove views on delete is set to false', function (): void {
     $this->post->removeViewsOnDelete = false;
 
-    TestHelper::createView($this->post);
-    TestHelper::createView($this->post);
-    TestHelper::createView($this->post);
+    ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
 
     expect(View::count())->toBe(3);
 
