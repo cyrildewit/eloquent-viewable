@@ -16,9 +16,11 @@ if (! function_exists('views')) {
         if (is_string($viewable)) {
             $model = Container::getInstance()->make($viewable);
 
-            if ($model instanceof Viewable) {
-                $viewable = $model;
+            if (! $model instanceof Viewable) {
+                throw new InvalidArgumentException(sprintf('Class [%s] must implement %s.', $viewable, Viewable::class));
             }
+
+            $viewable = $model;
         }
 
         return $builder->forViewable($viewable);
