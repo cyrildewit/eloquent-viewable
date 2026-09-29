@@ -70,11 +70,9 @@ class CooldownManager
         $currentTime = Carbon::now();
         $viewHistory = $this->session->get($key, []);
 
-        foreach ($viewHistory as $record) {
+        foreach ($viewHistory as $viewableKey => $record) {
             if (Carbon::parse($record['expires_at'])->lte($currentTime)) {
-                $recordId = array_search($record['viewable_id'], array_column($record, 'viewable_id'));
-
-                $this->session->pull($key.$recordId);
+                $this->session->forget($key.'.'.$viewableKey);
             }
         }
     }
