@@ -1,4 +1,4 @@
-<?php
+/<?php
 
 declare(strict_types=1);
 
@@ -31,9 +31,14 @@ beforeEach(function (): void {
 });
 
 test('push can add an item', function (): void {
+    $expiresAt = Carbon::tomorrow();
+
     expect($this->session->has(COOLDOWN_NAMESPACE.'.1'))->toBeFalse()
-        ->and($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeTrue()
-        ->and($this->session->has(COOLDOWN_NAMESPACE.'.1'))->toBeTrue();
+        ->and($this->cooldownManager->push($this->post, $expiresAt))->toBeTrue()
+        ->and($this->session->get(COOLDOWN_NAMESPACE.'.1'))->toBe([
+            'viewable_id' => 1,
+            'expires_at' => $expiresAt,
+        ]);
 });
 
 test('push can add an item with collection', function (): void {
@@ -93,4 +98,22 @@ it('can forget expired views when expires at is stored as a string', function ()
 
     expect($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeTrue()
         ->and($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(1);
+});
+
+it('only forgets the cooldowns that have expired', function (): void {
+    $expired = cooldownViewable(1);
+    $active = cooldownViewable(2);
+
+    $this->cooldownManager->push($expired, Carbon::now()->addMinute());
+    $this->cooldownManager->push($active, Carbon::now()->addDay());
+
+    Carbon::setTestNow(Carbon::now()->addHour());
+
+    // Any push prunes the expired cooldowns in the namespace first.
+    $this->cooldownManager->push(cooldownViewable(3), Carbon::tomorrow());
+
+    expect($this->session->has(COOLDOWN_NAMESPACE.'.1'))->toBeFalse()
+        ->and($this->session->has(COOLDOWN_NAMESPACE.'.2'))->toBeTrue()
+        ->and($this->session->has(COOLDOWN_NAMESPACE.'.3'))->toBeTrue()
+        ->and($this->cooldownManager->push($active, Carbon::tomorrow()))->toBeFalse();
 });
