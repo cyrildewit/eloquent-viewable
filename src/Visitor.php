@@ -14,9 +14,9 @@ use Illuminate\Support\Str;
 class Visitor implements VisitorContract
 {
     /**
-     * PHP stores the DNT header under the "HTTP_DNT" key instead of "DNT".
+     * The name of the Do Not Track request header.
      */
-    const string DNT = 'HTTP_DNT';
+    const string DNT = 'DNT';
 
     protected string $visitorCookieKey;
 
