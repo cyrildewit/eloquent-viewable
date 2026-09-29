@@ -39,25 +39,28 @@ it('can be ordered by unique views in descending order', function (): void {
     $postThree = Post::factory()->create();
     $postFour = Post::factory()->create();
 
-    // Unique views: 3
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_two')->create();
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_three')->create();
+    // The unique order must differ from the total order, otherwise this test
+    // cannot tell orderByUniqueViews apart from orderByViews.
 
-    // Unique views: 2
+    // Unique views: 1, total views: 6
+    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->count(6)->create();
+
+    // Unique views: 2, total views: 3
     ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_one')->create();
     ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_two')->count(2)->create();
 
-    // Unique views: 4
-    ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+    // Unique views: 4, total views: 4
+    ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_one')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_two')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_three')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_four')->create();
 
-    // Unique views: 1
-    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+    // Unique views: 3, total views: 5
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_one')->count(3)->create();
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_two')->create();
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_three')->create();
 
-    expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(collect([3, 1, 2, 4]));
+    expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(collect([3, 4, 2, 1]));
 });
 
 it('can be ordered by views within a specific period in descending order', function (): void {
@@ -167,25 +170,28 @@ it('can be ordered by unique views in ascending order', function (): void {
     $postThree = Post::factory()->create();
     $postFour = Post::factory()->create();
 
-    // Unique views: 3
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_two')->create();
-    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_three')->create();
+    // The unique order must differ from the total order, otherwise this test
+    // cannot tell orderByUniqueViews apart from orderByViews.
 
-    // Unique views: 2
+    // Unique views: 1, total views: 6
+    ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->count(6)->create();
+
+    // Unique views: 2, total views: 3
     ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_one')->create();
     ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_two')->count(2)->create();
 
-    // Unique views: 4
-    ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+    // Unique views: 4, total views: 4
+    ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_one')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_two')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_three')->create();
     ViewFactory::new()->for($postThree, 'viewable')->fromVisitor('visitor_four')->create();
 
-    // Unique views: 1
-    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+    // Unique views: 3, total views: 5
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_one')->count(3)->create();
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_two')->create();
+    ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_three')->create();
 
-    expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(collect([4, 2, 1, 3]));
+    expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(collect([1, 2, 4, 3]));
 });
 
 it('can be ordered by unique views within a specific period in ascending order', function (): void {
@@ -196,18 +202,20 @@ it('can be ordered by unique views within a specific period in ascending order',
     $postThree = Post::factory()->create();
     $postFour = Post::factory()->create();
 
-    // Views within period: 3
+    // The unique order within the period must differ from the total order
+    // within the period, otherwise this test cannot tell unique apart.
+
+    // Unique views within period: 3, total views within period: 6
     ViewFactory::new()
         ->for($postOne, 'viewable')
         ->fromVisitor('visitor_one')
         ->viewedAt(Carbon::now())
-        ->count(2)
+        ->count(4)
         ->create();
     ViewFactory::new()
         ->for($postOne, 'viewable')
         ->fromVisitor('visitor_two')
         ->viewedAt(Carbon::now()->subDays(2))
-        ->count(2)
         ->create();
     ViewFactory::new()
         ->for($postOne, 'viewable')
@@ -220,7 +228,7 @@ it('can be ordered by unique views within a specific period in ascending order',
         ->viewedAt(Carbon::now()->subDays(13))
         ->create();
 
-    // Views within period: 1
+    // Unique views within period: 1, total views within period: 1
     ViewFactory::new()
         ->for($postTwo, 'viewable')
         ->fromVisitor('visitor_one')
@@ -233,7 +241,7 @@ it('can be ordered by unique views within a specific period in ascending order',
         ->count(2)
         ->create();
 
-    // Views within period: 2
+    // Unique views within period: 2, total views within period: 2
     ViewFactory::new()
         ->for($postThree, 'viewable')
         ->fromVisitor('visitor_one')
@@ -248,15 +256,13 @@ it('can be ordered by unique views within a specific period in ascending order',
         ->for($postThree, 'viewable')
         ->fromVisitor('visitor_three')
         ->viewedAt(Carbon::now()->subDays(13))
-        ->count(2)
         ->create();
 
-    // Views within period: 4
+    // Unique views within period: 4, total views within period: 4
     ViewFactory::new()
         ->for($postFour, 'viewable')
         ->fromVisitor('visitor_one')
         ->viewedAt(Carbon::now())
-        ->count(2)
         ->create();
     ViewFactory::new()
         ->for($postFour, 'viewable')

@@ -5,6 +5,12 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v8.0.1]
+
+### Fixed
+
+- Fixed `orderByUniqueViews()` and `withViewsCount(unique: true)` ordering and counting by total views instead of distinct visitors; Laravel drops the extra select added inside a `withCount` constraint, so the distinct count is now passed as the aggregate expression
+
 ## [v8.0.0]
 
 See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed migration instructions.
@@ -377,7 +383,8 @@ This major version contains some serious breaking changes! See the [upgrade guid
 - Removed the `addPageViewThatExpiresAt` method from the `Viewable` trait
 - The DateTransformer functionality has been removed
 ## [v5.2.1] (2020-09-22)
-[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v8.0.0...HEAD
+[Unreleased]: https://github.com/cyrildewit/eloquent-viewable/compare/v8.0.1...HEAD
+[v8.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v8.0.0...v8.0.1
 [v8.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.1...v8.0.0
 [v7.1.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.0...v7.1.1
 [v7.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...v7.1.0
