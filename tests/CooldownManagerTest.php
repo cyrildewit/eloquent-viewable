@@ -3,97 +3,94 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\CooldownManager;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use Illuminate\Container\Container;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Config\Repository;
+use Illuminate\Session\ArraySessionHandler;
+use Illuminate\Session\Store;
+
+const COOLDOWN_NAMESPACE = 'cyrildewit.eloquent-viewable.cooldowns.app-models-post';
+
+function cooldownViewable(int $key = 1): Viewable
+{
+    $viewable = Mockery::mock(Viewable::class);
+    $viewable->allows('getKey')->andReturn($key);
+    $viewable->allows('getMorphClass')->andReturn('App\Models\Post');
+
+    return $viewable;
+}
+
+beforeEach(function (): void {
+    $config = new Repository([
+        'eloquent-viewable' => require __DIR__.'/../../config/eloquent-viewable.php',
+    ]);
+
+    $this->session = new Store('testing', new ArraySessionHandler(120));
+    $this->cooldownManager = new CooldownManager($config, $this->session);
+    $this->post = cooldownViewable();
+});
 
 test('push can add an item', function (): void {
-    $post = Post::factory()->create();
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-    $postSessionKey = Container::getInstance()
-        ->make('config')
-        ->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).'.'.$post->getKey();
-
-    expect(Session::has($postSessionKey))->toBeFalse();
-
-    $cooldownManager->push($post, Carbon::tomorrow());
-
-    expect(Session::has($postSessionKey))->toBeTrue();
+    expect($this->session->has(COOLDOWN_NAMESPACE.'.1'))->toBeFalse()
+        ->and($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeTrue()
+        ->and($this->session->has(COOLDOWN_NAMESPACE.'.1'))->toBeTrue();
 });
 
 test('push can add an item with collection', function (): void {
-    $post = Post::factory()->create();
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-    $postSessionKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass())).':some-collection'.'.'.$post->getKey();
+    expect($this->session->has(COOLDOWN_NAMESPACE.':some-collection.1'))->toBeFalse();
 
-    expect(Session::has($postSessionKey))->toBeFalse();
+    $this->cooldownManager->push($this->post, Carbon::tomorrow(), 'some-collection');
 
-    $cooldownManager->push($post, Carbon::tomorrow(), 'some-collection');
-
-    expect(Session::has($postSessionKey))->toBeTrue();
+    expect($this->session->has(COOLDOWN_NAMESPACE.':some-collection.1'))->toBeTrue();
 });
 
 test('push does not add an item if already added', function (): void {
-    $post = Post::factory()->create();
-    $postBaseKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
+    expect($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeTrue()
+        ->and($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeFalse()
+        ->and($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeFalse()
+        ->and($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(1);
+});
 
-    $cooldownManager->push($post, Carbon::tomorrow());
-    $cooldownManager->push($post, Carbon::tomorrow());
-    $cooldownManager->push($post, Carbon::tomorrow());
+it('keeps separate cooldowns per viewable', function (): void {
+    $this->cooldownManager->push($this->post, Carbon::tomorrow());
+    $this->cooldownManager->push(cooldownViewable(2), Carbon::tomorrow());
 
-    expect(Session::get($postBaseKey))->toHaveCount(1);
+    expect($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(2);
 });
 
 it('can forget expired views', function (): void {
-    $post = Post::factory()->create();
-    $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-
-    $cooldownManager->push($post, Carbon::today());
-    $cooldownManager->push($post, Carbon::today()->addHour());
-    $cooldownManager->push($post, Carbon::today()->addHours(2));
+    $this->cooldownManager->push($this->post, Carbon::today());
+    $this->cooldownManager->push($this->post, Carbon::today()->addHour());
+    $this->cooldownManager->push($this->post, Carbon::today()->addHours(2));
 
     Carbon::setTestNow(Carbon::tomorrow());
 
-    $cooldownManager->push($post, Carbon::today()->addHours(2));
-
-    expect(Session::get($postNamespaceKey))->toHaveCount(1);
+    expect($this->cooldownManager->push($this->post, Carbon::today()->addHours(2)))->toBeTrue()
+        ->and($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(1);
 });
 
 it('can forget expired views with collection', function (): void {
-    $post = Post::factory()->create();
-    $postNamespacKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-
-    $cooldownManager->push($post, Carbon::today());
-    $cooldownManager->push($post, Carbon::today(), 'some-collection');
-    $cooldownManager->push($post, Carbon::today()->addHour());
-    $cooldownManager->push($post, Carbon::today()->addHours(2));
-    $cooldownManager->push($post, Carbon::today()->addHours(2), 'some-collection');
+    $this->cooldownManager->push($this->post, Carbon::today());
+    $this->cooldownManager->push($this->post, Carbon::today(), 'some-collection');
+    $this->cooldownManager->push($this->post, Carbon::today()->addHour());
+    $this->cooldownManager->push($this->post, Carbon::today()->addHours(2));
+    $this->cooldownManager->push($this->post, Carbon::today()->addHours(2), 'some-collection');
 
     Carbon::setTestNow(Carbon::tomorrow());
 
-    $cooldownManager->push($post, Carbon::today()->addHours(2));
+    $this->cooldownManager->push($this->post, Carbon::today()->addHours(2));
 
-    expect(Session::get($postNamespacKey))->toHaveCount(1);
+    expect($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(1);
 });
 
 it('can forget expired views when expires at is stored as a string', function (): void {
-    $post = Post::factory()->create();
-    $postNamespaceKey = Container::getInstance()->make('config')->get('eloquent-viewable.cooldown.key').'.'.strtolower(str_replace('\\', '-', $post->getMorphClass()));
-    $postSessionKey = $postNamespaceKey.'.'.$post->getKey();
-    $cooldownManager = Container::getInstance()->make(CooldownManager::class);
-
     // Simulate what the JSON session serializer produces on a subsequent
     // request: expires_at comes back as an ISO-8601 string, not a Carbon.
-    Session::put($postSessionKey, [
-        'viewable_id' => $post->getKey(),
+    $this->session->put(COOLDOWN_NAMESPACE.'.1', [
+        'viewable_id' => 1,
         'expires_at' => Carbon::yesterday()->toJSON(),
     ]);
 
-    $cooldownManager->push($post, Carbon::tomorrow());
-
-    expect(Session::get($postNamespaceKey))->toHaveCount(1);
+    expect($this->cooldownManager->push($this->post, Carbon::tomorrow()))->toBeTrue()
+        ->and($this->session->get(COOLDOWN_NAMESPACE))->toHaveCount(1);
 });
