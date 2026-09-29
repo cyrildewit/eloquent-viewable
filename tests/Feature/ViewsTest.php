@@ -15,7 +15,6 @@ use CyrildeWit\EloquentViewable\Tests\TestClasses\TestVisitor;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitor;
-use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -28,7 +27,7 @@ beforeEach(function (): void {
 it('is macroable', function (): void {
     Views::macro('newMethod', fn (): string => 'someValue');
 
-    expect(Container::getInstance()->make(Views::class)->newMethod())->toBe('someValue');
+    expect($this->app->make(Views::class)->newMethod())->toBe('someValue');
 });
 
 describe('recording', function (): void {
@@ -283,7 +282,7 @@ describe('counting', function (): void {
     });
 
     it('can count the views of a period', function (): void {
-        Carbon::setTestNow(Carbon::now());
+        $this->freezeTime();
 
         ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-10'))->create();
         ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-15'))->create();
@@ -298,7 +297,7 @@ describe('counting', function (): void {
     });
 
     it('can remove the period', function (): void {
-        Carbon::setTestNow(Carbon::now());
+        $this->freezeTime();
 
         ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
 
@@ -522,7 +521,7 @@ describe('visitor handling', function (): void {
 
         views($this->post)
             ->useVisitor(
-                Container::getInstance()->make(TestVisitor::class)
+                $this->app->make(TestVisitor::class)
             )
             ->record();
 

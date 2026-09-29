@@ -9,7 +9,6 @@ use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\PendingView;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
-use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
@@ -17,7 +16,7 @@ beforeEach(function (): void {
 });
 
 it('is bound to the CreateView contract', function (): void {
-    expect(Container::getInstance()->make(CreateViewContract::class))->toBeInstanceOf(CreateView::class);
+    expect($this->app->make(CreateViewContract::class))->toBeInstanceOf(CreateView::class);
 });
 
 it('stores a pending view', function (): void {
@@ -29,7 +28,7 @@ it('stores a pending view', function (): void {
         viewedAt: Carbon::now(),
     );
 
-    $view = Container::getInstance()->make(CreateViewContract::class)->handle($pending);
+    $view = $this->app->make(CreateViewContract::class)->handle($pending);
 
     expect(View::count())->toBe(1)
         ->and($view->viewable_id)->toBe($this->post->getKey())
@@ -48,7 +47,7 @@ it('dispatches a ViewRecorded event', function (): void {
         viewedAt: Carbon::now(),
     );
 
-    Container::getInstance()->make(CreateViewContract::class)->handle($pending);
+    $this->app->make(CreateViewContract::class)->handle($pending);
 
     Event::assertDispatched(ViewRecorded::class);
 });
