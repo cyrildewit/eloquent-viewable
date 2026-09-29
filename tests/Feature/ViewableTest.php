@@ -282,3 +282,38 @@ it('can be ordered by unique views within a specific period in ascending order',
 
     expect(Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'))->toEqual(collect([2, 3, 1, 4]));
 });
+
+it('can load the views count without loading the views', function (): void {
+    ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
+    ViewFactory::new()->for(Post::factory()->create(), 'viewable')->create();
+
+    $post = Post::withViewsCount()->find($this->post->getKey());
+
+    expect($post->views_count)->toBe(3)
+        ->and($post->relationLoaded('views'))->toBeFalse();
+});
+
+it('can load the views count under a custom alias', function (): void {
+    ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
+
+    expect(Post::withViewsCount(as: 'total_views')->find($this->post->getKey())->total_views)->toBe(2);
+});
+
+it('can load the unique views count', function (): void {
+    ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(3)->create();
+    ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_two')->create();
+
+    expect(Post::withViewsCount(unique: true)->find($this->post->getKey())->views_count)->toBe(2);
+});
+
+it('can load the views count within a period and collection', function (): void {
+    Carbon::setTestNow(Carbon::now());
+
+    ViewFactory::new()->for($this->post, 'viewable')->inCollection('reads')->count(2)->create();
+    ViewFactory::new()->for($this->post, 'viewable')->inCollection('reads')->viewedAt(Carbon::now()->subDays(5))->create();
+    ViewFactory::new()->for($this->post, 'viewable')->create();
+
+    $post = Post::withViewsCount(Period::pastDays(2), 'reads')->find($this->post->getKey());
+
+    expect($post->views_count)->toBe(2);
+});
