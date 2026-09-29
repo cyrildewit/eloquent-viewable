@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
 use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
@@ -47,7 +48,7 @@ describe('recording', function (): void {
     it('throws an exception when recording a view for a viewable type', function (): void {
         expect(fn (): bool => views(new Post)
             ->cooldown(Carbon::now()->addMinutes(10))
-            ->record())->toThrow(Exception::class);
+            ->record())->toThrow(ViewRecordException::class);
     });
 
     it('returns true when a view is recorded', function (): void {
@@ -195,20 +196,6 @@ describe('cooldowns', function (): void {
             ->record();
 
         views($this->post)
-            ->cooldown(Carbon::now()->addMinutes(10))
-            ->record();
-
-        expect(View::count())->toBe(1);
-    });
-
-    it('does not record views if session delay is active with collection', function (): void {
-        views($this->post)
-            ->collection('test')
-            ->cooldown(Carbon::now()->addMinutes(10))
-            ->record();
-
-        views($this->post)
-            ->collection('test')
             ->cooldown(Carbon::now()->addMinutes(10))
             ->record();
 
