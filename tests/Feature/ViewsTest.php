@@ -17,6 +17,7 @@ use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 
@@ -435,9 +436,39 @@ describe('remembering', function (): void {
 
         expect(views(Post::class)->remember(60)->count())->toBe(3);
     });
+
+    it('remembers the views counts in the configured cache store', function (): void {
+        Config::set('cache.stores.views', ['driver' => 'array']);
+        Config::set('eloquent-viewable.cache.store', 'views');
+
+        ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
+
+        expect(views($this->post)->remember(60)->count())->toBe(3);
+
+        ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
+
+        // Flushing the default store must not touch the remembered count.
+        Cache::flush();
+
+        expect(views($this->post)->remember(60)->count())->toBe(3);
+
+        Cache::store('views')->flush();
+
+        expect(views($this->post)->remember(60)->count())->toBe(5);
+    });
 });
 
 describe('visitor handling', function (): void {
+    it('does not record views from a crawler user agent', function (string $userAgent, bool $recorded): void {
+        $this->app['request']->server->set('HTTP_USER_AGENT', $userAgent);
+
+        expect(views($this->post)->record())->toBe($recorded)
+            ->and(View::count())->toBe($recorded ? 1 : 0);
+    })->with([
+        'Googlebot' => ['Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', false],
+        'Chrome' => ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36', true],
+    ]);
+
     it('does not record bot views', function (): void {
         // Faking that the visitor is a bot
         $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
