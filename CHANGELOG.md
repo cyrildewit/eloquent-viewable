@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- `Visitor` now receives the cookie jar through its constructor (`Illuminate\Contracts\Cookie\QueueingFactory`) and reads the existing visitor cookie from the injected request, instead of going through the `Cookie` facade (breaking only for subclasses that override the constructor)
+
 ### Fixed
 
 - Fixed `Visitor::hasDoNotTrackHeader()` always returning `false`; it looked the header up as `HTTP_DNT`, which is the `$_SERVER` key, while Laravel's header bag exposes it as `DNT` (the `Visitor::DNT` constant now holds `'DNT'`)
