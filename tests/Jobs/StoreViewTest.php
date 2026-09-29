@@ -4,26 +4,34 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
+use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Jobs\StoreView;
 use CyrildeWit\EloquentViewable\PendingView;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use CyrildeWit\EloquentViewable\View;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-it('stores the pending view through the create view action', function (): void {
-    $post = Post::factory()->create();
-
-    $pending = new PendingView(
-        viewableId: $post->getKey(),
-        viewableType: $post->getMorphClass(),
+beforeEach(function (): void {
+    $this->pending = new PendingView(
+        viewableId: 1,
+        viewableType: 'App\Models\Post',
         visitor: 'visitor_one',
         collection: null,
         viewedAt: Carbon::now(),
     );
+});
 
-    new StoreView($pending)->handle(
-        Container::getInstance()->make(CreateViewContract::class)
-    );
+it('is queueable', function (): void {
+    expect(new StoreView($this->pending))->toBeInstanceOf(ShouldQueue::class);
+});
 
-    expect(View::count())->toBe(1);
+it('exposes the pending view so it is serialized with the job', function (): void {
+    expect(new StoreView($this->pending)->pending)->toBe($this->pending);
+});
+
+it('hands the pending view to the create view action', function (): void {
+    $action = Mockery::mock(CreateViewContract::class);
+    $action->expects('handle')
+        ->with($this->pending)
+        ->andReturn(Mockery::mock(ViewContract::class));
+
+    new StoreView($this->pending)->handle($action);
 });
