@@ -28,6 +28,9 @@ lint: ## Run the linter
 rector: ## Run Rector
 	docker compose run --rm composer rector
 
+ready: ## Fix with Rector and the linter, then run the static analysis and the tests
+	docker compose run --rm composer ready
+
 types: ## Run the static analysis
 	docker compose run --rm composer test:types
 
