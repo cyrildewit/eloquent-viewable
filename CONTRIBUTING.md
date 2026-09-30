@@ -101,16 +101,17 @@ make build ARGS="--build-arg PHP=8.4"
 
 ### Common tasks
 
-| Command             | Description                                               |
-|---------------------|-----------------------------------------------------------|
-| `make test`         | Run the [Pest](https://pestphp.com/) test suite           |
-| `make test-arch`    | Run only the architecture tests                           |
-| `make test-unit`    | Run only the unit tests                                   |
-| `make test-feature` | Run only the feature tests                                |
-| `make lint`         | Fix code style with [Pint](https://laravel.com/docs/pint) |
-| `make types`        | Run the [PHPStan](https://phpstan.org/) static analysis   |
-| `make rector`       | Run [Rector](https://getrector.com/)                      |
-| `make mutation`     | Run mutation testing (see note below)                     |
+| Command             | Description                                                                   |
+|---------------------|-------------------------------------------------------------------------------|
+| `make ready`        | Run Rector and Pint, then the static analysis, type coverage and test suite   |
+| `make test`         | Run the [Pest](https://pestphp.com/) test suite                               |
+| `make test-arch`    | Run only the architecture tests                                               |
+| `make test-unit`    | Run only the unit tests                                                       |
+| `make test-feature` | Run only the feature tests                                                    |
+| `make lint`         | Fix code style with [Pint](https://laravel.com/docs/pint)                     |
+| `make types`        | Run the [PHPStan](https://phpstan.org/) static analysis                       |
+| `make rector`       | Run [Rector](https://getrector.com/)                                          |
+| `make mutation`     | Run mutation testing (see note below)                                         |
 
 Each target is a thin wrapper around a Composer script executed in the `composer` container, e.g. `make test` runs
 `docker compose run --rm composer test`. If you prefer, you can invoke those scripts directly:
