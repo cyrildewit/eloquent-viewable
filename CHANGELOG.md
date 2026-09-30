@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- Fixed soft deletes removing the views of a viewable model; `ViewableObserver` now skips soft deletes and only destroys views on a force delete, so a restored model keeps its view count. If you relied on a soft delete purging views, call `views($model)->destroy()` yourself
 - Fixed expired cooldowns wiping every cooldown for the same viewable type; `CooldownManager` built the session key to forget from an empty `array_column()` result, so it removed the whole namespace instead of the one expired entry
 - Fixed `Visitor::hasDoNotTrackHeader()` always returning `false`; it looked the header up as `HTTP_DNT`, which is the `$_SERVER` key, while Laravel's header bag exposes it as `DNT` (the `Visitor::DNT` constant now holds `'DNT'`)
 - Fixed `orderByUniqueViews()` and `withViewsCount(unique: true)` ordering and counting by total views instead of distinct visitors; Laravel drops the extra select added inside a `withCount` constraint, so the distinct count is now passed as the aggregate expression
