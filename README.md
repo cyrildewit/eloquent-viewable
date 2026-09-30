@@ -425,12 +425,18 @@ views($post)
 
 ### Remove views on delete
 
-To automatically delete all views associated with a viewable Eloquent model when it is deleted, set the
-`removeViewsOnDelete` property to `true` in your model definition.
+When a viewable model is deleted, the package deletes its views with it. To keep the views, set the
+`removeViewsOnDelete` property to `false` in your model definition.
 
 ```php
-protected $removeViewsOnDelete = true;
+protected $removeViewsOnDelete = false;
 ```
+
+A soft delete leaves the views in place, so a restored model still has its view count. Only `forceDelete()` removes
+them. If you want to drop the views of a soft-deleted model anyway, call `views($post)->destroy()` yourself.
+
+If your custom `View` model uses `SoftDeletes`, a force delete of the viewable soft deletes its views instead of
+removing the rows.
 
 ### Caching view counts
 
