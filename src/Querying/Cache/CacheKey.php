@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Querying\Cache;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 /**
  * Builds the cache key under which a viewable's view count is memoized.
@@ -27,9 +28,9 @@ final readonly class CacheKey
         private string $prefix,
     ) {}
 
-    public function make(?Period $period = null, bool $unique = false, ?string $collection = null): string
+    public function make(ViewsQuery $query, ?Granularity $granularity = null): string
     {
-        return $this->head().':'.$this->digest($period, $unique, $collection);
+        return $this->head().':'.$this->digest($query, $granularity);
     }
 
     private function head(): string
@@ -43,7 +44,7 @@ final readonly class CacheKey
         return "{$this->prefix}:{$this->viewable->getMorphClass()}:{$key}";
     }
 
-    private function digest(?Period $period, bool $unique, ?string $collection): string
+    private function digest(ViewsQuery $query, ?Granularity $granularity): string
     {
         $connection = $this->viewable->getConnection();
 
@@ -52,9 +53,10 @@ final readonly class CacheKey
             $connection->getDatabaseName(),
             $this->viewable->getMorphClass(),
             $this->viewable->getKey(),
-            $period?->cacheSignature(),
-            $unique,
-            $collection,
+            $query->period?->cacheSignature(),
+            $query->unique,
+            $query->collection,
+            $granularity?->value,
         ]));
     }
 }

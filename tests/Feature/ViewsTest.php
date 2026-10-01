@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
 use CyrildeWit\EloquentViewable\Jobs\StoreView;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViews;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
+use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
@@ -18,6 +26,7 @@ use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 dataset('recording modes', [
@@ -337,6 +346,299 @@ describe('counting', function (): void {
 
         expect(new Post)->toHaveUniqueViewsCount(2);
     });
+});
+
+describe('counting by interval', function (): void {
+    function counts(ViewSeries $series): array
+    {
+        return $series->intervals->map(fn (Bucket $bucket): int => $bucket->count)->all();
+    }
+
+    it('counts per {granularity} with empty buckets filled with zero', function (Granularity $granularity, Period $period, array $viewedAt, array $expected): void {
+        foreach ($viewedAt as $dateTime) {
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+        }
+
+        $series = views($this->post)->period($period)->countByInterval($granularity);
+
+        expect($series)->toBeInstanceOf(ViewSeries::class)
+            ->and($series->intervals)->toHaveSameSize($expected)
+            ->and(counts($series))->toBe($expected);
+    })->with([
+        'hour' => [Granularity::Hour, Period::create('2026-09-01 00:00:00', '2026-09-01 04:00:00'), ['2026-09-01 00:10:00', '2026-09-01 00:50:00', '2026-09-01 02:30:00'], [2, 0, 1, 0]],
+        'day' => [Granularity::Day, Period::create('2026-09-01', '2026-09-06'), ['2026-09-01 12:00:00', '2026-09-04 08:00:00', '2026-09-04 20:00:00'], [1, 0, 0, 2, 0]],
+        'week' => [Granularity::Week, Period::create('2026-08-31', '2026-09-21'), ['2026-09-02', '2026-09-03', '2026-09-14'], [2, 0, 1]],
+        'month' => [Granularity::Month, Period::create('2026-06-01', '2026-09-01'), ['2026-06-15', '2026-08-01', '2026-08-31 23:59:59'], [1, 0, 2]],
+        'year' => [Granularity::Year, Period::create('2024-01-01', '2027-01-01'), ['2024-05-01', '2026-01-01'], [1, 0, 1]],
+    ]);
+
+    it('returns the buckets in chronological order, each ending where the next starts', function (): void {
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-06'))->countByInterval(Granularity::Day);
+
+        $intervals = $series->intervals->all();
+
+        foreach (array_slice($intervals, 0, -1) as $index => $bucket) {
+            expect($bucket->end)->toEqual($intervals[$index + 1]->start)
+                ->and($bucket->start)->toBeLessThan($bucket->end);
+        }
+    });
+
+    it('sums to the plain count over the same period', function (): void {
+        Carbon::setTestNow('2026-09-10 12:00:00');
+
+        foreach (['2026-09-01 12:00:00', '2026-09-02 12:00:00', '2026-09-02 13:00:00', '2026-09-09 12:00:00'] as $dateTime) {
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+        }
+
+        $period = Period::create('2026-09-01', '2026-09-10');
+
+        expect(views($this->post)->period($period)->countByInterval(Granularity::Day)->total())
+            ->toBe(views($this->post)->period($period)->count());
+    });
+
+    it('lets a bucket drill down into the same count', function (): void {
+        foreach (['2026-09-02 00:00:00', '2026-09-02 12:00:00', '2026-09-02 23:59:59', '2026-09-03 00:00:00'] as $dateTime) {
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+        }
+
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->countByInterval(Granularity::Day);
+
+        foreach ($series as $bucket) {
+            expect(views($this->post)->period($bucket->period())->count())->toBe($bucket->count);
+        }
+
+        expect(counts($series))->toBe([0, 3, 1, 0]);
+    });
+
+    it('counts unique visitors per bucket and ignores null visitors', function (): void {
+        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 09:00:00'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_two')->viewedAt(Carbon::parse('2026-09-01 10:00:00'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->state(['visitor' => null])->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
+
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(counts(views($this->post)->period($period)->unique()->countByInterval(Granularity::Day)))->toBe([2, 0])
+            ->and(counts(views($this->post)->period($period)->countByInterval(Granularity::Day)))->toBe([3, 1]);
+    });
+
+    it('filters on the collection', function (): void {
+        ViewFactory::new()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(counts(views($this->post)->period($period)->collection('custom')->countByInterval(Granularity::Day)))->toBe([1, 0]);
+    });
+
+    it('counts every viewable of a type', function (): void {
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        ViewFactory::new()->for(Post::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+        ViewFactory::new()->for(Apartment::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 09:00:00'))->create();
+
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(counts(views(Post::class)->period($period)->countByInterval(Granularity::Day)))->toBe([1, 1]);
+    });
+
+    it('treats a missing period end as now', function (): void {
+        Carbon::setTestNow('2026-09-03 12:00:00');
+
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-03 09:00:00'))->create();
+
+        $series = views($this->post)->period(Period::pastDays(2))->countByInterval(Granularity::Day);
+
+        expect(counts($series))->toBe([1, 0, 1]);
+    });
+
+    it('counts the same rows for period bounds carried in another timezone', function (): void {
+        foreach (['2026-09-27 00:30:00', '2026-09-27 23:30:00', '2026-09-28 12:00:00'] as $dateTime) {
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+        }
+
+        // The same two instants, handed over as Amsterdam wall clocks instead
+        // of the application's own.
+        $elsewhere = Period::create(
+            Carbon::parse('2026-09-27 00:00:00')->setTimezone('Europe/Amsterdam'),
+            Carbon::parse('2026-09-29 00:00:00')->setTimezone('Europe/Amsterdam'),
+        );
+
+        expect(counts(views($this->post)->period($elsewhere)->countByInterval(Granularity::Day)))
+            ->toBe(counts(views($this->post)->period(Period::create('2026-09-27', '2026-09-29'))->countByInterval(Granularity::Day)))
+            ->and(counts(views($this->post)->period($elsewhere)->countByInterval(Granularity::Day)))->toBe([2, 1]);
+    });
+
+    it('throws without a period', function (): void {
+        expect(fn (): ViewSeries => views($this->post)->countByInterval(Granularity::Day))
+            ->toThrow(InvalidInterval::class);
+    });
+
+    it('throws for a period without a start', function (): void {
+        expect(fn (): ViewSeries => views($this->post)->period(Period::upto('2026-09-01'))->countByInterval(Granularity::Day))
+            ->toThrow(InvalidInterval::class);
+    });
+
+    it('allows exactly the configured maximum number of intervals', function (): void {
+        Config::set('eloquent-viewable.max_intervals', 3);
+
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-04'))->countByInterval(Granularity::Day);
+
+        expect($series->intervals)->toHaveCount(3);
+    });
+
+    it('throws over the configured maximum number of intervals', function (): void {
+        Config::set('eloquent-viewable.max_intervals', 3);
+
+        expect(fn (): ViewSeries => views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->countByInterval(Granularity::Day))
+            ->toThrow(InvalidInterval::class, '4 intervals');
+    });
+
+    it('does not query the database when over the maximum', function (): void {
+        Config::set('eloquent-viewable.max_intervals', 3);
+
+        DB::enableQueryLog();
+
+        expect(fn (): ViewSeries => views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->countByInterval(Granularity::Day))
+            ->toThrow(InvalidInterval::class)
+            ->and(DB::getQueryLog())->toBeEmpty();
+    });
+
+    it('can remember the series', function (): void {
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+
+        expect(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0]);
+
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+
+        expect(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0])
+            ->and(counts(views($this->post)->period($period)->countByInterval(Granularity::Day)))->toBe([1, 1]);
+    });
+
+    it('remembers an empty series', function (): void {
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)->total())->toBe(0);
+
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+
+        expect(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)->total())->toBe(0);
+    });
+
+    it('does not share a cache entry between granularities', function (): void {
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Hour)->intervals)->toHaveCount(48)
+            ->and(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)->intervals)->toHaveCount(2);
+    });
+
+    it('does not share a cache entry with the plain count', function (): void {
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+
+        expect(views($this->post)->period($period)->remember(60)->count())->toBe(1)
+            ->and(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0]);
+    });
+
+    it('uses the CountViewsByInterval action bound in the container', function (): void {
+        $this->app->bind(CountsViewsByInterval::class, fn (): CountsViewsByInterval => new class implements CountsViewsByInterval
+        {
+            public function handle(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+            {
+                return ['2026-09-01 00:00:00' => 42];
+            }
+        });
+
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->countByInterval(Granularity::Day);
+
+        expect(counts($series))->toBe([42, 0]);
+    });
+
+    it('uses the CountViews action bound in the container', function (): void {
+        $this->app->bind(CountsViews::class, fn (): CountsViews => new class implements CountsViews
+        {
+            public function handle(Viewable $viewable, ViewsQuery $query): int
+            {
+                return 7;
+            }
+        });
+
+        expect(views($this->post)->count())->toBe(7);
+    });
+
+    describe('in a non-UTC application timezone', function (): void {
+        beforeEach(function (): void {
+            $this->timezone = date_default_timezone_get();
+            date_default_timezone_set('Europe/Amsterdam');
+        });
+
+        afterEach(function (): void {
+            date_default_timezone_set($this->timezone);
+        });
+
+        it('labels buckets the same way the SQL does', function (): void {
+            foreach (['2026-07-01 00:30:00', '2026-07-01 23:30:00', '2026-07-03 12:00:00'] as $dateTime) {
+                ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+            }
+
+            $period = Period::create('2026-07-01', '2026-07-04');
+            $series = views($this->post)->period($period)->countByInterval(Granularity::Day);
+
+            // A label the SQL emits but the series never generates would leave
+            // every bucket at zero while the plain count still finds the rows.
+            expect(counts($series))->toBe([2, 0, 1])
+                ->and($series->total())->toBe(views($this->post)->period($period)->count())
+                ->and($series->total())->toBe(3);
+        });
+
+        it('keeps both real hours of an ambiguous wall clock in one bucket', function (): void {
+            // Amsterdam puts the clock back an hour at 03:00 CEST on this date,
+            // so 02:30 happens twice: once at +02:00 and once at +01:00.
+            $duringCest = Carbon::parse('2026-10-25 00:30:00', 'UTC')->setTimezone('Europe/Amsterdam');
+            $duringCet = Carbon::parse('2026-10-25 01:30:00', 'UTC')->setTimezone('Europe/Amsterdam');
+
+            expect($duringCest->format('H:i P'))->toBe('02:30 +02:00')
+                ->and($duringCet->format('H:i P'))->toBe('02:30 +01:00');
+
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-25 01:30:00'))->create();
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt($duringCest)->create();
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt($duringCet)->create();
+
+            $period = Period::create('2026-10-25 00:00:00', '2026-10-25 04:00:00');
+            $series = views($this->post)->period($period)->countByInterval(Granularity::Hour);
+
+            expect(counts($series))->toBe([0, 1, 2, 0])
+                ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+
+        it('leaves the hour skipped by the spring transition empty', function (): void {
+            // 02:00 does not exist in Amsterdam on this date. The bucket is
+            // still emitted so the series stays one bucket per hour label.
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 01:30:00'))->create();
+            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 03:30:00'))->create();
+
+            $period = Period::create('2026-03-29 00:00:00', '2026-03-29 04:00:00');
+            $series = views($this->post)->period($period)->countByInterval(Granularity::Hour);
+
+            expect(counts($series))->toBe([0, 1, 0, 1])
+                ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+    });
+
+    it('range-scans the composite index', function (): void {
+        DB::enableQueryLog();
+
+        views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->countByInterval(Granularity::Day);
+
+        $query = DB::getQueryLog()[0];
+        $plan = collect(DB::select('explain query plan '.$query['query'], $query['bindings']))->pluck('detail')->implode(' ');
+
+        // SQLite reports "USING INDEX" or "USING COVERING INDEX"; both range-scan it.
+        expect($plan)->toContain('INDEX views_viewable_viewed_at_index (viewable_type=? AND viewable_id=? AND viewed_at>? AND viewed_at<?)');
+    })->skip(fn (): bool => driver() !== 'sqlite', 'Query plans are asserted on SQLite only');
 });
 
 describe('destroying', function (): void {
