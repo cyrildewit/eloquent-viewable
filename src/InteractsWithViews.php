@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -67,21 +68,12 @@ trait InteractsWithViews
      */
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
-        // Laravel keeps only the first select column of a withCount constraint,
-        // so the distinct count has to be passed as the aggregate expression
-        // rather than selected inside the closure.
         $column = $unique
             ? new Expression('distinct '.$query->getQuery()->getGrammar()->wrap($this->views()->getRelated()->qualifyColumn('visitor')))
             : '*';
 
         return $query->withAggregate(["views as {$as}" => function (Builder $query) use ($period, $collection): void {
-            if ($period instanceof Period) {
-                $query->withinPeriod($period);
-            }
-
-            if ($collection) {
-                $query->collection($collection);
-            }
+            $query->matching(new ViewsQuery($period, $collection));
         }], $column, 'count');
     }
 }

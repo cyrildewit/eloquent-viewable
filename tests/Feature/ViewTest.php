@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
 use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
 use CyrildeWit\EloquentViewable\View;
 use Illuminate\Support\Facades\Config;
+
+$sqliteOnly = fn (): bool => driver() !== 'sqlite';
 
 it('reads the connection name from the config', function (): void {
     Config::set('database.connections.analytics', ['driver' => 'sqlite', 'database' => ':memory:']);
@@ -31,27 +36,122 @@ it('can belong to viewable model', function (): void {
     expect(View::first()->viewable)->toBeInstanceOf(Post::class);
 });
 
-it('can scope to within period with only start date time', function (): void {
-    expect(View::withinPeriod(Period::since('2019-06-12'))->toSql())
-        ->toBe('select * from "views" where "viewed_at" >= ?');
+describe('within period', function () use ($sqliteOnly): void {
+    it('scopes with only a start date time', function (): void {
+        expect(View::withinPeriod(Period::since('2019-06-12'))->toSql())
+            ->toBe('select * from "views" where "viewed_at" >= ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('scopes with only an end date time', function (): void {
+        expect(View::withinPeriod(Period::upto('2019-03-23'))->toSql())
+            ->toBe('select * from "views" where "viewed_at" < ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('scopes with both a start and an end date time', function (): void {
+        expect(View::withinPeriod(Period::create('2019-02-15', '2019-06-12'))->toSql())
+            ->toBe('select * from "views" where "viewed_at" >= ? and "viewed_at" < ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('includes the start and excludes the end', function (): void {
+        $post = Post::factory()->create();
+
+        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-01 00:00:00'))->create();
+        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-15 12:00:00'))->create();
+        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-31 00:00:00'))->create();
+
+        expect(View::withinPeriod(Period::create('2019-01-01', '2019-01-31'))->count())->toBe(2)
+            ->and(View::withinPeriod(Period::upto('2019-01-31'))->count())->toBe(2)
+            ->and(View::withinPeriod(Period::since('2019-01-31'))->count())->toBe(1);
+    });
 });
 
-it('can scope to within period with only end date time', function (): void {
-    expect(View::withinPeriod(Period::upto('2019-03-23'))->toSql())
-        ->toBe('select * from "views" where "viewed_at" < ?');
+describe('collection', function () use ($sqliteOnly): void {
+    it('scopes to a null collection', function (): void {
+        expect(View::collection(null)->toSql())
+            ->toBe('select * from "views" where "collection" is null');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('scopes to a custom collection', function (): void {
+        expect(View::collection('custom')->toSql())
+            ->toBe('select * from "views" where "collection" = ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
 });
 
-it('can scope to within period with both start and end date time', function (): void {
-    expect(View::withinPeriod(Period::create('2019-02-15', '2019-06-12'))->toSql())
-        ->toBe('select * from "views" where "viewed_at" >= ? and "viewed_at" < ?');
+describe('for viewable', function () use ($sqliteOnly): void {
+    it('scopes to the viewable type and key', function (): void {
+        $post = Post::factory()->create();
+
+        $query = View::forViewable($post);
+
+        expect($query->toSql())->toBe('select * from "views" where "viewable_type" = ? and "viewable_id" = ?')
+            ->and($query->getBindings())->toBe([$post->getMorphClass(), $post->getKey()]);
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('scopes to the viewable type alone when the viewable has no key', function (): void {
+        $query = View::forViewable(new Post);
+
+        expect($query->toSql())->toBe('select * from "views" where "viewable_type" = ?')
+            ->and($query->getBindings())->toBe([(new Post)->getMorphClass()]);
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('counts only the views of the viewable', function (): void {
+        $postOne = Post::factory()->create();
+        $postTwo = Post::factory()->create();
+
+        ViewFactory::new()->for($postOne, 'viewable')->create();
+        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
+
+        expect(View::forViewable($postOne)->count())->toBe(1)
+            ->and(View::forViewable($postTwo)->count())->toBe(2)
+            ->and(View::forViewable(new Post)->count())->toBe(3);
+    });
 });
 
-it('can scope to collection null', function (): void {
-    expect(View::collection(null)->toSql())
-        ->toBe('select * from "views" where "collection" is null');
+describe('matching', function () use ($sqliteOnly): void {
+    it('applies nothing for an empty views query', function (): void {
+        expect(View::matching(new ViewsQuery)->toSql())->toBe('select * from "views"');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('applies the period', function (): void {
+        expect(View::matching(new ViewsQuery(period: Period::since('2019-06-12')))->toSql())
+            ->toBe('select * from "views" where "viewed_at" >= ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('applies the collection', function (): void {
+        expect(View::matching(new ViewsQuery(collection: 'custom'))->toSql())
+            ->toBe('select * from "views" where "collection" = ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('applies the period and the collection together', function (): void {
+        expect(View::matching(new ViewsQuery(Period::since('2019-06-12'), 'custom'))->toSql())
+            ->toBe('select * from "views" where "viewed_at" >= ? and "collection" = ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('ignores the unique flag, which is not a filter', function (): void {
+        expect(View::matching(new ViewsQuery(unique: true))->toSql())
+            ->toBe(View::matching(new ViewsQuery)->toSql());
+    });
 });
 
-it('can scope to collection custom', function (): void {
-    expect(View::collection('custom')->toSql())
-        ->toBe('select * from "views" where "collection" = ?');
+describe('new query for', function (): void {
+    it('produces the same query as the chained scopes', function (): void {
+        $post = Post::factory()->create();
+        $viewsQuery = new ViewsQuery(Period::create('2019-01-01', '2019-02-01'), 'custom');
+
+        $direct = (new View)->newQueryFor($post, $viewsQuery);
+        $chained = View::forViewable($post)->matching($viewsQuery);
+
+        expect($direct->toSql())->toBe($chained->toSql())
+            ->and($direct->getBindings())->toEqual($chained->getBindings());
+    });
+
+    it('covers every viewable of the type when the viewable has no key', function (): void {
+        $post = Post::factory()->create();
+
+        ViewFactory::new()->for($post, 'viewable')->create();
+        ViewFactory::new()->for(Post::factory()->create(), 'viewable')->create();
+
+        expect((new View)->newQueryFor(new Post, new ViewsQuery)->count())->toBe(2)
+            ->and((new View)->newQueryFor($post, new ViewsQuery)->count())->toBe(1);
+    });
 });
