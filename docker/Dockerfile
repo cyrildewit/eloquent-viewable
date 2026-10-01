@@ -4,6 +4,9 @@ FROM php:${PHP}-cli-alpine
 RUN apk update && apk add \
     zip libzip-dev icu-dev git postgresql-dev
 
+# Graphviz and a font so `make deptrac-graph` can render build/deptrac.png.
+RUN apk add --no-cache graphviz font-inter
+
 RUN docker-php-ext-install zip intl pdo_mysql pdo_pgsql
 
 RUN apk add --no-cache linux-headers autoconf build-base
