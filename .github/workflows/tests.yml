@@ -16,7 +16,7 @@ permissions:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -24,11 +24,64 @@ jobs:
         php: [ 8.5 ]
         laravel: [ ^13.0 ]
         stability: [ prefer-lowest, prefer-stable ]
+        db: [ sqlite, mysql, mariadb, pgsql ]
         include:
           - laravel: ^13.0
             testbench: ^11.0
+          - db: sqlite
+            connection: testing
+          - db: mysql
+            connection: mysql
+            port: 3306
+          - db: mariadb
+            connection: mariadb
+            port: 3307
+          - db: pgsql
+            connection: pgsql
+            port: 5432
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.db }} - ${{ matrix.os }}
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: testing
+          MYSQL_USER: testing
+          MYSQL_PASSWORD: testing
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_DATABASE: testing
+          MARIADB_USER: testing
+          MARIADB_PASSWORD: testing
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3307:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: testing
+          POSTGRES_PASSWORD: testing
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready -U testing" --health-interval=5s --health-timeout=5s --health-retries=20
+
+    env:
+      DB_CONNECTION: ${{ matrix.connection }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ matrix.port }}
+      DB_DATABASE: testing
+      DB_USERNAME: testing
+      DB_PASSWORD: testing
 
     steps:
       - name: Checkout code
@@ -40,7 +93,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring
+          extensions: mbstring, pdo_mysql, pdo_pgsql
           coverage: xdebug
 
       - name: Setup problem matchers
@@ -64,10 +117,18 @@ jobs:
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update --dev
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: Execute tests
+      # Coverage is gated on the SQLite leg only, so the 100% minimum needs no
+      # merging across drivers. The other legs run the same suite uncovered.
+      - name: Execute tests with coverage
+        if: matrix.db == 'sqlite'
         run: composer run test:coverage
 
+      - name: Execute tests
+        if: matrix.db != 'sqlite'
+        run: composer run test
+
       - name: Upload coverage to Codecov
+        if: matrix.db == 'sqlite'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
