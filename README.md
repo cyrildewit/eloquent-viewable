@@ -37,6 +37,7 @@
             <li><a href="#get-total-view-count">Get total view count</a></li>
             <li><a href="#get-view-count-for-a-specific-period">Get view count for a specific period</a>
             </li>
+            <li><a href="#get-view-counts-grouped-by-interval">Get view counts grouped by interval</a></li>
             <li><a href="#get-unique-view-count">Get unique view count</a></li>
           </ul>
         </li>
@@ -68,6 +69,8 @@
         <li><a href="#using-your-own-views-eloquent-model">Using your own Views Eloquent model</a></li>
         <li><a href="#using-your-own-view-eloquent-model">Using your own View Eloquent model</a></li>
         <li><a href="#customizing-how-views-are-created">Customizing how views are created</a></li>
+        <li><a href="#customizing-how-views-are-counted">Customizing how views are counted</a></li>
+        <li><a href="#adding-a-bucket-grammar-for-another-database-driver">Adding a bucket grammar for another database driver</a></li>
         <li><a href="#using-a-custom-crawler-detector">Using a custom crawler detector</a></li>
         <li><a href="#adding-macros-to-the-views-class">Adding macros to the Views class</a></li>
       </ul>
@@ -290,6 +293,9 @@ views($post)
 The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as
 follows:
 
+A period is half-open: the start is included and the end is excluded. `Period::create('2018-01-01', '2018-02-01')`
+covers all of January and nothing of February.
+
 ##### Specifying a date range
 
 ```php
@@ -305,7 +311,7 @@ Period::create($startDateTime, $endDateTime);
 Period::since(Carbon::create(2017));
 ```
 
-##### Up to a specific date
+##### Up to, but not including, a specific date
 
 ```php
 Period::upto(Carbon::createFromDate(2018, 6, 1));
@@ -335,6 +341,56 @@ Period::subWeeks(int $weeks);
 Period::subMonths(int $months);
 Period::subYears(int $years);
 ```
+
+##### Timezones
+
+`viewed_at` is stored as the wall clock of your application timezone. Period bounds use that same zone, and bounds
+you pass in another timezone are converted before they are compared. Keep `app.timezone` at `UTC`, Laravel's default,
+unless you have a reason not to.
+
+#### Get view counts grouped by interval
+
+`countByInterval()` returns the view count per hour, day, week, month or year over the period, with buckets that have
+no views filled in with zero. It needs a period with a start date.
+
+```php
+use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
+
+$series = views($post)
+    ->period(Period::pastDays(30))
+    ->countByInterval(Granularity::Day);
+
+foreach ($series as $bucket) {
+    $bucket->start; // Carbon, the start of the bucket
+    $bucket->end;   // Carbon, the start of the next bucket
+    $bucket->count; // int
+}
+
+$series->total();  // the same number as views($post)->period(Period::pastDays(30))->count()
+$series->intervals; // Collection<int, Bucket>
+```
+
+Buckets are calendar-aligned, so the first one may start before the period, and weeks start on Monday. A bucket is
+half-open like a period, so drilling into one gives the same count:
+
+```php
+views($post)->period($bucket->period())->count(); // === $bucket->count
+```
+
+`unique()`, `collection()` and `remember()` work as they do for `count()`:
+
+```php
+views($post)->period(Period::pastMonths(6))->unique()->countByInterval(Granularity::Month);
+views(Post::class)->period(Period::pastWeeks(12))->collection('homepage')->countByInterval(Granularity::Week);
+```
+
+The database does the grouping, so the package ships a grammar per driver: SQLite, MySQL, MariaDB and Postgres. Any
+other driver throws `UnsupportedDriver` until you
+[register a grammar](#adding-a-bucket-grammar-for-another-database-driver) for it.
+
+A call that would produce more than `max_intervals` buckets (10,000 by default, configurable) throws
+`InvalidInterval` before the database is queried.
 
 #### Get unique view count
 
@@ -453,6 +509,7 @@ views($post)->period(Period::create('2018-01-24', '2018-05-22'))->remember()->co
 views($post)->period(Period::upto('2018-11-10'))->unique()->remember()->count();
 views($post)->period(Period::pastMonths(2))->remember()->count();
 views($post)->period(Period::subHours(6))->remember()->count();
+views($post)->period(Period::pastDays(30))->remember()->countByInterval(Granularity::Day);
 ```
 
 ```php
@@ -478,8 +535,21 @@ Storing every view as its own record is what makes detailed, time-based analytic
 
 ### Database indexes
 
-The default `views` table migration file already has a composite index on `viewable_type` and `viewable_id` (created by
-`morphs()`).
+The `views` table migration creates two indexes: one on `viewable_type` and `viewable_id` (from `morphs()`), and a
+composite one named `views_viewable_viewed_at_index` on `viewable_type`, `viewable_id` and `viewed_at`. The second one
+lets `period()` counts and `countByInterval()` range-scan only the rows inside the period instead of every view of the
+model.
+
+If you ran the migration before that index existed, the
+[upgrade guide](UPGRADING.md#add-an-index-on-viewable_type-viewable_id-and-viewed_at) has a migration you can copy into
+your application to add it.
+
+Two optional indexes for apps that need them, added in your own migration:
+
+- `visitor` as a fourth column of that composite index (or `include (visitor)` on Postgres) makes `unique()` series
+  index-only.
+- `(viewable_type, viewed_at)` serves `views(Post::class)->countByInterval()` over a whole type, which the composite
+  index above cannot narrow by date.
 
 If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of
 views, this may speed up unique view counts (`->unique()`) in some cases. The `visitor` column is a `string`
@@ -524,6 +594,8 @@ If you want to extend or replace one of the core classes with your own implement
 - `CyrildeWit\EloquentViewable\Visitor`
 - `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
 - `CyrildeWit\EloquentViewable\Actions\CreateView`
+- `CyrildeWit\EloquentViewable\Querying\Actions\CountViews`
+- `CyrildeWit\EloquentViewable\Querying\Actions\CountViewsByInterval`
 
 > [!NOTE]
 > Don't forget that all custom classes must implement their original interfaces.
@@ -636,6 +708,52 @@ final class CreateView implements CreateViewContract
 }
 ```
 
+### Customizing how views are counted
+
+`count()` and `countByInterval()` each delegate to an action, `CountViews` and `CountViewsByInterval`. Both receive
+the viewable and a `ViewsQuery` value object holding the period, collection and unique flag. Bind your own
+implementation to read from somewhere else, for example a rollup table.
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval::class,
+    \App\Actions\Views\CountViewsByInterval::class
+);
+```
+
+`CountViewsByInterval` returns sparse counts keyed by the bucket start formatted as `Y-m-d H:i:s`. Buckets without
+views are left out, and the package fills them in.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval as CountsViewsByIntervalContract;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+
+final class CountViewsByInterval implements CountsViewsByIntervalContract
+{
+    public function handle(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+    {
+        // return ['2026-09-01 00:00:00' => 14, '2026-09-03 00:00:00' => 2];
+    }
+}
+```
+
+### Adding a bucket grammar for another database driver
+
+The SQL that truncates `viewed_at` to a bucket differs per database, so the package ships a grammar for SQLite,
+MySQL, MariaDB and Postgres. For another driver, implement `BucketGrammar` and register it in a service provider.
+The column comes in already quoted, and the expression must yield the bucket start as `YYYY-MM-DD HH:MM:SS` with
+weeks starting on Monday.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+
+$this->app->afterResolving(GrammarRegistry::class, function (GrammarRegistry $grammars): void {
+    $grammars->register('sqlsrv', \App\Grammars\SqlServerBucketGrammar::class);
+});
+```
+
 ### Using a custom crawler detector
 
 Bind your custom `CrawlerDetector` implementation to the `\CyrildeWit\EloquentViewable\Contracts\CrawlerDetector`.
@@ -658,12 +776,17 @@ use CyrildeWit\EloquentViewable\Views;
 Views::macro('countAndRemember', function () {
     return $this->remember()->count();
 });
+
+Views::macro('countByDay', function () {
+    return $this->countByInterval(Granularity::Day);
+});
 ```
 
-Now you're able to use this shorthand like this:
+Now you're able to use these shorthands like this:
 
 ```php
 views($post)->countAndRemember();
+views($post)->period(Period::pastDays(30))->countByDay();
 
 Views::forViewable($post)->countAndRemember();
 ```

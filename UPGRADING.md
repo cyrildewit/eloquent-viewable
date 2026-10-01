@@ -2,9 +2,100 @@
 
 ## Table of contents
 
+- [Upgrading from v8.0.0 to v9.0.0](#upgrading-from-v800-to-v900)
 - [Upgrading from v7.0.3 to v8.0.0](#upgrading-from-v703-to-v800)
 
 The version upgrade guides for versions below `v7.0.3` are still accessible in the major version branches like [`7.x`](/cyrildewit/eloquent-viewable/blob/7.x/UPGRADING.md).  
+
+## Upgrading from v8.0.0 to v9.0.0
+
+### Periods are half-open
+
+`Period` now includes its start and excludes its end. A view recorded exactly at the end bound no longer counts, so `Period::create('2018-01-01', '2018-02-01')` covers all of January and nothing of February, and `Period::upto($date)` means before `$date`. Counts whose period end lands exactly on a stored `viewed_at` drop by one.
+
+This aligns `Period` with the buckets returned by the new `countByInterval()`, so drilling from a bucket into `count()` gives the same number.
+
+### Period bounds are converted to the application timezone
+
+`viewed_at` is stored as the wall clock of `app.timezone`. `Period` now converts the bounds it is given to that zone, so a bound built in another timezone matches the stored values instead of being compared as-is. `getStartDateTime()` and `getEndDateTime()` return the converted instances. String bounds are unaffected, since they were already parsed in the application timezone.
+
+### Add an index on `viewable_type`, `viewable_id` and `viewed_at`
+
+The `create_views_table` stub now creates a composite index on those three columns. Period counts and `countByInterval()` read only the rows inside the period instead of every view of the model.
+
+Your published migration has already run, so republishing does nothing. Add the index in a migration of your own:
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    protected Builder $schema;
+
+    protected string $table;
+
+    public function __construct()
+    {
+        $this->schema = Schema::connection(
+            config('eloquent-viewable.models.view.connection')
+        );
+
+        $this->table = config('eloquent-viewable.models.view.table_name');
+    }
+
+    public function up(): void
+    {
+        $this->schema->table($this->table, function (Blueprint $table) {
+            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], 'views_viewable_viewed_at_index');
+        });
+    }
+
+    public function down(): void
+    {
+        $this->schema->table($this->table, function (Blueprint $table) {
+            $table->dropIndex('views_viewable_viewed_at_index');
+        });
+    }
+};
+```
+
+On a large `views` table, building the index locks writes for the duration. MySQL 8 and MariaDB 10.5 do this online, and on Postgres you can swap the `up()` body for `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
+
+### `Contracts\Views` declares `countByInterval()`
+
+If you implement `CyrildeWit\EloquentViewable\Contracts\Views` directly, add:
+
+```php
+public function countByInterval(\CyrildeWit\EloquentViewable\Support\Granularity $granularity): \CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+```
+
+Classes that extend the shipped `Views` class inherit it.
+
+### `Contracts\View` declares `newQueryFor()`
+
+If your custom `View` model implements `CyrildeWit\EloquentViewable\Contracts\View` without extending the shipped model, add:
+
+```php
+/**
+ * @return \Illuminate\Database\Eloquent\Builder<covariant \Illuminate\Database\Eloquent\Model>
+ */
+public function newQueryFor(Viewable $viewable, ViewsQuery $viewsQuery): Builder;
+```
+
+It returns a query for the viewable's views that match the period and collection of the `ViewsQuery`. The shipped model builds it from the new `forViewable()` and `matching()` scopes.
+
+### Counting goes through actions
+
+`Views::count()` now delegates to the `Querying\Contracts\CountsViews` action, and `countByInterval()` to `Querying\Contracts\CountsViewsByInterval`. If you replaced the `Views` class to change how counts are computed, binding one of those actions is now the smaller change. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).
+
+### `CacheKey` moved and `make()` takes a `ViewsQuery`
+
+`CyrildeWit\EloquentViewable\CacheKey` is now `CyrildeWit\EloquentViewable\Querying\Cache\CacheKey`. Update the import if you build cache keys yourself. `CacheKey::make(?Period $period, bool $unique, ?string $collection)` is now `CacheKey::make(ViewsQuery $query, ?Granularity $granularity = null)`. The digest also changed, so counts cached by an earlier version are recalculated once after upgrading. No action is needed for that.
 
 ## Upgrading from v7.0.3 to v8.0.0
 
