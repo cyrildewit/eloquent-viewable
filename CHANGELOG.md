@@ -5,6 +5,44 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed migration instructions.
+
+### Added
+
+- Added `countByInterval(Granularity $granularity)` to `Views` and the `Views` contract, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
+- Added the `Support\Granularity` enum (`Hour`, `Day`, `Week`, `Month`, `Year`) for bucket sizes
+- Added the `Support\ViewsQuery` value object describing the period, collection and uniqueness of a count
+- Added the `Querying\Contracts\CountsViews` and `Querying\Contracts\CountsViewsByInterval` actions, with default implementations under `Querying\Actions\` bound in the container
+- Added the `Querying\Contracts\BucketGrammar` interface, shipped grammars for SQLite, MySQL/MariaDB and Postgres, and the `Querying\Grammars\GrammarRegistry` registry for adding drivers
+- Added the `forViewable()` and `matching()` scopes and the `newQueryFor()` method to the `View` model
+- Added `Bucket::period()` for drilling from a bucket into a `count()`
+- Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws
+- Added the `max_intervals` config option, defaulting to `10000`
+- Added `Support\Config`, typed access to the config file for internal use.
+- Added `Querying\Exceptions\InvalidInterval` and `Querying\Exceptions\UnsupportedDriver`
+- Added `Exceptions\InvalidConfiguration`, thrown by `Support\Config` when `max_intervals` is not a positive integer or when `cache.key`, `cooldown.key` or `visitor_cookie_key` is empty
+- Added `Exceptions\InvalidViewable`, thrown by the `views()` helper for a class name that does not implement `Contracts\Viewable`. It extends `InvalidArgumentException`, so existing `catch` blocks keep working
+
+### Changed
+
+- The `create_views_table` migration stub now also creates a composite `(viewable_type, viewable_id, viewed_at)` index named `views_viewable_viewed_at_index`; existing installations add it with the migration in the upgrade guide
+- `Period` is now half-open: the start is included and the end is excluded, so `Period::create($a, $b)` and `Period::upto($b)` no longer match a view recorded exactly at `$b`
+- `Period` now converts its bounds to the application timezone in its constructor, so bounds built in another timezone match the stored `viewed_at` wall clock and the getters return that zone
+- The `Views` contract now declares `countByInterval()` (breaking only for classes that implement `Contracts\Views` directly)
+- The `View` contract now declares `newQueryFor()` (breaking only for classes that implement `Contracts\View` directly)
+- `CacheKey` moved to `Querying\Cache\CacheKey`, and `CacheKey::make()` now takes a `ViewsQuery` and an optional `Granularity` instead of three loose parameters, and the digest changed, so cached counts from earlier versions are recalculated once
+- `Views::count()` now delegates to the `Querying\Contracts\CountsViews` action instead of building the query itself
+- The `Views` constructor now takes `Support\Config` instead of the config repository (breaking only for classes that extend `Views` and override the constructor)
+- The `Visitor` and `CooldownManager` constructors now take `Support\Config` instead of the config repository (breaking only for classes that extend them and override the constructor)
+- `InteractsWithViews::scopeWithViewsCount()` now applies its filters through `View::scopeMatching()` (no change in results)
+- The test suite now runs against SQLite, MySQL, MariaDB and Postgres in CI (development only; no impact on consumers)
+
+### Fixed
+
+- Fixed `PeriodInterval::subtract()` mutating the date instance passed to it
+
 ## [v8.0.1]
 
 ### Changed
