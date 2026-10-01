@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitor;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Cookie\QueueingFactory;
@@ -20,9 +21,9 @@ function visitorRequest(array $cookies = [], array $server = []): Request
 }
 
 beforeEach(function (): void {
-    $this->config = new Repository([
+    $this->config = new Config(new Repository([
         'eloquent-viewable' => require __DIR__.'/../../config/eloquent-viewable.php',
-    ]);
+    ]));
     $this->crawlerDetector = Mockery::mock(CrawlerDetector::class);
     $this->cookies = Mockery::mock(QueueingFactory::class);
 

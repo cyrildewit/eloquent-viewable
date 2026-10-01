@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
+use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,16 +25,16 @@ class View extends Model implements ViewContract
     public function getTable(): string
     {
         return Container::getInstance()
-            ->make('config')
-            ->get('eloquent-viewable.models.view.table_name', parent::getTable());
+            ->make(Config::class)
+            ->viewTable() ?? parent::getTable();
     }
 
     #[\Override]
     public function getConnectionName(): ?string
     {
         return Container::getInstance()
-            ->make('config')
-            ->get('eloquent-viewable.models.view.connection', parent::getConnectionName());
+            ->make(Config::class)
+            ->viewConnection() ?? parent::getConnectionName();
     }
 
     /**
