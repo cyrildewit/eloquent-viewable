@@ -24,6 +24,8 @@ enum PeriodInterval: string
 
     public function subtract(CarbonInterface $dateTime, int $value): CarbonInterface
     {
+        $dateTime = $dateTime->avoidMutation();
+
         return match ($this) {
             self::Seconds => $dateTime->subSeconds($value),
             self::Minutes => $dateTime->subMinutes($value),
