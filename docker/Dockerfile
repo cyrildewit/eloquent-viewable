@@ -2,9 +2,9 @@ ARG PHP=8.5
 FROM php:${PHP}-cli-alpine
 
 RUN apk update && apk add \
-    zip libzip-dev icu-dev git
+    zip libzip-dev icu-dev git postgresql-dev
 
-RUN docker-php-ext-install zip intl
+RUN docker-php-ext-install zip intl pdo_mysql pdo_pgsql
 
 RUN apk add --no-cache linux-headers autoconf build-base
 RUN pecl install xdebug
