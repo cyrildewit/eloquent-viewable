@@ -19,6 +19,7 @@ make test-feature       # tests/Feature
 make test-arch          # tests/Architecture
 make test-lint          # pint --test, checks style without fixing
 make test-types         # phpstan
+make deptrac-graph      # draws the dependencies between layers to build/deptrac.png
 make test-type-coverage # type coverage, fails below 100%
 make test-coverage      # the suite with coverage, fails below 100%
 make test-mutation      # mutation testing, see below

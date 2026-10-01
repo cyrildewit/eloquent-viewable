@@ -1,0 +1,110 @@
+# Draws the dependencies between the layers of src/. Run `make deptrac-graph`
+# to render build/deptrac.png. The Pest arch tests in tests/Architecture
+# enforce the rules; this file only feeds the picture.
+#
+# Layers, from the top down:
+#
+#   EntryPoints   service provider, facade, trait, helpers
+#   Views         the builder that ties recording and counting together
+#   Recording, Querying, Cooldowns, Visitors, Crawlers
+#   Foundation    Support, Contracts, Exceptions, the View model, PendingView
+#
+# The ruleset lets each layer depend on any layer below it. An edge that points
+# up, or sideways between two modules, breaks it and is drawn in red.
+
+deptrac:
+  paths:
+    - ./src
+
+  cache_file: ./build/.deptrac.cache
+
+  layers:
+    - name: Foundation
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(Support|Contracts|Exceptions)\\.*
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(View|PendingView)$
+
+    - name: Crawlers
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\CrawlerDetectAdapter$
+
+    - name: Visitors
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Visitor$
+
+    - name: Cooldowns
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\CooldownManager$
+
+    - name: Recording
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(Actions|Events|Jobs)\\.*
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\ViewableObserver$
+
+    - name: Querying
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Querying\\.*
+
+    # The builder behind the facade. It records views as well as counting them,
+    # so it sits above both.
+    - name: Views
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Views$
+
+    - name: EntryPoints
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(EloquentViewableServiceProvider|ViewsFacade|InteractsWithViews)$
+        - type: directory
+          value: src/helpers\.php
+
+    # Third-party code. Only packages that a layer wraps get one, so the rules
+    # can say who may touch them.
+    - name: CrawlerDetect
+      collectors:
+        - type: classLike
+          value: ^Jaybizzle\\.*
+
+  ruleset:
+    Foundation: ~
+    Crawlers:
+      - Foundation
+      - CrawlerDetect
+    Visitors:
+      - Foundation
+    Cooldowns:
+      - Foundation
+    Recording:
+      - Foundation
+    Querying:
+      - Foundation
+    Views:
+      - +Recording
+      - +Querying
+      - +Cooldowns
+      - +Visitors
+      - +Crawlers
+    EntryPoints:
+      - +Views
+      # The service provider builds the CrawlerDetect instance the adapter
+      # wraps. Wiring is its job, so it may know the concrete package.
+      - CrawlerDetect
+
+  formatters:
+    graphviz:
+      groups:
+        Modules:
+          - Recording
+          - Querying
+          - Cooldowns
+          - Visitors
+          - Crawlers
