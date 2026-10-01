@@ -38,12 +38,12 @@ it('can scope to within period with only start date time', function (): void {
 
 it('can scope to within period with only end date time', function (): void {
     expect(View::withinPeriod(Period::upto('2019-03-23'))->toSql())
-        ->toBe('select * from "views" where "viewed_at" <= ?');
+        ->toBe('select * from "views" where "viewed_at" < ?');
 });
 
 it('can scope to within period with both start and end date time', function (): void {
     expect(View::withinPeriod(Period::create('2019-02-15', '2019-06-12'))->toSql())
-        ->toBe('select * from "views" where "viewed_at" between ? and ?');
+        ->toBe('select * from "views" where "viewed_at" >= ? and "viewed_at" < ?');
 });
 
 it('can scope to collection null', function (): void {

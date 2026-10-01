@@ -289,9 +289,10 @@ describe('counting', function (): void {
         ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-10'))->create();
         ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-15'))->create();
 
+        // Periods are half-open, so a view recorded exactly at the end is excluded.
         expect(views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
-            ->and(views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(4)
-            ->and(views($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(4);
+            ->and(views($this->post)->period(Period::upto(Carbon::parse('2018-02-15')))->count())->toBe(3)
+            ->and(views($this->post)->period(Period::create(Carbon::parse('2018-01-15'), Carbon::parse('2018-03-10')))->count())->toBe(3);
     });
 
     it('can remove the period', function (): void {
