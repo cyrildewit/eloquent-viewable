@@ -30,7 +30,7 @@ it('can be ordered by views in descending order', function (): void {
 
     ViewFactory::new()->for($postFour, 'viewable')->count(3)->create();
 
-    expect(Post::orderByViews()->pluck('id'))->toEqual(collect([1, 4, 3, 2]));
+    expect(Post::orderByViews()->pluck('id'))->toEqual(keysOf($postOne, $postFour, $postThree, $postTwo));
 });
 
 it('can be ordered by unique views in descending order', function (): void {
@@ -60,7 +60,7 @@ it('can be ordered by unique views in descending order', function (): void {
     ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_two')->create();
     ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_three')->create();
 
-    expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(collect([3, 4, 2, 1]));
+    expect(Post::orderByUniqueViews()->pluck('id'))->toEqual(keysOf($postThree, $postFour, $postTwo, $postOne));
 });
 
 it('can be ordered by views within a specific period in descending order', function (): void {
@@ -92,7 +92,7 @@ it('can be ordered by views within a specific period in descending order', funct
     ViewFactory::new()->for($postFour, 'viewable')->viewedAt(Carbon::now()->subDays(4))->create();
     ViewFactory::new()->for($postFour, 'viewable')->viewedAt(Carbon::now()->subDays(7))->create();
 
-    expect(Post::orderByViews('desc', Period::pastDays(10))->pluck('id'))->toEqual(collect([4, 1, 3, 2]));
+    expect(Post::orderByViews('desc', Period::pastDays(10))->pluck('id'))->toEqual(keysOf($postFour, $postOne, $postThree, $postTwo));
 });
 
 it('can be ordered by views in a specific collection descending', function (): void {
@@ -118,7 +118,7 @@ it('can be ordered by views in a specific collection descending', function (): v
     ViewFactory::new()->for($postFour, 'viewable')->inCollection('good_collection')->create();
     ViewFactory::new()->for($postFour, 'viewable')->create();
 
-    expect(Post::orderByViews('desc', null, 'good_collection')->pluck('id'))->toEqual(collect([3, 2, 4, 1]));
+    expect(Post::orderByViews('desc', null, 'good_collection')->pluck('id'))->toEqual(keysOf($postThree, $postTwo, $postFour, $postOne));
 });
 
 it('can be ordered by views in a specific collection ascending', function (): void {
@@ -144,7 +144,7 @@ it('can be ordered by views in a specific collection ascending', function (): vo
     ViewFactory::new()->for($postFour, 'viewable')->inCollection('good_collection')->create();
     ViewFactory::new()->for($postFour, 'viewable')->create();
 
-    expect(Post::orderByViews('asc', null, 'good_collection')->pluck('id'))->toEqual(collect([1, 4, 2, 3]));
+    expect(Post::orderByViews('asc', null, 'good_collection')->pluck('id'))->toEqual(keysOf($postOne, $postFour, $postTwo, $postThree));
 });
 
 it('can be ordered by views in ascending order', function (): void {
@@ -161,7 +161,7 @@ it('can be ordered by views in ascending order', function (): void {
 
     ViewFactory::new()->for($postFour, 'viewable')->count(3)->create();
 
-    expect(Post::orderByViews('asc')->pluck('id'))->toEqual(collect([2, 3, 4, 1]));
+    expect(Post::orderByViews('asc')->pluck('id'))->toEqual(keysOf($postTwo, $postThree, $postFour, $postOne));
 });
 
 it('can be ordered by unique views in ascending order', function (): void {
@@ -191,7 +191,7 @@ it('can be ordered by unique views in ascending order', function (): void {
     ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_two')->create();
     ViewFactory::new()->for($postFour, 'viewable')->fromVisitor('visitor_three')->create();
 
-    expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(collect([1, 2, 4, 3]));
+    expect(Post::orderByUniqueViews('asc')->pluck('id'))->toEqual(keysOf($postOne, $postTwo, $postFour, $postThree));
 });
 
 it('can be ordered by unique views within a specific period in ascending order', function (): void {
@@ -280,7 +280,7 @@ it('can be ordered by unique views within a specific period in ascending order',
         ->viewedAt(Carbon::now()->subDays(7))
         ->create();
 
-    expect(Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'))->toEqual(collect([2, 3, 1, 4]));
+    expect(Post::orderByUniqueViews('asc', Period::pastDays(10))->pluck('id'))->toEqual(keysOf($postTwo, $postThree, $postOne, $postFour));
 });
 
 it('can load the views count without loading the views', function (): void {
