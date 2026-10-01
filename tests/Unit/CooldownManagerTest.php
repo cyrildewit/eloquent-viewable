@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\CooldownManager;
+use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Config\Repository;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
@@ -21,9 +22,9 @@ function cooldownViewable(int $key = 1): Viewable
 }
 
 beforeEach(function (): void {
-    $config = new Repository([
+    $config = new Config(new Repository([
         'eloquent-viewable' => require __DIR__.'/../../config/eloquent-viewable.php',
-    ]);
+    ]));
 
     $this->session = new Store('testing', new ArraySessionHandler(120));
     $this->cooldownManager = new CooldownManager($config, $this->session);

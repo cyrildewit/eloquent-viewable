@@ -6,21 +6,13 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\Config;
 use DateTimeInterface;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Session\Session;
 
 class CooldownManager
 {
-    /**
-     * The primary key under which history is stored.
-     */
-    protected string $primaryKey;
-
-    public function __construct(ConfigRepository $config, protected Session $session)
-    {
-        $this->primaryKey = (string) $config->get('eloquent-viewable.cooldown.key');
-    }
+    public function __construct(protected Config $config, protected Session $session) {}
 
     /**
      * Push a cooldown for the viewable model with an expiry date.
@@ -85,7 +77,7 @@ class CooldownManager
      */
     protected function createNamespaceKey(Viewable $viewable, ?string $collection = null): string
     {
-        $key = $this->primaryKey;
+        $key = $this->config->cooldownKey();
         $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
         $key .= is_string($collection) ? ":{$collection}" : '';
 

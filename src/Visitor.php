@@ -6,7 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,20 +18,18 @@ class Visitor implements VisitorContract
      */
     const string DNT = 'DNT';
 
-    protected string $visitorCookieKey;
-
     public function __construct(
         protected Request $request,
         protected CrawlerDetector $crawlerDetector,
-        ConfigRepository $config,
+        protected Config $config,
         protected CookieJar $cookies,
-    ) {
-        $this->visitorCookieKey = $config['eloquent-viewable']['visitor_cookie_key'];
-    }
+    ) {}
 
     public function id(): string
     {
-        $id = $this->request()->cookie($this->visitorCookieKey);
+        $cookieKey = $this->config->visitorCookieKey();
+
+        $id = $this->request()->cookie($cookieKey);
 
         if (is_string($id)) {
             return $id;
@@ -39,7 +37,7 @@ class Visitor implements VisitorContract
 
         $id = $this->generateUniqueCookieValue();
 
-        $this->cookies->queue($this->visitorCookieKey, $id, $this->cookieExpirationInMinutes());
+        $this->cookies->queue($cookieKey, $id, $this->cookieExpirationInMinutes());
 
         return $id;
     }
