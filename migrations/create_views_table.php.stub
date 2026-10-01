@@ -28,6 +28,8 @@ class CreateViewsTable extends Migration
             $table->string('visitor')->nullable();
             $table->string('collection')->nullable();
             $table->timestamp('viewed_at')->useCurrent();
+
+            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], 'views_viewable_viewed_at_index');
         });
     }
 
