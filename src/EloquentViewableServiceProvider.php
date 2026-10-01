@@ -10,6 +10,15 @@ use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
 use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Querying\Actions\CountViews;
+use CyrildeWit\EloquentViewable\Querying\Actions\CountViewsByInterval;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViews as CountsViewsContract;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval as CountsViewsByIntervalContract;
+use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
+use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
+use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
+use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -42,16 +51,28 @@ class EloquentViewableServiceProvider extends ServiceProvider
             'eloquent-viewable'
         );
 
-        $this->app->when(Views::class)
-            ->needs(CacheRepository::class)
-            ->give(fn (): CacheRepository => $this->app['cache']->store(
-                $this->app['config']['eloquent-viewable']['cache']['store']
-            ));
+        $this->registerCore();
+        $this->registerRecording();
+        $this->registerQuerying();
+    }
 
-        $this->app->bind(ViewsContract::class, Views::class);
+    protected function registerCore(): void
+    {
+        $this->app->singleton(Config::class);
 
         $this->app->bind(ViewContract::class, View::class);
 
+        $this->app->bind(ViewsContract::class, Views::class);
+
+        $this->app->when(Views::class)
+            ->needs(CacheRepository::class)
+            ->give(fn (): CacheRepository => $this->app['cache']->store(
+                $this->app->make(Config::class)->cacheStore()
+            ));
+    }
+
+    protected function registerRecording(): void
+    {
         $this->app->bind(CreateViewContract::class, CreateView::class);
 
         $this->app->bind(VisitorContract::class, Visitor::class);
@@ -66,5 +87,23 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
+    }
+
+    protected function registerQuerying(): void
+    {
+        $this->app->bind(CountsViewsContract::class, CountViews::class);
+
+        $this->app->bind(CountsViewsByIntervalContract::class, CountViewsByInterval::class);
+
+        $this->app->singleton(GrammarRegistry::class, function (): GrammarRegistry {
+            $grammars = new GrammarRegistry;
+
+            $grammars->register('sqlite', SQLiteGrammar::class);
+            $grammars->register('mysql', MySqlGrammar::class);
+            $grammars->register('mariadb', MySqlGrammar::class);
+            $grammars->register('pgsql', PostgresGrammar::class);
+
+            return $grammars;
+        });
     }
 }
