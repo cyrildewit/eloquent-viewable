@@ -136,3 +136,32 @@ test('absolute periods expose a timestamp-based cache signature', function (): v
     expect(Period::create($start, $end)->cacheSignature())
         ->toBe("{$start->timestamp}-{$end->timestamp}");
 });
+
+describe('timezone', function (): void {
+    it('converts bounds to the application timezone', function (): void {
+        $period = Period::create(
+            Carbon::parse('2026-09-27 00:00:00', 'Europe/Amsterdam'),
+            Carbon::parse('2026-09-28 00:00:00', 'Europe/Amsterdam'),
+        );
+
+        expect($period->getStartDateTime()->getTimezone()->getName())->toBe(date_default_timezone_get())
+            ->and($period->getStartDateTime()->format('Y-m-d H:i:s'))->toBe('2026-09-26 22:00:00')
+            ->and($period->getEndDateTime()->getTimezone()->getName())->toBe(date_default_timezone_get())
+            ->and($period->getEndDateTime()->format('Y-m-d H:i:s'))->toBe('2026-09-27 22:00:00');
+    });
+
+    it('parses string bounds in the application timezone', function (): void {
+        $period = Period::create('2026-09-27 00:00:00');
+
+        expect($period->getStartDateTime()->getTimezone()->getName())->toBe(date_default_timezone_get())
+            ->and($period->getStartDateTime()->format('Y-m-d H:i:s'))->toBe('2026-09-27 00:00:00');
+    });
+
+    it('does not mutate the bounds it is given', function (): void {
+        $start = Carbon::parse('2026-09-27 00:00:00', 'Europe/Amsterdam');
+
+        Period::create($start);
+
+        expect($start->getTimezone()->getName())->toBe('Europe/Amsterdam');
+    });
+});

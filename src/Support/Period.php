@@ -9,6 +9,13 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use DateTimeInterface;
 
+/**
+ * A half-open range of time, `[start, end)`. The start is included and the end
+ * is excluded. Either bound may be null, meaning unbounded on that side.
+ *
+ * Bounds are converted to the application timezone on construction, because
+ * that is the wall clock `viewed_at` is stored in.
+ */
 final readonly class Period
 {
     private ?CarbonInterface $startDateTime;
@@ -30,8 +37,8 @@ final readonly class Period
          */
         private ?string $relativeSignature = null,
     ) {
-        $this->startDateTime = Carbon::make($startDateTime);
-        $this->endDateTime = Carbon::make($endDateTime);
+        $this->startDateTime = Carbon::make($startDateTime)?->setTimezone(date_default_timezone_get());
+        $this->endDateTime = Carbon::make($endDateTime)?->setTimezone(date_default_timezone_get());
 
         $this->guardChronologicalOrder();
     }
