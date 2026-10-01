@@ -6,11 +6,6 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\CarbonInterface;
 
-/**
- * A value object describing a view that has been resolved during the request
- * but not yet stored. It carries only serializable scalars so that it can be
- * safely dispatched onto a queue and later handed to the CreateView action.
- */
 final readonly class PendingView
 {
     public function __construct(
