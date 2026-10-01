@@ -4,6 +4,18 @@ services:
       context: ./docker
     volumes:
       - .:/var/www/html
+    environment:
+      # Coverage mode by default so `make test-coverage` and `make test-mutation` work
+      # out of the box. Override with XDEBUG_MODE=off for a faster plain run.
+      XDEBUG_MODE: ${XDEBUG_MODE:-coverage}
+      # Passed through from the shell, left unset when absent. An empty value
+      # would override the driver's own default port and host instead.
+      DB_CONNECTION:
+      DB_HOST:
+      DB_PORT:
+      DB_DATABASE: testing
+      DB_USERNAME: testing
+      DB_PASSWORD: testing
 
   composer:
     build:
@@ -11,3 +23,53 @@ services:
     volumes:
       - .:/var/www/html
     entrypoint: ["composer"]
+    environment:
+      # Coverage mode by default so `make test-coverage` and `make test-mutation` work
+      # out of the box. Override with XDEBUG_MODE=off for a faster plain run.
+      XDEBUG_MODE: ${XDEBUG_MODE:-coverage}
+      # Passed through from the shell, left unset when absent. An empty value
+      # would override the driver's own default port and host instead.
+      DB_CONNECTION:
+      DB_HOST:
+      DB_PORT:
+      DB_DATABASE: testing
+      DB_USERNAME: testing
+      DB_PASSWORD: testing
+
+  # `make test-mysql`, `make test-mariadb` and `make test-pgsql` start these and
+  # run the suite against them. By hand, for example:
+  #   DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: testing
+      MYSQL_USER: testing
+      MYSQL_PASSWORD: testing
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: testing
+      MARIADB_USER: testing
+      MARIADB_PASSWORD: testing
+      MARIADB_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: testing
+      POSTGRES_USER: testing
+      POSTGRES_PASSWORD: testing
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testing"]
+      interval: 5s
+      retries: 20
