@@ -46,7 +46,8 @@ class View extends Model implements ViewContract
     }
 
     /**
-     * Scope a query to only include views within the period.
+     * Scope a query to only include views within the period. The period is
+     * half-open: the start is included and the end is excluded.
      *
      * @param  Builder<Model>  $query
      */
@@ -55,12 +56,12 @@ class View extends Model implements ViewContract
         $startDateTime = $period->getStartDateTime();
         $endDateTime = $period->getEndDateTime();
 
-        if ($startDateTime instanceof CarbonInterface && ! $endDateTime instanceof CarbonInterface) {
+        if ($startDateTime instanceof CarbonInterface) {
             $query->where('viewed_at', '>=', $startDateTime);
-        } elseif (! $startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
-            $query->where('viewed_at', '<=', $endDateTime);
-        } elseif ($startDateTime instanceof CarbonInterface && $endDateTime instanceof CarbonInterface) {
-            $query->whereBetween('viewed_at', [$startDateTime, $endDateTime]);
+        }
+
+        if ($endDateTime instanceof CarbonInterface) {
+            $query->where('viewed_at', '<', $endDateTime);
         }
     }
 
