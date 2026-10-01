@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 use DateTimeInterface;
 use Exception;
 
-final class InvalidPeriod extends Exception
+final class InvalidPeriod extends Exception implements EloquentViewableException
 {
     public static function startDateTimeCannotBeAfterEndDateTime(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): static
     {

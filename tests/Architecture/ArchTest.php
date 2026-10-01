@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
+
 arch('no debugging statements are left in the codebase')
     ->expect(['dd', 'dump', 'ray', 'var_dump', 'var_export', 'die', 'exit'])
     ->not->toBeUsed();
@@ -16,7 +18,12 @@ arch('contracts are interfaces')
 
 arch('exceptions extend the base Exception')
     ->expect('CyrildeWit\EloquentViewable\Exceptions')
-    ->toExtend(Exception::class);
+    ->toExtend(Exception::class)
+    ->ignoring(EloquentViewableException::class);
+
+arch('every package exception lives in an Exceptions namespace')
+    ->expect(EloquentViewableException::class)
+    ->toOnlyBeUsedIn('CyrildeWit\EloquentViewable\Exceptions');
 
 arch()->preset()->php();
 
