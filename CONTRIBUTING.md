@@ -112,6 +112,7 @@ make build ARGS="--build-arg PHP=8.4"
 | `make test-feature`       | Run only the feature tests                                                  |
 | `make test-lint`          | Check code style without fixing it                                          |
 | `make test-types`         | Run the [PHPStan](https://phpstan.org/) static analysis                     |
+| `make deptrac-graph`      | Draw the dependencies between layers (see below)                            |
 | `make test-type-coverage` | Run the type coverage check (fails below 100%)                              |
 | `make test-coverage`      | Run the suite with line coverage (fails below 100%)                         |
 | `make test-mutation`      | Run mutation testing (see note below)                                       |
@@ -123,6 +124,13 @@ you can invoke those scripts directly:
 ```bash
 docker compose run --rm composer test
 ```
+
+### Dependency graph
+
+`make deptrac-graph` uses [Deptrac](https://deptrac.github.io/deptrac/) to draw the dependencies between the layers
+of `src/` to `build/deptrac.png`. Each edge shows how many references it stands for. A red edge points up the stack,
+or sideways between two modules, and is worth a second look. `deptrac.yaml` defines the layers. The Pest arch tests
+in `tests/Architecture` are what enforce the rules, so the graph never fails a build.
 
 ### Running against another database
 
