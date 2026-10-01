@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\InteractsWithViews;
+use CyrildeWit\EloquentViewable\PendingView;
+use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\View;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\ViewsFacade;
@@ -16,6 +17,7 @@ const FOUNDATION = [
     'CyrildeWit\EloquentViewable\Contracts',
     'CyrildeWit\EloquentViewable\Exceptions',
     View::class,
+    PendingView::class,
 ];
 
 arch('no debugging statements are left in the codebase')
@@ -49,7 +51,16 @@ arch('the foundation is a leaf layer')
         'Carbon',
         'Illuminate',
     ])
-    ->ignoring([ViewsContract::class, CreateViewContract::class]);
+    ->ignoring(ViewsContract::class);
+
+arch('the Views contract only reaches outside the foundation for ViewSeries')
+    ->expect(ViewsContract::class)
+    ->toOnlyUse([
+        ...FOUNDATION,
+        ViewSeries::class,
+        'Carbon',
+        'Illuminate',
+    ]);
 
 arch('querying does not reach back into the entry points')
     ->expect('CyrildeWit\EloquentViewable\Querying')
