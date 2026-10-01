@@ -6,7 +6,7 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 
 use Exception;
 
-final class ViewRecordException extends Exception
+final class ViewRecordException extends Exception implements EloquentViewableException
 {
     public static function cannotRecordViewForViewableType(): static
     {
