@@ -14,9 +14,6 @@ use Illuminate\Support\Facades\Facade;
  */
 class ViewsFacade extends Facade
 {
-    /**
-     * Get the registered name of the component.
-     */
     protected static function getFacadeAccessor(): string
     {
         return ViewsContract::class;
