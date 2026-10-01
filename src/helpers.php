@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Contracts\Views;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use Illuminate\Container\Container;
 
 // @codeCoverageIgnoreStart
@@ -17,7 +18,7 @@ if (! function_exists('views')) {
             $model = Container::getInstance()->make($viewable);
 
             if (! $model instanceof Viewable) {
-                throw new InvalidArgumentException(sprintf('Class [%s] must implement %s.', $viewable, Viewable::class));
+                throw InvalidViewable::classDoesNotImplementViewable($viewable);
             }
 
             $viewable = $model;
