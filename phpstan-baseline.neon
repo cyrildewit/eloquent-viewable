@@ -12,14 +12,3 @@ parameters:
 			count: 1
 			path: src/View.php
 
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:collection\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Views.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:withinPeriod\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Views.php

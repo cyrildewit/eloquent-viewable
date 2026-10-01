@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Contracts;
 
 use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use DateTimeInterface;
 
@@ -19,6 +21,11 @@ interface Views
      * Get the views count.
      */
     public function count(): int;
+
+    /**
+     * Get the views count per bucket of the granularity over the period.
+     */
+    public function countByInterval(Granularity $granularity): ViewSeries;
 
     /**
      * Record a view.

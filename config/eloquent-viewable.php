@@ -48,6 +48,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Interval Counting
+    |--------------------------------------------------------------------------
+    |
+    | Counting views by interval fills every bucket between the period start
+    | and end, so a wide period with a fine granularity produces a large
+    | series. Calls that would produce more buckets than this maximum throw
+    | instead of running. One year of hourly buckets is 8,760.
+    |
+    */
+    'max_intervals' => 10_000,
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Configuration
     |--------------------------------------------------------------------------
     |
