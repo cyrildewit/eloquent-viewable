@@ -3,26 +3,29 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Events\ViewRecorded;
-use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
-use CyrildeWit\EloquentViewable\Jobs\StoreView;
-use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViews;
-use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval;
+use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
+use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\TestVisitor;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\TestVisitor;
 use CyrildeWit\EloquentViewable\Views;
-use CyrildeWit\EloquentViewable\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\Visitor;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -44,6 +47,11 @@ it('is macroable', function (): void {
     expect($this->app->make(Views::class)->newMethod())->toBe('someValue');
 });
 
+it('requires a viewable before it counts, records or destroys views', function (string $method): void {
+    expect(fn (): mixed => $this->app->make(Views::class)->{$method}())
+        ->toThrow(InvalidViewable::class, 'No viewable was given. Call forViewable() before counting, recording or destroying views.');
+})->with(['count', 'record', 'destroy']);
+
 describe('recording', function (): void {
     it('can record a view', function (): void {
         views($this->post)->record();
@@ -62,7 +70,7 @@ describe('recording', function (): void {
     it('throws an exception when recording a view for a viewable type', function (): void {
         expect(fn (): bool => views(new Post)
             ->cooldown(Carbon::now()->addMinutes(10))
-            ->record())->toThrow(ViewRecordException::class);
+            ->record())->toThrow(RecordingFailed::class);
     });
 
     it('returns true when a view is recorded', function (): void {
@@ -90,7 +98,7 @@ describe('queueing', function (): void {
 
         views($this->post)->record();
 
-        Bus::assertNotDispatched(StoreView::class);
+        Bus::assertNotDispatched(RecordViewJob::class);
     });
 
     it('queues the view when queue() is used', function (): void {
@@ -100,40 +108,40 @@ describe('queueing', function (): void {
 
         expect($result)->toBeTrue();
 
-        Bus::assertDispatched(StoreView::class);
+        Bus::assertDispatched(RecordViewJob::class);
     });
 
     it('queues the view when enabled in the config', function (): void {
-        Config::set('eloquent-viewable.queue.enabled', true);
+        Config::set('eloquent-viewable.recording.queue.enabled', true);
 
         Bus::fake();
 
         views($this->post)->record();
 
-        Bus::assertDispatched(StoreView::class);
+        Bus::assertDispatched(RecordViewJob::class);
     });
 
     it('can force synchronous recording when queueing is enabled in the config', function (): void {
-        Config::set('eloquent-viewable.queue.enabled', true);
+        Config::set('eloquent-viewable.recording.queue.enabled', true);
 
         Bus::fake();
 
         views($this->post)->queue(false)->record();
 
-        Bus::assertNotDispatched(StoreView::class);
+        Bus::assertNotDispatched(RecordViewJob::class);
 
         expect(View::count())->toBe(1);
     });
 
     it('dispatches on the configured connection and queue', function (): void {
-        Config::set('eloquent-viewable.queue.connection', 'redis');
-        Config::set('eloquent-viewable.queue.queue', 'views');
+        Config::set('eloquent-viewable.recording.queue.connection', 'redis');
+        Config::set('eloquent-viewable.recording.queue.queue', 'views');
 
         Bus::fake();
 
         views($this->post)->queue()->record();
 
-        Bus::assertDispatched(StoreView::class, fn (StoreView $job): bool => $job->connection === 'redis' && $job->queue === 'views');
+        Bus::assertDispatched(RecordViewJob::class, fn (RecordViewJob $job): bool => $job->connection === 'redis' && $job->queue === 'views');
     });
 
     it('stores the view when the queued job is processed', function (): void {
@@ -148,10 +156,12 @@ describe('queueing', function (): void {
 });
 
 describe('skipping views', function (): void {
-    it('skips views from bots', function (bool $queued): void {
-        $this->app->bind(CrawlerDetector::class, fn (): CrawlerDetector => new class implements CrawlerDetector
+    it('skips views from bots when the guard is listed', function (bool $queued): void {
+        Config::set('eloquent-viewable.recording.guards', [IgnoreCrawlers::class]);
+
+        $this->app->instance(CrawlerDetector::class, new class implements CrawlerDetector
         {
-            public function isCrawler(): bool
+            public function isCrawler(?string $userAgent): bool
             {
                 return true;
             }
@@ -165,12 +175,11 @@ describe('skipping views', function (): void {
         Bus::assertNothingDispatched();
     })->with('recording modes');
 
-    it('skips views from visitors with the do not track header when honoured', function (bool $queued): void {
-        Config::set('eloquent-viewable.honor_dnt', true);
+    it('skips views from visitors with the do not track header when the guard is listed', function (bool $queued): void {
+        Config::set('eloquent-viewable.recording.guards', [IgnoreDoNotTrack::class]);
 
         $this->mock(Visitor::class, function ($mock): void {
             $mock->shouldReceive('hasDoNotTrackHeader')->andReturn(true);
-            $mock->shouldReceive('isCrawler')->andReturn(false);
         });
 
         Bus::fake();
@@ -181,12 +190,12 @@ describe('skipping views', function (): void {
         Bus::assertNothingDispatched();
     })->with('recording modes');
 
-    it('skips views from ignored ip addresses', function (bool $queued): void {
-        Config::set('eloquent-viewable.ignored_ip_addresses', ['127.20.22.6', '10.10.30.40']);
+    it('skips views from ignored ip addresses when the guard is listed', function (bool $queued): void {
+        Config::set('eloquent-viewable.recording.guards', [IgnoreIpAddresses::class]);
+        Config::set('eloquent-viewable.recording.ignored_ip_addresses', ['127.20.22.6', '10.10.30.40']);
 
         $this->mock(Visitor::class, function ($mock): void {
             $mock->shouldReceive('ip')->andReturn('127.20.22.6');
-            $mock->shouldReceive('isCrawler')->andReturn(false);
         });
 
         Bus::fake();
@@ -204,7 +213,7 @@ describe('skipping views', function (): void {
             ->and(views($this->post)->queue($queued)->cooldown(Carbon::now()->addMinutes(10))->record())->toBeFalse()
             ->and(View::count())->toBe($queued ? 0 : 1);
 
-        Bus::assertDispatchedTimes(StoreView::class, $queued ? 1 : 0);
+        Bus::assertDispatchedTimes(RecordViewJob::class, $queued ? 1 : 0);
     })->with('recording modes');
 });
 
@@ -282,8 +291,8 @@ describe('counting', function (): void {
     });
 
     it('can count the unique views', function (): void {
-        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
-        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_two')->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_two')->create();
 
         expect($this->post)->toHaveUniqueViewsCount(2);
     });
@@ -291,12 +300,12 @@ describe('counting', function (): void {
     it('can count the views of a period', function (): void {
         $this->freezeTime();
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-10'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-15'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-10'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-15'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-10'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-15'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-10'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-01-15'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-10'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-02-15'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-10'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2018-03-15'))->create();
 
         // Periods are half-open, so a view recorded exactly at the end is excluded.
         expect(views($this->post)->period(Period::since(Carbon::parse('2018-01-10')))->count())->toBe(6)
@@ -307,7 +316,7 @@ describe('counting', function (): void {
     it('can remove the period', function (): void {
         $this->freezeTime();
 
-        ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
 
         expect(views($this->post)->period(null)->count())->toBe(2);
     });
@@ -326,9 +335,9 @@ describe('counting', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        ViewFactory::new()->for($postOne, 'viewable')->create();
-        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
-        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
+        View::factory()->for($postOne, 'viewable')->create();
+        View::factory()->for($postTwo, 'viewable')->count(2)->create();
+        View::factory()->for($apartment, 'viewable')->count(2)->create();
 
         expect(new Post)->toHaveViewsCount(3);
     });
@@ -338,11 +347,11 @@ describe('counting', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        ViewFactory::new()->for($postOne, 'viewable')->fromVisitor('visitor_one')->create();
-        ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_two')->create();
-        ViewFactory::new()->for($postTwo, 'viewable')->fromVisitor('visitor_one')->create();
-        ViewFactory::new()->for($apartment, 'viewable')->fromVisitor('visitor_three')->create();
-        ViewFactory::new()->for($apartment, 'viewable')->fromVisitor('visitor_one')->create();
+        View::factory()->for($postOne, 'viewable')->fromVisitor('visitor_one')->create();
+        View::factory()->for($postTwo, 'viewable')->fromVisitor('visitor_two')->create();
+        View::factory()->for($postTwo, 'viewable')->fromVisitor('visitor_one')->create();
+        View::factory()->for($apartment, 'viewable')->fromVisitor('visitor_three')->create();
+        View::factory()->for($apartment, 'viewable')->fromVisitor('visitor_one')->create();
 
         expect(new Post)->toHaveUniqueViewsCount(2);
     });
@@ -356,7 +365,7 @@ describe('counting by interval', function (): void {
 
     it('counts per {granularity} with empty buckets filled with zero', function (Granularity $granularity, Period $period, array $viewedAt, array $expected): void {
         foreach ($viewedAt as $dateTime) {
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
         }
 
         $series = views($this->post)->period($period)->countByInterval($granularity);
@@ -387,7 +396,7 @@ describe('counting by interval', function (): void {
         Carbon::setTestNow('2026-09-10 12:00:00');
 
         foreach (['2026-09-01 12:00:00', '2026-09-02 12:00:00', '2026-09-02 13:00:00', '2026-09-09 12:00:00'] as $dateTime) {
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
         }
 
         $period = Period::create('2026-09-01', '2026-09-10');
@@ -398,7 +407,7 @@ describe('counting by interval', function (): void {
 
     it('lets a bucket drill down into the same count', function (): void {
         foreach (['2026-09-02 00:00:00', '2026-09-02 12:00:00', '2026-09-02 23:59:59', '2026-09-03 00:00:00'] as $dateTime) {
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
         }
 
         $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->countByInterval(Granularity::Day);
@@ -411,10 +420,10 @@ describe('counting by interval', function (): void {
     });
 
     it('counts unique visitors per bucket and ignores null visitors', function (): void {
-        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 09:00:00'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->fromVisitor('visitor_two')->viewedAt(Carbon::parse('2026-09-01 10:00:00'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->state(['visitor' => null])->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-01 09:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_two')->viewedAt(Carbon::parse('2026-09-01 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->state(['visitor' => null])->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
 
         $period = Period::create('2026-09-01', '2026-09-03');
 
@@ -423,8 +432,8 @@ describe('counting by interval', function (): void {
     });
 
     it('filters on the collection', function (): void {
-        ViewFactory::new()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
 
         $period = Period::create('2026-09-01', '2026-09-03');
 
@@ -432,9 +441,9 @@ describe('counting by interval', function (): void {
     });
 
     it('counts every viewable of a type', function (): void {
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
-        ViewFactory::new()->for(Post::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
-        ViewFactory::new()->for(Apartment::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 09:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+        View::factory()->for(Apartment::factory()->create(), 'viewable')->viewedAt(Carbon::parse('2026-09-02 09:00:00'))->create();
 
         $period = Period::create('2026-09-01', '2026-09-03');
 
@@ -444,8 +453,8 @@ describe('counting by interval', function (): void {
     it('treats a missing period end as now', function (): void {
         Carbon::setTestNow('2026-09-03 12:00:00');
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-03 09:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-03 09:00:00'))->create();
 
         $series = views($this->post)->period(Period::pastDays(2))->countByInterval(Granularity::Day);
 
@@ -454,7 +463,7 @@ describe('counting by interval', function (): void {
 
     it('counts the same rows for period bounds carried in another timezone', function (): void {
         foreach (['2026-09-27 00:30:00', '2026-09-27 23:30:00', '2026-09-28 12:00:00'] as $dateTime) {
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
         }
 
         // The same two instants, handed over as Amsterdam wall clocks instead
@@ -480,7 +489,7 @@ describe('counting by interval', function (): void {
     });
 
     it('allows exactly the configured maximum number of intervals', function (): void {
-        Config::set('eloquent-viewable.max_intervals', 3);
+        Config::set('eloquent-viewable.querying.max_intervals', 3);
 
         $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-04'))->countByInterval(Granularity::Day);
 
@@ -488,14 +497,14 @@ describe('counting by interval', function (): void {
     });
 
     it('throws over the configured maximum number of intervals', function (): void {
-        Config::set('eloquent-viewable.max_intervals', 3);
+        Config::set('eloquent-viewable.querying.max_intervals', 3);
 
         expect(fn (): ViewSeries => views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->countByInterval(Granularity::Day))
             ->toThrow(InvalidInterval::class, '4 intervals');
     });
 
     it('does not query the database when over the maximum', function (): void {
-        Config::set('eloquent-viewable.max_intervals', 3);
+        Config::set('eloquent-viewable.querying.max_intervals', 3);
 
         DB::enableQueryLog();
 
@@ -507,11 +516,11 @@ describe('counting by interval', function (): void {
     it('can remember the series', function (): void {
         $period = Period::create('2026-09-01', '2026-09-03');
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
 
         expect(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0]);
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 08:00:00'))->create();
 
         expect(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0])
             ->and(counts(views($this->post)->period($period)->countByInterval(Granularity::Day)))->toBe([1, 1]);
@@ -522,7 +531,7 @@ describe('counting by interval', function (): void {
 
         expect(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)->total())->toBe(0);
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
 
         expect(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)->total())->toBe(0);
     });
@@ -537,36 +546,35 @@ describe('counting by interval', function (): void {
     it('does not share a cache entry with the plain count', function (): void {
         $period = Period::create('2026-09-01', '2026-09-03');
 
-        ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 08:00:00'))->create();
 
         expect(views($this->post)->period($period)->remember(60)->count())->toBe(1)
             ->and(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1, 0]);
     });
 
-    it('uses the CountViewsByInterval action bound in the container', function (): void {
-        $this->app->bind(CountsViewsByInterval::class, fn (): CountsViewsByInterval => new class implements CountsViewsByInterval
+    it('reads through the ViewSource bound in the container', function (): void {
+        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
         {
-            public function handle(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+            public function count(Viewable $viewable, ViewsQuery $query): int
+            {
+                return 7;
+            }
+
+            public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
             {
                 return ['2026-09-01 00:00:00' => 42];
+            }
+
+            public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
+            {
+                return DB::query()->selectRaw('0');
             }
         });
 
         $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->countByInterval(Granularity::Day);
 
-        expect(counts($series))->toBe([42, 0]);
-    });
-
-    it('uses the CountViews action bound in the container', function (): void {
-        $this->app->bind(CountsViews::class, fn (): CountsViews => new class implements CountsViews
-        {
-            public function handle(Viewable $viewable, ViewsQuery $query): int
-            {
-                return 7;
-            }
-        });
-
-        expect(views($this->post)->count())->toBe(7);
+        expect(views($this->post)->count())->toBe(7)
+            ->and(counts($series))->toBe([42, 0]);
     });
 
     describe('in a non-UTC application timezone', function (): void {
@@ -581,7 +589,7 @@ describe('counting by interval', function (): void {
 
         it('labels buckets the same way the SQL does', function (): void {
             foreach (['2026-07-01 00:30:00', '2026-07-01 23:30:00', '2026-07-03 12:00:00'] as $dateTime) {
-                ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+                View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
             }
 
             $period = Period::create('2026-07-01', '2026-07-04');
@@ -603,9 +611,9 @@ describe('counting by interval', function (): void {
             expect($duringCest->format('H:i P'))->toBe('02:30 +02:00')
                 ->and($duringCet->format('H:i P'))->toBe('02:30 +01:00');
 
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-25 01:30:00'))->create();
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt($duringCest)->create();
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt($duringCet)->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-25 01:30:00'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt($duringCest)->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt($duringCet)->create();
 
             $period = Period::create('2026-10-25 00:00:00', '2026-10-25 04:00:00');
             $series = views($this->post)->period($period)->countByInterval(Granularity::Hour);
@@ -617,8 +625,8 @@ describe('counting by interval', function (): void {
         it('leaves the hour skipped by the spring transition empty', function (): void {
             // 02:00 does not exist in Amsterdam on this date. The bucket is
             // still emitted so the series stays one bucket per hour label.
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 01:30:00'))->create();
-            ViewFactory::new()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 03:30:00'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 01:30:00'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-29 03:30:00'))->create();
 
             $period = Period::create('2026-03-29 00:00:00', '2026-03-29 04:00:00');
             $series = views($this->post)->period($period)->countByInterval(Granularity::Hour);
@@ -646,8 +654,8 @@ describe('destroying', function (): void {
         $post = $this->post;
         $apartment = Apartment::factory()->create();
 
-        ViewFactory::new()->for($post, 'viewable')->count(4)->create();
-        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
+        View::factory()->for($post, 'viewable')->count(4)->create();
+        View::factory()->for($apartment, 'viewable')->count(2)->create();
 
         views($post)->destroy();
 
@@ -659,9 +667,9 @@ describe('destroying', function (): void {
         $postTwo = Post::factory()->create();
         $apartment = Apartment::factory()->create();
 
-        ViewFactory::new()->for($postOne, 'viewable')->count(3)->create();
-        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
-        ViewFactory::new()->for($apartment, 'viewable')->count(2)->create();
+        View::factory()->for($postOne, 'viewable')->count(3)->create();
+        View::factory()->for($postTwo, 'viewable')->count(2)->create();
+        View::factory()->for($apartment, 'viewable')->count(2)->create();
 
         views(new Post)->destroy();
 
@@ -739,13 +747,13 @@ describe('remembering', function (): void {
 
     it('remembers the views counts in the configured cache store', function (): void {
         Config::set('cache.stores.views', ['driver' => 'array']);
-        Config::set('eloquent-viewable.cache.store', 'views');
+        Config::set('eloquent-viewable.querying.cache.store', 'views');
 
-        ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->count(3)->create();
 
         expect(views($this->post)->remember(60)->count())->toBe(3);
 
-        ViewFactory::new()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
 
         // Flushing the default store must not touch the remembered count.
         Cache::flush();
@@ -759,8 +767,10 @@ describe('remembering', function (): void {
 });
 
 describe('visitor handling', function (): void {
-    it('does not record views from a crawler user agent', function (string $userAgent, bool $recorded): void {
-        $this->app['request']->server->set('HTTP_USER_AGENT', $userAgent);
+    it('does not record views from a crawler user agent when the guard is listed', function (string $userAgent, bool $recorded): void {
+        Config::set('eloquent-viewable.recording.guards', [IgnoreCrawlers::class]);
+
+        $this->app['request']->headers->set('User-Agent', $userAgent);
 
         expect(views($this->post)->record())->toBe($recorded)
             ->and(View::count())->toBe($recorded ? 1 : 0);
@@ -770,6 +780,8 @@ describe('visitor handling', function (): void {
     ]);
 
     it('can set the visitor instance', function (): void {
+        Config::set('eloquent-viewable.recording.guards', [IgnoreCrawlers::class]);
+
         views($this->post)->record();
 
         views($this->post)
