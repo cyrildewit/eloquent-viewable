@@ -145,6 +145,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | `read`  | `CountViewsByIntervalBench` | `countByInterval()`, plain and unique, from a week of hours to two years of months                                                    |
 | `read`  | `OrderByViewsBench`         | `orderByViews()` and `orderByUniqueViews()`, first page of twenty, over the same periods                                              |
 | `write` | `RecordViewBench`           | `record()` into the full table, direct and through the sync queue                                                                     |
+| `write` | `BufferViewsBench`          | `record()` through the `redis` store, one `XADD`, and `flush()` landing a hundred, a thousand and ten thousand buffered views         |
 | `write` | `DestroyViewsBench`         | `destroy()` of a hundred, a thousand and ten thousand views                                                                           |
 | `php`   | `ViewSeriesBench`           | `ViewSeries::fill()`, the PHP side of `countByInterval()`, up to a year of hourly buckets                                             |
 | `php`   | `CooldownManagerBench`      | `CooldownStore::put()` on the session store, with up to ten thousand cooldowns in the session                                         |
@@ -171,6 +172,9 @@ ARGS=--output=<file>`. Two things in this directory are therefore a contract wit
 provider registered and a `benchmark` connection as the default. The connection reads the same `DB_*` variables the
 test suite uses, so the Make targets only have to point them at the `bench-*` services. For SQLite the file lives on a
 named volume rather than the bind-mounted project tree, which is slow on macOS.
+
+The `redis` store benchmarks talk to the `redis` service every `composer` run starts, through phpredis unless
+`REDIS_CLIENT=predis` is set.
 
 `BenchCase` boots that application and loads the dataset description, once per benchmark process and outside the
 timed region. It refuses to run while Xdebug is active, since the containers enable it for coverage by default and it

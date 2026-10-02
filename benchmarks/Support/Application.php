@@ -47,6 +47,15 @@ final class Application
         $config->set('session.driver', 'array');
         $config->set('queue.default', 'sync');
 
+        // The `redis` store benchmarks reach the same Redis service the test
+        // suite uses, through phpredis unless REDIS_CLIENT says otherwise.
+        $config->set('database.redis.client', (string) Env::get('REDIS_CLIENT', 'phpredis'));
+        $config->set('database.redis.default', [
+            'host' => (string) Env::get('REDIS_HOST', '127.0.0.1'),
+            'port' => (int) Env::get('REDIS_PORT', 6379),
+            'database' => 0,
+        ]);
+
         date_default_timezone_set('UTC');
 
         return self::$app = $app;
