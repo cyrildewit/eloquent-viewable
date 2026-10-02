@@ -26,7 +26,7 @@ final readonly class Dataset
      * older seeder is then refused instead of silently compared against runs
      * on a newer one.
      */
-    public const int SCHEMA_VERSION = 1;
+    public const int SCHEMA_VERSION = 2;
 
     /**
      * Every view is recorded before this moment. The benchmarks build their
