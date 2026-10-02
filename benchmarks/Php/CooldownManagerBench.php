@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Php;
 use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Benchmarks\Models\Article;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Application;
-use CyrildeWit\EloquentViewable\CooldownManager;
+use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
 use Illuminate\Config\Repository;
