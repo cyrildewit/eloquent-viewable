@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Facades\Views;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -207,6 +208,13 @@ describe('counting', function (): void {
             ->and(views($this->post)->count())->toBe(4);
 
         $this->fake->assertRecorded($this->post, fn (ViewRecord $record): bool => $record->viewerType === $user->getMorphClass() && $record->viewerId === $user->getKey());
+    });
+
+    it('refuses a viewer without a key, as the database does', function (): void {
+        views($this->post)->record();
+
+        expect(fn (): int => views($this->post)->viewedBy(new User)->count())
+            ->toThrow(InvalidViewer::class, 'The key of the viewer ['.User::class.'] must be an integer or a string, null given.');
     });
 
     it('counts by interval for one viewer', function (): void {
