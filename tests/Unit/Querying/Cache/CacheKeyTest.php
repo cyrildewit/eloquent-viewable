@@ -8,6 +8,8 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Database\Connection;
 
 /**
@@ -134,6 +136,22 @@ it('changes the key when the timezone changes', function (): void {
         ->not->toBe($default)
         ->and(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2), timezone: new Timezone('Australia/Sydney')), Granularity::Day))
         ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2), timezone: new Timezone('Europe/Amsterdam')), Granularity::Day));
+});
+
+it('changes the key when the viewer changes', function (): void {
+    $default = cacheKey($this->firstPost)->make(new ViewsQuery);
+    $userSeven = new Post(['id' => 7]);
+    $userEight = new Post(['id' => 8]);
+    $apartmentSeven = new Apartment(['id' => 7]);
+
+    expect(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $userSeven)))
+        ->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $userSeven)))
+        ->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: new Post(['id' => 7]))))
+        ->and(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $userSeven)))
+        ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $userEight)))
+        ->and(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $userSeven)))
+        ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(viewer: $apartmentSeven)));
 });
 
 it('changes the key when a relative period is anchored in another timezone', function (): void {

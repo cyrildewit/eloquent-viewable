@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Builds views for seeders and tests. Reach it through `View::factory()`;
@@ -39,6 +40,17 @@ class ViewFactory extends Factory
     public function inCollection(?string $collection): static
     {
         return $this->state(['collection' => $collection]);
+    }
+
+    public function by(Model $viewer): static
+    {
+        return $this->for($viewer, 'viewer');
+    }
+
+    /** @param  array<string, mixed>|null  $context */
+    public function withContext(?array $context): static
+    {
+        return $this->state(['context' => $context]);
     }
 
     public function viewedAt(DateTimeInterface $viewedAt): static

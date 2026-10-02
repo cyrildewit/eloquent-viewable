@@ -6,8 +6,10 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Support\Facades\Config;
 
 $sqliteOnly = fn (): bool => driver() !== 'sqlite';
@@ -57,6 +59,68 @@ it('can belong to viewable model', function (): void {
     ]);
 
     expect(View::first()->viewable)->toBeInstanceOf(Post::class);
+});
+
+describe('viewer', function () use ($sqliteOnly): void {
+    it('can belong to any viewer model', function (): void {
+        $user = User::factory()->create();
+        $apartment = Apartment::factory()->create();
+
+        View::factory()->for(Post::factory()->create(), 'viewable')->by($user)->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->by($apartment)->create();
+
+        expect(View::byViewer($user)->sole()->viewer->is($user))->toBeTrue()
+            ->and(View::byViewer($apartment)->sole()->viewer->is($apartment))->toBeTrue();
+    });
+
+    it('has no viewer for a guest view', function (): void {
+        View::factory()->for(Post::factory()->create(), 'viewable')->create();
+
+        expect(View::sole()->viewer)->toBeNull();
+    });
+
+    it('scopes to the viewer type and key', function (): void {
+        $user = User::factory()->create();
+
+        $query = View::byViewer($user);
+
+        expect($query->toSql())->toBe('select * from "views" where "views"."viewer_type" = ? and "views"."viewer_id" = ?')
+            ->and($query->getBindings())->toBe([$user->getMorphClass(), $user->getKey()]);
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('counts only the views of the viewer', function (): void {
+        $user = User::factory()->create();
+        $post = Post::factory()->create();
+
+        View::factory()->for($post, 'viewable')->by($user)->count(2)->create();
+        View::factory()->for($post, 'viewable')->by(User::factory()->create())->create();
+        View::factory()->for($post, 'viewable')->create();
+
+        expect(View::byViewer($user)->count())->toBe(2);
+    });
+
+    it('scopes to the visitor', function (): void {
+        $query = View::byVisitor('visitor_one');
+
+        expect($query->toSql())->toBe('select * from "views" where "views"."visitor" = ?')
+            ->and($query->getBindings())->toBe(['visitor_one']);
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('counts only the views of the visitor', function (): void {
+        $post = Post::factory()->create();
+
+        View::factory()->for($post, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+        View::factory()->for($post, 'viewable')->fromVisitor('visitor_two')->create();
+
+        expect(View::byVisitor('visitor_one')->count())->toBe(2);
+    });
+
+    it('casts the context to an array', function (): void {
+        $view = View::factory()->for(Post::factory()->create(), 'viewable')->withContext(['source' => 'newsletter'])->create()->fresh();
+
+        expect($view->context)->toBe(['source' => 'newsletter'])
+            ->and(View::factory()->for(Post::factory()->create(), 'viewable')->create()->fresh()->context)->toBeNull();
+    });
 });
 
 describe('within period', function () use ($sqliteOnly): void {
@@ -148,6 +212,15 @@ describe('matching', function () use ($sqliteOnly): void {
     it('applies the period and the collection together', function (): void {
         expect(View::matching(new ViewsQuery(Period::since('2019-06-12'), 'custom'))->toSql())
             ->toBe('select * from "views" where "viewed_at" >= ? and "collection" = ?');
+    })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('applies the viewer', function (): void {
+        $user = User::factory()->create();
+
+        $query = View::matching(new ViewsQuery(viewer: $user));
+
+        expect($query->toSql())->toBe('select * from "views" where "views"."viewer_type" = ? and "views"."viewer_id" = ?')
+            ->and($query->getBindings())->toBe([$user->getMorphClass(), $user->getKey()]);
     })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
 
     it('ignores the unique flag, which is not a filter', function (): void {

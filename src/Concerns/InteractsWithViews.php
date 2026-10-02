@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Concerns;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByViews;
+use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewed;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WithViewsCount;
 use CyrildeWit\EloquentViewable\Recording\Observers\ViewableObserver;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -14,12 +15,17 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * @method static Builder<static> orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
  * @method static Builder<static> orderByUniqueViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, string $as = 'unique_views_count')
  * @method static Builder<static> withViewsCount(?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
+ * @method static Builder<static> whereViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
+ * @method static Builder<static> whereNotViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
+ * @method static Builder<static> whereViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
+ * @method static Builder<static> whereNotViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
  */
 trait InteractsWithViews
 {
@@ -82,6 +88,42 @@ trait InteractsWithViews
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
         return $query->tap(new WithViewsCount($this->viewSource(), new ViewsQuery($period, $collection, $unique), $as));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
+    {
+        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection, viewer: $viewer)));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereNotViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
+    {
+        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection, viewer: $viewer), not: true));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
+    {
+        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection), $visitor));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereNotViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
+    {
+        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection), $visitor, not: true));
     }
 
     protected function viewSource(): ViewSource

@@ -20,8 +20,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $id
  * @property string $viewable_type
  * @property int|string $viewable_id
+ * @property string|null $viewer_type
+ * @property int|string|null $viewer_id
  * @property string|null $visitor
  * @property string|null $collection
+ * @property array<string, mixed>|null $context
  * @property string $viewed_at
  */
 class View extends Model
@@ -34,6 +37,15 @@ class View extends Model
 
     #[\Override]
     public $timestamps = false;
+
+    /** @return array<string, string> */
+    #[\Override]
+    protected function casts(): array
+    {
+        return [
+            'context' => 'array',
+        ];
+    }
 
     #[\Override]
     public function getTable(): string
@@ -63,6 +75,12 @@ class View extends Model
 
     /** @return MorphTo<Model, $this> */
     public function viewable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /** @return MorphTo<Model, $this> */
+    public function viewer(): MorphTo
     {
         return $this->morphTo();
     }
@@ -118,10 +136,24 @@ class View extends Model
         }
     }
 
+    /** @param  Builder<View>  $query */
+    public function scopeByViewer(Builder $query, Model $viewer): void
+    {
+        $query
+            ->where($this->qualifyColumn('viewer_type'), $viewer->getMorphClass())
+            ->where($this->qualifyColumn('viewer_id'), $viewer->getKey());
+    }
+
+    /** @param  Builder<View>  $query */
+    public function scopeByVisitor(Builder $query, string $visitor): void
+    {
+        $query->where($this->qualifyColumn('visitor'), $visitor);
+    }
+
     /**
-     * Scope a query to only include views matching the period and collection
-     * of the views query. Uniqueness is an aggregate choice rather than a
-     * filter, so the caller applies it.
+     * Scope a query to only include views matching the period, collection
+     * and viewer of the views query. Uniqueness is an aggregate choice rather
+     * than a filter, so the caller applies it.
      *
      * @param  Builder<View>  $query
      */
@@ -133,6 +165,10 @@ class View extends Model
 
         if ($viewsQuery->collection !== null) {
             $query->collection($viewsQuery->collection);
+        }
+
+        if ($viewsQuery->viewer instanceof Model) {
+            $query->byViewer($viewsQuery->viewer);
         }
     }
 }
