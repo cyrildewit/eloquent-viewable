@@ -13,6 +13,9 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
+use Illuminate\Encryption\Encrypter;
+
+const COOLDOWN_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 function cooldownVisitor(): Visitor
 {
@@ -26,7 +29,7 @@ function cooldownGuard(CooldownStore $cooldowns, string $identity = 'cookie'): E
 {
     $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => ['identity' => $identity]]]));
 
-    return new EnforceCooldown($cooldowns, new VisitorIdentity($config, new Repository(['app' => ['key' => 'base64:secret']])));
+    return new EnforceCooldown($cooldowns, new VisitorIdentity($config, new Encrypter(COOLDOWN_KEY, 'AES-256-CBC')));
 }
 
 it('allows an attempt without a cooldown and leaves the store alone', function (): void {
@@ -70,7 +73,7 @@ it('keys the cooldown on the viewer when the identity is the viewer', function (
     $post = new Post(['id' => 1]);
     $viewer = new Apartment(['id' => 3]);
     $expiresAt = Carbon::now()->addMinutes(10);
-    $key = Cooldown::of($post, hash_hmac('sha256', Apartment::class.'|3', 'base64:secret'), 'custom')->key();
+    $key = Cooldown::of($post, hash_hmac('sha256', Apartment::class.'|3', COOLDOWN_KEY), 'custom')->key();
 
     $cooldowns = Mockery::mock(CooldownStore::class);
     $cooldowns->expects('has')->with($key)->andReturn(false);
