@@ -30,9 +30,9 @@ function viewableStub(
     return $viewable;
 }
 
-function cacheKey(Viewable $viewable): CacheKey
+function cacheKey(Viewable $viewable, string $source = 'database'): CacheKey
 {
-    return new CacheKey($viewable, 'test-namespace');
+    return new CacheKey($viewable, 'test-namespace', $source);
 }
 
 beforeEach(function (): void {
@@ -106,8 +106,15 @@ it('changes the key when the collection changes', function (): void {
 });
 
 it('changes the key when the prefix changes', function (): void {
-    expect(new CacheKey($this->firstPost, 'one')->make(new ViewsQuery))
-        ->not->toBe(new CacheKey($this->firstPost, 'two')->make(new ViewsQuery));
+    expect(new CacheKey($this->firstPost, 'one', 'database')->make(new ViewsQuery))
+        ->not->toBe(new CacheKey($this->firstPost, 'two', 'database')->make(new ViewsQuery));
+});
+
+it('changes the key when the source driver changes', function (): void {
+    expect(cacheKey($this->firstPost, source: 'database')->make(new ViewsQuery))
+        ->not->toBe(cacheKey($this->firstPost, source: 'rollup')->make(new ViewsQuery))
+        ->and(cacheKey($this->firstPost, source: 'rollup')->make(new ViewsQuery))
+        ->toBe(cacheKey($this->firstPost, source: 'rollup')->make(new ViewsQuery));
 });
 
 it('changes the key when the granularity changes', function (): void {
