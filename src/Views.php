@@ -24,6 +24,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
 use DateTimeZone;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Traits\Macroable;
 
 class Views
@@ -45,6 +46,11 @@ class Views
     protected ?CarbonInterface $cacheLifetime = null;
 
     protected ?Timezone $timezone = null;
+
+    protected ?Model $viewer = null;
+
+    /** @var array<string, mixed>|null */
+    protected ?array $context = null;
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -86,6 +92,8 @@ class Views
             collection: $this->collection,
             cooldown: $this->cooldown,
             queue: $this->queue,
+            viewer: $this->viewer,
+            context: $this->context,
         ));
     }
 
@@ -119,6 +127,21 @@ class Views
     public function collection(?string $name): self
     {
         $this->collection = $name;
+
+        return $this;
+    }
+
+    public function viewedBy(?Model $viewer): self
+    {
+        $this->viewer = $viewer;
+
+        return $this;
+    }
+
+    /** @param  array<string, mixed>|null  $context */
+    public function context(?array $context): self
+    {
+        $this->context = $context;
 
         return $this;
     }
@@ -159,7 +182,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface

@@ -7,8 +7,12 @@ use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Cooldown;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Config\Repository;
 
 function cooldownVisitor(): Visitor
 {
@@ -18,12 +22,19 @@ function cooldownVisitor(): Visitor
     return $visitor;
 }
 
+function cooldownGuard(CooldownStore $cooldowns, string $identity = 'cookie'): EnforceCooldown
+{
+    $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => ['identity' => $identity]]]));
+
+    return new EnforceCooldown($cooldowns, new VisitorIdentity($config, new Repository(['app' => ['key' => 'base64:secret']])));
+}
+
 it('allows an attempt without a cooldown and leaves the store alone', function (): void {
     $cooldowns = Mockery::mock(CooldownStore::class);
     $cooldowns->shouldNotReceive('has', 'put');
 
     $attempt = new ViewAttempt(new Post(['id' => 1]), Mockery::mock(Visitor::class));
-    $guard = new EnforceCooldown($cooldowns);
+    $guard = cooldownGuard($cooldowns);
 
     expect($guard->allows($attempt))->toBeTrue();
 
@@ -39,7 +50,7 @@ it('refuses while the visitor\'s cooldown is running without starting one', func
 
     $attempt = new ViewAttempt($post, cooldownVisitor(), 'custom', Carbon::now()->addMinutes(10));
 
-    expect(new EnforceCooldown($cooldowns)->allows($attempt))->toBe(! $running);
+    expect(cooldownGuard($cooldowns)->allows($attempt))->toBe(! $running);
 })->with([
     'running' => [true],
     'none running' => [false],
@@ -52,5 +63,26 @@ it('starts the visitor\'s cooldown once the view is remembered', function (): vo
     $cooldowns = Mockery::mock(CooldownStore::class);
     $cooldowns->expects('put')->with(Cooldown::of($post, 'visitor', 'custom')->key(), $expiresAt);
 
-    new EnforceCooldown($cooldowns)->remember(new ViewAttempt($post, cooldownVisitor(), 'custom', $expiresAt));
+    cooldownGuard($cooldowns)->remember(new ViewAttempt($post, cooldownVisitor(), 'custom', $expiresAt));
+});
+
+it('keys the cooldown on the viewer when the identity is the viewer', function (): void {
+    $post = new Post(['id' => 1]);
+    $viewer = new Apartment(['id' => 3]);
+    $expiresAt = Carbon::now()->addMinutes(10);
+    $key = Cooldown::of($post, hash_hmac('sha256', Apartment::class.'|3', 'base64:secret'), 'custom')->key();
+
+    $cooldowns = Mockery::mock(CooldownStore::class);
+    $cooldowns->expects('has')->with($key)->andReturn(false);
+    $cooldowns->expects('put')->with($key, $expiresAt);
+
+    $visitor = Mockery::mock(Visitor::class);
+    $visitor->shouldNotReceive('id');
+
+    $attempt = new ViewAttempt($post, $visitor, 'custom', $expiresAt, viewer: $viewer);
+    $guard = cooldownGuard($cooldowns, 'viewer');
+
+    expect($guard->allows($attempt))->toBeTrue();
+
+    $guard->remember($attempt);
 });

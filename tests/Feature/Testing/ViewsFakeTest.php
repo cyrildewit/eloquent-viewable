@@ -15,6 +15,7 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
 use PHPUnit\Framework\AssertionFailedError;
 
@@ -189,6 +190,41 @@ describe('counting', function (): void {
 
         expect(views($this->post)->period($period)->countByInterval(Granularity::Day)->intervals->pluck('count')->all())->toBe([1, 0])
             ->and(views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Day)->intervals->pluck('count')->all())->toBe([0, 1, 0]);
+    });
+
+    it('counts the views of one viewer', function (): void {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+        views($this->post)->viewedBy($user)->record();
+        views($this->post)->viewedBy($other)->record();
+        views($this->post)->record();
+
+        expect(views($this->post)->viewedBy($user)->count())->toBe(2)
+            ->and(views($this->post)->viewedBy($other)->count())->toBe(1)
+            ->and(views($this->post)->viewedBy(User::factory()->create())->count())->toBe(0)
+            ->and(views($this->post)->count())->toBe(4);
+
+        $this->fake->assertRecorded($this->post, fn (ViewRecord $record): bool => $record->viewerType === $user->getMorphClass() && $record->viewerId === $user->getKey());
+    });
+
+    it('counts by interval for one viewer', function (): void {
+        $user = User::factory()->create();
+
+        Carbon::setTestNow('2026-09-01 10:00:00');
+        views($this->post)->viewedBy($user)->record();
+        views($this->post)->record();
+
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->viewedBy($user)->countByInterval(Granularity::Day);
+
+        expect($series->intervals->pluck('count')->all())->toBe([1, 0]);
+    });
+
+    it('keeps the context on the record', function (): void {
+        views($this->post)->context(['source' => 'newsletter'])->record();
+
+        $this->fake->assertRecorded($this->post, fn (ViewRecord $record): bool => $record->context === ['source' => 'newsletter']);
     });
 
     it('refuses the scopes', function (): void {

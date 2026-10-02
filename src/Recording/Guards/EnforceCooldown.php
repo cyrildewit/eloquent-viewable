@@ -10,10 +10,14 @@ use CyrildeWit\EloquentViewable\Cooldowns\Cooldown;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 
 final readonly class EnforceCooldown implements RecordingGuard, RemembersRecordedViews
 {
-    public function __construct(private CooldownStore $cooldowns) {}
+    public function __construct(
+        private CooldownStore $cooldowns,
+        private VisitorIdentity $identity,
+    ) {}
 
     public function allows(ViewAttempt $attempt): bool
     {
@@ -33,6 +37,6 @@ final readonly class EnforceCooldown implements RecordingGuard, RemembersRecorde
 
     private function key(ViewAttempt $attempt): string
     {
-        return Cooldown::of($attempt->viewable, $attempt->visitor->id(), $attempt->collection)->key();
+        return Cooldown::of($attempt->viewable, $this->identity->of($attempt->visitor, $attempt->viewer), $attempt->collection)->key();
     }
 }

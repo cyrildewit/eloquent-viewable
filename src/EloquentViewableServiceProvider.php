@@ -26,6 +26,7 @@ use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -100,6 +101,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $app->make(BusDispatcher::class),
                 $app->make(EventDispatcher::class),
                 $app->make(RecordsViewsContract::class),
+                $app->make(VisitorIdentity::class),
             );
         });
 

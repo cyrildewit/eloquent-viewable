@@ -25,9 +25,11 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -43,6 +45,19 @@ dataset('recording modes', [
 beforeEach(function (): void {
     $this->post = Post::factory()->create();
 });
+
+function visitorWithId(string $id): VisitorContract
+{
+    $visitor = Mockery::mock(VisitorContract::class);
+    $visitor->allows('id')->andReturn($id);
+    $visitor->allows('viewer')->andReturn(null);
+    $visitor->allows('ip')->andReturn('127.0.0.1');
+    $visitor->allows('userAgent')->andReturn(null);
+    $visitor->allows('hasDoNotTrackHeader')->andReturn(false);
+    $visitor->allows('hasGlobalPrivacyControl')->andReturn(false);
+
+    return $visitor;
+}
 
 it('is macroable', function (): void {
     Views::macro('newMethod', fn (): string => 'someValue');
@@ -316,6 +331,226 @@ describe('collections', function (): void {
             ->record();
 
         expect(View::where('collection', null)->count())->toBe(2);
+    });
+});
+
+describe('viewers', function (): void {
+    it('records a guest view by default', function (): void {
+        $this->actingAs(User::factory()->create());
+
+        views($this->post)->record();
+
+        expect(View::sole()->viewer)->toBeNull();
+    });
+
+    it('records the signed-in user when enabled', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        views($this->post)->record();
+
+        expect(View::sole()->viewer->is($user))->toBeTrue();
+    });
+
+    it('records a guest view for a guest when enabled', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+
+        views($this->post)->record();
+
+        expect(View::sole()->viewer_type)->toBeNull();
+    });
+
+    it('reads the signed-in user from the configured guard', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        Config::set('eloquent-viewable.recording.viewer.guard', 'admin');
+        Config::set('auth.guards.admin', ['driver' => 'session', 'provider' => 'users']);
+        $admin = User::factory()->create();
+        $this->actingAs(User::factory()->create());
+        $this->actingAs($admin, 'admin');
+
+        views($this->post)->record();
+
+        expect(View::sole()->viewer->is($admin))->toBeTrue();
+    });
+
+    it('records the viewer given to viewedBy() whether or not it is enabled', function (): void {
+        $user = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+
+        expect(View::sole()->viewer->is($user))->toBeTrue();
+    });
+
+    it('prefers the viewer given to viewedBy() over the signed-in user', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        $user = User::factory()->create();
+        $this->actingAs(User::factory()->create());
+
+        views($this->post)->viewedBy($user)->record();
+
+        expect(View::sole()->viewer->is($user))->toBeTrue();
+    });
+
+    it('links any Eloquent model as the viewer', function (): void {
+        $apartment = Apartment::factory()->create();
+
+        views($this->post)->viewedBy($apartment)->record();
+
+        expect(View::sole()->viewer)->toBeInstanceOf(Apartment::class);
+    });
+
+    it('clears the viewer with viewedBy(null)', function (): void {
+        views($this->post)->viewedBy(User::factory()->create())->viewedBy(null)->record();
+
+        expect(View::sole()->viewer_type)->toBeNull();
+    });
+
+    it('keeps the viewer when the view is queued', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        views($this->post)->queue()->record();
+
+        expect(View::sole()->viewer->is($user))->toBeTrue();
+    });
+
+    it('dispatches the event with the viewer on the record', function (): void {
+        Event::fake([ViewRecorded::class]);
+        $user = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+
+        Event::assertDispatched(ViewRecorded::class, fn (ViewRecorded $event): bool => $event->record->viewerType === $user->getMorphClass() && $event->record->viewerId === $user->getKey());
+    });
+
+    it('counts the views of one viewer', function (): void {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($user)->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->by($other)->create();
+        View::factory()->for($this->post, 'viewable')->create();
+
+        expect(views($this->post)->viewedBy($user)->count())->toBe(2)
+            ->and(views($this->post)->viewedBy($other)->count())->toBe(1)
+            ->and(views($this->post)->viewedBy($user)->viewedBy(null)->count())->toBe(4)
+            ->and(views(new Post)->viewedBy($user)->count())->toBe(2);
+    });
+
+    it('counts the views of one viewer by interval', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($user)->viewedAt(Carbon::parse('2026-09-01 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
+
+        $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->viewedBy($user)->countByInterval(Granularity::Day);
+
+        expect($series->intervals->pluck('count')->all())->toBe([1, 0]);
+    });
+
+    it('does not share a cache entry between viewers', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($user)->create();
+        View::factory()->for($this->post, 'viewable')->create();
+
+        expect(views($this->post)->remember()->count())->toBe(2)
+            ->and(views($this->post)->viewedBy($user)->remember()->count())->toBe(1);
+    });
+});
+
+describe('visitor identity', function (): void {
+    it('keeps the cookie id as the visitor by default', function (): void {
+        $user = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+
+        expect(View::sole()->visitor)->toHaveLength(80);
+    });
+
+    it('counts one account on many devices as one unique visitor', function (): void {
+        Config::set('eloquent-viewable.visitor.identity', 'viewer');
+        $user = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->useVisitor(visitorWithId('laptop'))->record();
+        views($this->post)->viewedBy($user)->useVisitor(visitorWithId('phone'))->record();
+        views($this->post)->useVisitor(visitorWithId('guest'))->record();
+
+        expect($this->post)->toHaveViewsCount(3)
+            ->toHaveUniqueViewsCount(2)
+            ->and(View::byViewer($user)->pluck('visitor')->unique())->toHaveCount(1)
+            ->and(View::byViewer($user)->first()->visitor)->toBe($this->app->make(VisitorIdentity::class)->ofViewer($user))
+            ->and(View::whereNull('viewer_id')->sole()->visitor)->toBe('guest');
+    });
+
+    it('holds a cooldown across devices for one account', function (): void {
+        Config::set('eloquent-viewable.visitor.identity', 'viewer');
+        $user = User::factory()->create();
+
+        expect(views($this->post)->viewedBy($user)->useVisitor(visitorWithId('laptop'))->cooldown(10)->record())->toBeTrue()
+            ->and(views($this->post)->viewedBy($user)->useVisitor(visitorWithId('phone'))->cooldown(10)->record())->toBeFalse()
+            ->and(views($this->post)->useVisitor(visitorWithId('phone'))->cooldown(10)->record())->toBeTrue();
+    });
+
+    it('derives the visitor from the signed-in user when both are enabled', function (): void {
+        Config::set('eloquent-viewable.visitor.identity', 'viewer');
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        views($this->post)->record();
+
+        expect(View::sole()->visitor)->toBe($this->app->make(VisitorIdentity::class)->ofViewer($user));
+    });
+
+    it('answers whether a user has seen a model through the visitor scopes', function (): void {
+        Config::set('eloquent-viewable.visitor.identity', 'viewer');
+        $user = User::factory()->create();
+        $unseen = Post::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+
+        $visitor = $this->app->make(VisitorIdentity::class)->ofViewer($user);
+
+        expect(Post::whereViewedByVisitor($visitor)->pluck('id'))->toEqual(keysOf($this->post))
+            ->and(Post::whereNotViewedByVisitor($visitor)->pluck('id'))->toEqual(keysOf($unseen));
+    });
+});
+
+describe('context', function (): void {
+    it('records the context as json', function (): void {
+        views($this->post)->context(['source' => 'newsletter', 'campaign' => 42])->record();
+
+        // MySQL stores a JSON object with its keys sorted, so the order is not asserted.
+        expect(View::sole()->context)->toEqual(['source' => 'newsletter', 'campaign' => 42]);
+    });
+
+    it('records no context by default', function (): void {
+        views($this->post)->record();
+
+        expect(View::sole()->context)->toBeNull();
+    });
+
+    it('clears the context with context(null)', function (): void {
+        views($this->post)->context(['source' => 'newsletter'])->context(null)->record();
+
+        expect(View::sole()->context)->toBeNull();
+    });
+
+    it('keeps the context when the view is queued', function (): void {
+        views($this->post)->queue()->context(['source' => 'newsletter'])->record();
+
+        expect(View::sole()->context)->toBe(['source' => 'newsletter']);
+    });
+
+    it('can be queried with the json path syntax', function (): void {
+        views($this->post)->context(['source' => 'newsletter'])->record();
+        views($this->post)->context(['source' => 'search'])->record();
+        views($this->post)->record();
+
+        expect($this->post->views()->where('context->source', 'newsletter')->count())->toBe(1);
     });
 });
 
