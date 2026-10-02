@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
+namespace CyrildeWit\EloquentViewable\Tests\Fixtures\Models;
 
+use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\InteractsWithViews;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\PostFactory;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Factories\PostFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

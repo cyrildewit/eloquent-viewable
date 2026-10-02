@@ -13,8 +13,8 @@
          backupStaticProperties="false"
 >
     <testsuites>
-        <testsuite name="Architecture">
-            <directory>./tests/Architecture</directory>
+        <testsuite name="Arch">
+            <directory>./tests/Arch</directory>
         </testsuite>
         <testsuite name="Unit">
             <directory>./tests/Unit</directory>
@@ -26,12 +26,17 @@
             <directory>./samples</directory>
         </testsuite>
     </testsuites>
+    <php>
+        <!-- The suite under coverage peaks above the 128M default of the Docker image. -->
+        <ini name="memory_limit" value="512M"/>
+    </php>
     <logging>
         <junit outputFile="build/report.junit.xml"/>
     </logging>
     <source>
         <include>
             <directory suffix=".php">./src</directory>
+            <directory suffix=".php">./database/factories</directory>
         </include>
     </source>
 </phpunit>

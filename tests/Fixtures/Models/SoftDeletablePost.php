@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models;
+namespace CyrildeWit\EloquentViewable\Tests\Fixtures\Models;
 
+use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\InteractsWithViews;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
