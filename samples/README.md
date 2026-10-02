@@ -7,6 +7,7 @@ sample combines several of them to solve one problem, and explains why it is put
 |---------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
 | [Trending articles](TrendingArticles) | A "trending this week" list: cooldowns, `orderByViews()` over a period, and caching a ranking that `remember()` cannot cache |
 | [Listing stats](ListingStats)         | A seller's stats page: `countByInterval()` for a daily chart, `unique()` visitors, and periods that `remember()` can cache   |
+| [Popular products](PopularProducts)   | A "most viewed" catalog sort: queued recording and a `views_count` column kept up to date by `ViewRecorded`                  |
 
 Each sample is a folder you can read top to bottom: a `README.md` with the scenario, the code, the migration for its
 tables and a Pest test. The tests run with the rest of the suite, so a sample cannot drift from the package without the
