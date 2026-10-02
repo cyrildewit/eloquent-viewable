@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Cookie\QueueingFactory;
 use Illuminate\Cookie\CookieJar;
 use Illuminate\Http\Request;
@@ -20,18 +24,64 @@ function visitorRequest(array $cookies = [], array $server = []): Request
     return Request::create('/', 'GET', cookies: $cookies, server: $server);
 }
 
+function authWith(?object $user, ?string $guardName = null): AuthFactory
+{
+    $guard = Mockery::mock(Guard::class);
+    $guard->allows('user')->andReturn($user);
+
+    $auth = Mockery::mock(AuthFactory::class);
+    $auth->expects('guard')->with($guardName)->andReturn($guard);
+
+    return $auth;
+}
+
 beforeEach(function (): void {
     $this->config = new Config(new Repository([
         'eloquent-viewable' => require __DIR__.'/../../../config/eloquent-viewable.php',
     ]));
     $this->cookies = Mockery::mock(QueueingFactory::class);
     $this->cookies->allows('getQueuedCookies')->andReturn([]);
+    $this->auth = Mockery::mock(AuthFactory::class);
 
     $this->visitor = fn (Request $request): Visitor => new Visitor(
         $request,
         $this->config,
         $this->cookies,
+        $this->auth,
     );
+});
+
+describe('viewer', function (): void {
+    it('reports the model signed in on the default guard', function (): void {
+        $user = new Post(['id' => 7]);
+
+        $visitor = new Visitor(visitorRequest(), $this->config, $this->cookies, authWith($user));
+
+        expect($visitor->viewer())->toBe($user);
+    });
+
+    it('reports no viewer for a guest', function (): void {
+        $visitor = new Visitor(visitorRequest(), $this->config, $this->cookies, authWith(null));
+
+        expect($visitor->viewer())->toBeNull();
+    });
+
+    it('asks the configured guard', function (): void {
+        $config = new Config(new Repository([
+            'eloquent-viewable' => ['recording' => ['viewer' => ['guard' => 'api']]],
+        ]));
+        $user = new Post(['id' => 7]);
+
+        $visitor = new Visitor(visitorRequest(), $config, $this->cookies, authWith($user, 'api'));
+
+        expect($visitor->viewer())->toBe($user);
+    });
+
+    it('reports no viewer when the signed-in user is not an Eloquent model', function (): void {
+        $visitor = new Visitor(visitorRequest(), $this->config, $this->cookies, authWith(Mockery::mock(Authenticatable::class)));
+
+        expect($visitor->viewer())->toBeNull();
+    });
 });
 
 it('can get the ip address from the request', function (): void {
@@ -116,9 +166,9 @@ it('hands out the id queued earlier in the request', function (): void {
     $cookies = new CookieJar;
     $cookies->queue('another-cookie', 'value');
 
-    $first = new Visitor(visitorRequest(), $this->config, $cookies)->id();
+    $first = new Visitor(visitorRequest(), $this->config, $cookies, $this->auth)->id();
 
-    expect(new Visitor(visitorRequest(), $this->config, $cookies)->id())->toBe($first)
+    expect(new Visitor(visitorRequest(), $this->config, $cookies, $this->auth)->id())->toBe($first)
         ->and($cookies->getQueuedCookies())->toHaveCount(2);
 });
 
@@ -126,7 +176,7 @@ it('prefers the cookie the request carries over a queued one', function (): void
     $cookies = new CookieJar;
     $cookies->queue(VISITOR_COOKIE_NAME, 'queued');
 
-    expect(new Visitor(visitorRequest(cookies: [VISITOR_COOKIE_NAME => 'sent']), $this->config, $cookies)->id())->toBe('sent');
+    expect(new Visitor(visitorRequest(cookies: [VISITOR_COOKIE_NAME => 'sent']), $this->config, $cookies, $this->auth)->id())->toBe('sent');
 });
 
 it('queues the cookie with the configured name and lifetime', function (): void {
@@ -136,9 +186,9 @@ it('queues the cookie with the configured name and lifetime', function (): void 
 
     $this->cookies->expects('queue')->withArgs(fn (string $key, string $value, int $minutes): bool => $key === 'who' && $minutes === 60);
 
-    $visitor = new Visitor(visitorRequest(cookies: ['who' => 'known']), $config, $this->cookies);
+    $visitor = new Visitor(visitorRequest(cookies: ['who' => 'known']), $config, $this->cookies, $this->auth);
 
     expect($visitor->id())->toBe('known');
 
-    new Visitor(visitorRequest(), $config, $this->cookies)->id();
+    new Visitor(visitorRequest(), $config, $this->cookies, $this->auth)->id();
 });

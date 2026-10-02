@@ -71,6 +71,15 @@ it('reads the queue settings', function (): void {
         ->queueName()->toBeNull();
 });
 
+it('reads the viewer settings', function (): void {
+    expect(packageConfig(['recording' => ['viewer' => ['enabled' => true, 'guard' => 'api']]]))
+        ->viewerEnabled()->toBeTrue()
+        ->viewerGuard()->toBe('api')
+        ->and(packageConfig())
+        ->viewerEnabled()->toBeFalse()
+        ->viewerGuard()->toBeNull();
+});
+
 it('reads the ignored ip addresses', function (): void {
     expect(packageConfig(['recording' => ['ignored_ip_addresses' => ['127.0.0.1', '10.0.0.1']]]))
         ->ignoredIpAddresses()->toBe(['127.0.0.1', '10.0.0.1'])
@@ -92,6 +101,20 @@ it('reads the visitor cookie settings', function (): void {
         ->visitorCookieName()->toBe('who')
         ->visitorCookieLifetime()->toBe(120);
 });
+
+it('reads the visitor identity', function (): void {
+    expect(packageConfig(['visitor' => ['identity' => 'viewer']]))->visitorIdentity()->toBe('viewer')
+        ->and(packageConfig())->visitorIdentity()->toBe('cookie');
+});
+
+it('rejects an unknown visitor identity', function (mixed $value, string $described): void {
+    expect(fn (): string => packageConfig(['visitor' => ['identity' => $value]])->visitorIdentity())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, {$described} given.");
+})->with([
+    'word' => ['session', '`"session"`'],
+    'null' => [null, 'null'],
+    'integer' => [1, '`1`'],
+]);
 
 it('reads the cooldown settings', function (): void {
     expect(packageConfig(['cooldown' => ['store' => 'cache', 'key' => 'cooldowns', 'cache' => ['store' => 'redis']]]))
@@ -130,6 +153,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'view connection' => ['viewConnection', 'models.view.connection'],
     'queue connection' => ['queueConnection', 'recording.queue.connection'],
     'queue name' => ['queueName', 'recording.queue.queue'],
+    'viewer guard' => ['viewerGuard', 'recording.viewer.guard'],
     'cache store' => ['cacheStore', 'querying.cache.store'],
     'cooldown cache store' => ['cooldownCacheStore', 'cooldown.cache.store'],
 ]);
