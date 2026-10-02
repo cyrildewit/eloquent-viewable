@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
@@ -67,6 +68,17 @@ class Views
 
     /** @throws RecordingFailed */
     public function record(): bool
+    {
+        return $this->attempt()->recorded;
+    }
+
+    /**
+     * Records the view like `record()` and reports what became of it: stored,
+     * queued, or skipped and by which guard.
+     *
+     * @throws RecordingFailed
+     */
+    public function attempt(): RecordResult
     {
         return $this->recorder->record(new ViewAttempt(
             viewable: $this->viewable(),
