@@ -4,22 +4,30 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Actions\CreateView;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
-use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
-use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use CyrildeWit\EloquentViewable\Querying\Actions\CountViews;
-use CyrildeWit\EloquentViewable\Querying\Actions\CountViewsByInterval;
-use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViews as CountsViewsContract;
-use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval as CountsViewsByIntervalContract;
+use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
+use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
+use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
+use CyrildeWit\EloquentViewable\Recording\Actions\RecordView;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews as RecordsViewsContract;
+use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Recorder;
+use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Config;
-use Illuminate\Cache\Repository as CacheRepository;
+use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Visitors\Visitor;
+use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
@@ -37,7 +45,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $timestamp = date('Y_m_d_His', time());
 
                 $this->publishes([
-                    __DIR__.'/../migrations/create_views_table.php.stub' => database_path("/migrations/{$timestamp}_create_views_table.php"),
+                    __DIR__.'/../database/migrations/create_views_table.php.stub' => database_path("/migrations/{$timestamp}_create_views_table.php"),
                 ], 'migrations');
             }
         }
@@ -60,40 +68,75 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Config::class);
 
-        $this->app->bind(ViewContract::class, View::class);
+        $this->app->bind(View::class, function (Application $app): View {
+            $model = $app->make(Config::class)->viewModel();
 
-        $this->app->bind(ViewsContract::class, Views::class);
+            return new $model;
+        });
 
-        $this->app->when(Views::class)
+        $this->app->when(Reader::class)
             ->needs(CacheRepository::class)
-            ->give(fn (): CacheRepository => $this->app['cache']->store(
+            ->give(fn (): CacheRepository => $this->app->make(CacheFactory::class)->store(
                 $this->app->make(Config::class)->cacheStore()
             ));
     }
 
     protected function registerRecording(): void
     {
-        $this->app->bind(CreateViewContract::class, CreateView::class);
+        $this->app->singleton(StoreManager::class);
+
+        $this->app->bind(ViewStore::class, fn (Application $app): ViewStore => $app->make(StoreManager::class)->driver());
+
+        $this->app->bind(RecordsViewsContract::class, RecordView::class);
+
+        $this->app->bind(Recorder::class, function (Application $app): Recorder {
+            $config = $app->make(Config::class);
+
+            return new Recorder(
+                $this->resolveGuards($app, $config),
+                $config,
+                $app->make(BusDispatcher::class),
+                $app->make(EventDispatcher::class),
+                $app->make(RecordsViewsContract::class),
+            );
+        });
 
         $this->app->bind(VisitorContract::class, Visitor::class);
 
-        $this->app->bind(CrawlerDetectAdapter::class, function (Application $app): CrawlerDetectAdapter {
-            $detector = new CrawlerDetect(
-                $app['request']->headers->all(),
-                $app['request']->server('HTTP_USER_AGENT')
-            );
-
-            return new CrawlerDetectAdapter($detector);
-        });
-
+        // The detector judges the user agent it is handed, so it holds no
+        // request state and one instance serves the whole process. The
+        // library compiles its pattern list once in the constructor.
+        $this->app->singleton(CrawlerDetect::class);
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
+    }
+
+    /**
+     * @return list<RecordingGuard>
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function resolveGuards(Application $app, Config $config): array
+    {
+        $guards = [];
+
+        foreach ($config->guards() as $class) {
+            $guard = $app->make($class);
+
+            if (! $guard instanceof RecordingGuard) {
+                throw InvalidConfiguration::mustImplement('recording.guards', RecordingGuard::class, $class);
+            }
+
+            $guards[] = $guard;
+        }
+
+        return $guards;
     }
 
     protected function registerQuerying(): void
     {
-        $this->app->bind(CountsViewsContract::class, CountViews::class);
+        $this->app->singleton(SourceManager::class);
 
-        $this->app->bind(CountsViewsByIntervalContract::class, CountViewsByInterval::class);
+        $this->app->bind(ViewSource::class, fn (Application $app): ViewSource => $app->make(SourceManager::class)->driver());
 
         $this->app->singleton(GrammarRegistry::class, function (): GrammarRegistry {
             $grammars = new GrammarRegistry;
