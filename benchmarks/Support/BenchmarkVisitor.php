@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * A visitor every recording guard lets through, so a recording benchmark
@@ -17,6 +18,11 @@ final readonly class BenchmarkVisitor implements Visitor
     public function id(): string
     {
         return $this->id;
+    }
+
+    public function viewer(): ?Model
+    {
+        return null;
     }
 
     public function ip(): string

@@ -6,7 +6,9 @@ namespace CyrildeWit\EloquentViewable\Visitors;
 
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -27,7 +29,15 @@ class Visitor implements VisitorContract
         protected Request $request,
         protected Config $config,
         protected CookieJar $cookies,
+        protected AuthFactory $auth,
     ) {}
+
+    public function viewer(): ?Model
+    {
+        $user = $this->auth->guard($this->config->viewerGuard())->user();
+
+        return $user instanceof Model ? $user : null;
+    }
 
     public function id(): string
     {

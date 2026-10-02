@@ -106,6 +106,22 @@ return [
         ],
 
         /*
+         * Whether the signed-in model is stored as the viewer of each view,
+         * in the `viewer_type` and `viewer_id` columns. Off by default,
+         * because it ties a view to an identity. `guard` names the auth
+         * guard the model is read from; `null` is the application's default
+         * guard. `views($post)->viewedBy($user)` sets the viewer explicitly
+         * and does not need this switch.
+         */
+        'viewer' => [
+
+            'enabled' => false,
+
+            'guard' => null,
+
+        ],
+
+        /*
          * When enabled, views are dispatched to the queue and stored by a
          * worker instead of during the request. This defers the database
          * write to speed up response times. You may also queue individual
@@ -197,6 +213,20 @@ return [
     |
     */
     'visitor' => [
+
+        /*
+         * What identifies a visitor in the `visitor` column, which `unique()`
+         * counts and a cooldown is keyed on. One of:
+         *
+         *   cookie   the random id from the cookie below, so a visitor is a
+         *            browser
+         *   viewer   an HMAC of the signed-in model's type and key with
+         *            `app.key`, so a visitor is an account on every device and
+         *            on an API without a cookie; guests get the cookie id
+         *
+         * The signed-in model comes from `recording.viewer` or `viewedBy()`.
+         */
+        'identity' => 'cookie',
 
         'cookie' => [
 

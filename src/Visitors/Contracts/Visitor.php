@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Visitors\Contracts;
 
+use Illuminate\Database\Eloquent\Model;
+
 /**
  * What the request says about the visitor. Every method reports a fact; the
  * recording guards turn those facts into a decision.
@@ -11,6 +13,11 @@ namespace CyrildeWit\EloquentViewable\Visitors\Contracts;
 interface Visitor
 {
     public function id(): string;
+
+    /**
+     * The signed-in model, or null for a guest.
+     */
+    public function viewer(): ?Model;
 
     public function ip(): ?string;
 
