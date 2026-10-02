@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Recording;
+
+use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
+use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
+use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
+use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
+
+final readonly class Recorder
+{
+    /** @param  list<RecordingGuard>  $guards */
+    public function __construct(
+        private array $guards,
+        private Config $config,
+        private BusDispatcher $bus,
+        private EventDispatcher $events,
+        private RecordsViews $action,
+    ) {}
+
+    /** @throws RecordingFailed */
+    public function record(ViewAttempt $attempt): bool
+    {
+        $key = ViewableKey::of($attempt->viewable);
+
+        if ($key === null) {
+            throw RecordingFailed::cannotRecordViewForViewableType();
+        }
+
+        foreach ($this->guards as $guard) {
+            if (! $guard->allows($attempt)) {
+                $this->events->dispatch(new ViewSkipped($attempt, $guard));
+
+                return false;
+            }
+        }
+
+        $record = new ViewRecord(
+            viewableId: $key,
+            viewableType: $attempt->viewable->getMorphClass(),
+            visitor: $attempt->visitor->id(),
+            collection: $attempt->collection,
+            viewedAt: Carbon::now(),
+        );
+
+        $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
+
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof RemembersRecordedViews) {
+                $guard->remember($attempt);
+            }
+        }
+
+        return true;
+    }
+
+    private function handOn(ViewRecord $record, bool $queue): void
+    {
+        if ($queue) {
+            $this->bus->dispatch(
+                new RecordViewJob($record)
+                    ->onConnection($this->config->queueConnection())
+                    ->onQueue($this->config->queueName())
+            );
+
+            return;
+        }
+
+        $this->action->handle($record);
+    }
+}
