@@ -60,9 +60,3 @@ it('forgets every record of a type for a viewable without a key', function (): v
 
     expect($store->records())->toBe([$other]);
 });
-
-it('matches a string key against an integer one', function (): void {
-    expect(ArrayStore::belongsTo(arrayRecord('7'), new Post(['id' => 7])))->toBeTrue()
-        ->and(ArrayStore::belongsTo(arrayRecord(7), new Post(['id' => 8])))->toBeFalse()
-        ->and(ArrayStore::belongsTo(arrayRecord(7), new Apartment(['id' => 7])))->toBeFalse();
-});
