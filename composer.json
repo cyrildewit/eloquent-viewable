@@ -35,6 +35,7 @@
     "require-dev": {
         "deptrac/deptrac": "^4.7",
         "illuminate/config": "^13.0",
+        "illuminate/redis": "^13.0",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
@@ -45,7 +46,12 @@
         "phpbench/phpbench": "^1.7",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0",
+        "predis/predis": "^2.3 || ^3.0",
         "rector/rector": "^2.3"
+    },
+    "suggest": {
+        "illuminate/redis": "Required by the redis store driver (^13.0). Part of laravel/framework.",
+        "predis/predis": "A Redis client for the redis store driver (^2.3 || ^3.0), when the phpredis extension is not installed."
     },
     "autoload": {
         "psr-4": {
