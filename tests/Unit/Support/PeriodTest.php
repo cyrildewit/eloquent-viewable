@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Support\Period;
 
 it('can be constructed without arguments', function (): void {
@@ -163,5 +164,39 @@ describe('timezone', function (): void {
         Period::create($start);
 
         expect($start->getTimezone()->getName())->toBe('Europe/Amsterdam');
+    });
+});
+
+describe('relative periods in a timezone', function (): void {
+    beforeEach(function (): void {
+        // 23:00 UTC on the 1st is 09:00 on the 2nd in Sydney.
+        Carbon::setTestNow('2026-09-01 23:00:00');
+    });
+
+    it('anchors a past period on midnight of that zone', function (): void {
+        $period = Period::pastDays(7, 'Australia/Sydney');
+
+        expect($period->getStartDateTime()->getTimezone()->getName())->toBe(date_default_timezone_get())
+            ->and($period->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-08-26 00:00:00', 'Australia/Sydney')->timestamp)
+            ->and(Period::pastDays(7)->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-08-25 00:00:00', 'UTC')->timestamp);
+    });
+
+    it('anchors a sub period on now, which is the same instant in every zone', function (): void {
+        expect(Period::subHours(3, 'Australia/Sydney')->getStartDateTime()->timestamp)
+            ->toBe(Period::subHours(3)->getStartDateTime()->timestamp);
+    });
+
+    it('accepts a DateTimeZone', function (): void {
+        expect(Period::pastDays(1, new DateTimeZone('Australia/Sydney'))->getStartDateTime()->toIso8601String())
+            ->toBe(Period::pastDays(1, 'Australia/Sydney')->getStartDateTime()->toIso8601String());
+    });
+
+    it('rejects a timezone that is not an identifier', function (): void {
+        expect(fn (): Period => Period::pastDays(7, '+10:00'))->toThrow(InvalidTimezone::class);
+    });
+
+    it('includes the zone in the cache signature', function (): void {
+        expect(Period::pastDays(7, 'Australia/Sydney')->cacheSignature())->toBe('past7days@Australia/Sydney')
+            ->and(Period::pastDays(7)->cacheSignature())->toBe('past7days');
     });
 });
