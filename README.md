@@ -29,7 +29,11 @@
     <li><a href="#usage">Usage</a>
       <ul>
         <li><a href="#preparing-your-model">Preparing your model</a></li>
-        <li><a href="#recording-views">Recording views</a></li>
+        <li><a href="#recording-views">Recording views</a>
+          <ul>
+            <li><a href="#finding-out-why-a-view-was-not-recorded">Finding out why a view was not recorded</a></li>
+          </ul>
+        </li>
         <li><a href="#queueing-view-recording">Queueing view recording</a></li>
         <li><a href="#setting-a-cooldown">Setting a cooldown</a></li>
         <li><a href="#retrieving-view-counts">Retrieving view counts</a>
@@ -213,8 +217,31 @@ check off. Or add a guard of your own, see [Adding a recording guard](#adding-a-
 > `IgnoreCrawlers` is listed by default, so keep it in mind when testing. Tools like **Postman** are often detected as
 > crawlers and will not trigger a recorded view.
 
-When a guard refuses, the package dispatches `Recording\Events\ViewSkipped` with the attempt and the guard. Listen
-for it to find out why a count stays where it is:
+`record()` returns `true` when the view was stored or queued and `false` when a guard refused it.
+
+#### Finding out why a view was not recorded
+
+`record()` only says whether the view got through. When you need to know what became of it, call `attempt()` instead.
+It runs the same guards and writes the same view, but returns a `Recording\Data\RecordResult` that says whether the
+view was stored, queued, or skipped and by which guard:
+
+```php
+use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+
+$result = views($post)->attempt();
+
+$result->recorded;   // true when the view was stored or queued
+$result->queued;     // true when the write was handed to the queue
+$result->skippedBy;  // the guard that refused the view, or null
+
+if ($result->wasSkippedBy(EnforceCooldown::class)) {
+    // the visitor saw this post a moment ago
+}
+```
+
+The same information reaches listeners through an event. When a guard refuses, the package dispatches
+`Recording\Events\ViewSkipped` with the attempt and the guard. Listen for it to log why a count stays where it is
+without touching the code that records:
 
 ```php
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
@@ -298,7 +325,8 @@ views($post)
 #### How it works
 
 When a view is recorded with a cooldown, the `EnforceCooldown` guard starts a cooldown for that visitor, viewable and
-collection. While it runs, `record()` returns `false` for the same combination. Checking and starting a cooldown are
+collection. While it runs, `record()` returns `false` for the same combination and `attempt()` reports the
+`EnforceCooldown` guard under `skippedBy`. Checking and starting a cooldown are
 two separate steps, so two requests from the same visitor that arrive at the same moment may both be recorded.
 
 #### Where cooldowns are kept
