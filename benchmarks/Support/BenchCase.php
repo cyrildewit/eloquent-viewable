@@ -23,6 +23,10 @@ abstract class BenchCase
 {
     protected Dataset $dataset;
 
+    private Article $hotArticle;
+
+    private Article $coldArticle;
+
     public function setUp(): void
     {
         $this->guardAgainstXdebug();
@@ -30,6 +34,12 @@ abstract class BenchCase
         Application::boot();
 
         $this->dataset = Dataset::load($this->connection());
+
+        // Fetched here, outside the timed region, so a subject measures its
+        // own query and nothing else. The explain script relies on it too: it
+        // runs the subjects under `pretend()`, where a lookup would find nothing.
+        $this->hotArticle = $this->dataset->hotArticle();
+        $this->coldArticle = $this->dataset->coldArticle();
     }
 
     /**
@@ -67,8 +77,8 @@ abstract class BenchCase
     protected function target(array $params): Viewable|string
     {
         return match ($params['target']) {
-            'hot' => $this->dataset->hotArticle(),
-            'cold' => $this->dataset->coldArticle(),
+            'hot' => $this->hotArticle,
+            'cold' => $this->coldArticle,
             'type' => Article::class,
             default => throw new RuntimeException("Unknown target [{$params['target']}]."),
         };
