@@ -42,9 +42,10 @@ so the sort gets slower as the views table grows, and a paginated catalog cannot
 into an ordinary indexed `ORDER BY`. The views table still has every view, so `views($product)->period(...)->count()`
 and charts keep working.
 
-**Keep it up to date from the event.** `ViewRecorded` is dispatched after a view is stored, by the same `CreateView`
-action whether the view was recorded during the request or by a queued job. Listening to it means the counter cannot
-count a view that was filtered out: a crawler, a Do Not Track request or a shopper on cooldown never gets there. The
+**Keep it up to date from the event.** `ViewRecorded` is dispatched once the store has accepted the view, by the same
+`RecordView` action whether the view was recorded during the request or by a queued job. Listening to it means the
+counter cannot count a view a guard refused: a shopper on cooldown, or a crawler once `IgnoreCrawlers` is listed,
+never gets there. The event carries the `ViewRecord`, not a row, so the listener reads the viewable from it. The
 listener adds one with a single `UPDATE ... SET views_count = views_count + 1`, so workers storing views of the same
 product at the same time do not overwrite each other. It goes through `toBase()` because the Eloquent builder's
 `increment()` also sets `updated_at`, and a view is not an edit.
