@@ -32,6 +32,14 @@ abstract class TestCase extends OrchestraTestCase
         // The in-memory SQLite connection by default. CI sets DB_CONNECTION to
         // run the same suite against MySQL, MariaDB and Postgres.
         $app['config']->set('database.default', Env::get('DB_CONNECTION', 'testing'));
+
+        // The Redis store's tests run against a real Redis, the `redis`
+        // service in Docker Compose and on CI, and against both clients.
+        $app['config']->set('database.redis.default', [
+            'host' => Env::get('REDIS_HOST', '127.0.0.1'),
+            'port' => Env::get('REDIS_PORT', 6379),
+            'database' => 0,
+        ]);
     }
 
     /**
