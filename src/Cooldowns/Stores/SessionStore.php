@@ -40,13 +40,14 @@ final readonly class SessionStore implements CooldownStore
         }
 
         $now = Carbon::now()->getTimestamp();
+
+        /** @var array<string, int> $running */
         $running = array_filter($stored, fn (mixed $expiresAt): bool => is_int($expiresAt) && $expiresAt > $now);
 
         if (count($running) !== count($stored)) {
             $this->session->put($this->key, $running);
         }
 
-        /** @var array<string, int> */
         return $running;
     }
 }
