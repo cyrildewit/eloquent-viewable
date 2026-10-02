@@ -13,19 +13,20 @@ it('is immutable', function (): void {
         ->and($reflection->isReadOnly())->toBeTrue();
 });
 
-it('exposes its start, end and count', function (): void {
+it('exposes its start, end, count and label', function (): void {
     $start = CarbonImmutable::parse('2026-09-01');
     $end = CarbonImmutable::parse('2026-09-02');
 
-    $bucket = new Bucket($start, $end, 4);
+    $bucket = new Bucket($start, $end, 4, '2026-09-01');
 
     expect($bucket->start)->toBe($start)
         ->and($bucket->end)->toBe($end)
-        ->and($bucket->count)->toBe(4);
+        ->and($bucket->count)->toBe(4)
+        ->and($bucket->label)->toBe('2026-09-01');
 });
 
 it('converts to a period with the same bounds', function (): void {
-    $bucket = new Bucket(CarbonImmutable::parse('2026-09-01'), CarbonImmutable::parse('2026-09-02'), 4);
+    $bucket = new Bucket(CarbonImmutable::parse('2026-09-01'), CarbonImmutable::parse('2026-09-02'), 4, '2026-09-01');
 
     $period = $bucket->period();
 

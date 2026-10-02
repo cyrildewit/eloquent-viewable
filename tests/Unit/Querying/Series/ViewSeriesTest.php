@@ -89,6 +89,69 @@ it('sums the buckets into a total', function (): void {
     expect($series->total())->toBe(7);
 });
 
+describe('chart helpers', function (): void {
+    beforeEach(function (): void {
+        $this->series = ViewSeries::fill(Period::create('2026-09-01', '2026-09-05'), Granularity::Day, [
+            '2026-09-01 00:00:00' => 2,
+            '2026-09-02 00:00:00' => 5,
+            '2026-09-04 00:00:00' => 5,
+        ]);
+    });
+
+    it('lists the labels formatted by granularity', function (): void {
+        expect($this->series->labels())->toBe(['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04']);
+    });
+
+    it('labels a {granularity} series down to the bucket width', function (Granularity $granularity, string $start, string $end, array $expected): void {
+        expect(ViewSeries::fill(Period::create($start, $end), $granularity, [])->labels())->toBe($expected);
+    })->with([
+        'hour' => [Granularity::Hour, '2026-09-01 22:00:00', '2026-09-02 00:00:00', ['2026-09-01 22:00', '2026-09-01 23:00']],
+        'week' => [Granularity::Week, '2026-09-02', '2026-09-15', ['2026-08-31', '2026-09-07', '2026-09-14']],
+        'month' => [Granularity::Month, '2026-11-01', '2027-01-01', ['2026-11', '2026-12']],
+        'year' => [Granularity::Year, '2025-01-01', '2027-01-01', ['2025', '2026']],
+    ]);
+
+    it('lists the values in label order', function (): void {
+        expect($this->series->values())->toBe([2, 5, 0, 5]);
+    });
+
+    it('finds the earliest bucket with the most views', function (): void {
+        $peak = $this->series->peak();
+
+        expect($peak)->toBeInstanceOf(Bucket::class)
+            ->and($peak->label)->toBe('2026-09-02')
+            ->and($peak->count)->toBe(5);
+    });
+
+    it('averages the count per bucket', function (): void {
+        expect($this->series->average())->toBe(3.0);
+    });
+
+    it('has no peak and a zero average without buckets', function (): void {
+        $series = ViewSeries::fill(Period::create('2026-09-01', '2026-09-01'), Granularity::Day, []);
+
+        expect($series->peak())->toBeNull()
+            ->and($series->average())->toBe(0.0)
+            ->and($series->labels())->toBeEmpty()
+            ->and($series->values())->toBeEmpty();
+    });
+
+    it('converts to an array', function (): void {
+        expect($this->series->toArray())->toBe([
+            'granularity' => 'day',
+            'total' => 12,
+            'labels' => ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04'],
+            'values' => [2, 5, 0, 5],
+        ]);
+    });
+
+    it('serializes to json', function (): void {
+        expect(json_encode($this->series))->toBe(
+            '{"granularity":"day","total":12,"labels":["2026-09-01","2026-09-02","2026-09-03","2026-09-04"],"values":[2,5,0,5]}',
+        );
+    });
+});
+
 it('iterates over its buckets', function (): void {
     $series = ViewSeries::fill(Period::create('2026-09-01', '2026-09-03'), Granularity::Day, []);
 
@@ -125,6 +188,7 @@ describe('daylight saving time', function (): void {
         $ambiguous = $series->intervals[2];
 
         expect($labels)->toBe(['00:00', '01:00', '02:00', '03:00'])
+            ->and($series->labels())->toBe(['2026-10-25 00:00', '2026-10-25 01:00', '2026-10-25 02:00', '2026-10-25 03:00'])
             ->and($ambiguous->count)->toBe(7)
             ->and($ambiguous->start->format('H:i P'))->toBe('02:00 +01:00')
             ->and($ambiguous->end->format('H:i P'))->toBe('03:00 +01:00');
@@ -140,7 +204,8 @@ describe('daylight saving time', function (): void {
 
         $skipped = $series->intervals[2];
 
-        expect($series->intervals)->toHaveCount(4)
+        expect($series->labels())->toBe(['2026-03-29 00:00', '2026-03-29 01:00', '2026-03-29 02:00', '2026-03-29 03:00'])
+            ->and($series->intervals)->toHaveCount(4)
             ->and($skipped->count)->toBe(0)
             ->and($skipped->start->diffInMinutes($skipped->end))->toBe(0.0);
     });
