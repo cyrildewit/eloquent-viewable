@@ -297,9 +297,45 @@ views($post)
 
 #### How it works
 
-When recording a view with a session delay, this package also saves a snapshot of the view in the visitor’s session with
-an expiration datetime. Whenever the visitor views the item again, the package checks their session and decides whether
-the view should be saved in the database.
+When a view is recorded with a cooldown, the `EnforceCooldown` guard starts a cooldown for that visitor, viewable and
+collection. While it runs, `record()` returns `false` for the same combination. Checking and starting a cooldown are
+two separate steps, so two requests from the same visitor that arrive at the same moment may both be recorded.
+
+#### Where cooldowns are kept
+
+The `cooldown.store` config key names the store. Two drivers ship:
+
+- `session` keeps cooldowns in the visitor's session, as in v8. This is the default. On routes without a session, such
+  as stateless API routes, cooldowns do nothing.
+- `cache` keeps cooldowns in a cache store, keyed by the visitor's id, so they also work without a session. The id comes
+  from the visitor cookie, so a client that does not send the cookie back gets a new id, and a new cooldown, on every
+  request.
+
+```php
+'cooldown' => [
+    'store' => 'cache',
+    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
+    'cache' => [
+        'store' => 'redis', // null uses the default cache store
+    ],
+],
+```
+
+To add a driver, implement `Cooldowns\Contracts\CooldownStore` and register it with the `CooldownManager` in the
+`register` method of a service provider. Then name it in the config.
+
+```php
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
+use Illuminate\Contracts\Foundation\Application;
+
+$this->app->make(CooldownManager::class)->extend('dynamodb', fn (Application $app): CooldownStore => new DynamoDbCooldownStore(
+    $app->make(DynamoDbClient::class),
+));
+```
+
+A store receives a string key and, for `put()`, the time the cooldown ends. `has()` returns whether a cooldown is still
+running under that key.
 
 ### Retrieving view counts
 
@@ -902,7 +938,7 @@ ready to switch on:
 
 | Guard                        | Refuses                                         | Reads                            |
 |------------------------------|-------------------------------------------------|----------------------------------|
-| `EnforceCooldown`            | a second view inside the cooldown asked for     | the session                      |
+| `EnforceCooldown`            | a second view inside the cooldown asked for     | the `cooldown.store`             |
 | `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | the visitor's user agent         |
 | `IgnoreIpAddresses`          | listed IP addresses                             | `recording.ignored_ip_addresses` |
 | `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | the visitor                      |

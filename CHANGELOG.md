@@ -19,7 +19,8 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Added the `Querying\Scopes\WithViewsCount` and `Querying\Scopes\OrderByViews` classes behind the trait scopes of the same name
 - Added the `Recording\Contracts\RecordingGuard` contract and the `recording.guards` config option, a list of guard classes every recorded view passes in order. The list is the only switch for a guard. `IgnoreCrawlers`, `IgnoreIpAddresses` and `Recording\Guards\EnforceCooldown` are listed out of the box; `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl` ship commented out in the config file
 - Added the `Recording\Contracts\RemembersRecordedViews` contract for guards that keep state about the views they let through. The recorder calls `remember()` once every guard has allowed the view and it is stored or queued, so `EnforceCooldown` no longer has to be listed last and a view another guard drops never starts a cooldown
-- Added `CooldownManager::isActive()` and `start()`; `push()` combines the two
+- Added the `Cooldowns\Contracts\CooldownStore` contract and the `cooldown.store` config option. `Cooldowns\CooldownManager` builds the store it names: `session`, the default, or `cache`, which keeps cooldowns in the store named by `cooldown.cache.store`. Add a driver with `CooldownManager::extend()`. An unregistered name throws `InvalidConfiguration`
+- Added `Cooldowns\Cooldown`, which builds the key a cooldown is kept under from the viewable, the visitor id and the collection
 - Added `Recording\Events\ViewSkipped`, dispatched with the attempt and the guard that refused it
 - Added `Visitors\Contracts\Visitor::userAgent()` and `hasGlobalPrivacyControl()`. The shipped `Visitor` joins the `User-Agent` header with the device headers a proxy adds, the same list the crawler detector library reads
 - Added the `visitor.cookie.lifetime` config option, the lifetime of the visitor cookie in minutes. It was a constant of five years before and still defaults to that
@@ -53,10 +54,11 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - `Views::count()` and `Views::countByInterval()` now delegate to the bound `Querying\Contracts\ViewSource` instead of building the query themselves
 - `InteractsWithViews::scopeWithViewsCount()` and `scopeOrderByViews()` now read through the bound `ViewSource` as a correlated subselect instead of `withAggregate()` on the `views` relation (no change in results)
 - Crawler, Do Not Track, IP address and cooldown checks moved out of `Views` into guard classes listed under the `recording.guards` config key. A guard runs when it is listed and not otherwise. The default list keeps the v8 behaviour: crawlers and `ignored_ip_addresses` are dropped and Do Not Track is not honoured
-- The config file is grouped by module: `store`, `guards`, `ignored_ip_addresses` and `queue` live under `recording`, `source`, `cache` and `max_intervals` under `querying`, and `visitor_cookie_key` is `visitor.cookie.name`. `models` and `cooldown` are unchanged. See the upgrade guide for the table
+- The config file is grouped by module: `store`, `guards`, `ignored_ip_addresses` and `queue` live under `recording`, `source`, `cache` and `max_intervals` under `querying`, and `visitor_cookie_key` is `visitor.cookie.name`. `models` is unchanged and `cooldown` gained `store` and `cache.store`. See the upgrade guide for the table
 - `Crawlers\Contracts\CrawlerDetector::isCrawler()` now takes the user agent to judge, `isCrawler(?string $userAgent): bool`, and a `null` or empty user agent is never a crawler. The `IgnoreCrawlers` guard calls it with the visitor's user agent instead of asking the visitor
 - The shipped crawler detector is a stateless singleton. It no longer captures the headers of the first request it sees, which in a long-running worker meant every later request was judged by that user agent
-- The `Visitor` and `CooldownManager` constructors now take `Support\Config` instead of the config repository, and `Visitor` no longer takes a `CrawlerDetector` (breaking only for classes that extend them and override the constructor)
+- The `Visitor` constructor now takes `Support\Config` instead of the config repository and no longer takes a `CrawlerDetector` (breaking only for classes that extend it and override the constructor)
+- `CooldownManager` is now a driver manager that builds a `CooldownStore`, and `EnforceCooldown` depends on that contract. Cooldowns are keyed by visitor id, and the session store keeps them in a new format, so cooldowns running at upgrade end early once
 - The test suite now runs against SQLite, MySQL, MariaDB and Postgres in CI (development only; no impact on consumers)
 - Added a phpbench benchmark suite under `benchmarks/`, with a seeded dataset of up to fifty million views, `make bench-*` targets for every supported driver, a query plan report and a JSON description of the seeded dataset (development only; no impact on consumers)
 - Moved classes into module namespaces, see the upgrade guide for the full table. `View` is now `Models\View`, the facade is `Facades\Views`, `InteractsWithViews` is `Concerns\InteractsWithViews`, `Visitor` and its contract are under `Visitors\`, `CrawlerDetector` and `CrawlerDetectAdapter` under `Crawlers\`, `CooldownManager` under `Cooldowns\`, and `ViewRecorded` and the recording job and action under `Recording\`
@@ -76,11 +78,14 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Removed `Visitors\Contracts\Visitor::isCrawler()`. The visitor reports its user agent and the `IgnoreCrawlers` guard asks the detector
 - Removed the `ignore_bots` and `honor_dnt` config keys. Presence in `recording.guards` is the only switch for a guard
 - Removed the `visitor_cookie_key` config key in favour of `visitor.cookie.name`
+- Removed `CooldownManager::push()` in favour of the `CooldownStore` contract
 - Removed the `Contracts\View` and `Contracts\Views` interfaces. A custom view model extends `Models\View` and is named in `models.view.class`; the `Views` builder is used by its class and is no longer replaceable through the container
 
 ### Fixed
 
 - Fixed `PeriodInterval::subtract()` mutating the date instance passed to it
+- Fixed a visitor without a cookie getting a new id, and queueing another cookie, from every `Visitor` instance in the same request
+- Fixed expired session cooldowns being pruned only for the viewable type being checked, so cooldowns for other types piled up in the session
 
 ## [v8.0.1]
 
