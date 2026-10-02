@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 
 it('is immutable', function (): void {
     $reflection = new ReflectionClass(ViewSeries::class);
@@ -76,8 +77,56 @@ it('tiles the buckets so that each end is the next start', function (): void {
 it('emits bucket bounds in the application timezone', function (): void {
     $series = ViewSeries::fill(Period::create('2026-09-01', '2026-09-02'), Granularity::Day, []);
 
-    expect($series->intervals->first()->start->getTimezone()->getName())->toBe(date_default_timezone_get())
+    expect($series->timezone->getName())->toBe(date_default_timezone_get())
+        ->and($series->intervals->first()->start->getTimezone()->getName())->toBe(date_default_timezone_get())
         ->and($series->intervals->first()->end->getTimezone()->getName())->toBe(date_default_timezone_get());
+});
+
+describe('in another timezone', function (): void {
+    it('aligns the buckets to that clock', function (): void {
+        // 2026-09-01 00:00 UTC is 10:00 in Sydney, so the walk floors to Sydney's
+        // 1 September and the end, 10:00 on the 3rd, pulls a third bucket in.
+        $series = ViewSeries::fill(
+            Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-03 00:00:00', 'UTC')),
+            Granularity::Day,
+            ['2026-09-02 00:00:00' => 4],
+            new Timezone('Australia/Sydney'),
+        );
+
+        expect($series->timezone->getName())->toBe('Australia/Sydney')
+            ->and($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('Y-m-d H:i P'))->all())
+            ->toBe(['2026-09-01 00:00 +10:00', '2026-09-02 00:00 +10:00', '2026-09-03 00:00 +10:00'])
+            ->and($series->intervals->map(fn (Bucket $bucket): int => $bucket->count)->all())->toBe([0, 4, 0])
+            ->and($series->intervals->first()->end->getTimezone()->getName())->toBe('Australia/Sydney');
+    });
+
+    it('walks up to now on that clock when the period has no end', function (): void {
+        // 23:00 UTC on the 2nd is already 09:00 on the 3rd in Sydney.
+        Carbon::setTestNow('2026-09-02 23:00:00');
+
+        $series = ViewSeries::fill(Period::since(Carbon::parse('2026-09-01 00:00:00', 'UTC')), Granularity::Day, [], new Timezone('Australia/Sydney'));
+
+        expect($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('Y-m-d'))->all())
+            ->toBe(['2026-09-01', '2026-09-02', '2026-09-03']);
+    });
+
+    it('emits one bucket per wall-clock hour across that zone\'s autumn transition', function (): void {
+        // Sydney puts the clock back at 03:00 AEDT on 2026-04-05, so 02:00
+        // happens twice. One label, resolved to the later occurrence.
+        $series = ViewSeries::fill(
+            Period::create(Carbon::parse('2026-04-04 13:00:00', 'UTC'), Carbon::parse('2026-04-04 17:00:00', 'UTC')),
+            Granularity::Hour,
+            ['2026-04-05 02:00:00' => 7],
+            new Timezone('Australia/Sydney'),
+        );
+
+        $labels = $series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('H:i'))->all();
+        $ambiguous = $series->intervals[2];
+
+        expect($labels)->toBe(['00:00', '01:00', '02:00'])
+            ->and($ambiguous->count)->toBe(7)
+            ->and($ambiguous->start->format('H:i P'))->toBe('02:00 +10:00');
+    });
 });
 
 it('sums the buckets into a total', function (): void {

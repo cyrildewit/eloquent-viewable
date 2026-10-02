@@ -6,11 +6,14 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\BucketGrammar;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedDriver;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -247,7 +250,7 @@ describe('grammar resolution', function (): void {
 
         expect($sql)->toContain("{$expression} as interval_start")
             ->and($sql)->toContain('count(distinct '.$queryGrammar->wrap('views.visitor').') as aggregate')
-            ->and($sql)->toContain("group by {$expression}");
+            ->and($sql)->toContain("group by {$queryGrammar->wrap('interval_start')}");
     });
 
     it('buckets through the grammar registered for the driver of that connection', function (): void {
@@ -266,11 +269,31 @@ describe('grammar resolution', function (): void {
             {
                 return $this->grammar->truncate($column, Granularity::Year);
             }
+
+            public function convertTimezone(string $column, TimezoneConversion $conversion): string
+            {
+                return $this->grammar->convertTimezone($column, $conversion);
+            }
         });
 
         $counts = viewSource()->countByInterval($this->post, new ViewsQuery(Period::create('2026-01-01', '2027-01-01')), Granularity::Day);
 
         expect($counts)->toBe(['2026-01-01 00:00:00' => 2]);
+    });
+
+    it('converts the stored wall clock to the query timezone before bucketing', function (): void {
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 13:00:00', 'UTC'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+        $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-03 00:00:00', 'UTC'));
+
+        expect(viewSource()->countByInterval($this->post, new ViewsQuery($period, timezone: new Timezone('Australia/Sydney')), Granularity::Day))
+            ->toBe(['2026-09-01 00:00:00' => 1, '2026-09-02 00:00:00' => 1]);
+    });
+
+    it('requires a period to convert timezones', function (): void {
+        expect(fn (): array => viewSource()->countByInterval($this->post, new ViewsQuery(timezone: new Timezone('Australia/Sydney')), Granularity::Day))
+            ->toThrow(InvalidInterval::class, 'requires a period with a start date time');
     });
 
     it('throws when no grammar is registered for the driver', function (): void {
