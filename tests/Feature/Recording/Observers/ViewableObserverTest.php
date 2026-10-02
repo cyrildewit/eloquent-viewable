@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\SoftDeletablePost;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\SoftDeletableView;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsPost;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsSoftDeletablePost;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
@@ -16,7 +16,7 @@ beforeEach(function (): void {
 });
 
 it('can destroy all views when viewable gets deleted', function (): void {
-    ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
+    View::factory()->for($this->post, 'viewable')->count(3)->create();
 
     expect(View::count())->toBe(3);
 
@@ -25,14 +25,14 @@ it('can destroy all views when viewable gets deleted', function (): void {
     expect(View::count())->toBe(0);
 });
 
-it('does not destroy all views when viewable gets deleted and remove views on delete is set to false', function (): void {
-    $this->post->removeViewsOnDelete = false;
+it('keeps the views when a viewable that opts out gets deleted', function (): void {
+    $post = KeepsViewsPost::create(['title' => 'Title', 'body' => 'Body']);
 
-    ViewFactory::new()->for($this->post, 'viewable')->count(3)->create();
+    View::factory()->for($post, 'viewable')->count(3)->create();
 
     expect(View::count())->toBe(3);
 
-    $this->post->delete();
+    $post->delete();
 
     expect(View::count())->toBe(3);
 });
@@ -41,7 +41,7 @@ describe('soft deletable viewable', function (): void {
     beforeEach(function (): void {
         $this->softDeletablePost = SoftDeletablePost::create(['title' => 'Title', 'body' => 'Body']);
 
-        ViewFactory::new()->for($this->softDeletablePost, 'viewable')->count(3)->create();
+        View::factory()->for($this->softDeletablePost, 'viewable')->count(3)->create();
     });
 
     it('keeps the views when viewable gets soft deleted', function (): void {
@@ -71,12 +71,13 @@ describe('soft deletable viewable', function (): void {
         expect(View::count())->toBe(0);
     });
 
-    it('keeps the views when viewable gets force deleted and remove views on delete is set to false', function (): void {
-        $this->softDeletablePost->removeViewsOnDelete = false;
+    it('keeps the views when a viewable that opts out gets force deleted', function (): void {
+        $post = KeepsViewsSoftDeletablePost::create(['title' => 'Title', 'body' => 'Body']);
+        View::factory()->for($post, 'viewable')->count(3)->create();
 
-        $this->softDeletablePost->forceDelete();
+        $post->forceDelete();
 
-        expect(View::count())->toBe(3);
+        expect(View::query()->whereMorphedTo('viewable', $post)->count())->toBe(3);
     });
 
     it('soft deletes the views when the view model uses soft deletes', function (): void {
@@ -84,7 +85,7 @@ describe('soft deletable viewable', function (): void {
             $table->softDeletes();
         });
 
-        $this->app->bind(ViewContract::class, SoftDeletableView::class);
+        $this->app['config']->set('eloquent-viewable.models.view.class', SoftDeletableView::class);
 
         $this->softDeletablePost->forceDelete();
 
