@@ -12,6 +12,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 ### Added
 
 - Added `countByInterval(Granularity $granularity)` to `Views`, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
+- Added `labels()`, `values()`, `peak()`, `average()` and `toArray()` to `ViewSeries`, which is now `Arrayable` and `JsonSerializable`, plus a `label` on every `Bucket`, formatted by `Granularity::labelFormat()`
 - Added the `Support\Granularity` enum (`Hour`, `Day`, `Week`, `Month`, `Year`) for bucket sizes
 - Added the `Support\ViewsQuery` value object describing the period, collection and uniqueness of a count
 - Added the `Querying\Contracts\ViewSource` contract, read by `count()`, `countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes, with `Querying\Sources\DatabaseSource` as the default implementation
