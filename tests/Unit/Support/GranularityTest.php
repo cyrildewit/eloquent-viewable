@@ -63,6 +63,18 @@ describe('floor', function (): void {
     });
 });
 
+describe('label format', function (): void {
+    it('formats a {granularity} label down to the bucket width', function (Granularity $granularity, string $expected): void {
+        expect(Carbon::parse('2026-03-02 10:00:00')->format($granularity->labelFormat()))->toBe($expected);
+    })->with([
+        'hour' => [Granularity::Hour, '2026-03-02 10:00'],
+        'day' => [Granularity::Day, '2026-03-02'],
+        'week' => [Granularity::Week, '2026-03-02'],
+        'month' => [Granularity::Month, '2026-03'],
+        'year' => [Granularity::Year, '2026'],
+    ]);
+});
+
 describe('count between', function (): void {
     it('counts the buckets from the floored start up to the exclusive end', function (Granularity $granularity, string $start, string $end, int $expected): void {
         expect($granularity->countBetween(Carbon::parse($start), Carbon::parse($end)))->toBe($expected);
