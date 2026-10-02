@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Php\ViewSeriesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\DestroyViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\RecordViewBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Benchmark;
@@ -53,6 +54,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsBench::class,
         CountViewsByIntervalBench::class,
         OrderByViewsBench::class,
+        BufferViewsBench::class,
         DestroyViewsBench::class,
         RecordViewBench::class,
     ]);
@@ -65,7 +67,7 @@ it('filters the benchmarks on their group', function (): void {
     );
 
     expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByIntervalBench', 'OrderByViewsBench'])
-        ->and($names('write'))->toBe(['DestroyViewsBench', 'RecordViewBench'])
+        ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('missing'))->toBeEmpty();
 });
@@ -152,4 +154,9 @@ it('merges the parameters of the providers in provider order', function (): void
     expect($interval)
         ->set->toBe('all articles,7 days by hour')
         ->params->toBe(['target' => 'type', 'days' => 7, 'granularity' => 'hour']);
+});
+
+it('names the parameter sets of the flush benchmark', function (): void {
+    expect(setsOf(BufferViewsBench::class, 'benchFlush'))->toBe(['100 views', '1,000 views', '10,000 views'])
+        ->and(setsOf(BufferViewsBench::class, 'benchRecord'))->toBe(['']);
 });
