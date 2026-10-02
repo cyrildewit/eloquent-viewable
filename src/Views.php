@@ -72,12 +72,7 @@ class Views
         return $this->attempt()->recorded;
     }
 
-    /**
-     * Records the view like `record()` and reports what became of it: stored,
-     * queued, or skipped and by which guard.
-     *
-     * @throws RecordingFailed
-     */
+    /** @throws RecordingFailed */
     public function attempt(): RecordResult
     {
         return $this->recorder->record(new ViewAttempt(
