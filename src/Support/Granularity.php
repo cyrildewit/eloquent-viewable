@@ -59,6 +59,16 @@ enum Granularity: string
         return (int) ceil($from->diffInUnit($this->unit(), $to));
     }
 
+    public function labelFormat(): string
+    {
+        return match ($this) {
+            self::Hour => 'Y-m-d H:00',
+            self::Day, self::Week => 'Y-m-d',
+            self::Month => 'Y-m',
+            self::Year => 'Y',
+        };
+    }
+
     private function unit(): Unit
     {
         return match ($this) {

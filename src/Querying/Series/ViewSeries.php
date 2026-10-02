@@ -10,8 +10,10 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 use IteratorAggregate;
+use JsonSerializable;
 use Traversable;
 
 /**
@@ -19,9 +21,10 @@ use Traversable;
  * granularity step. Buckets are calendar-aligned, so the first bucket may
  * start before the period and the last may end after it.
  *
+ * @implements Arrayable<string, mixed>
  * @implements IteratorAggregate<int, Bucket>
  */
-final readonly class ViewSeries implements IteratorAggregate
+final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSerializable
 {
     private const string LABEL_FORMAT = 'Y-m-d H:i:s';
 
@@ -62,6 +65,7 @@ final readonly class ViewSeries implements IteratorAggregate
                 start: self::toLocalClock($label),
                 end: self::toLocalClock($granularity->add($cursor, 1)->format(self::LABEL_FORMAT)),
                 count: $counts[$label] ?? 0,
+                label: $cursor->format($granularity->labelFormat()),
             ));
         }
 
@@ -74,6 +78,50 @@ final readonly class ViewSeries implements IteratorAggregate
     public function total(): int
     {
         return $this->intervals->sum(static fn (Bucket $bucket): int => $bucket->count);
+    }
+
+    /** @return list<string> */
+    public function labels(): array
+    {
+        return array_values($this->intervals->map(static fn (Bucket $bucket): string => $bucket->label)->all());
+    }
+
+    /** @return list<int> */
+    public function values(): array
+    {
+        return array_values($this->intervals->map(static fn (Bucket $bucket): int => $bucket->count)->all());
+    }
+
+    /**
+     * The earliest bucket wins a tie.
+     */
+    public function peak(): ?Bucket
+    {
+        return $this->intervals->reduce(
+            static fn (?Bucket $peak, Bucket $bucket): Bucket => ! $peak instanceof Bucket || $bucket->count > $peak->count ? $bucket : $peak,
+        );
+    }
+
+    public function average(): float
+    {
+        return $this->intervals->isEmpty() ? 0.0 : $this->total() / $this->intervals->count();
+    }
+
+    /** @return array{granularity: string, total: int, labels: list<string>, values: list<int>} */
+    public function toArray(): array
+    {
+        return [
+            'granularity' => $this->granularity->value,
+            'total' => $this->total(),
+            'labels' => $this->labels(),
+            'values' => $this->values(),
+        ];
+    }
+
+    /** @return array{granularity: string, total: int, labels: list<string>, values: list<int>} */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 
     /** @return Traversable<int, Bucket> */
