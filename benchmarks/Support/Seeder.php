@@ -113,7 +113,7 @@ final class Seeder
 
         // The package's own migration, so the table and its indexes are
         // exactly what an application gets.
-        require_once Application::projectPath('migrations/create_views_table.php.stub');
+        require_once Application::projectPath('database/migrations/create_views_table.php.stub');
 
         new \CreateViewsTable()->up();
 
