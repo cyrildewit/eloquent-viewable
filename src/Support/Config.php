@@ -118,6 +118,17 @@ final readonly class Config
         return $this->string('recording.queue.queue');
     }
 
+    public function viewerEnabled(): bool
+    {
+        return (bool) $this->get('recording.viewer.enabled', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function viewerGuard(): ?string
+    {
+        return $this->string('recording.viewer.guard');
+    }
+
     /** @throws InvalidConfiguration */
     public function sourceDriver(): string
     {
@@ -152,6 +163,22 @@ final readonly class Config
     public function visitorCookieLifetime(): int
     {
         return $this->positiveInteger('visitor.cookie.lifetime');
+    }
+
+    /**
+     * @return 'cookie'|'viewer'
+     *
+     * @throws InvalidConfiguration
+     */
+    public function visitorIdentity(): string
+    {
+        $value = $this->get('visitor.identity', 'cookie');
+
+        if ($value !== 'cookie' && $value !== 'viewer') {
+            throw InvalidConfiguration::mustBeOneOf('visitor.identity', ['cookie', 'viewer'], $value);
+        }
+
+        return $value;
     }
 
     /** @throws InvalidConfiguration */

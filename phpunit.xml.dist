@@ -27,8 +27,8 @@
         </testsuite>
     </testsuites>
     <php>
-        <!-- The suite under coverage peaks above the 128M default of the Docker image. -->
         <ini name="memory_limit" value="512M"/>
+        <env name="APP_KEY" value="base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE="/>
     </php>
     <logging>
         <junit outputFile="build/report.junit.xml"/>

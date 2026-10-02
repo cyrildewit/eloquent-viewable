@@ -49,6 +49,17 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("Every class in `eloquent-viewable.{$key}` must implement `{$interface}`, `{$class}` does not.");
     }
 
+    /** @param  list<string>  $allowed */
+    public static function mustBeOneOf(string $key, array $allowed, mixed $value): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must be one of `".implode('`, `', $allowed).'`, '.self::describe($value).' given.');
+    }
+
+    public static function missingAppKey(): self
+    {
+        return new self('The `app.key` config value must be set to derive visitor ids from viewers.');
+    }
+
     private static function describe(mixed $value): string
     {
         return is_scalar($value) ? '`'.json_encode($value).'`' : get_debug_type($value);
