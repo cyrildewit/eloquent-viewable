@@ -14,7 +14,7 @@ class ShowProduct
 
     public function __invoke(Product $product): Product
     {
-        // The crawler check and the cooldown run here, during the request.
+        // The guards, the cooldown among them, run here during the request.
         // Only the insert, and the counter update that follows it, move to
         // the queue.
         views($product)

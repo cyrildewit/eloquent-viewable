@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use CyrildeWit\EloquentViewable\Contracts\CreateView;
-use CyrildeWit\EloquentViewable\Events\ViewRecorded;
-use CyrildeWit\EloquentViewable\Jobs\StoreView;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
 use CyrildeWit\EloquentViewable\Samples\PopularProducts\CountProductView;
 use CyrildeWit\EloquentViewable\Samples\PopularProducts\Product;
 use CyrildeWit\EloquentViewable\Samples\PopularProducts\RecountProductViews;
 use CyrildeWit\EloquentViewable\Samples\PopularProducts\ShowProduct;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
@@ -65,8 +65,8 @@ it('counts the view once the queued job has stored it', function (): void {
 
     expect($product->fresh()->views_count)->toBe(0);
 
-    Queue::assertPushed(StoreView::class, 1);
-    Queue::pushed(StoreView::class)->first()->handle(app(CreateView::class));
+    Queue::assertPushed(RecordViewJob::class, 1);
+    Queue::pushed(RecordViewJob::class)->first()->handle(app(RecordsViews::class));
 
     expect($product->fresh()->views_count)->toBe(1);
 });
@@ -80,7 +80,7 @@ it('does not queue a view for a shopper who comes back within the cooldown', fun
         ->get("/products/{$product->id}")
         ->assertOk();
 
-    Queue::assertPushed(StoreView::class, 1);
+    Queue::assertPushed(RecordViewJob::class, 1);
 });
 
 it('does not treat a view as an edit of the product', function (): void {
