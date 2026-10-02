@@ -147,7 +147,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | `write` | `RecordViewBench`           | `record()` into the full table, direct and through the sync queue                                                                     |
 | `write` | `DestroyViewsBench`         | `destroy()` of a hundred, a thousand and ten thousand views                                                                           |
 | `php`   | `ViewSeriesBench`           | `ViewSeries::fill()`, the PHP side of `countByInterval()`, up to a year of hourly buckets                                             |
-| `php`   | `CooldownManagerBench`      | `CooldownManager::push()` with up to ten thousand cooldowns in the session                                                            |
+| `php`   | `CooldownManagerBench`      | `CooldownStore::put()` on the session store, with up to ten thousand cooldowns in the session                                         |
 
 ## Results over time
 
