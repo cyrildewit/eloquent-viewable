@@ -436,11 +436,20 @@ Period::subMonths(int $months);
 Period::subYears(int $years);
 ```
 
+Every relative constructor takes an optional timezone, an identifier such as `Australia/Sydney` or a `DateTimeZone`
+built from one. A `past` period then starts at midnight of that zone instead of your application's, which is what
+a customer in Sydney means by "the last seven days":
+
+```php
+Period::pastDays(7, 'Australia/Sydney');
+```
+
 ##### Timezones
 
 `viewed_at` is stored as the wall clock of your application timezone. Period bounds use that same zone, and bounds
 you pass in another timezone are converted before they are compared. Keep `app.timezone` at `UTC`, Laravel's default,
-unless you have a reason not to.
+unless you have a reason not to. To draw buckets on another clock, see
+[buckets in another timezone](#buckets-in-another-timezone).
 
 #### Get view counts grouped by interval
 
@@ -493,6 +502,39 @@ views($post)->period($bucket->period())->count(); // === $bucket->count
 views($post)->period(Period::pastMonths(6))->unique()->countByInterval(Granularity::Month);
 views(Post::class)->period(Period::pastWeeks(12))->collection('homepage')->countByInterval(Granularity::Week);
 ```
+
+##### Buckets in another timezone
+
+Buckets follow the clock of your application timezone. A dashboard for a customer in Sydney wants its days to start
+at Sydney midnight, so name the zone the bucket boundaries should follow:
+
+```php
+$series = views($post)
+    ->period(Period::pastDays(30))
+    ->timezone('Australia/Sydney')
+    ->countByInterval(Granularity::Day);
+
+$series->timezone;                  // DateTimeZone, Australia/Sydney
+$series->intervals->first()->start; // 00:00 in Australia/Sydney
+```
+
+`timezone()` takes an identifier such as `Europe/Amsterdam` or a `DateTimeZone` built from one. An offset or an
+abbreviation throws `InvalidTimezone`, because it carries no daylight saving rules.
+
+A relative period follows the same clock: `Period::pastDays(30)` in the example above starts at Sydney midnight
+thirty days ago, not at midnight of your application timezone, so the first bucket is a whole day. A relative period
+built with a zone of its own, `Period::pastDays(30, 'Europe/Amsterdam')`, keeps it. Absolute bounds are instants and
+are not moved.
+
+A plain `count()` reads the same re-anchored period but has no buckets to align, so the zone changes nothing else.
+`remember()` keeps a separate cache entry per timezone.
+
+The database shifts `viewed_at` before it truncates, by a fixed number of seconds the package works out in PHP, one
+per stretch between daylight saving transitions of either zone inside the period. No driver needs zone tables, and
+the labels the database emits agree with the series by construction, whichever tzdata the server carries.
+
+A wall-clock hour that a transition repeats, in either zone, lands in one bucket, and an hour a transition skips
+stays empty. Both match what happens without a timezone.
 
 The database does the grouping, so the package ships a grammar per driver: SQLite, MySQL, MariaDB and Postgres. Any
 other driver throws `UnsupportedDriver` until you
@@ -1110,8 +1152,14 @@ $this->app->bind(
 
 The SQL that truncates `viewed_at` to a bucket differs per database, so the package ships a grammar for SQLite,
 MySQL, MariaDB and Postgres. For another driver, implement `BucketGrammar` and register it in a service provider.
-The column comes in already quoted, and the expression must yield the bucket start as `YYYY-MM-DD HH:MM:SS` with
-weeks starting on Monday.
+The column comes in already quoted. `truncate()` must yield the bucket start as `YYYY-MM-DD HH:MM:SS` with weeks
+starting on Monday. `convertTimezone()` receives a `Querying\Data\TimezoneConversion` with the `from` and `to`
+zones and the period bounds, and must yield the column read as a wall clock of `from` and rendered as a wall clock
+of `to`; the result is handed to `truncate()` in place of the column. The shipped grammars use the
+`Querying\Grammars\Concerns\ConvertsByOffset` trait, which builds that expression from the conversion's
+`segments()` and only asks the grammar how to add seconds to a column, so a new driver can do the same by
+implementing `shift()`. A grammar may convert natively instead, with `CONVERT_TZ()` or `AT TIME ZONE`, as long as
+the server's tzdata matches PHP's.
 
 ```php
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;

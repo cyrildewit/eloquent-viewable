@@ -13,6 +13,10 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 - Added `countByInterval(Granularity $granularity)` to `Views`, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
 - Added `labels()`, `values()`, `peak()`, `average()` and `toArray()` to `ViewSeries`, which is now `Arrayable` and `JsonSerializable`, plus a `label` on every `Bucket`, formatted by `Granularity::labelFormat()`
+- Added `Views::timezone()`, which aligns the buckets of `countByInterval()` to the clock of a timezone identifier such as `Australia/Sydney` and re-anchors a relative period built without a zone of its own on that clock. The database shifts `viewed_at` before it truncates by fixed offsets computed in PHP, one per stretch between daylight saving transitions of either zone, so no driver needs zone tables. `ViewsQuery` carries the zone as `timezone`, `ViewSeries` exposes it as `timezone` and `ViewSeries::fill()` takes it as an optional fourth argument. The cache key includes it. `Views::fake()` honours it
+- Added `Querying\Data\TimezoneConversion`, the conversion a bucket grammar receives, with the `from` and `to` zones, the period bounds and `segments()`, the list of `Querying\Data\OffsetSegment` fixed offsets to apply, and the `Querying\Grammars\Concerns\ConvertsByOffset` trait the shipped grammars build their `convertTimezone()` from
+- Added `Support\Timezone`, a `DateTimeZone` that only accepts an identifier, and `Exceptions\InvalidTimezone`, thrown for an offset or an abbreviation by `Views::timezone()` and the relative `Period` constructors
+- Added an optional timezone argument to every relative `Period` constructor, `Period::pastDays(7, 'Australia/Sydney')`, so a `past` period starts at midnight of that zone. The cache signature includes it
 - Added the `Support\Granularity` enum (`Hour`, `Day`, `Week`, `Month`, `Year`) for bucket sizes
 - Added the `Support\ViewsQuery` value object describing the period, collection and uniqueness of a count
 - Added the `Querying\Contracts\ViewSource` contract, read by `count()`, `countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes, with `Querying\Sources\DatabaseSource` as the default implementation
@@ -30,7 +34,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Added `Recording\Stores\ArrayStore` and the `array` store driver
 - Added `Querying\Reader`, which reads through the bound `ViewSource`, owns the `remember()` cache and the interval cap, and fills the `ViewSeries`
 - Added `Recording\Recorder`, which runs the guards and hands the record to the action or the queue and returns a `RecordResult`, and `Recording\Data\ViewAttempt`, the value object the guards receive
-- Added the `Querying\Contracts\BucketGrammar` interface, shipped grammars for SQLite, MySQL/MariaDB and Postgres, and the `Querying\Grammars\GrammarRegistry` registry for adding drivers
+- Added the `Querying\Contracts\BucketGrammar` interface with `truncate()` and `convertTimezone()`, shipped grammars for SQLite, MySQL/MariaDB and Postgres, and the `Querying\Grammars\GrammarRegistry` registry for adding drivers
 - Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract, implemented by `InteractsWithViews` to return `true`. Override it to keep the views of a deleted model
 - Added the `forViewable()` and `matching()` scopes and the `newQueryFor()` method to the `View` model
 - Added `Database\Factories\ViewFactory` behind `View::factory()`, with the `fromVisitor()`, `inCollection()` and `viewedAt()` states. A model that extends `View` inherits it and gets instances of its own class back
