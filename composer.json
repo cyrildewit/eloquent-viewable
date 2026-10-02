@@ -42,6 +42,7 @@
         "pestphp/pest": "^5.0",
         "pestphp/pest-plugin-rector": "^5.0",
         "pestphp/pest-plugin-type-coverage": "^5.0",
+        "phpbench/phpbench": "^1.7",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0",
         "rector/rector": "^2.3"
@@ -57,6 +58,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "CyrildeWit\\EloquentViewable\\Benchmarks\\": "benchmarks/",
             "CyrildeWit\\EloquentViewable\\Samples\\": "samples/",
             "CyrildeWit\\EloquentViewable\\Tests\\": "tests/"
         }
@@ -74,6 +76,11 @@
         "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
         "test:mutation": "pest --mutate --everything --covered-only --min=80",
         "deptrac:graph": "sh scripts/deptrac-graph.sh",
+        "bench": "phpbench run --report=aggregate",
+        "bench:seed": "php benchmarks/seed.php",
+        "bench:indexes": "php benchmarks/indexes.php",
+        "bench:explain": "php benchmarks/explain.php",
+        "bench:describe": "php benchmarks/describe.php",
         "rector": "rector",
         "ready": [
             "@rector",
@@ -84,6 +91,7 @@
         ]
     },
     "config": {
+        "process-timeout": 0,
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true

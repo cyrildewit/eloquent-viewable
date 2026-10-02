@@ -6,6 +6,7 @@ composer.lock
 .phpunit.cache
 .phpunit.result.cache
 /build
+/.phpbench
 
 # PHPStan
 /phpstan.neon
