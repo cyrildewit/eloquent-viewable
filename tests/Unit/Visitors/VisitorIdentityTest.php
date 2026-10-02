@@ -10,12 +10,15 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
+use Illuminate\Encryption\Encrypter;
 
-function identity(string $identity = 'cookie', mixed $appKey = 'base64:secret'): VisitorIdentity
+const IDENTITY_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+function identity(string $identity = 'cookie', string $appKey = IDENTITY_KEY): VisitorIdentity
 {
     return new VisitorIdentity(
         new Config(new Repository(['eloquent-viewable' => ['visitor' => ['identity' => $identity]]])),
-        new Repository(['app' => ['key' => $appKey]]),
+        new Encrypter($appKey, 'AES-256-CBC'),
     );
 }
 
@@ -39,7 +42,7 @@ it('derives the id from the viewer when configured', function (): void {
     $visitor->shouldNotReceive('id');
 
     expect(identity('viewer')->of($visitor, new Post(['id' => 7])))
-        ->toBe(hash_hmac('sha256', Post::class.'|7', 'base64:secret'));
+        ->toBe(hash_hmac('sha256', Post::class.'|7', IDENTITY_KEY));
 });
 
 it('falls back to the cookie id for a guest', function (): void {
@@ -56,18 +59,9 @@ it('tells viewers apart by type and key and is stable for the same one', functio
 });
 
 it('changes with the application key', function (): void {
-    expect(identity('viewer', 'base64:one')->ofViewer(new Post(['id' => 7])))
-        ->not->toBe(identity('viewer', 'base64:two')->ofViewer(new Post(['id' => 7])));
+    expect(identity('viewer', str_repeat('b', 32))->ofViewer(new Post(['id' => 7])))
+        ->not->toBe(identity('viewer')->ofViewer(new Post(['id' => 7])));
 });
-
-it('refuses to derive an id without an application key', function (mixed $appKey): void {
-    expect(fn (): string => identity('viewer', $appKey)->ofViewer(new Post(['id' => 7])))
-        ->toThrow(InvalidConfiguration::class, 'The `app.key` config value must be set to derive visitor ids from viewers.');
-})->with([
-    'null' => [null],
-    'empty' => [''],
-    'integer' => [1],
-]);
 
 it('refuses a viewer without a usable key', function (): void {
     expect(fn (): string => identity('viewer')->ofViewer(new Post))

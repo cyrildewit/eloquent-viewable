@@ -23,6 +23,9 @@ use Illuminate\Config\Repository;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Encryption\Encrypter;
+
+const RECORDER_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 /**
  * @param  list<RecordingGuard>  $guards
@@ -43,7 +46,7 @@ function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array
         $bus,
         $events ?? silentEvents(),
         $action,
-        new VisitorIdentity($config, new Repository(['app' => ['key' => 'base64:secret']])),
+        new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC')),
     );
 }
 
@@ -348,7 +351,7 @@ describe('viewer', function (): void {
     it('derives the visitor from the viewer when the identity is the viewer', function (): void {
         $viewer = new Apartment(['id' => 3]);
         $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor($viewer));
-        $expected = hash_hmac('sha256', Apartment::class.'|3', 'base64:secret');
+        $expected = hash_hmac('sha256', Apartment::class.'|3', RECORDER_KEY);
 
         $action = recordingAction(fn (ViewRecord $record): bool => $record->visitor === $expected && $record->viewerId === 3);
 

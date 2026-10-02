@@ -14,10 +14,6 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-/**
- * Not named views(), because a model can be viewable and a viewer at once
- * and InteractsWithViews owns that name.
- */
 trait HasViewHistory
 {
     /** @return MorphMany<View, $this> */
