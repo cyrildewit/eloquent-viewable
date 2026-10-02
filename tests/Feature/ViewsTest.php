@@ -22,8 +22,8 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
-use CyrildeWit\EloquentViewable\Tests\Fixtures\TestVisitor;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Bus;
@@ -782,13 +782,14 @@ describe('visitor handling', function (): void {
     it('can set the visitor instance', function (): void {
         Config::set('eloquent-viewable.recording.guards', [IgnoreCrawlers::class]);
 
+        // Any implementation of the contract will do, not only the shipped class.
+        $crawler = Mockery::mock(VisitorContract::class);
+        $crawler->shouldReceive('userAgent')
+            ->andReturn('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)');
+
         views($this->post)->record();
 
-        views($this->post)
-            ->useVisitor(
-                $this->app->make(TestVisitor::class)
-            )
-            ->record();
+        views($this->post)->useVisitor($crawler)->record();
 
         views($this->post)->record();
 
