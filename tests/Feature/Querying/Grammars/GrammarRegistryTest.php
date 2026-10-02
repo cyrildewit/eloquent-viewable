@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Querying\Contracts\BucketGrammar;
+use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedDriver;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
@@ -42,6 +43,11 @@ it('returns a registered instance as is', function (): void {
     $grammar = new class implements BucketGrammar
     {
         public function truncate(string $column, Granularity $granularity): string
+        {
+            return $column;
+        }
+
+        public function convertTimezone(string $column, TimezoneConversion $conversion): string
         {
             return $column;
         }
