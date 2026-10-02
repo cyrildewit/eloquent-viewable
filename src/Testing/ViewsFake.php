@@ -17,6 +17,7 @@ use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
@@ -147,9 +148,23 @@ final class ViewsFake implements ViewSource, ViewStore
         $start = $query->period?->getStartDateTime();
         $end = $query->period?->getEndDateTime();
 
+        $viewer = $query->viewer;
+
         return $this->recorded($viewable, fn (ViewRecord $record): bool => (! $start instanceof CarbonInterface || $record->viewedAt->greaterThanOrEqualTo($start))
             && (! $end instanceof CarbonInterface || $record->viewedAt->lessThan($end))
-            && ($query->collection === null || $record->collection === $query->collection));
+            && ($query->collection === null || $record->collection === $query->collection)
+            && (! $viewer instanceof Model || $this->viewedBy($record, $viewer)));
+    }
+
+    private function viewedBy(ViewRecord $record, Model $viewer): bool
+    {
+        $key = $viewer->getKey();
+
+        if (! is_int($key) && ! is_string($key)) {
+            return false;
+        }
+
+        return $record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === (string) $key;
     }
 
     /** @param  Collection<int, ViewRecord>  $records */

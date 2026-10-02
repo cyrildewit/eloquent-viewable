@@ -16,8 +16,11 @@ use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\ViewerKey;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
+use Illuminate\Database\Eloquent\Model;
 
 final readonly class Recorder
 {
@@ -28,6 +31,7 @@ final readonly class Recorder
         private BusDispatcher $bus,
         private EventDispatcher $events,
         private RecordsViews $action,
+        private VisitorIdentity $identity,
     ) {}
 
     /** @throws RecordingFailed */
@@ -37,6 +41,14 @@ final readonly class Recorder
 
         if ($key === null) {
             throw RecordingFailed::cannotRecordViewForViewableType();
+        }
+
+        // Resolved before the guards run, while the request is still there,
+        // so the cooldown and the record agree on who the visitor is.
+        $viewer = $this->viewerOf($attempt);
+
+        if ($viewer !== $attempt->viewer) {
+            $attempt = $attempt->withViewer($viewer);
         }
 
         foreach ($this->guards as $guard) {
@@ -50,9 +62,12 @@ final readonly class Recorder
         $record = new ViewRecord(
             viewableId: $key,
             viewableType: $attempt->viewable->getMorphClass(),
-            visitor: $attempt->visitor->id(),
+            visitor: $this->identity->of($attempt->visitor, $viewer),
             collection: $attempt->collection,
             viewedAt: Carbon::now(),
+            viewerType: $viewer?->getMorphClass(),
+            viewerId: $viewer instanceof Model ? ViewerKey::of($viewer) : null,
+            context: $attempt->context,
         );
 
         $result = $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
@@ -64,6 +79,15 @@ final readonly class Recorder
         }
 
         return $result;
+    }
+
+    private function viewerOf(ViewAttempt $attempt): ?Model
+    {
+        if ($attempt->viewer instanceof Model) {
+            return $attempt->viewer;
+        }
+
+        return $this->config->viewerEnabled() ? $attempt->visitor->viewer() : null;
     }
 
     private function handOn(ViewRecord $record, bool $queue): RecordResult

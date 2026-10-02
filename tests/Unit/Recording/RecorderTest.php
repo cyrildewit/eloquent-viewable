@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
@@ -14,25 +15,53 @@ use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * @param  list<RecordingGuard>  $guards
  * @param  array<string, mixed>  $queue
  */
-function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null): Recorder
+function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie'): Recorder
 {
+    $config = new Config(new Repository([
+        'eloquent-viewable' => [
+            'recording' => ['queue' => $queue, 'viewer' => ['enabled' => $viewerEnabled]],
+            'visitor' => ['identity' => $identity],
+        ],
+    ]));
+
     return new Recorder(
         $guards,
-        new Config(new Repository(['eloquent-viewable' => ['recording' => ['queue' => $queue]]])),
+        $config,
         $bus,
         $events ?? silentEvents(),
         $action,
+        new VisitorIdentity($config, new Repository(['app' => ['key' => 'base64:secret']])),
     );
+}
+
+function identifyingVisitor(?Model $viewer): Visitor
+{
+    $visitor = Mockery::mock(Visitor::class);
+    $visitor->allows('id')->andReturn('visitor_one');
+    $visitor->allows('viewer')->andReturn($viewer);
+
+    return $visitor;
+}
+
+function recordingAction(Closure $matches): RecordsViews
+{
+    $action = Mockery::mock(RecordsViews::class);
+    $action->expects('handle')->with(Mockery::on($matches));
+
+    return $action;
 }
 
 function silentEvents(): EventDispatcher
@@ -47,6 +76,7 @@ function attempt(?bool $queue = null, ?Carbon $cooldown = null): ViewAttempt
 {
     $visitor = Mockery::mock(Visitor::class);
     $visitor->allows('id')->andReturn('visitor_one');
+    $visitor->allows('viewer')->andReturn(null);
 
     return new ViewAttempt(new Post(['id' => 7]), $visitor, 'custom', $cooldown, $queue);
 }
@@ -91,7 +121,10 @@ function recordFor(ViewAttempt $attempt): Closure
         && $record->viewableType === Post::class
         && $record->visitor === 'visitor_one'
         && $record->collection === 'custom'
-        && $record->viewedAt->equalTo(Carbon::now());
+        && $record->viewedAt->equalTo(Carbon::now())
+        && $record->viewerType === null
+        && $record->viewerId === null
+        && $record->context === null;
 }
 
 beforeEach(function (): void {
@@ -206,6 +239,139 @@ it('does not remember a view a later guard refuses', function (): void {
     $events->allows('dispatch');
 
     expect(recorder([rememberingGuard(false), guardThat(false)], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events)->record($attempt)->recorded)->toBeFalse();
+});
+
+describe('viewer', function (): void {
+    it('records a guest view when nothing names a viewer', function (): void {
+        $attempt = attempt();
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === null && $record->viewerId === null);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('records the viewer the attempt names', function (): void {
+        $visitor = Mockery::mock(Visitor::class);
+        $visitor->allows('id')->andReturn('visitor_one');
+        $attempt = new ViewAttempt(new Post(['id' => 7]), $visitor, viewer: new Apartment(['id' => 3]));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === Apartment::class && $record->viewerId === 3);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt);
+    });
+
+    it('asks the visitor for the viewer when enabled', function (): void {
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(new Apartment(['id' => 3])));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === Apartment::class && $record->viewerId === 3);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('keeps a string viewer key as a string', function (): void {
+        $viewer = new class extends Apartment
+        {
+            protected $keyType = 'string';
+
+            public $incrementing = false;
+        };
+        $viewer->setAttribute('id', 'uuid-three');
+        $visitor = Mockery::mock(Visitor::class);
+        $visitor->allows('id')->andReturn('visitor_one');
+        $attempt = new ViewAttempt(new Post(['id' => 7]), $visitor, viewer: $viewer);
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === $viewer->getMorphClass() && $record->viewerId === 'uuid-three');
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt);
+    });
+
+    it('records a guest view when the visitor reports no viewer', function (): void {
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(null));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === null && $record->viewerId === null);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('does not ask the visitor for the viewer when disabled', function (): void {
+        $visitor = Mockery::mock(Visitor::class);
+        $visitor->allows('id')->andReturn('visitor_one');
+        $visitor->shouldNotReceive('viewer');
+        $attempt = new ViewAttempt(new Post(['id' => 7]), $visitor);
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === null && $record->viewerId === null);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt);
+    });
+
+    it('prefers the viewer the attempt names over the one the visitor reports', function (): void {
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(new Apartment(['id' => 3])), viewer: new Post(['id' => 9]));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->viewerType === Post::class && $record->viewerId === 9);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('refuses a viewer without a usable key', function (): void {
+        $visitor = Mockery::mock(Visitor::class);
+        $visitor->allows('id')->andReturn('visitor_one');
+        $attempt = new ViewAttempt(new Post(['id' => 7]), $visitor, viewer: new Apartment);
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->shouldNotReceive('handle');
+
+        expect(fn (): RecordResult => recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt))
+            ->toThrow(InvalidViewer::class, 'The key of the viewer ['.Apartment::class.'] must be an integer or a string, null given.');
+    });
+
+    it('hands the guards the attempt with the viewer resolved', function (): void {
+        $viewer = new Apartment(['id' => 3]);
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor($viewer));
+
+        $guard = Mockery::mock(RecordingGuard::class);
+        $guard->expects('allows')->with(Mockery::on(fn (ViewAttempt $seen): bool => $seen->viewer === $viewer && $seen->visitor === $attempt->visitor))->andReturn(true);
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        recorder([$guard], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('keeps the cookie id as the visitor by default', function (): void {
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(new Apartment(['id' => 3])));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->visitor === 'visitor_one' && $record->viewerId === 3);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true)->record($attempt);
+    });
+
+    it('derives the visitor from the viewer when the identity is the viewer', function (): void {
+        $viewer = new Apartment(['id' => 3]);
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor($viewer));
+        $expected = hash_hmac('sha256', Apartment::class.'|3', 'base64:secret');
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->visitor === $expected && $record->viewerId === 3);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true, identity: 'viewer')->record($attempt);
+    });
+
+    it('falls back to the cookie id for a guest when the identity is the viewer', function (): void {
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(null));
+
+        $action = recordingAction(fn (ViewRecord $record): bool => $record->visitor === 'visitor_one' && $record->viewerId === null);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true, identity: 'viewer')->record($attempt);
+    });
+});
+
+it('records the context the attempt carries', function (): void {
+    $visitor = Mockery::mock(Visitor::class);
+    $visitor->allows('id')->andReturn('visitor_one');
+    $attempt = new ViewAttempt(new Post(['id' => 7]), $visitor, context: ['source' => 'newsletter']);
+
+    $action = recordingAction(fn (ViewRecord $record): bool => $record->context === ['source' => 'newsletter']);
+
+    recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt);
 });
 
 it('does not remember a view the action fails to store', function (): void {
