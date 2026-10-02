@@ -7,8 +7,10 @@ namespace CyrildeWit\EloquentViewable\Models;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Database\Factories\ViewFactory;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
@@ -136,12 +138,16 @@ class View extends Model
         }
     }
 
-    /** @param  Builder<View>  $query */
+    /**
+     * @param  Builder<View>  $query
+     *
+     * @throws InvalidViewer
+     */
     public function scopeByViewer(Builder $query, Model $viewer): void
     {
         $query
             ->where($this->qualifyColumn('viewer_type'), $viewer->getMorphClass())
-            ->where($this->qualifyColumn('viewer_id'), $viewer->getKey());
+            ->where($this->qualifyColumn('viewer_id'), ViewerKey::of($viewer));
     }
 
     /** @param  Builder<View>  $query */

@@ -14,6 +14,7 @@ use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use Illuminate\Contracts\Container\Container;
@@ -148,23 +149,17 @@ final class ViewsFake implements ViewSource, ViewStore
         $start = $query->period?->getStartDateTime();
         $end = $query->period?->getEndDateTime();
 
+        // Resolved before filtering, as the database scope does, so a viewer
+        // without a key is refused even when nothing was recorded. A store
+        // that keeps strings hands back a string key, so keys are compared
+        // as strings.
         $viewer = $query->viewer;
+        $viewerKey = $viewer instanceof Model ? (string) ViewerKey::of($viewer) : null;
 
         return $this->recorded($viewable, fn (ViewRecord $record): bool => (! $start instanceof CarbonInterface || $record->viewedAt->greaterThanOrEqualTo($start))
             && (! $end instanceof CarbonInterface || $record->viewedAt->lessThan($end))
             && ($query->collection === null || $record->collection === $query->collection)
-            && (! $viewer instanceof Model || $this->viewedBy($record, $viewer)));
-    }
-
-    private function viewedBy(ViewRecord $record, Model $viewer): bool
-    {
-        $key = $viewer->getKey();
-
-        if (! is_int($key) && ! is_string($key)) {
-            return false;
-        }
-
-        return $record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === (string) $key;
+            && (! $viewer instanceof Model || ($record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === $viewerKey)));
     }
 
     /** @param  Collection<int, ViewRecord>  $records */
