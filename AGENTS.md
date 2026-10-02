@@ -33,7 +33,7 @@ make bench-seed         # seed the benchmark dataset, DRIVER= and SIZE= pick the
 make bench              # run the phpbench suite in benchmarks/, see benchmarks/README.md
 make bench-baseline     # store a run under TAG= to compare against
 make bench-compare      # compare against the stored TAG= and fail on a regression
-make bench-explain      # the SQL and query plan of every read path
+make bench-explain      # the SQL and query plan of every read benchmark, ARGS=--output=<file> writes JSON too
 make bench-indexes      # add or drop the optional indexes, INDEXES=
 make bench-describe     # the seeded dataset and database as JSON, ARGS=--output=<file>
 ```

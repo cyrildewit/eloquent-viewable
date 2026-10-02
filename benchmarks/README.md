@@ -13,7 +13,7 @@ numbers from the same machine, the same driver and the same dataset.
 make bench-seed                          # a million views on SQLite, a few seconds
 make bench                               # run everything
 make bench ARGS="--group=read"           # only the read queries
-make bench-explain                       # the SQL and query plan of every read path
+make bench-explain                       # the SQL and query plan of every read benchmark
 ```
 
 Pick another database with `DRIVER`. The target starts the database service first, and the service keeps its data on
@@ -105,13 +105,21 @@ make bench-indexes INDEXES=none
 
 ## Query plans
 
-`make bench-explain` prints the SQL the package generates for each read path and the plan the current driver chooses
-for it. Plans are deterministic where timings are noisy, so a query that stopped using the composite index shows up
-here as a changed plan before it shows up as a slower number. `ARGS=--analyze` executes the queries as well and shows
-the actual row counts and times, where the driver supports it.
+`make bench-explain` prints the SQL the package generates for every variant of the `read` group and the plan the
+current driver chooses for it. The cases are discovered from the benchmark classes and named as in the phpbench
+report, `CountViewsBench::benchCount (hot article, all time)`, so the report cannot drift from what `make bench`
+times. Plans are deterministic where timings are noisy, so a query that stopped using the composite index shows up
+here as a changed plan before it shows up as a slower number.
+
+`ARGS=--analyze` executes the queries as well and shows the actual row counts and times, where the driver supports
+it. `ARGS=--group=<name>` picks another phpbench group. `ARGS=--output=<file>` writes the same report as JSON next to
+printing it: the driver, whether the queries were analyzed, the group, and per variant its class, subject, parameter
+set name, parameters and every statement it ran with its plan. The results repository stores this file with every
+run and shows the SQL on each benchmark's page.
 
 ```bash
 make bench-explain DRIVER=pgsql ARGS=--analyze
+make bench-explain DRIVER=mysql ARGS="--output=build/queries.json"
 ```
 
 ## Describing the dataset
@@ -145,15 +153,17 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 
 [eloquent-viewable-benchmarks](https://github.com/cyrildewit/eloquent-viewable-benchmarks) keeps the runs of every
 release and publishes them as a website. It checks out a release, runs that release's own benchmarks through the Make
-targets here, and stores phpbench's dump with the output of `make bench-describe`. Two things in this directory are
-therefore a contract with it:
+targets here, and stores phpbench's dump with the output of `make bench-describe` and `make bench-explain
+ARGS=--output=<file>`. Two things in this directory are therefore a contract with it:
 
 - **Names.** Runs are matched across releases on the benchmark class name, the subject method and the parameter set
   name. Renaming any of them is allowed, but it ends the old line in the history and starts a new one, so do it on
-  purpose and mention it in the pull request.
-- **The Make interface.** `make build`, `make install`, `make bench-seed`, `make bench-describe` and `make bench`, with
-  `DRIVER`, `SIZE` and `ARGS` as documented above, and `bench-describe`'s JSON keys, which are only ever added to.
-  A change to either needs a matching change in the results repository.
+  purpose and mention it in the pull request. The explain report is keyed on the same three names, which
+  `tests/Unit/Benchmarks/VariantsTest.php` pins.
+- **The Make interface.** `make build`, `make install`, `make bench-seed`, `make bench-describe`, `make bench-explain`
+  and `make bench`, with `DRIVER`, `SIZE` and `ARGS` as documented above, and the JSON keys of `bench-describe` and
+  `bench-explain --output`, which are only ever added to. A change to either needs a matching change in the results
+  repository.
 
 ## How it is put together
 
