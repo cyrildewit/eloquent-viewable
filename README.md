@@ -920,8 +920,10 @@ views($post)->remember()->count();
 ## Samples
 
 The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
-[trending articles](samples/TrendingArticles) list, a [stats page](samples/ListingStats) for one listing or a
-[most viewed](samples/PopularProducts) sort over a large catalog. Each sample is tested with the rest of the suite.
+[trending articles](samples/TrendingArticles) list, a [stats page](samples/ListingStats) for one listing, a
+[most viewed](samples/PopularProducts) sort over a large catalog or a news site that
+[buffers views in Redis](samples/BreakingNews) through a traffic spike. Each sample is tested with the rest of the
+suite.
 
 ## Testing
 
@@ -1038,6 +1040,87 @@ foreach($posts as $post) {
     $post->unique_views_count = views($post)->unique()->count();
 }
 ```
+
+### Buffering views in Redis
+
+With the `database` store every recorded view is an insert statement during the request. The `redis` store replaces
+that with one `XADD` to a Redis stream, and a flusher moves the buffered views into the views table in batches of one
+insert statement each. The request gets faster and the database sees a thousand rows per statement instead of one row
+per request.
+
+```mermaid
+flowchart LR
+    record["record()"] -->|"XADD"| stream[("Redis stream")]
+    stream -->|"batches"| flusher["views:flush"]
+    flusher -->|"one insert per batch"| table[("views table")]
+    flusher -.->|"acknowledge and delete"| stream
+    table --> reads["count(), countByInterval(), scopes"]
+```
+
+Views are written to the stream during the request and read from the views table, so a view counts once the flusher
+has landed it.
+
+```php
+'recording' => [
+    'store' => [
+        'driver' => 'redis',
+        'redis' => [
+            'connection' => null,                    // a connection from database.redis, null is the default one
+            'stream' => 'eloquent-viewable:views',   // the stream key
+            'group' => 'eloquent-viewable',          // the consumer group the flusher reads through
+            'landing' => 'database',                 // the store driver flushed views land in
+        ],
+    ],
+],
+```
+
+The store needs:
+
+- Redis 7 or newer.
+- One Redis client: the `phpredis` extension, or `composer require predis/predis`. `database.redis.client` picks
+  which one is used.
+- `illuminate/redis`, which comes with `laravel/framework`. Outside the full framework, `composer require
+  illuminate/redis`.
+
+Schedule the `views:flush` command to run every minute. It lands every buffered view and reports how many. The
+`--batch` option sets how many views go into one insert statement, a thousand by default.
+
+```php
+Schedule::command('views:flush')->everyMinute()->withoutOverlapping();
+```
+
+Or dispatch `Recording\Jobs\FlushBufferedViewsJob` from wherever fits, with the same batch size as its only argument.
+Both go through `Recording\Buffering\Flusher`, which refuses with `Recording\Exceptions\StoreIsNotBuffered` when the
+configured store does not buffer. Running the flusher more than once at a time is safe: the consumer group hands every
+view to one flusher only.
+
+What changes when views are buffered:
+
+- **Counts lag until the next flush.** `count()`, `countByInterval()` and the scopes read the views table, so a view
+  counts once it has landed. A count cached with `remember()` can be stale by the cache lifetime plus the flush
+  interval.
+- **A view may land twice after a crash.** The flusher inserts a batch and then acknowledges it; a worker that dies in
+  between leaves the batch pending, and the next flush that finds it idle for a minute lands it again. The window is
+  two consecutive commands and the harm is a few views counted twice, which is accepted for view counts.
+- **`ViewRecorded` means the stream accepted the view**, not that the row exists. A listener reads what it needs from
+  `$event->record`, as the [store section](#choosing-where-views-are-stored) says.
+- **Deleting a viewable scans the stream.** `forget()` reads the buffered views to find the ones of that viewable, then
+  removes them and the landed ones. Acknowledged views are deleted from the stream on landing, so the scan covers the
+  last flush interval of traffic. A view that is being flushed at that very moment can still land afterwards, as a
+  queued view can.
+- **Leave `recording.queue.enabled` off.** Queueing defers the write and so does the buffer; combined, every view
+  becomes a job whose only work is one `XADD`.
+
+Buffered views live in Redis memory until they land, so the Redis instance holding the stream needs the same care
+as one holding a queue. Entries are never trimmed or expired by the package, because that would drop views that have
+not landed, so the stream grows for as long as the flusher does not run; keep `views:flush` monitored like any other
+scheduled task. Set the instance's `maxmemory-policy` to `noeviction`, or to one of the `volatile-*` policies, which
+only evict keys that carry an expiry. Under `allkeys-*` policies Redis may evict the whole stream when memory runs
+short. And enable persistence (AOF or RDB) if a restart must not lose the views recorded since the last flush; with a
+flush every minute, the loss without it is bounded to about a minute of traffic.
+
+The `landing` driver is where flushed views go: `database` out of the box, or any driver registered with
+`StoreManager::extend()` other than `redis` itself. A custom landing store receives the batch through `storeMany()`.
 
 ## Extending
 
@@ -1181,9 +1264,12 @@ final class RecordView implements RecordsViews
 
 ### Choosing where views are stored
 
-The `recording.store.driver` config key names the store that receives every recorded view. Two drivers ship:
+The `recording.store.driver` config key names the store that receives every recorded view. Four drivers ship:
 
 - `database` writes a row to the views table. This is the default.
+- `redis` appends the view to a Redis stream and lands it in the views table in batches, see
+  [Buffering views in Redis](#buffering-views-in-redis).
+- `array` keeps views in memory for the process, see [Testing](#testing).
 - `null` discards every view. Use it in an environment that should not record anything, or in a test suite that
   records views but never reads them back.
 
@@ -1196,7 +1282,9 @@ The `recording.store.driver` config key names the store that receives every reco
 ```
 
 Counts always read from the views table, whichever driver is set. A store that writes somewhere else is a buffer in
-front of that table and has to land its records there before they count.
+front of that table and has to land its records there before they count. Such a store implements
+`Recording\Contracts\BufferedViewStore`, which adds `flush(int $limit): int` to the contract, so the `views:flush`
+command and the `FlushBufferedViewsJob` can drain it. The shipped `redis` driver is one.
 
 To add a driver, implement `Recording\Contracts\ViewStore` and register it with the `StoreManager` in the `register`
 method of a service provider. Then name it in the config.
