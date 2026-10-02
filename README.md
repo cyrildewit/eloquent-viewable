@@ -467,6 +467,26 @@ the constructors. A range bound is a date, `2026-01-01`, or a date and time, `20
 clock of the timezone when one is given. The range is half-open like every period, so `2026-01-01..2026-02-01` is
 January. Anything else throws `InvalidPeriod`.
 
+`getRouteKey()` writes the string form back: the shorthand for a relative period, otherwise the bounds around `..`.
+`Period::subDays(7)` counts from now rather than midnight, which no shorthand says, so it renders as its bounds and
+the URL carries the moment it was built. The timezone a relative period was built in is not part of the key either;
+pass it to `parse()` again on the way back.
+
+##### In a route
+
+`Period` is `UrlRoutable`, so a `{period}` route parameter binds without a `Route::bind()` call and an unreadable
+value responds with a 404:
+
+```php
+Route::get('/posts/{post}/stats/{period}', function (Post $post, Period $period) {
+    return views($post)->period($period)->countByInterval(Granularity::Day);
+});
+
+route('posts.stats', [$post, Period::pastDays(7)]); // /posts/1/stats/7d
+```
+
+Implicit binding reads the value in your application timezone. For a per-tenant zone, take the parameter as a
+string and call `Period::parse($value, $tenant->timezone)` yourself.
 
 ##### Timezones
 

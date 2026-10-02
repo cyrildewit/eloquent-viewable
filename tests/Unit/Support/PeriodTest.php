@@ -7,6 +7,7 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Support\Period;
+use Illuminate\Contracts\Routing\UrlRoutable;
 
 it('can be constructed without arguments', function (): void {
     $period = new Period;
@@ -277,5 +278,62 @@ describe('parse', function (): void {
 
     it('rejects a timezone that is not an identifier', function (): void {
         expect(fn (): Period => Period::parse('7d', 'CEST'))->toThrow(InvalidTimezone::class);
+    });
+});
+
+describe('route binding', function (): void {
+    beforeEach(function (): void {
+        Carbon::setTestNow('2026-09-10 12:34:56');
+    });
+
+    it('is routable', function (): void {
+        expect(new Period)->toBeInstanceOf(UrlRoutable::class)
+            ->and((new Period)->getRouteKeyName())->toBe('period');
+    });
+
+    it('writes a relative period as its shorthand', function (string $method, int $value, string $key): void {
+        expect(Period::{$method}($value)->getRouteKey())->toBe($key)
+            ->and(Period::parse($key)->getRouteKey())->toBe($key);
+    })->with([
+        ['subSeconds', 90, '90s'],
+        ['subMinutes', 30, '30min'],
+        ['subHours', 12, '12h'],
+        ['pastDays', 7, '7d'],
+        ['pastWeeks', 3, '3w'],
+        ['pastMonths', 6, '6m'],
+        ['pastYears', 1, '1y'],
+    ]);
+
+    it('writes a relative period without a shorthand as its bounds', function (): void {
+        // subDays() counts from now rather than midnight, which `7d` does not say.
+        expect(Period::subDays(7)->getRouteKey())->toBe('2026-09-03T12:34:56..')
+            ->and(Period::pastDays(7, 'Australia/Sydney')->getRouteKey())->toBe('7d');
+    });
+
+    it('writes an absolute period as its bounds', function (): void {
+        expect(Period::create('2026-01-01', '2026-02-01')->getRouteKey())->toBe('2026-01-01..2026-02-01')
+            ->and(Period::create('2026-01-01 10:30:00', '2026-02-01')->getRouteKey())->toBe('2026-01-01T10:30:00..2026-02-01')
+            ->and(Period::since('2026-01-01')->getRouteKey())->toBe('2026-01-01..')
+            ->and(Period::upto('2026-02-01')->getRouteKey())->toBe('..2026-02-01')
+            ->and((new Period)->getRouteKey())->toBe('..');
+    });
+
+    it('round-trips an absolute period through parse', function (): void {
+        foreach ([Period::create('2026-01-01', '2026-02-01'), Period::create('2026-01-01 10:30:00'), Period::upto('2026-02-01 23:59:59')] as $period) {
+            expect(Period::parse($period->getRouteKey())->cacheSignature())->toBe($period->cacheSignature());
+        }
+    });
+
+    it('resolves a route value by parsing it', function (): void {
+        $period = (new Period)->resolveRouteBinding('7d');
+
+        expect($period)->toBeInstanceOf(Period::class)
+            ->and($period->getRouteKey())->toBe('7d');
+    });
+
+    it('resolves nothing for a value it cannot parse', function (): void {
+        expect((new Period)->resolveRouteBinding('nonsense'))->toBeNull()
+            ->and((new Period)->resolveRouteBinding(7))->toBeNull()
+            ->and((new Period)->resolveChildRouteBinding('post', '7d', null))->toBeNull();
     });
 });
