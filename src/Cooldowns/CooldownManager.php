@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Cooldowns;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use DateTimeInterface;
 use Illuminate\Contracts\Session\Session;
 
@@ -15,22 +16,30 @@ class CooldownManager
     public function __construct(protected Config $config, protected Session $session) {}
 
     /**
-     * Push a cooldown for the viewable model with an expiry date.
+     * Start a cooldown for the viewable unless one is still running. Returns
+     * false while the previous cooldown has not expired.
      */
     public function push(Viewable $viewable, DateTimeInterface $expiresAt, ?string $collection = null): bool
     {
-        $namespaceKey = $this->createNamespaceKey($viewable, $collection);
-        $viewableKey = $this->createViewableKey($viewable, $collection);
-
-        $this->forgetExpiredCooldowns($namespaceKey);
-
-        if (! $this->has($viewableKey)) {
-            $this->session->put($viewableKey, $this->createCooldown($viewable, $expiresAt));
-
-            return true;
+        if ($this->isActive($viewable, $collection)) {
+            return false;
         }
 
-        return false;
+        $this->start($viewable, $expiresAt, $collection);
+
+        return true;
+    }
+
+    public function isActive(Viewable $viewable, ?string $collection = null): bool
+    {
+        $this->forgetExpiredCooldowns($this->createNamespaceKey($viewable, $collection));
+
+        return $this->has($this->createViewableKey($viewable, $collection));
+    }
+
+    public function start(Viewable $viewable, DateTimeInterface $expiresAt, ?string $collection = null): void
+    {
+        $this->session->put($this->createViewableKey($viewable, $collection), $this->createCooldown($viewable, $expiresAt));
     }
 
     /**
@@ -41,15 +50,11 @@ class CooldownManager
         return $this->session->has($viewableKey);
     }
 
-    /**
-     * Create a cooldown for given viewable model.
-     *
-     * @return array{viewable_id: mixed, expires_at: DateTimeInterface}
-     */
+    /** @return array{viewable_id: int|string|null, expires_at: DateTimeInterface} */
     protected function createCooldown(Viewable $viewable, DateTimeInterface $expiresAt): array
     {
         return [
-            'viewable_id' => $viewable->getKey(),
+            'viewable_id' => ViewableKey::of($viewable),
             'expires_at' => $expiresAt,
         ];
     }
@@ -60,6 +65,7 @@ class CooldownManager
     protected function forgetExpiredCooldowns(string $key): void
     {
         $currentTime = Carbon::now();
+        /** @var array<array-key, array{expires_at: DateTimeInterface|string}> $viewHistory */
         $viewHistory = $this->session->get($key, []);
 
         foreach ($viewHistory as $viewableKey => $record) {
@@ -94,6 +100,6 @@ class CooldownManager
     {
         $key = $this->createNamespaceKey($viewable, $collection);
 
-        return $key.".{$viewable->getKey()}";
+        return $key.'.'.ViewableKey::of($viewable);
     }
 }

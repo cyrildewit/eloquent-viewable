@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\CooldownManager;
+use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Config\Repository;
 use Illuminate\Session\ArraySessionHandler;
@@ -23,7 +23,7 @@ function cooldownViewable(int $key = 1): Viewable
 
 beforeEach(function (): void {
     $config = new Config(new Repository([
-        'eloquent-viewable' => require __DIR__.'/../../config/eloquent-viewable.php',
+        'eloquent-viewable' => require __DIR__.'/../../../config/eloquent-viewable.php',
     ]));
 
     $this->session = new Store('testing', new ArraySessionHandler(120));
@@ -117,4 +117,23 @@ it('only forgets the cooldowns that have expired', function (): void {
         ->and($this->session->has(COOLDOWN_NAMESPACE.'.2'))->toBeTrue()
         ->and($this->session->has(COOLDOWN_NAMESPACE.'.3'))->toBeTrue()
         ->and($this->cooldownManager->push($active, Carbon::tomorrow()))->toBeFalse();
+});
+
+it('reports a running cooldown without starting one', function (): void {
+    expect($this->cooldownManager->isActive($this->post))->toBeFalse()
+        ->and($this->cooldownManager->isActive($this->post))->toBeFalse();
+
+    $this->cooldownManager->start($this->post, Carbon::tomorrow());
+
+    expect($this->cooldownManager->isActive($this->post))->toBeTrue()
+        ->and($this->cooldownManager->isActive($this->post, 'some-collection'))->toBeFalse();
+});
+
+it('no longer reports a cooldown once it has expired', function (): void {
+    $this->cooldownManager->start($this->post, Carbon::now()->addMinute());
+
+    Carbon::setTestNow(Carbon::now()->addMinutes(2));
+
+    expect($this->cooldownManager->isActive($this->post))->toBeFalse()
+        ->and($this->session->get(COOLDOWN_NAMESPACE))->toBe([]);
 });
