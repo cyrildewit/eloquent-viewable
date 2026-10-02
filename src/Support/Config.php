@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Support;
 
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Contracts\Config\Repository;
 
 /**
@@ -24,84 +25,139 @@ final readonly class Config
         private Repository $config,
     ) {}
 
+    /**
+     * @return class-string<View>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function viewModel(): string
+    {
+        $value = $this->get('models.view.class', View::class);
+
+        if (! is_string($value) || ! is_a($value, View::class, true)) {
+            throw InvalidConfiguration::mustBeViewModel('models.view.class', $value);
+        }
+
+        return $value;
+    }
+
+    /** @throws InvalidConfiguration */
     public function viewTable(): ?string
     {
         return $this->string('models.view.table_name');
     }
 
+    /** @throws InvalidConfiguration */
     public function viewConnection(): ?string
     {
         return $this->string('models.view.connection');
     }
 
-    /**
-     * @throws InvalidConfiguration
-     */
-    public function cacheKey(): string
+    /** @throws InvalidConfiguration */
+    public function storeDriver(): string
     {
-        return $this->nonEmptyString('cache.key');
-    }
-
-    public function cacheStore(): ?string
-    {
-        return $this->string('cache.store');
+        return $this->nonEmptyString('recording.store.driver');
     }
 
     /**
+     * @return list<class-string>
+     *
      * @throws InvalidConfiguration
      */
-    public function maxIntervals(): int
+    public function guards(): array
     {
-        return $this->positiveInteger('max_intervals');
-    }
+        $value = $this->get('recording.guards');
 
-    public function queueEnabled(): bool
-    {
-        return (bool) $this->get('queue.enabled', false);
-    }
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $value);
+        }
 
-    public function queueConnection(): ?string
-    {
-        return $this->string('queue.connection');
-    }
+        foreach ($value as $guard) {
+            if (! is_string($guard) || ! class_exists($guard)) {
+                throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $guard);
+            }
+        }
 
-    public function queueName(): ?string
-    {
-        return $this->string('queue.queue');
-    }
-
-    /**
-     * @throws InvalidConfiguration
-     */
-    public function cooldownKey(): string
-    {
-        return $this->nonEmptyString('cooldown.key');
-    }
-
-    public function ignoreBots(): bool
-    {
-        return (bool) $this->get('ignore_bots', true);
-    }
-
-    public function honorDoNotTrack(): bool
-    {
-        return (bool) $this->get('honor_dnt', false);
-    }
-
-    /**
-     * @throws InvalidConfiguration
-     */
-    public function visitorCookieKey(): string
-    {
-        return $this->nonEmptyString('visitor_cookie_key');
+        /** @var list<class-string> */
+        return array_values($value);
     }
 
     /**
      * @return list<string>
+     *
+     * @throws InvalidConfiguration
      */
     public function ignoredIpAddresses(): array
     {
-        return array_values(array_map(strval(...), (array) $this->get('ignored_ip_addresses', [])));
+        $value = (array) $this->get('recording.ignored_ip_addresses', []);
+
+        foreach ($value as $ipAddress) {
+            if (! is_string($ipAddress)) {
+                throw InvalidConfiguration::mustBeListOfStrings('recording.ignored_ip_addresses', $ipAddress);
+            }
+        }
+
+        /** @var list<string> */
+        return array_values($value);
+    }
+
+    public function queueEnabled(): bool
+    {
+        return (bool) $this->get('recording.queue.enabled', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function queueConnection(): ?string
+    {
+        return $this->string('recording.queue.connection');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function queueName(): ?string
+    {
+        return $this->string('recording.queue.queue');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function sourceDriver(): string
+    {
+        return $this->nonEmptyString('querying.source.driver');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function cacheKey(): string
+    {
+        return $this->nonEmptyString('querying.cache.key');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function cacheStore(): ?string
+    {
+        return $this->string('querying.cache.store');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function maxIntervals(): int
+    {
+        return $this->positiveInteger('querying.max_intervals');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function visitorCookieName(): string
+    {
+        return $this->nonEmptyString('visitor.cookie.name');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function visitorCookieLifetime(): int
+    {
+        return $this->positiveInteger('visitor.cookie.lifetime');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function cooldownKey(): string
+    {
+        return $this->nonEmptyString('cooldown.key');
     }
 
     private function get(string $key, mixed $default = null): mixed
@@ -109,16 +165,19 @@ final readonly class Config
         return $this->config->get("eloquent-viewable.{$key}", $default);
     }
 
+    /** @throws InvalidConfiguration */
     private function string(string $key): ?string
     {
         $value = $this->get($key);
 
-        return $value === null ? null : (string) $value;
+        if ($value !== null && ! is_string($value)) {
+            throw InvalidConfiguration::mustBeStringOrNull($key, $value);
+        }
+
+        return $value;
     }
 
-    /**
-     * @throws InvalidConfiguration
-     */
+    /** @throws InvalidConfiguration */
     private function nonEmptyString(string $key): string
     {
         $value = $this->get($key);
@@ -130,9 +189,7 @@ final readonly class Config
         return $value;
     }
 
-    /**
-     * @throws InvalidConfiguration
-     */
+    /** @throws InvalidConfiguration */
     private function positiveInteger(string $key): int
     {
         $value = $this->get($key);
