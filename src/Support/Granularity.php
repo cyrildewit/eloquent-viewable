@@ -72,6 +72,6 @@ enum Granularity: string
 
     private static function wallClock(CarbonInterface $dateTime): CarbonImmutable
     {
-        return CarbonImmutable::createFromFormat('Y-m-d H:i:s', $dateTime->format('Y-m-d H:i:s'), 'UTC');
+        return CarbonImmutable::parse($dateTime->format('Y-m-d H:i:s'), 'UTC');
     }
 }

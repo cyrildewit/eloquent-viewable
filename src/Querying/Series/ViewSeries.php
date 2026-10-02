@@ -25,9 +25,7 @@ final readonly class ViewSeries implements IteratorAggregate
 {
     private const string LABEL_FORMAT = 'Y-m-d H:i:s';
 
-    /**
-     * @param  Collection<int, Bucket>  $intervals
-     */
+    /** @param  Collection<int, Bucket>  $intervals */
     private function __construct(
         public Collection $intervals,
         public Granularity $granularity,
@@ -75,12 +73,10 @@ final readonly class ViewSeries implements IteratorAggregate
      */
     public function total(): int
     {
-        return (int) $this->intervals->sum(static fn (Bucket $bucket): int => $bucket->count);
+        return $this->intervals->sum(static fn (Bucket $bucket): int => $bucket->count);
     }
 
-    /**
-     * @return Traversable<int, Bucket>
-     */
+    /** @return Traversable<int, Bucket> */
     public function getIterator(): Traversable
     {
         return $this->intervals->getIterator();
@@ -93,7 +89,7 @@ final readonly class ViewSeries implements IteratorAggregate
      */
     private static function toNaiveClock(CarbonInterface $dateTime): CarbonImmutable
     {
-        return CarbonImmutable::createFromFormat(self::LABEL_FORMAT, $dateTime->format(self::LABEL_FORMAT), 'UTC');
+        return CarbonImmutable::parse($dateTime->format(self::LABEL_FORMAT), 'UTC');
     }
 
     /**
@@ -102,6 +98,6 @@ final readonly class ViewSeries implements IteratorAggregate
      */
     private static function toLocalClock(string $label): CarbonImmutable
     {
-        return CarbonImmutable::createFromFormat(self::LABEL_FORMAT, $label, date_default_timezone_get());
+        return CarbonImmutable::parse($label, date_default_timezone_get());
     }
 }
