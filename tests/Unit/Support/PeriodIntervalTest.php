@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Support\PeriodAnchor;
 use CyrildeWit\EloquentViewable\Support\PeriodInterval;
 
 it('subtracts {interval} without mutating the date', function (PeriodInterval $interval, string $expected): void {
@@ -21,3 +22,22 @@ it('subtracts {interval} without mutating the date', function (PeriodInterval $i
     'months' => [PeriodInterval::Months, '2025-10-10 12:00:00'],
     'years' => [PeriodInterval::Years, '2023-01-10 12:00:00'],
 ]);
+
+it('has a shorthand per {interval} that reads back', function (PeriodInterval $interval, string $shorthand, PeriodAnchor $anchor): void {
+    expect($interval->shorthand())->toBe($shorthand)
+        ->and(PeriodInterval::fromShorthand($shorthand))->toBe($interval)
+        ->and($interval->anchor())->toBe($anchor);
+})->with([
+    'seconds' => [PeriodInterval::Seconds, 's', PeriodAnchor::Sub],
+    'minutes' => [PeriodInterval::Minutes, 'min', PeriodAnchor::Sub],
+    'hours' => [PeriodInterval::Hours, 'h', PeriodAnchor::Sub],
+    'days' => [PeriodInterval::Days, 'd', PeriodAnchor::Past],
+    'weeks' => [PeriodInterval::Weeks, 'w', PeriodAnchor::Past],
+    'months' => [PeriodInterval::Months, 'm', PeriodAnchor::Past],
+    'years' => [PeriodInterval::Years, 'y', PeriodAnchor::Past],
+]);
+
+it('reads no interval from an unknown shorthand', function (): void {
+    expect(PeriodInterval::fromShorthand('x'))->toBeNull()
+        ->and(PeriodInterval::fromShorthand('D'))->toBeNull();
+});
