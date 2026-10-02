@@ -54,16 +54,43 @@ return [
         /*
          * Where a recorded view goes. The `database` driver writes a row to
          * the views table during the request, or from a queue worker when
-         * queueing is enabled. The `null` driver discards every view, for
+         * queueing is enabled. The `redis` driver appends the view to a
+         * Redis stream and lands it in the views table in batches when
+         * `views:flush` runs. The `null` driver discards every view, for
          * environments that should not record anything. The `array` driver
          * keeps views in memory for the process. Register your own driver
          * with `StoreManager::extend()`.
          *
          * Counts always read from the views table, whichever driver is set.
+         * Under the `redis` driver a view counts once it has been flushed.
          */
         'store' => [
 
             'driver' => 'database',
+
+            'redis' => [
+
+                /*
+                 * The Redis connection from `database.redis` that holds the
+                 * stream. When `null`, the default connection is used.
+                 */
+                'connection' => null,
+
+                /*
+                 * The key of the stream and the name of the consumer group
+                 * the flusher reads it through.
+                 */
+                'stream' => 'eloquent-viewable:views',
+
+                'group' => 'eloquent-viewable',
+
+                /*
+                 * The store driver flushed views land in. Any driver but
+                 * `redis` itself.
+                 */
+                'landing' => 'database',
+
+            ],
 
         ],
 
