@@ -4,6 +4,7 @@ services:
       context: ./docker
     volumes:
       - .:/var/www/html
+      - bench-sqlite:/var/lib/benchmarks
     environment:
       # Coverage mode by default so `make test-coverage` and `make test-mutation` work
       # out of the box. Override with XDEBUG_MODE=off for a faster plain run.
@@ -13,15 +14,19 @@ services:
       DB_CONNECTION:
       DB_HOST:
       DB_PORT:
-      DB_DATABASE: testing
+      # The benchmark targets point this at the `benchmark` database instead.
+      DB_DATABASE: ${DB_DATABASE:-testing}
       DB_USERNAME: testing
       DB_PASSWORD: testing
+      # The SQLite benchmark dataset lives on a named volume, see below.
+      BENCH_SQLITE_PATH: /var/lib/benchmarks/benchmark.sqlite
 
   composer:
     build:
       context: ./docker
     volumes:
       - .:/var/www/html
+      - bench-sqlite:/var/lib/benchmarks
     entrypoint: ["composer"]
     environment:
       # Coverage mode by default so `make test-coverage` and `make test-mutation` work
@@ -32,9 +37,12 @@ services:
       DB_CONNECTION:
       DB_HOST:
       DB_PORT:
-      DB_DATABASE: testing
+      # The benchmark targets point this at the `benchmark` database instead.
+      DB_DATABASE: ${DB_DATABASE:-testing}
       DB_USERNAME: testing
       DB_PASSWORD: testing
+      # The SQLite benchmark dataset lives on a named volume, see below.
+      BENCH_SQLITE_PATH: /var/lib/benchmarks/benchmark.sqlite
 
   # `make test-mysql`, `make test-mariadb` and `make test-pgsql` start these and
   # run the suite against them. By hand, for example:
@@ -73,3 +81,64 @@ services:
       test: ["CMD-SHELL", "pg_isready -U testing"]
       interval: 5s
       retries: 20
+
+  # `make bench DRIVER=mysql|mariadb|pgsql` runs the benchmarks against these.
+  # They sit behind the `bench` profile so the test targets never start them,
+  # and keep their data on named volumes so a seeded dataset survives
+  # `make db-stop`. The buffer pool and shared buffers are raised so a medium
+  # dataset's indexes fit in memory and a run measures the query shape, not
+  # Docker's disk. `docker compose --profile bench down -v` throws the data
+  # away.
+  bench-mysql:
+    image: mysql:8.4
+    profiles: [bench]
+    command: --innodb-buffer-pool-size=1G
+    environment:
+      MYSQL_DATABASE: benchmark
+      MYSQL_USER: testing
+      MYSQL_PASSWORD: testing
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - bench-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+
+  bench-mariadb:
+    image: mariadb:11
+    profiles: [bench]
+    command: --innodb-buffer-pool-size=1G
+    environment:
+      MARIADB_DATABASE: benchmark
+      MARIADB_USER: testing
+      MARIADB_PASSWORD: testing
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - bench-mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  bench-postgres:
+    image: postgres:17
+    profiles: [bench]
+    command: -c shared_buffers=1GB -c work_mem=64MB
+    shm_size: 1gb
+    environment:
+      POSTGRES_DB: benchmark
+      POSTGRES_USER: testing
+      POSTGRES_PASSWORD: testing
+    volumes:
+      - bench-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testing"]
+      interval: 5s
+      retries: 20
+
+volumes:
+  bench-sqlite:
+  bench-mysql:
+  bench-mariadb:
+  bench-postgres:
