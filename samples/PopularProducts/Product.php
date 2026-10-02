@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $name
  * @property int $views_count Kept up to date by CountProductView.
+ * @property int|null $recorded_views Set when the product is loaded through RecountProductViews.
  */
 class Product extends Model implements Viewable
 {
