@@ -4,102 +4,48 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Cooldowns;
 
-use Carbon\Carbon;
-use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\Stores\SessionStore;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\ViewableKey;
-use DateTimeInterface;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Session\Session;
+use Illuminate\Support\Manager;
+use Illuminate\Support\Str;
 
-class CooldownManager
+/** @method CooldownStore driver(?string $driver = null) */
+final class CooldownManager extends Manager
 {
-    public function __construct(protected Config $config, protected Session $session) {}
+    public function __construct(Container $container, private readonly Config $packageConfig)
+    {
+        parent::__construct($container);
+    }
+
+    public function getDefaultDriver(): string
+    {
+        return $this->packageConfig->cooldownStore();
+    }
 
     /**
-     * Start a cooldown for the viewable unless one is still running. Returns
-     * false while the previous cooldown has not expired.
+     * @param  string  $driver
+     *
+     * @throws InvalidConfiguration
      */
-    public function push(Viewable $viewable, DateTimeInterface $expiresAt, ?string $collection = null): bool
+    #[\Override]
+    protected function createDriver($driver): CooldownStore
     {
-        if ($this->isActive($viewable, $collection)) {
-            return false;
+        if (! isset($this->customCreators[$driver]) && ! method_exists($this, 'create'.Str::studly($driver).'Driver')) {
+            throw InvalidConfiguration::unknownDriver('cooldown.store', $driver);
         }
 
-        $this->start($viewable, $expiresAt, $collection);
+        /** @var CooldownStore $store */
+        $store = parent::createDriver($driver);
 
-        return true;
+        return $store;
     }
 
-    public function isActive(Viewable $viewable, ?string $collection = null): bool
+    protected function createSessionDriver(): SessionStore
     {
-        $this->forgetExpiredCooldowns($this->createNamespaceKey($viewable, $collection));
-
-        return $this->has($this->createViewableKey($viewable, $collection));
-    }
-
-    public function start(Viewable $viewable, DateTimeInterface $expiresAt, ?string $collection = null): void
-    {
-        $this->session->put($this->createViewableKey($viewable, $collection), $this->createCooldown($viewable, $expiresAt));
-    }
-
-    /**
-     * Determine if the given model has been viewed.
-     */
-    protected function has(string $viewableKey): bool
-    {
-        return $this->session->has($viewableKey);
-    }
-
-    /** @return array{viewable_id: int|string|null, expires_at: DateTimeInterface} */
-    protected function createCooldown(Viewable $viewable, DateTimeInterface $expiresAt): array
-    {
-        return [
-            'viewable_id' => ViewableKey::of($viewable),
-            'expires_at' => $expiresAt,
-        ];
-    }
-
-    /**
-     * Remove all expired cooldowns from the session.
-     */
-    protected function forgetExpiredCooldowns(string $key): void
-    {
-        $currentTime = Carbon::now();
-        /** @var array<array-key, array{expires_at: DateTimeInterface|string}> $viewHistory */
-        $viewHistory = $this->session->get($key, []);
-
-        foreach ($viewHistory as $viewableKey => $record) {
-            if (Carbon::parse($record['expires_at'])->lte($currentTime)) {
-                $this->session->forget($key.'.'.$viewableKey);
-            }
-        }
-    }
-
-    /**
-     * Create a base key from the given viewable model.
-     *
-     * Returns for example:
-     * => `eloquent-viewable.session.key.app-models-post`
-     */
-    protected function createNamespaceKey(Viewable $viewable, ?string $collection = null): string
-    {
-        $key = $this->config->cooldownKey();
-        $key .= '.'.strtolower(str_replace('\\', '-', $viewable->getMorphClass()));
-        $key .= is_string($collection) ? ":{$collection}" : '';
-
-        return $key;
-    }
-
-    /**
-     * Create a unique key from the given viewable model.
-     *
-     * Returns for example:
-     * => `eloquent-viewable.session.key.app-models-post.1`
-     */
-    protected function createViewableKey(Viewable $viewable, ?string $collection = null): string
-    {
-        $key = $this->createNamespaceKey($viewable, $collection);
-
-        return $key.'.'.ViewableKey::of($viewable);
+        return new SessionStore($this->container->make(Session::class), $this->packageConfig->cooldownKey());
     }
 }

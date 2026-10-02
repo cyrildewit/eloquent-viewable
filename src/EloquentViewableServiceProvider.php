@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
@@ -102,6 +104,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(VisitorContract::class, Visitor::class);
+
+        $this->app->singleton(CooldownManager::class);
+
+        $this->app->bind(CooldownStore::class, fn (Application $app): CooldownStore => $app->make(CooldownManager::class)->driver());
 
         // The detector judges the user agent it is handed, so it holds no
         // request state and one instance serves the whole process. The

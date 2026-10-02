@@ -222,6 +222,14 @@ return [
     'cooldown' => [
 
         /*
+         * Where running cooldowns are kept. The `session` driver keeps them
+         * in the visitor's session, as v8 did, so they do nothing on routes
+         * without one. Register your own driver with
+         * `CooldownManager::extend()`.
+         */
+        'store' => 'session',
+
+        /*
          * Everything will be stored under the following key in the session.
          */
         'key' => 'cyrildewit.eloquent-viewable.cooldowns',

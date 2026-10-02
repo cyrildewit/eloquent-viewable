@@ -155,6 +155,12 @@ final readonly class Config
     }
 
     /** @throws InvalidConfiguration */
+    public function cooldownStore(): string
+    {
+        return $this->nonEmptyString('cooldown.store');
+    }
+
+    /** @throws InvalidConfiguration */
     public function cooldownKey(): string
     {
         return $this->nonEmptyString('cooldown.key');
