@@ -57,6 +57,7 @@
         <li><a href="#caching-view-counts">Caching view counts</a></li>
       </ul>
     </li>
+    <li><a href="#samples">Samples</a></li>
     <li><a href="#optimizing">Optimizing</a>
       <ul>
         <li><a href="#database-indexes">Database indexes</a></li>
@@ -522,6 +523,11 @@ views($post)->remember(now()->addWeeks(2))->count();
 // Cache forever
 views($post)->remember()->count();
 ```
+
+## Samples
+
+The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
+[trending articles](samples/TrendingArticles) list. Each sample is tested with the rest of the suite.
 
 ## Optimizing
 
