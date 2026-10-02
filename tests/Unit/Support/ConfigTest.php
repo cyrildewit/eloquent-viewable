@@ -189,3 +189,33 @@ it('rejects a view model that does not extend the shipped one', function (mixed 
     'null' => [null, 'null'],
     'array' => [[], 'array'],
 ]);
+
+it('reads the redis store settings', function (): void {
+    $config = packageConfig(['recording' => ['store' => ['redis' => [
+        'connection' => 'views',
+        'stream' => 'views:stream',
+        'group' => 'flushers',
+        'landing' => 'array',
+    ]]]]);
+
+    expect($config)
+        ->redisConnection()->toBe('views')
+        ->redisStream()->toBe('views:stream')
+        ->redisGroup()->toBe('flushers')
+        ->redisLandingDriver()->toBe('array')
+        ->and(packageConfig())->redisConnection()->toBeNull();
+});
+
+it('rejects an empty redis store key', function (string $method, string $key): void {
+    expect(fn (): string => packageConfig()->{$method}())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.recording.store.redis.{$key}` config value must be a non-empty string, null given.");
+})->with([
+    ['redisStream', 'stream'],
+    ['redisGroup', 'group'],
+    ['redisLandingDriver', 'landing'],
+]);
+
+it('rejects a redis connection that is not a string', function (): void {
+    expect(fn (): ?string => packageConfig(['recording' => ['store' => ['redis' => ['connection' => 1]]]])->redisConnection())
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.recording.store.redis.connection` config value must be a string or null, `1` given.');
+});

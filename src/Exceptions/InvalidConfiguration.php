@@ -39,6 +39,11 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value names a driver that is not registered, `{$driver}` given.");
     }
 
+    public static function mustNameAnotherDriver(string $key, string $driver): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must name a driver other than `{$driver}`, which would land its views in itself.");
+    }
+
     public static function mustBeListOfClasses(string $key, mixed $value): self
     {
         return new self("The `eloquent-viewable.{$key}` config value must be a list of class names, ".self::describe($value).' given.');

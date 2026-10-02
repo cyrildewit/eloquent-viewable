@@ -59,6 +59,30 @@ final readonly class Config
         return $this->nonEmptyString('recording.store.driver');
     }
 
+    /** @throws InvalidConfiguration */
+    public function redisConnection(): ?string
+    {
+        return $this->string('recording.store.redis.connection');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function redisStream(): string
+    {
+        return $this->nonEmptyString('recording.store.redis.stream');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function redisGroup(): string
+    {
+        return $this->nonEmptyString('recording.store.redis.group');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function redisLandingDriver(): string
+    {
+        return $this->nonEmptyString('recording.store.redis.landing');
+    }
+
     /**
      * @return list<class-string>
      *

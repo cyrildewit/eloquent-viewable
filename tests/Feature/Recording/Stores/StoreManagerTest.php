@@ -7,11 +7,14 @@ use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\NullStore;
+use CyrildeWit\EloquentViewable\Recording\Stores\RedisStreamStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Support\Facades\Config;
 
 it('is a singleton', function (): void {
@@ -71,4 +74,66 @@ it('rejects a driver that is not registered', function (): void {
 
     expect(fn (): ViewStore => $this->app->make(ViewStore::class))
         ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.recording.store.driver` config value names a driver that is not registered, `clickhouse` given.');
+});
+
+describe('redis driver', function (): void {
+    beforeEach(function (): void {
+        Config::set('database.redis.client', 'predis');
+        Config::set('eloquent-viewable.recording.store.driver', 'redis');
+        $this->app->forgetInstance('redis');
+        $this->app->make(RedisFactory::class)->connection()->command('del', ['eloquent-viewable:views']);
+    });
+
+    it('builds the redis store in front of the database store', function (): void {
+        $post = Post::factory()->create();
+        $store = $this->app->make(StoreManager::class)->driver();
+
+        expect($store)->toBeInstanceOf(RedisStreamStore::class);
+
+        views($post)->record();
+
+        expect(View::count())->toBe(0)
+            ->and($store->flush())->toBe(1)
+            ->and(View::count())->toBe(1);
+    });
+
+    it('lands in the store named as landing', function (): void {
+        Config::set('eloquent-viewable.recording.store.redis.landing', 'array');
+
+        $manager = $this->app->make(StoreManager::class);
+        $post = Post::factory()->create();
+
+        views($post)->record();
+        $manager->driver()->flush();
+
+        /** @var ArrayStore $landing */
+        $landing = $manager->driver('array');
+
+        expect($landing->records())->toHaveCount(1)
+            ->and(View::count())->toBe(0);
+    });
+
+    it('reads the stream from the named connection', function (): void {
+        Config::set('database.redis.views', Config::get('database.redis.default'));
+        Config::set('eloquent-viewable.recording.store.redis.connection', 'views');
+        Config::set('eloquent-viewable.recording.store.redis.stream', 'views:buffer');
+        $this->app->forgetInstance('redis');
+
+        $post = Post::factory()->create();
+        $redis = $this->app->make(RedisFactory::class)->connection('views');
+        $redis->command('del', ['views:buffer']);
+
+        views($post)->record();
+
+        expect($redis->command('xlen', ['views:buffer']))->toBe(1)
+            ->and($this->app->make(ViewStore::class)->flush())->toBe(1)
+            ->and($redis->command('xlen', ['views:buffer']))->toBe(0);
+    });
+
+    it('refuses to land in itself', function (): void {
+        Config::set('eloquent-viewable.recording.store.redis.landing', 'redis');
+
+        expect(fn (): ViewStore => $this->app->make(ViewStore::class))
+            ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.recording.store.redis.landing` config value must name a driver other than `redis`, which would land its views in itself.');
+    });
 });
