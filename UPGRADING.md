@@ -192,6 +192,26 @@ A published v8 config has no `recording.guards` key, so the package defaults app
 
 When a guard refuses, the package now dispatches `Recording\Events\ViewSkipped` with the attempt and the guard. `record()` still returns `false` in that case; the event is additive.
 
+`Views` gained `attempt()`, which records like `record()` but returns a `Recording\Data\RecordResult` with `recorded`, `queued` and `skippedBy`, the guard that refused the view or `null`. `record()` keeps returning `bool`, so nothing changes for existing calls. Switch to `attempt()` where you need to know why a view was not recorded:
+
+```php
+use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+
+// Before
+if (! views($post)->record()) {
+    // skipped, but by what?
+}
+
+// After
+$result = views($post)->attempt();
+
+if ($result->wasSkippedBy(EnforceCooldown::class)) {
+    // ...
+}
+```
+
+`Recording\Recorder::record()` returns that `RecordResult` instead of `bool`. Only code that calls the recorder directly rather than through `Views` is affected.
+
 The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader` and `Recording\Contracts\ViewStore`. The config, the cache, the cooldown manager, the bus dispatcher and the count actions are gone from it. Only a subclass that overrides the constructor is affected.
 
 ### The visitor reports its user agent, the detector judges it

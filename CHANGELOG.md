@@ -22,12 +22,13 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Added the `Cooldowns\Contracts\CooldownStore` contract and the `cooldown.store` config option. `Cooldowns\CooldownManager` builds the store it names: `session`, the default, or `cache`, which keeps cooldowns in the store named by `cooldown.cache.store`. Add a driver with `CooldownManager::extend()`. An unregistered name throws `InvalidConfiguration`
 - Added `Cooldowns\Cooldown`, which builds the key a cooldown is kept under from the viewable, the visitor id and the collection
 - Added `Recording\Events\ViewSkipped`, dispatched with the attempt and the guard that refused it
+- Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` with `recorded`, `queued` and `skippedBy`, the guard that refused the view or `null`, plus `wasSkippedBy(string $guard)`. `record()` keeps returning `bool`
 - Added `Visitors\Contracts\Visitor::userAgent()` and `hasGlobalPrivacyControl()`. The shipped `Visitor` joins the `User-Agent` header with the device headers a proxy adds, the same list the crawler detector library reads
 - Added the `visitor.cookie.lifetime` config option, the lifetime of the visitor cookie in minutes. It was a constant of five years before and still defaults to that
 - Added `Testing\ViewsFake` and `Facades\Views::fake()`, an in-memory stand-in for the store and the source with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `Testing\Exceptions\UnsupportedInFake` under the fake
 - Added `Recording\Stores\ArrayStore` and the `array` store driver
 - Added `Querying\Reader`, which reads through the bound `ViewSource`, owns the `remember()` cache and the interval cap, and fills the `ViewSeries`
-- Added `Recording\Recorder`, which runs the guards and hands the record to the action or the queue, and `Recording\Data\ViewAttempt`, the value object the guards receive
+- Added `Recording\Recorder`, which runs the guards and hands the record to the action or the queue and returns a `RecordResult`, and `Recording\Data\ViewAttempt`, the value object the guards receive
 - Added the `Querying\Contracts\BucketGrammar` interface, shipped grammars for SQLite, MySQL/MariaDB and Postgres, and the `Querying\Grammars\GrammarRegistry` registry for adding drivers
 - Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract, implemented by `InteractsWithViews` to return `true`. Override it to keep the views of a deleted model
 - Added the `forViewable()` and `matching()` scopes and the `newQueryFor()` method to the `View` model
