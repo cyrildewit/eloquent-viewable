@@ -624,6 +624,9 @@ Storing every view as its own record is what makes detailed, time-based analytic
   history you can periodically delete rows from the `views` table yourself (for example with a scheduled command).
 - **Table partitioning** at very large scale to keep queries fast.
 
+The repository has a [benchmark suite](benchmarks) that times these paths against millions of seeded views on every
+supported database, and prints the query plan each driver chooses. The optional indexes below were measured with it.
+
 ### Database indexes
 
 The `views` table migration creates two indexes: one on `viewable_type` and `viewable_id` (from `morphs()`), and a

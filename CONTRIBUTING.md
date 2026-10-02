@@ -164,6 +164,23 @@ Feature tests share one database per process. The schema is created once and `Re
 which does not reset auto-increment counters, so ids keep climbing from one test to the next. Assert on a model's own
 key rather than a literal id.
 
+### Benchmarks
+
+The `benchmarks` directory holds a [phpbench](https://phpbench.readthedocs.io/) suite that times the paths that get
+expensive as the `views` table grows, against a seeded dataset of a million to fifty million rows, on every supported
+driver. It does not run with the tests or in CI. Use it when you change a query, a grammar or anything on the recording
+path: store a run on `main`, switch to your branch and compare.
+
+```bash
+make bench-seed DRIVER=mysql SIZE=medium
+git switch main && make bench-baseline DRIVER=mysql TAG=main
+git switch my-branch && make bench-compare DRIVER=mysql TAG=main
+```
+
+`make bench-explain` prints the SQL and the query plan of every read path, which is the quickest way to see whether a
+query still uses the composite index. [`benchmarks/README.md`](benchmarks/README.md) documents the dataset, the
+targets and the optional indexes.
+
 When you make a pull request, the tests will be automatically run again
 by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).
 
