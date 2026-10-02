@@ -147,6 +147,24 @@ The container binding for `Recording\Contracts\ViewStore` now resolves through `
 
 A direct `$this->app->bind(ViewStore::class, ...)` keeps working and overrides the manager. To make a store selectable by name instead, register it with `StoreManager::extend()`. See the README under [Choosing where views are stored](README.md#choosing-where-views-are-stored).
 
+### Cooldowns are selected through `cooldown.store`
+
+`Cooldowns\CooldownManager` now builds the `Cooldowns\Contracts\CooldownStore` named by the new `cooldown.store` config key, and `EnforceCooldown` depends on that contract. The `session` driver is the default and behaves as in v8. The new `cache` driver keeps cooldowns in the cache store named by `cooldown.cache.store`, so they also work on routes without a session. See the README under [Where cooldowns are kept](README.md#where-cooldowns-are-kept).
+
+A published v8 config has a `cooldown` block without the new keys, and Laravel does not merge nested defaults into it. Add them, otherwise every `views()` call throws `Exceptions\InvalidConfiguration` naming `cooldown.store`:
+
+```php
+'cooldown' => [
+    'store' => 'session',
+    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
+    'cache' => [
+        'store' => null,
+    ],
+],
+```
+
+`CooldownManager::push()` is gone. Code that called it uses the store instead, with a key from `Cooldowns\Cooldown::of($viewable, $visitorId, $collection)->key()`. The session store keeps cooldowns in a new format, so cooldowns running when you deploy end early, once.
+
 ### Counting goes through a source
 
 `Views::count()`, `Views::countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes all read through the `Querying\Contracts\ViewSource` bound in the container. If you replaced the `Views` class to change how counts are computed, implementing that contract is now the smaller change, and it reaches the scopes too. The `querying.source.driver` config key names the source; the package default is `database`, so nothing changes until you set it. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).
@@ -212,7 +230,7 @@ Every top-level key except `models` and `cooldown` moved under a group named aft
 | `visitor_cookie_key` | `visitor.cookie.name` |
 | `ignore_bots` | removed; `IgnoreCrawlers` is listed in `recording.guards` by default, remove it to record crawler views |
 | `honor_dnt` | removed; list `IgnoreDoNotTrack` in `recording.guards` |
-| `cooldown` | unchanged |
+| `cooldown` | gained `cooldown.store` and `cooldown.cache.store`, see [above](#cooldowns-are-selected-through-cooldownstore) |
 | `models` | unchanged |
 
 The cookie lifetime, five years before and hard-coded, is now `visitor.cookie.lifetime` in minutes. `Support\Config::visitorCookieKey()` is now `visitorCookieName()`, and `ignoreBots()` and `honorDoNotTrack()` are gone; that class is internal, so only code that reached into it is affected.
