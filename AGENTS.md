@@ -102,8 +102,8 @@ Fix PHPStan errors rather than ignoring them.
 
 ## Conventions
 
-Commit messages follow Conventional Commits. `CONTRIBUTING.md` has the format, the allowed types and
-how to signal a breaking change.
+Commit messages and pull request titles follow Conventional Commits. `CONTRIBUTING.md` has the format, the
+allowed types and how to signal a breaking change.
 
 Document behaviour changes in `README.md`, and add an entry to `CHANGELOG.md` under Unreleased.
 A breaking change also needs a section in `UPGRADING.md`, under the heading for the version being
