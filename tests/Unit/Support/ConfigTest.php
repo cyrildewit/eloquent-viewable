@@ -93,8 +93,10 @@ it('reads the visitor cookie settings', function (): void {
         ->visitorCookieLifetime()->toBe(120);
 });
 
-it('reads the cooldown key', function (): void {
-    expect(packageConfig(['cooldown' => ['key' => 'cooldowns']]))->cooldownKey()->toBe('cooldowns');
+it('reads the cooldown settings', function (): void {
+    expect(packageConfig(['cooldown' => ['store' => 'cache', 'key' => 'cooldowns']]))
+        ->cooldownStore()->toBe('cache')
+        ->cooldownKey()->toBe('cooldowns');
 });
 
 it('rejects a positive integer key that is not one', function (string $method, string $key, mixed $value, string $described): void {
@@ -139,6 +141,7 @@ it('rejects an empty key', function (string $method, string $key): void {
         ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.{$key}` config value must be a non-empty string, `\"\"` given.");
 })->with([
     'cache key' => ['cacheKey', 'querying.cache.key'],
+    'cooldown store' => ['cooldownStore', 'cooldown.store'],
     'cooldown key' => ['cooldownKey', 'cooldown.key'],
     'visitor cookie name' => ['visitorCookieName', 'visitor.cookie.name'],
     'store driver' => ['storeDriver', 'recording.store.driver'],
