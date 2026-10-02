@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 pest()->extend(UnitTestCase::class)->in('Unit');
 
-pest()->extend(FeatureTestCase::class)->in('Feature');
+pest()->extend(FeatureTestCase::class)->in('Feature', '../samples');
 
 /**
  * The driver the suite is running against. SQL string assertions are written

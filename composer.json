@@ -54,6 +54,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "CyrildeWit\\EloquentViewable\\Samples\\": "samples/",
             "CyrildeWit\\EloquentViewable\\Tests\\": "tests/"
         }
     },
@@ -64,6 +65,7 @@
         "test:arch": "pest --testsuite=Architecture",
         "test:unit": "pest --testsuite=Unit",
         "test:feature": "pest --testsuite=Feature",
+        "test:samples": "pest --testsuite=Samples",
         "test:coverage": "pest --coverage-clover build/coverage.xml --min=100",
         "test:types": "phpstan analyse --memory-limit=512M",
         "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
