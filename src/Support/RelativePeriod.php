@@ -7,8 +7,8 @@ namespace CyrildeWit\EloquentViewable\Support;
 use Carbon\CarbonInterface;
 
 /**
- * What a relative period was asked for, kept so its cache signature does
- * not drift as the wall clock moves.
+ * What a relative period was asked for, kept so its cache signature and
+ * route key do not drift as the wall clock moves.
  *
  * @internal
  */
@@ -31,5 +31,14 @@ final readonly class RelativePeriod
         $signature = "{$this->anchor->value}{$this->value}{$this->interval->value}";
 
         return $this->timezone instanceof Timezone ? "{$signature}@{$this->timezone->getName()}" : $signature;
+    }
+
+    /**
+     * Null when the interval is counted from the other anchor, which no
+     * shorthand says.
+     */
+    public function shorthand(): ?string
+    {
+        return $this->interval->anchor() === $this->anchor ? "{$this->value}{$this->interval->shorthand()}" : null;
     }
 }

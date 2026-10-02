@@ -18,6 +18,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Added `Support\Timezone`, a `DateTimeZone` that only accepts an identifier, and `Exceptions\InvalidTimezone`, thrown for an offset or an abbreviation by `Views::timezone()`, `Period::parse()` and the relative `Period` constructors
 - Added `Period::parse()`, which reads a period from its string form: a shorthand such as `7d`, `3w`, `6m` or `1y`, counted back from midnight like `pastDays()`, or `90s`, `30min` or `12h`, counted back from now like `subHours()`, or a range of ISO 8601 bounds such as `2026-01-01..2026-02-01`, `2026-01-01T10:30:00..` or `..2026-02-01`. Takes an optional timezone. Anything else throws `InvalidPeriod`
 - Added an optional timezone argument to every relative `Period` constructor, `Period::pastDays(7, 'Australia/Sydney')`, so a `past` period starts at midnight of that zone. The cache signature includes it
+- `Period` now implements `UrlRoutable`: a `{period}` route parameter binds implicitly, an unreadable value responds with a 404, and `route()` renders a period through `getRouteKey()`, the shorthand for a relative period or the bounds around `..`
 - Added `PeriodInterval::shorthand()`, `PeriodInterval::fromShorthand()` and `PeriodInterval::anchor()`, and `Support\RelativePeriod`, which keeps what a relative period was asked for, for internal use
 - Added the `Support\Granularity` enum (`Hour`, `Day`, `Week`, `Month`, `Year`) for bucket sizes
 - Added the `Support\ViewsQuery` value object describing the period, collection and uniqueness of a count

@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use DateTimeInterface;
 use DateTimeZone;
+use Illuminate\Contracts\Routing\UrlRoutable;
 
 /**
  * A half-open range of time, `[start, end)`. The start is included and the end
@@ -20,9 +21,10 @@ use DateTimeZone;
  * that is the wall clock `viewed_at` is stored in.
  *
  * A period has a string form, `7d`, `3m` or `2026-01-01..2026-02-01`, that
- * `parse()` reads, so it can travel in a URL.
+ * `parse()` reads and `getRouteKey()` writes, so it can travel in a URL and
+ * bind to a route parameter.
  */
-final readonly class Period
+final readonly class Period implements UrlRoutable
 {
     private const string RANGE_SEPARATOR = '..';
 
@@ -184,6 +186,21 @@ final readonly class Period
     }
 
     /**
+     * What `parse()` reads back. The timezone a relative period was built in
+     * is not part of it; hand it to `parse()` again on the way back.
+     */
+    public function getRouteKey(): string
+    {
+        $shorthand = $this->relative?->shorthand();
+
+        if ($shorthand !== null) {
+            return $shorthand;
+        }
+
+        return $this->formatBound($this->startDateTime).self::RANGE_SEPARATOR.$this->formatBound($this->endDateTime);
+    }
+
+    /**
      * A relative period built without a zone of its own, re-anchored on the
      * clock of the timezone. Any other period is already a pair of instants.
      *
@@ -198,6 +215,32 @@ final readonly class Period
         return self::relative($this->relative->anchor, $this->relative->interval, $this->relative->value, $timezone);
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'period';
+    }
+
+    /**
+     * Null for an unreadable value, which the router turns into a 404.
+     */
+    public function resolveRouteBinding(mixed $value, mixed $field = null): ?self // @phpstan-ignore method.childReturnType (the contract documents a Model, the router only needs a UrlRoutable)
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        try {
+            return self::parse($value);
+        } catch (InvalidPeriod) {
+            return null;
+        }
+    }
+
+    public function resolveChildRouteBinding(mixed $childType, mixed $value, mixed $field): null
+    {
+        return null;
+    }
+
     /**
      * @throws InvalidPeriod
      * @throws InvalidTimezone
@@ -207,6 +250,15 @@ final readonly class Period
         $relative = new RelativePeriod($anchor, $interval, $value, $timezone === null ? null : Timezone::from($timezone));
 
         return new self($relative->startDateTime(), null, $relative);
+    }
+
+    private function formatBound(?CarbonInterface $bound): string
+    {
+        if (! $bound instanceof CarbonInterface) {
+            return '';
+        }
+
+        return $bound->format($bound->format('H:i:s') === '00:00:00' ? 'Y-m-d' : 'Y-m-d\\TH:i:s');
     }
 
     /** @throws InvalidPeriod */
