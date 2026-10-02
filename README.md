@@ -57,6 +57,8 @@
         </li>
         <li><a href="#get-view-count-of-viewable-type">Get view count of viewable type</a></li>
         <li><a href="#view-collections">View collections</a></li>
+        <li><a href="#who-viewed-what">Who viewed what</a></li>
+        <li><a href="#storing-context-with-a-view">Storing context with a view</a></li>
         <li><a href="#remove-views-on-delete">Remove views on delete</a></li>
         <li><a href="#caching-view-counts">Caching view counts</a></li>
       </ul>
@@ -297,9 +299,11 @@ work is handing the record to the buffer. With a buffering store, leave `recordi
 > When a view is queued, the `ViewRecorded` event is dispatched from the queue worker
 > instead of the request. Its listeners therefore run **without request context**. The
 > session, cookies, `request()` and `auth()->user()` are unavailable and will return empty
-> or `null` values. If a listener needs request-derived data (such as the authenticated
-> user or the IP address), capture it during the request instead of reading it inside the
-> listener. The event carries the `ViewRecord` that was recorded, under `$event->record`.
+> or `null` values. If a listener needs request-derived data (such as the IP address),
+> capture it during the request instead of reading it inside the listener. The event
+> carries the `ViewRecord` that was recorded, under `$event->record`. The signed-in model
+> is already on it as `viewerType` and `viewerId` when [recording the viewer](#who-viewed-what)
+> is enabled, and anything passed to [`context()`](#storing-context-with-a-view) as `context`.
 
 ### Setting a cooldown
 
@@ -674,6 +678,194 @@ views($post)
     ->count();
 ```
 
+### Who viewed what
+
+A view can be linked to the model that was signed in when it was recorded. The link is a polymorphic pair,
+`viewer_type` and `viewer_id`, so any Eloquent model can be a viewer: a `User`, an `Admin`, a `Team` acting through
+a token, or a mix of them in the same table. Guests leave the columns `null`.
+
+#### Recording the viewer
+
+Recording the signed-in model is off by default, because it ties a view to an identity. Turn it on in the config
+file. `guard` names the auth guard the model is read from, and `null` means the application's default guard.
+
+```php
+// config/eloquent-viewable.php
+'recording' => [
+    'viewer' => [
+        'enabled' => true,
+        'guard' => null,
+    ],
+],
+```
+
+Every `record()` call then stores the model that guard returns. To credit a view to a model yourself, for example
+in a console command or when recording on behalf of someone, pass it to `viewedBy()`. It wins over the signed-in
+model and works whether or not the switch is on. `viewedBy(null)` clears it again, so the signed-in model, if any,
+is used.
+
+```php
+views($post)->viewedBy($user)->record();
+```
+
+The viewer is resolved during the request, so a queued view keeps it. The `ViewRecord` on the `ViewRecorded` event
+carries it as `viewerType` and `viewerId`.
+
+The `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl` guards drop the whole view for visitors who send those
+headers, so listing them is the way to respect that choice; there is no "record the view but not who" variant.
+
+#### Counting the views of one viewer
+
+The same `viewedBy()` method narrows a count. It combines with every other modifier.
+
+```php
+views($post)->viewedBy($user)->count();
+views($post)->viewedBy($user)->period(Period::pastDays(7))->count();
+views($post)->viewedBy($user)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
+views(Post::class)->viewedBy($user)->count(); // every post
+```
+
+`unique()` keeps counting distinct visitors, not distinct viewers. To make one account count as one visitor, see
+[Counting one account as one visitor](#counting-one-account-as-one-visitor).
+
+#### Counting one account as one visitor
+
+By default the `visitor` column holds the random id from the cookie, so `unique()` counts browsers and a cooldown
+holds per browser. A user on three devices is three unique views, and a request on an API without a cookie is a new
+visitor every time. Set `visitor.identity` to `viewer` to derive the visitor id from the signed-in model instead,
+whenever one is known through `recording.viewer` or `viewedBy()`. Guests still get the cookie id.
+
+```php
+// config/eloquent-viewable.php
+'visitor' => [
+    'identity' => 'viewer',
+],
+```
+
+The id is an HMAC of the model's type and key with `app.key`, so the column does not reveal the key on its own, and
+it is sixty-four characters long. Rotating the application key changes every derived id, which splits the unique
+counts of signed-in users at that moment. For the visitor-based scopes, the same id comes from the
+`Visitors\VisitorIdentity` service:
+
+```php
+$visitor = app(\CyrildeWit\EloquentViewable\Visitors\VisitorIdentity::class)->ofViewer($user);
+
+Post::whereNotViewedByVisitor($visitor)->get();
+```
+
+A visitor who views as a guest and then signs in is two unique visitors, once under the cookie and once under the
+account. Every analytics tool has that seam.
+
+#### Which models a viewer has seen
+
+Two scopes on your viewable models answer "has this user seen it" for a whole result set. Both take an optional
+period and collection and build an existence check against the `views` table.
+
+```php
+Post::whereViewedBy($user)->get();
+Post::whereNotViewedBy($user)->get();                          // the unread ones
+Post::whereViewedBy($user, Period::pastDays(7))->get();
+Post::whereNotViewedBy($user, collection: 'sidebar')->get();
+```
+
+For a guest the same question can be asked of the visitor id, which the `Visitor` class reads from its cookie.
+
+```php
+$visitor = app(\CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor::class)->id();
+
+Post::whereViewedByVisitor($visitor)->get();
+Post::whereNotViewedByVisitor($visitor)->get();
+```
+
+#### The viewer side
+
+Add the `HasViewHistory` trait to the model that views things. It is optional: the `viewer` relation on the `View`
+model and the `View::byViewer($user)` scope work on any model without it.
+
+```php
+use CyrildeWit\EloquentViewable\Concerns\HasViewHistory;
+
+class User extends Authenticatable
+{
+    use HasViewHistory;
+}
+```
+
+```php
+$user->viewed();                                 // MorphMany of View, newest first
+$user->viewed()->with('viewable')->paginate();   // what they looked at
+$user->hasViewed($post);                         // bool
+$user->hasViewed($post, Period::pastDays(7));
+$user->hasViewed(new Post);                      // any post at all
+$user->lastViewedAt($post);                      // Carbon or null
+```
+
+The relation is called `viewed()` rather than `views()` because a model can be viewable and a viewer at once, and
+`InteractsWithViews` already owns `views()`.
+
+Reading the other way round, every `View` has a `viewer` relation, and `View::byViewer($user)` and
+`View::byVisitor($id)` scope a query on the view model.
+
+```php
+$post->views()->with('viewer')->latest('viewed_at')->get();
+$post->views()->byViewer($user)->exists();
+```
+
+#### Deleting a user
+
+Nothing happens to the views automatically, and there is no foreign key: a `views` table often lives on another
+connection, and a constraint would make deleting a user walk through every row they ever viewed. Their views keep
+pointing at a model that is gone and `$view->viewer` returns `null`. For an account deletion flow, detach them first
+so the counts survive and the identity does not:
+
+```php
+$user->viewed()->update(['viewer_type' => null, 'viewer_id' => null]);
+```
+
+A view that is queued or buffered at that moment can still land afterwards with the viewer set, in the same way a
+queued view can land after a force delete.
+
+### Storing context with a view
+
+The `views` table has a nullable `context` JSON column for whatever you want to keep with a view: a referrer, a
+source, a locale, a tenant, an identity that is not an Eloquent model. The package writes it and never reads it.
+Pass an array to `context()`; it is encoded on the way in and cast back to an array on the `View` model.
+
+```php
+views($post)->context([
+    'source' => request('src'),
+    'referrer' => request()->headers->get('referer'),
+])->record();
+```
+
+The context is captured during the request, so a queued view keeps it. Query it with Laravel's JSON path syntax,
+which works on MySQL, MariaDB, PostgreSQL and SQLite alike:
+
+```php
+$post->views()->where('context->source', 'newsletter')->count();
+$post->views()->whereNull('context->referrer')->count();
+```
+
+MySQL stores a JSON object with its keys sorted, so do not rely on the order of the keys when reading it back.
+
+A query on a JSON path cannot use the table's indexes. If one key is hot, add a generated column for it in a
+migration of your own and index that:
+
+```php
+$table->string('source')->virtualAs("json_unquote(json_extract(context, '$.source'))")->nullable()->index();
+```
+
+If you prefer an object with accessors over a plain array, add
+[spatie/laravel-schemaless-attributes](https://github.com/spatie/laravel-schemaless-attributes) to your
+application and put its cast on [your own `View` model](#using-your-own-view-eloquent-model):
+
+```php
+protected function casts(): array
+{
+    return ['context' => SchemalessAttributes::class];
+}
+```
+
 ### Remove views on delete
 
 When a viewable model is deleted, the package deletes its views with it. To keep the views, override
@@ -748,6 +940,7 @@ it('records a view of the post', function (): void {
     $fake->assertRecorded($post);
     $fake->assertRecorded($post, 1);
     $fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->collection === 'sidebar');
+    $fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->viewerId === $user->getKey());
     $fake->assertNotRecorded($otherPost);
     $fake->assertNothingRecorded();
     $fake->assertForgotten($post);
@@ -759,14 +952,15 @@ it('records a view of the post', function (): void {
 
 The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
 in the fake either. `count()`,
-`unique()`, `period()`, `collection()` and `countByInterval()` read from the fake. The `withViewsCount()` and
+`unique()`, `period()`, `collection()`, `viewedBy()` and `countByInterval()` read from the fake. The `withViewsCount()` and
 `orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
 
 The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
 process that should keep views in memory without the assertions.
 
 For tests and seeders that need rows in the `views` table, the `View` model ships a factory. `fromVisitor()`,
-`inCollection()` and `viewedAt()` set the three columns a count reads; everything else is a plain Laravel factory.
+`inCollection()`, `viewedAt()`, `by()` and `withContext()` set the columns a count or a scope reads; everything else
+is a plain Laravel factory.
 
 ```php
 use CyrildeWit\EloquentViewable\Models\View;
@@ -774,6 +968,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 View::factory()->for($post, 'viewable')->count(3)->create();
 View::factory()->for($post, 'viewable')->fromVisitor('visitor_one')->inCollection('sidebar')->create();
 View::factory()->for($post, 'viewable')->viewedAt(now()->subDays(2))->create();
+View::factory()->for($post, 'viewable')->by($user)->withContext(['source' => 'newsletter'])->create();
 ```
 
 A [custom `View` model](#using-your-own-view-eloquent-model) inherits the factory and gets instances of its own
@@ -867,6 +1062,9 @@ The `Visitor` class reports what the request says about the current visitor. The
 decision, so a visitor never judges anything itself. It provides:
 
 - a unique identifier (stored in a cookie named by `visitor.cookie.name`, for `visitor.cookie.lifetime` minutes)
+- the signed-in model, read from the guard named by `recording.viewer.guard`, or `null` for a guest. A custom
+  visitor that cannot know, say on an API without a session, returns `null` and records guest views unless
+  `viewedBy()` names a viewer
 - the IP address
 - the user agent, including the device headers a proxy such as Opera Mini adds
 - whether the Do Not Track header is set
@@ -962,8 +1160,8 @@ $this->app->bind(
 );
 ```
 
-Your implementation receives the `ViewRecord` value object. It holds the viewable type and key, the visitor, the
-collection and `viewed_at`, and returns nothing. The shipped action passes the record to the bound
+Your implementation receives the `ViewRecord` value object. It holds the viewable type and key, the viewer type and
+key, the visitor, the collection, the context and `viewed_at`, and returns nothing. The shipped action passes the record to the bound
 `Recording\Contracts\ViewStore`, which is where the row is written and where `views($post)->destroy()` and a force
 delete remove rows again. To change only where views are written, bind a store instead of replacing the action. See
 [Choosing where views are stored](#choosing-where-views-are-stored).
