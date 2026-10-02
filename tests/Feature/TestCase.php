@@ -44,8 +44,8 @@ abstract class TestCase extends OrchestraTestCase
     protected function defineDatabaseMigrationsAfterDatabaseRefreshed(): void
     {
         require_once __DIR__.'/../../database/migrations/create_views_table.php.stub';
-        require_once __DIR__.'/../database/migrations/2018_02_22_194715_create_posts_table.php';
-        require_once __DIR__.'/../database/migrations/2018_02_22_194716_create_apartments_table.php';
+        require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194715_create_posts_table.php';
+        require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194716_create_apartments_table.php';
 
         new \CreateViewsTable()->up();
         new \CreatePostsTable()->up();
