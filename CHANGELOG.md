@@ -11,6 +11,19 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 ### Added
 
+- Added nullable `viewer_type` and `viewer_id` columns to the `create_views_table` stub, a polymorphic link from a view to the model that was signed in when it was recorded. Any Eloquent model can be a viewer; existing installations add the columns with the migration in the upgrade guide
+- Added the `recording.viewer.enabled` and `recording.viewer.guard` config options. When enabled, every recorded view stores the model signed in on that auth guard, or the default guard for `null`. Off by default
+- Added `Views::viewedBy(?Model $viewer)`, which credits a recorded view to the given model whether or not recording the viewer is enabled, and narrows `count()` and `countByInterval()` to the views that model made. `null` clears it
+- Added the `whereViewedBy()`, `whereNotViewedBy()`, `whereViewedByVisitor()` and `whereNotViewedByVisitor()` scopes to `InteractsWithViews`, each with an optional period and collection, backed by `Querying\Scopes\WhereViewed`
+- Added the `Concerns\HasViewHistory` trait for the viewer side, with `viewed()`, `hasViewed()` and `lastViewedAt()`
+- Added the `viewer()` relation and the `byViewer()` and `byVisitor()` scopes to the `View` model, and `matching()` now applies the viewer of a `ViewsQuery`
+- Added `Visitors\Contracts\Visitor::viewer()`, the signed-in model or `null` for a guest. The shipped `Visitor` reads it from the configured auth guard
+- Added the `visitor.identity` config option. `cookie`, the default, keeps the random cookie id in the `visitor` column. `viewer` derives the id from the signed-in model when one is known, an HMAC of its type and key with `app.key`, so `unique()` counts one account as one visitor on every device and a cooldown holds across them; guests keep the cookie id. `Visitors\VisitorIdentity` resolves it, and `ofViewer()` gives the id of a model for the visitor-based scopes. An unknown value throws `InvalidConfiguration`, as does a missing `app.key` when deriving
+- Added `Support\ViewerKey` and `Exceptions\InvalidViewer`, thrown when a viewer's key is neither an integer nor a string
+- Added a nullable `context` JSON column to the `create_views_table` stub and `Views::context(?array $context)`, which stores an array with the view. The `View` model casts it back to an array; the package never reads it
+- Added `viewerType`, `viewerId` and `context` to `Data\ViewRecord`, carried through `toArray()`, `toPayload()` and `fromPayload()`
+- Added `viewer` to `Support\ViewsQuery` and to the cache key digest, and `viewer` and `context` to `Recording\Data\ViewAttempt`
+- Added the `by()` and `withContext()` states to `Database\Factories\ViewFactory`
 - Added `countByInterval(Granularity $granularity)` to `Views`, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
 - Added `labels()`, `values()`, `peak()`, `average()` and `toArray()` to `ViewSeries`, which is now `Arrayable` and `JsonSerializable`, plus a `label` on every `Bucket`, formatted by `Granularity::labelFormat()`
 - Added `Views::timezone()`, which aligns the buckets of `countByInterval()` to the clock of a timezone identifier such as `Australia/Sydney` and re-anchors a relative period built without a zone of its own on that clock. The database shifts `viewed_at` before it truncates by fixed offsets computed in PHP, one per stretch between daylight saving transitions of either zone, so no driver needs zone tables. `ViewsQuery` carries the zone as `timezone`, `ViewSeries` exposes it as `timezone` and `ViewSeries::fill()` takes it as an optional fourth argument. The cache key includes it. `Views::fake()` honours it
@@ -57,6 +70,9 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 ### Changed
 
 - The `create_views_table` migration stub now also creates a composite `(viewable_type, viewable_id, viewed_at)` index named `views_viewable_viewed_at_index`; existing installations add it with the migration in the upgrade guide
+- `Visitors\Visitor` now takes the auth factory as a fourth constructor argument, to read the signed-in model for `viewer()`
+- `Recording\Recorder` resolves the viewer before the guards run and hands them the attempt with `viewer` set, and takes `Visitors\VisitorIdentity` as a sixth constructor argument. `Recording\Guards\EnforceCooldown` takes it as a second argument and keys the cooldown on the resolved visitor id
+- `Views::fake()` honours `viewedBy()` when counting and keeps the viewer and the context on the recorded `ViewRecord`
 - `Period` is now half-open: the start is included and the end is excluded, so `Period::create($a, $b)` and `Period::upto($b)` no longer match a view recorded exactly at `$b`
 - `Period` now converts its bounds to the application timezone in its constructor, so bounds built in another timezone match the stored `viewed_at` wall clock and the getters return that zone
 - `CacheKey` moved to `Querying\Cache\CacheKey`, and `CacheKey::make()` now takes a `ViewsQuery` and an optional `Granularity` instead of three loose parameters, and the digest changed and now includes the `querying.source.driver` name, so cached counts from earlier versions are recalculated once and switching the source driver starts fresh entries
