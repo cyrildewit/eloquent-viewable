@@ -1,13 +1,14 @@
 # Draws the dependencies between the layers of src/. Run `make deptrac-graph`
-# to render build/deptrac.png. The Pest arch tests in tests/Architecture
-# enforce the rules; this file only feeds the picture.
+# to render build/deptrac.png. The Pest arch tests in tests/Arch enforce the
+# rules; this file only feeds the picture.
 #
 # Layers, from the top down:
 #
 #   EntryPoints   service provider, facade, trait, helpers
+#   Testing       the fake behind Views::fake(), stands in for both sides
 #   Views         the builder that ties recording and counting together
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
-#   Foundation    Support, Contracts, Exceptions, the View model, PendingView
+#   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
 # The ruleset lets each layer depend on any layer below it. An edge that points
 # up, or sideways between two modules, breaks it and is drawn in red.
@@ -15,6 +16,7 @@
 deptrac:
   paths:
     - ./src
+    - ./database/factories
 
   cache_file: ./build/.deptrac.cache
 
@@ -22,31 +24,27 @@ deptrac:
     - name: Foundation
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\(Support|Contracts|Exceptions)\\.*
-        - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\(View|PendingView)$
+          value: ^CyrildeWit\\EloquentViewable\\(Support|Data|Models|Database\\Factories|Contracts|Exceptions)\\.*
 
     - name: Crawlers
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\CrawlerDetectAdapter$
+          value: ^CyrildeWit\\EloquentViewable\\Crawlers\\.*
 
     - name: Visitors
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\Visitor$
+          value: ^CyrildeWit\\EloquentViewable\\Visitors\\.*
 
     - name: Cooldowns
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\CooldownManager$
+          value: ^CyrildeWit\\EloquentViewable\\Cooldowns\\.*
 
     - name: Recording
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\(Actions|Events|Jobs)\\.*
-        - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\ViewableObserver$
+          value: ^CyrildeWit\\EloquentViewable\\Recording\\.*
 
     - name: Querying
       collectors:
@@ -60,10 +58,17 @@ deptrac:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Views$
 
+    - name: Testing
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Testing\\.*
+
     - name: EntryPoints
       collectors:
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\(EloquentViewableServiceProvider|ViewsFacade|InteractsWithViews)$
+          value: ^CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider$
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(Facades|Concerns)\\.*
         - type: directory
           value: src/helpers\.php
 
@@ -76,27 +81,35 @@ deptrac:
 
   ruleset:
     Foundation: ~
+    # "Is this a bot": a verdict on a user agent string. A leaf.
     Crawlers:
       - Foundation
       - CrawlerDetect
+    # "Who is viewing": facts about the request. A leaf; it judges nothing.
     Visitors:
       - Foundation
     Cooldowns:
       - Foundation
+    # The guards read the visitor's facts, ask the detector for a verdict and
+    # push cooldowns.
     Recording:
       - Foundation
+      - Visitors
+      - Crawlers
+      - Cooldowns
     Querying:
       - Foundation
     Views:
       - +Recording
       - +Querying
-      - +Cooldowns
-      - +Visitors
-      - +Crawlers
+    Testing:
+      - +Recording
+      - +Querying
     EntryPoints:
       - +Views
-      # The service provider builds the CrawlerDetect instance the adapter
-      # wraps. Wiring is its job, so it may know the concrete package.
+      - Testing
+      # The service provider binds the crawler adapter and the CrawlerDetect
+      # instance it wraps. Wiring is its job, so it may know both.
       - CrawlerDetect
 
   formatters:

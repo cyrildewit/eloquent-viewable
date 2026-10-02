@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories;
+namespace CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Factories;
 
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends Factory<Post>
- */
+/** @extends Factory<Post> */
 class PostFactory extends Factory
 {
     #[\Override]
     protected $model = Post::class;
 
+    /** @return array<model-property<Post>, mixed> */
     public function definition(): array
     {
         return [

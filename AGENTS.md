@@ -16,7 +16,7 @@ make rector             # rector
 make test               # the full Pest suite
 make test-unit          # tests/Unit
 make test-feature       # tests/Feature
-make test-arch          # tests/Architecture
+make test-arch          # tests/Arch
 make test-samples       # the tests next to each sample in samples/
 make test-lint          # pint --test, checks style without fixing
 make test-types         # phpstan
@@ -61,7 +61,7 @@ Each driver target starts its database service and waits for the healthcheck, so
 
 Put a test in `tests/Unit` unless it needs something only a booted application provides: the
 container, the database, a facade or the service provider. Those go in `tests/Feature`. The unit
-suite finishes in well under a second and that is worth protecting. `tests/Architecture` holds Pest
+suite finishes in well under a second and that is worth protecting. `tests/Arch` holds Pest
 arch expectations about the shape of `src/`.
 
 ## Things that will bite you
@@ -76,7 +76,7 @@ next. Never assert on a literal primary key; read the key off the model instead.
 Docker Compose reads a root `.env` for variable interpolation, so a stray one silently repoints
 `make test` at another driver. It is gitignored, but do not create one.
 
-PHPStan has a baseline in `phpstan-baseline.neon`. Fix new errors rather than adding to it.
+Fix PHPStan errors rather than ignoring them.
 
 ## Conventions
 
