@@ -11,8 +11,10 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
@@ -47,10 +49,10 @@ it('is macroable', function (): void {
     expect($this->app->make(Views::class)->newMethod())->toBe('someValue');
 });
 
-it('requires a viewable before it counts, records or destroys views', function (string $method): void {
+it('requires a viewable before it counts, records, attempts or destroys views', function (string $method): void {
     expect(fn (): mixed => $this->app->make(Views::class)->{$method}())
         ->toThrow(InvalidViewable::class, 'No viewable was given. Call forViewable() before counting, recording or destroying views.');
-})->with(['count', 'record', 'destroy']);
+})->with(['count', 'record', 'attempt', 'destroy']);
 
 describe('recording', function (): void {
     it('can record a view', function (): void {
@@ -89,6 +91,41 @@ describe('recording', function (): void {
         views($this->post)->record();
 
         Event::assertDispatched(ViewRecorded::class);
+    });
+
+    it('reports a stored view through attempt()', function (): void {
+        $result = views($this->post)->attempt();
+
+        expect($result)->toBeInstanceOf(RecordResult::class)
+            ->and($result->recorded)->toBeTrue()
+            ->and($result->queued)->toBeFalse()
+            ->and($result->skippedBy)->toBeNull()
+            ->and(View::count())->toBe(1);
+    });
+
+    it('reports a queued view through attempt()', function (): void {
+        Bus::fake();
+
+        $result = views($this->post)->queue()->attempt();
+
+        expect($result->recorded)->toBeTrue()
+            ->and($result->queued)->toBeTrue()
+            ->and($result->skippedBy)->toBeNull();
+
+        Bus::assertDispatched(RecordViewJob::class);
+    });
+
+    it('reports the guard that skipped the view through attempt()', function (): void {
+        views($this->post)->cooldown(Carbon::now()->addMinutes(10))->record();
+
+        $result = views($this->post)->cooldown(Carbon::now()->addMinutes(10))->attempt();
+
+        expect($result->recorded)->toBeFalse()
+            ->and($result->queued)->toBeFalse()
+            ->and($result->skippedBy)->toBeInstanceOf(EnforceCooldown::class)
+            ->and($result->wasSkippedBy(EnforceCooldown::class))->toBeTrue()
+            ->and($result->wasSkippedBy(IgnoreCrawlers::class))->toBeFalse()
+            ->and(View::count())->toBe(1);
     });
 });
 
