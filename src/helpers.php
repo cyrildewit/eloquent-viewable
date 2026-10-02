@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Contracts\Views;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Container\Container;
 
 // @codeCoverageIgnoreStart
