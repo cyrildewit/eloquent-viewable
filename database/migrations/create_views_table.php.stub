@@ -25,8 +25,10 @@ class CreateViewsTable extends Migration
         $this->schema->create($this->table, function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->morphs('viewable');
+            $table->nullableMorphs('viewer');
             $table->string('visitor')->nullable();
             $table->string('collection')->nullable();
+            $table->json('context')->nullable();
             $table->timestamp('viewed_at')->useCurrent();
 
             $table->index(['viewable_type', 'viewable_id', 'viewed_at'], 'views_viewable_viewed_at_index');
