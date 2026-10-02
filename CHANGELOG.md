@@ -11,33 +11,71 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 ### Added
 
-- Added `countByInterval(Granularity $granularity)` to `Views` and the `Views` contract, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
+- Added `countByInterval(Granularity $granularity)` to `Views`, returning a gap-filled `Querying\Series\ViewSeries` of `Bucket` objects per hour, day, week, month or year
 - Added the `Support\Granularity` enum (`Hour`, `Day`, `Week`, `Month`, `Year`) for bucket sizes
 - Added the `Support\ViewsQuery` value object describing the period, collection and uniqueness of a count
-- Added the `Querying\Contracts\CountsViews` and `Querying\Contracts\CountsViewsByInterval` actions, with default implementations under `Querying\Actions\` bound in the container
+- Added the `Querying\Contracts\ViewSource` contract, read by `count()`, `countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes, with `Querying\Sources\DatabaseSource` as the default implementation
+- Added the `querying.source.driver` config option and `Querying\Sources\SourceManager`, which builds the source it names. The `database` driver ships; add one with `SourceManager::extend()`. An unregistered name throws `InvalidConfiguration`
+- Added the `Querying\Scopes\WithViewsCount` and `Querying\Scopes\OrderByViews` classes behind the trait scopes of the same name
+- Added the `Recording\Contracts\RecordingGuard` contract and the `recording.guards` config option, a list of guard classes every recorded view passes in order. The list is the only switch for a guard. `IgnoreCrawlers`, `IgnoreIpAddresses` and `Recording\Guards\EnforceCooldown` are listed out of the box; `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl` ship commented out in the config file
+- Added the `Recording\Contracts\RemembersRecordedViews` contract for guards that keep state about the views they let through. The recorder calls `remember()` once every guard has allowed the view and it is stored or queued, so `EnforceCooldown` no longer has to be listed last and a view another guard drops never starts a cooldown
+- Added `CooldownManager::isActive()` and `start()`; `push()` combines the two
+- Added `Recording\Events\ViewSkipped`, dispatched with the attempt and the guard that refused it
+- Added `Visitors\Contracts\Visitor::userAgent()` and `hasGlobalPrivacyControl()`. The shipped `Visitor` joins the `User-Agent` header with the device headers a proxy adds, the same list the crawler detector library reads
+- Added the `visitor.cookie.lifetime` config option, the lifetime of the visitor cookie in minutes. It was a constant of five years before and still defaults to that
+- Added `Testing\ViewsFake` and `Facades\Views::fake()`, an in-memory stand-in for the store and the source with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `Testing\Exceptions\UnsupportedInFake` under the fake
+- Added `Recording\Stores\ArrayStore` and the `array` store driver
+- Added `Querying\Reader`, which reads through the bound `ViewSource`, owns the `remember()` cache and the interval cap, and fills the `ViewSeries`
+- Added `Recording\Recorder`, which runs the guards and hands the record to the action or the queue, and `Recording\Data\ViewAttempt`, the value object the guards receive
 - Added the `Querying\Contracts\BucketGrammar` interface, shipped grammars for SQLite, MySQL/MariaDB and Postgres, and the `Querying\Grammars\GrammarRegistry` registry for adding drivers
+- Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract, implemented by `InteractsWithViews` to return `true`. Override it to keep the views of a deleted model
 - Added the `forViewable()` and `matching()` scopes and the `newQueryFor()` method to the `View` model
+- Added `Database\Factories\ViewFactory` behind `View::factory()`, with the `fromVisitor()`, `inCollection()` and `viewedAt()` states. A model that extends `View` inherits it and gets instances of its own class back
 - Added `Bucket::period()` for drilling from a bucket into a `count()`
 - Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws
-- Added the `max_intervals` config option, defaulting to `10000`
+- Added the `querying.max_intervals` config option, defaulting to `10000`
+- Added the `models.view.class` config option, the model class used for views. It defaults to `Models\View` and must name a class that extends it, otherwise `Support\Config` throws `InvalidConfiguration`
 - Added `Support\Config`, typed access to the config file for internal use.
 - Added `Querying\Exceptions\InvalidInterval` and `Querying\Exceptions\UnsupportedDriver`
-- Added `Exceptions\InvalidConfiguration`, thrown by `Support\Config` when `max_intervals` is not a positive integer or when `cache.key`, `cooldown.key` or `visitor_cookie_key` is empty
-- Added `Exceptions\InvalidViewable`, thrown by the `views()` helper for a class name that does not implement `Contracts\Viewable`. It extends `InvalidArgumentException`, so existing `catch` blocks keep working
+- Added `Exceptions\InvalidConfiguration`, thrown by `Support\Config` when `querying.max_intervals` or `visitor.cookie.lifetime` is not a positive integer or when `querying.cache.key`, `cooldown.key` or `visitor.cookie.name` is empty, when `models.view.table_name`, `models.view.connection`, `recording.queue.connection`, `recording.queue.queue` or `querying.cache.store` is neither a string nor `null`, or when `recording.ignored_ip_addresses` holds something other than strings
+- Added `Exceptions\InvalidViewable`, thrown by the `views()` helper for a class name that does not implement `Contracts\Viewable`, when a viewable's key is cast to something other than an integer or a string, and when `Views` counts, records or destroys views before `forViewable()` was called. It extends `InvalidArgumentException`, so existing `catch` blocks keep working
+- Added the `Recording\Contracts\ViewStore` contract with `store()`, `storeMany()` and `forget()`, and `Recording\Stores\DatabaseStore` as the default implementation. The record action, `Views::destroy()` and the observer all write through it. `storeMany()` lands a batch of records in one insert statement
+- Added the `recording.store.driver` config option and `Recording\Stores\StoreManager`, which builds the store it names. The `database` and `null` drivers ship; add one with `StoreManager::extend()`. An unregistered name throws `InvalidConfiguration`
+- Added `Recording\Stores\NullStore`, a store that discards every view
+- Added `ViewRecord::toPayload()` and `ViewRecord::fromPayload()` for stores that keep records as flat scalars
 
 ### Changed
 
 - The `create_views_table` migration stub now also creates a composite `(viewable_type, viewable_id, viewed_at)` index named `views_viewable_viewed_at_index`; existing installations add it with the migration in the upgrade guide
 - `Period` is now half-open: the start is included and the end is excluded, so `Period::create($a, $b)` and `Period::upto($b)` no longer match a view recorded exactly at `$b`
 - `Period` now converts its bounds to the application timezone in its constructor, so bounds built in another timezone match the stored `viewed_at` wall clock and the getters return that zone
-- The `Views` contract now declares `countByInterval()` (breaking only for classes that implement `Contracts\Views` directly)
-- The `View` contract now declares `newQueryFor()` (breaking only for classes that implement `Contracts\View` directly)
-- `CacheKey` moved to `Querying\Cache\CacheKey`, and `CacheKey::make()` now takes a `ViewsQuery` and an optional `Granularity` instead of three loose parameters, and the digest changed, so cached counts from earlier versions are recalculated once
-- `Views::count()` now delegates to the `Querying\Contracts\CountsViews` action instead of building the query itself
-- The `Views` constructor now takes `Support\Config` instead of the config repository (breaking only for classes that extend `Views` and override the constructor)
-- The `Visitor` and `CooldownManager` constructors now take `Support\Config` instead of the config repository (breaking only for classes that extend them and override the constructor)
-- `InteractsWithViews::scopeWithViewsCount()` now applies its filters through `View::scopeMatching()` (no change in results)
+- `CacheKey` moved to `Querying\Cache\CacheKey`, and `CacheKey::make()` now takes a `ViewsQuery` and an optional `Granularity` instead of three loose parameters, and the digest changed and now includes the `querying.source.driver` name, so cached counts from earlier versions are recalculated once and switching the source driver starts fresh entries
+- `Views::count()` and `Views::countByInterval()` now delegate to the bound `Querying\Contracts\ViewSource` instead of building the query themselves
+- `InteractsWithViews::scopeWithViewsCount()` and `scopeOrderByViews()` now read through the bound `ViewSource` as a correlated subselect instead of `withAggregate()` on the `views` relation (no change in results)
+- Crawler, Do Not Track, IP address and cooldown checks moved out of `Views` into guard classes listed under the `recording.guards` config key. A guard runs when it is listed and not otherwise. The default list keeps the v8 behaviour: crawlers and `ignored_ip_addresses` are dropped and Do Not Track is not honoured
+- The config file is grouped by module: `store`, `guards`, `ignored_ip_addresses` and `queue` live under `recording`, `source`, `cache` and `max_intervals` under `querying`, and `visitor_cookie_key` is `visitor.cookie.name`. `models` and `cooldown` are unchanged. See the upgrade guide for the table
+- `Crawlers\Contracts\CrawlerDetector::isCrawler()` now takes the user agent to judge, `isCrawler(?string $userAgent): bool`, and a `null` or empty user agent is never a crawler. The `IgnoreCrawlers` guard calls it with the visitor's user agent instead of asking the visitor
+- The shipped crawler detector is a stateless singleton. It no longer captures the headers of the first request it sees, which in a long-running worker meant every later request was judged by that user agent
+- The `Visitor` and `CooldownManager` constructors now take `Support\Config` instead of the config repository, and `Visitor` no longer takes a `CrawlerDetector` (breaking only for classes that extend them and override the constructor)
 - The test suite now runs against SQLite, MySQL, MariaDB and Postgres in CI (development only; no impact on consumers)
+- Moved classes into module namespaces, see the upgrade guide for the full table. `View` is now `Models\View`, the facade is `Facades\Views`, `InteractsWithViews` is `Concerns\InteractsWithViews`, `Visitor` and its contract are under `Visitors\`, `CrawlerDetector` and `CrawlerDetectAdapter` under `Crawlers\`, `CooldownManager` under `Cooldowns\`, and `ViewRecorded` and the recording job and action under `Recording\`
+- Renamed the `Actions\CreateView` action to `Recording\Actions\RecordView`, its `Contracts\CreateView` contract to `Recording\Contracts\RecordsViews`, the `Jobs\StoreView` job to `Recording\Jobs\RecordViewJob` and the `Exceptions\ViewRecordException` exception to `Recording\Exceptions\RecordingFailed`
+- The migration stub is published from `database/migrations/` instead of `migrations/` (no change for installations that already published it)
+- Views are now written through the query builder instead of `Models\View::create()`, so the `creating` and `created` model events are no longer fired when a view is stored. Listen for `Recording\Events\ViewRecorded` instead
+- `Models\View` now prefers its own `$table` and `$connection` properties over `models.view.table_name` and `models.view.connection`, which supply the defaults
+- `ViewableObserver` is now `Recording\Observers\ViewableObserver` and deletes through the `ViewStore` instead of the `Views` builder (breaking only for code that references the class)
+- Renamed `Recording\PendingView` to `Data\ViewRecord`
+- `Recording\Contracts\RecordsViews::handle()` and `Recording\Contracts\ViewStore::store()` return `void` instead of the stored `Models\View`
+- `Recording\Events\ViewRecorded` carries the `Data\ViewRecord` as `$record` instead of the `Models\View` model as `$view`, and no longer uses `SerializesModels`
+- The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader` and `Recording\Contracts\ViewStore`, and nothing else (breaking only for classes that extend `Views` and override the constructor)
+
+### Removed
+
+- Removed the `$removeViewsOnDelete` model property in favour of `shouldRemoveViewsOnDelete()`. Declared `protected` as the v8 README showed, the property was ignored and the views were deleted anyway
+- Removed `Visitors\Contracts\Visitor::isCrawler()`. The visitor reports its user agent and the `IgnoreCrawlers` guard asks the detector
+- Removed the `ignore_bots` and `honor_dnt` config keys. Presence in `recording.guards` is the only switch for a guard
+- Removed the `visitor_cookie_key` config key in favour of `visitor.cookie.name`
+- Removed the `Contracts\View` and `Contracts\Views` interfaces. A custom view model extends `Models\View` and is named in `models.view.class`; the `Views` builder is used by its class and is no longer replaceable through the container
 
 ### Fixed
 
