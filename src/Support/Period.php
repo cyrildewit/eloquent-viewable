@@ -7,7 +7,9 @@ namespace CyrildeWit\EloquentViewable\Support;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use DateTimeInterface;
+use DateTimeZone;
 
 /**
  * A half-open range of time, `[start, end)`. The start is included and the end
@@ -26,14 +28,8 @@ final readonly class Period
     public function __construct(
         DateTimeInterface|string|null $startDateTime = null,
         DateTimeInterface|string|null $endDateTime = null,
-        /**
-         * A stable signature for relative periods that keeps the cache key from
-         * drifting as wall-clock time moves. Null for absolute periods, which
-         * are identified by their timestamps instead.
-         *
-         * @internal
-         */
-        private ?string $relativeSignature = null,
+        /** @internal */
+        private ?RelativePeriod $relative = null,
     ) {
         $this->startDateTime = Carbon::make($startDateTime)?->setTimezone(date_default_timezone_get());
         $this->endDateTime = Carbon::make($endDateTime)?->setTimezone(date_default_timezone_get());
@@ -61,59 +57,59 @@ final readonly class Period
         return new self(null, $endDateTime);
     }
 
-    public static function pastDays(int $days): self
+    public static function pastDays(int $days, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Past, PeriodInterval::Days, $days);
+        return self::relative(PeriodAnchor::Past, PeriodInterval::Days, $days, $timezone);
     }
 
-    public static function pastWeeks(int $weeks): self
+    public static function pastWeeks(int $weeks, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Past, PeriodInterval::Weeks, $weeks);
+        return self::relative(PeriodAnchor::Past, PeriodInterval::Weeks, $weeks, $timezone);
     }
 
-    public static function pastMonths(int $months): self
+    public static function pastMonths(int $months, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Past, PeriodInterval::Months, $months);
+        return self::relative(PeriodAnchor::Past, PeriodInterval::Months, $months, $timezone);
     }
 
-    public static function pastYears(int $years): self
+    public static function pastYears(int $years, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Past, PeriodInterval::Years, $years);
+        return self::relative(PeriodAnchor::Past, PeriodInterval::Years, $years, $timezone);
     }
 
-    public static function subSeconds(int $seconds): self
+    public static function subSeconds(int $seconds, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Seconds, $seconds);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Seconds, $seconds, $timezone);
     }
 
-    public static function subMinutes(int $minutes): self
+    public static function subMinutes(int $minutes, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Minutes, $minutes);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Minutes, $minutes, $timezone);
     }
 
-    public static function subHours(int $hours): self
+    public static function subHours(int $hours, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Hours, $hours);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Hours, $hours, $timezone);
     }
 
-    public static function subDays(int $days): self
+    public static function subDays(int $days, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Days, $days);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Days, $days, $timezone);
     }
 
-    public static function subWeeks(int $weeks): self
+    public static function subWeeks(int $weeks, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Weeks, $weeks);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Weeks, $weeks, $timezone);
     }
 
-    public static function subMonths(int $months): self
+    public static function subMonths(int $months, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Months, $months);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Months, $months, $timezone);
     }
 
-    public static function subYears(int $years): self
+    public static function subYears(int $years, DateTimeZone|string|null $timezone = null): self
     {
-        return self::relative(PeriodAnchor::Sub, PeriodInterval::Years, $years);
+        return self::relative(PeriodAnchor::Sub, PeriodInterval::Years, $years, $timezone);
     }
 
     public function getStartDateTime(): ?CarbonInterface
@@ -134,16 +130,34 @@ final readonly class Period
      */
     public function cacheSignature(): string
     {
-        return $this->relativeSignature
+        return $this->relative?->signature()
             ?? "{$this->startDateTime?->timestamp}-{$this->endDateTime?->timestamp}";
     }
 
-    /** @throws InvalidPeriod */
-    private static function relative(PeriodAnchor $anchor, PeriodInterval $interval, int $value): self
+    /**
+     * A relative period built without a zone of its own, re-anchored on the
+     * clock of the timezone. Any other period is already a pair of instants.
+     *
+     * @internal
+     */
+    public function anchoredIn(Timezone $timezone): self
     {
-        $startDateTime = $interval->subtract($anchor->dateTime(), $value);
+        if (! $this->relative instanceof RelativePeriod || $this->relative->timezone instanceof Timezone) {
+            return $this;
+        }
 
-        return new self($startDateTime, null, "{$anchor->value}{$value}{$interval->value}");
+        return self::relative($this->relative->anchor, $this->relative->interval, $this->relative->value, $timezone);
+    }
+
+    /**
+     * @throws InvalidPeriod
+     * @throws InvalidTimezone
+     */
+    private static function relative(PeriodAnchor $anchor, PeriodInterval $interval, int $value, DateTimeZone|string|null $timezone): self
+    {
+        $relative = new RelativePeriod($anchor, $interval, $value, $timezone === null ? null : Timezone::from($timezone));
+
+        return new self($relative->startDateTime(), null, $relative);
     }
 
     /** @throws InvalidPeriod */
