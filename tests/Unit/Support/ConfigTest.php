@@ -94,9 +94,11 @@ it('reads the visitor cookie settings', function (): void {
 });
 
 it('reads the cooldown settings', function (): void {
-    expect(packageConfig(['cooldown' => ['store' => 'cache', 'key' => 'cooldowns']]))
+    expect(packageConfig(['cooldown' => ['store' => 'cache', 'key' => 'cooldowns', 'cache' => ['store' => 'redis']]]))
         ->cooldownStore()->toBe('cache')
-        ->cooldownKey()->toBe('cooldowns');
+        ->cooldownKey()->toBe('cooldowns')
+        ->cooldownCacheStore()->toBe('redis')
+        ->and(packageConfig())->cooldownCacheStore()->toBeNull();
 });
 
 it('rejects a positive integer key that is not one', function (string $method, string $key, mixed $value, string $described): void {
@@ -129,6 +131,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'queue connection' => ['queueConnection', 'recording.queue.connection'],
     'queue name' => ['queueName', 'recording.queue.queue'],
     'cache store' => ['cacheStore', 'querying.cache.store'],
+    'cooldown cache store' => ['cooldownCacheStore', 'cooldown.cache.store'],
 ]);
 
 it('rejects an empty key', function (string $method, string $key): void {

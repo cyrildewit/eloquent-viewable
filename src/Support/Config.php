@@ -166,6 +166,12 @@ final readonly class Config
         return $this->nonEmptyString('cooldown.key');
     }
 
+    /** @throws InvalidConfiguration */
+    public function cooldownCacheStore(): ?string
+    {
+        return $this->string('cooldown.cache.store');
+    }
+
     private function get(string $key, mixed $default = null): mixed
     {
         return $this->config->get("eloquent-viewable.{$key}", $default);

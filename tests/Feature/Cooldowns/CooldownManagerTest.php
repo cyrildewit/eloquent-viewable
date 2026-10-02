@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
+use CyrildeWit\EloquentViewable\Cooldowns\Stores\CacheStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Stores\SessionStore;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 
 it('is a singleton', function (): void {
@@ -30,6 +32,24 @@ it('keeps session cooldowns under the configured key', function (): void {
     $this->app->make(CooldownStore::class)->put('post-1', now()->addMinute());
 
     expect($this->app['session.store']->get('my-cooldowns'))->toHaveKey('post-1');
+});
+
+it('builds the cache store named in the config', function (): void {
+    Config::set('eloquent-viewable.cooldown.store', 'cache');
+
+    expect($this->app->make(CooldownStore::class))->toBeInstanceOf(CacheStore::class);
+});
+
+it('keeps cache cooldowns in the configured cache store, prefixed with the key', function (): void {
+    Config::set('cache.stores.cooldowns', ['driver' => 'array']);
+    Config::set('eloquent-viewable.cooldown.store', 'cache');
+    Config::set('eloquent-viewable.cooldown.cache.store', 'cooldowns');
+    Config::set('eloquent-viewable.cooldown.key', 'my-cooldowns');
+
+    $this->app->make(CooldownStore::class)->put('post-1', now()->addMinute());
+
+    expect(Cache::store('cooldowns')->has('my-cooldowns:post-1'))->toBeTrue()
+        ->and(Cache::store()->has('my-cooldowns:post-1'))->toBeFalse();
 });
 
 it('accepts a custom driver', function (): void {
