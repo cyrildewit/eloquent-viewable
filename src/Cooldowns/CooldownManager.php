@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Cooldowns;
 
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\Stores\CacheStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Stores\SessionStore;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Support\Config;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Manager;
@@ -47,5 +49,13 @@ final class CooldownManager extends Manager
     protected function createSessionDriver(): SessionStore
     {
         return new SessionStore($this->container->make(Session::class), $this->packageConfig->cooldownKey());
+    }
+
+    protected function createCacheDriver(): CacheStore
+    {
+        return new CacheStore(
+            $this->container->make(CacheFactory::class)->store($this->packageConfig->cooldownCacheStore()),
+            $this->packageConfig->cooldownKey(),
+        );
     }
 }
