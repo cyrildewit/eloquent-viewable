@@ -18,6 +18,7 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
 use CyrildeWit\EloquentViewable\Recording\Actions\RecordView;
+use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews as RecordsViewsContract;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
@@ -40,6 +41,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
+            $this->commands([FlushViewsCommand::class]);
+
             $this->publishes([
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
