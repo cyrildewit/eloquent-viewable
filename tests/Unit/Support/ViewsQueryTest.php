@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 
 it('is immutable', function (): void {
     $reflection = new ReflectionClass(ViewsQuery::class);
@@ -14,25 +15,28 @@ it('is immutable', function (): void {
         ->and($reflection->isReadOnly())->toBeTrue();
 });
 
-it('defaults to no period, no collection, non-unique and no timezone', function (): void {
+it('defaults to no period, no collection, non-unique, no timezone and no viewer', function (): void {
     $query = new ViewsQuery;
 
     expect($query->period)->toBeNull()
         ->and($query->collection)->toBeNull()
         ->and($query->unique)->toBeFalse()
-        ->and($query->timezone)->toBeNull();
+        ->and($query->timezone)->toBeNull()
+        ->and($query->viewer)->toBeNull();
 });
 
 it('exposes what it was constructed with', function (): void {
     $period = Period::create('2026-09-01', '2026-09-02');
     $timezone = new Timezone('Australia/Sydney');
+    $viewer = new Post(['id' => 7]);
 
-    $query = new ViewsQuery($period, 'custom', true, $timezone);
+    $query = new ViewsQuery($period, 'custom', true, $timezone, $viewer);
 
     expect($query->period)->toBe($period)
         ->and($query->collection)->toBe('custom')
         ->and($query->unique)->toBeTrue()
-        ->and($query->timezone)->toBe($timezone);
+        ->and($query->timezone)->toBe($timezone)
+        ->and($query->viewer)->toBe($viewer);
 });
 
 describe('timezone', function (): void {

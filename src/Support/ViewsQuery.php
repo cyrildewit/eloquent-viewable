@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
+use Illuminate\Database\Eloquent\Model;
+
 /**
  * What a count is read over. The timezone is the clock bucket boundaries are
  * aligned to when counting by interval, and a relative period built without
@@ -19,6 +21,7 @@ final readonly class ViewsQuery
         public ?string $collection = null,
         public bool $unique = false,
         public ?Timezone $timezone = null,
+        public ?Model $viewer = null,
     ) {
         $this->period = $timezone instanceof Timezone ? $period?->anchoredIn($timezone) : $period;
     }
