@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 
 it('exposes the attributes used to create a view', function (): void {
     $viewedAt = Carbon::parse('2021-01-01 00:00:00');
@@ -180,4 +182,23 @@ it('keeps an integer key as an integer', function (): void {
         'collection' => null,
         'viewed_at' => '2021-01-01T00:00:00+00:00',
     ])->viewableId)->toBe(1);
+});
+
+it('belongs to the viewable with its type and key', function (): void {
+    $record = new ViewRecord(7, Post::class, 'visitor_one', null, Carbon::now());
+
+    expect($record->belongsTo(new Post(['id' => 7])))->toBeTrue()
+        ->and($record->belongsTo(new Post(['id' => 8])))->toBeFalse()
+        ->and($record->belongsTo(new Apartment(['id' => 7])))->toBeFalse();
+});
+
+it('matches a string key against an integer one', function (): void {
+    expect(new ViewRecord('7', Post::class, null, null, Carbon::now())->belongsTo(new Post(['id' => 7])))->toBeTrue();
+});
+
+it('belongs to every viewable of its type for a viewable without a key', function (): void {
+    $record = new ViewRecord(7, Post::class, null, null, Carbon::now());
+
+    expect($record->belongsTo(new Post))->toBeTrue()
+        ->and($record->belongsTo(new Apartment))->toBeFalse();
 });

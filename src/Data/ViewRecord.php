@@ -6,6 +6,8 @@ namespace CyrildeWit\EloquentViewable\Data;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use JsonException;
 
 final readonly class ViewRecord
@@ -49,6 +51,21 @@ final readonly class ViewRecord
             viewerId: $payload['viewer_id'] ?? null,
             context: $context,
         );
+    }
+
+    /**
+     * A viewable without a key matches every record of its type. Keys are
+     * compared as strings, because a store may hand back a string key.
+     */
+    public function belongsTo(Viewable $viewable): bool
+    {
+        if ($this->viewableType !== $viewable->getMorphClass()) {
+            return false;
+        }
+
+        $key = ViewableKey::of($viewable);
+
+        return $key === null || (string) $this->viewableId === (string) $key;
     }
 
     /**
