@@ -9,7 +9,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
-use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -26,7 +26,7 @@ final readonly class VisitorIdentity
 
     public function __construct(
         private Config $config,
-        private Repository $app,
+        private Encrypter $encrypter,
     ) {}
 
     /**
@@ -43,26 +43,13 @@ final readonly class VisitorIdentity
     }
 
     /**
-     * Keyed with `app.key`, so the column does not reveal the key of the
-     * model on its own.
+     * Keyed with the application key, so the column does not reveal the key
+     * of the model on its own.
      *
-     * @throws InvalidConfiguration
      * @throws InvalidViewer
      */
     public function ofViewer(Model $viewer): string
     {
-        return hash_hmac('sha256', $viewer->getMorphClass().'|'.ViewerKey::of($viewer), $this->appKey());
-    }
-
-    /** @throws InvalidConfiguration */
-    private function appKey(): string
-    {
-        $key = $this->app->get('app.key');
-
-        if (! is_string($key) || $key === '') {
-            throw InvalidConfiguration::missingAppKey();
-        }
-
-        return $key;
+        return hash_hmac('sha256', $viewer->getMorphClass().'|'.ViewerKey::of($viewer), $this->encrypter->getKey());
     }
 }
