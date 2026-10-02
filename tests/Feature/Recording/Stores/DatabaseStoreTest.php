@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -41,6 +42,39 @@ it('writes the record as a row', function (): void {
         ->and($view->visitor)->toBe('visitor_one')
         ->and($view->collection)->toBe('custom')
         ->and(Carbon::parse($view->viewed_at)->equalTo($viewedAt))->toBeTrue();
+});
+
+it('writes the viewer and the context', function (): void {
+    $user = User::factory()->create();
+
+    $this->store->store(new ViewRecord(
+        viewableId: $this->post->getKey(),
+        viewableType: $this->post->getMorphClass(),
+        visitor: 'visitor_one',
+        collection: null,
+        viewedAt: Carbon::now(),
+        viewerType: $user->getMorphClass(),
+        viewerId: $user->getKey(),
+        context: ['source' => 'newsletter', 'tags' => ['a', 'b']],
+    ));
+
+    $view = View::sole();
+
+    expect($view->viewer)->toBeInstanceOf(User::class)
+        ->and($view->viewer->is($user))->toBeTrue()
+        // MySQL stores a JSON object with its keys sorted, so the order is not asserted.
+        ->and($view->context)->toEqual(['source' => 'newsletter', 'tags' => ['a', 'b']]);
+});
+
+it('writes a guest view without context as nulls', function (): void {
+    $this->store->store(new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'visitor_one', null, Carbon::now()));
+
+    $view = View::sole();
+
+    expect($view->viewer_type)->toBeNull()
+        ->and($view->viewer_id)->toBeNull()
+        ->and($view->viewer)->toBeNull()
+        ->and($view->context)->toBeNull();
 });
 
 it('writes a batch of records in one statement', function (): void {
