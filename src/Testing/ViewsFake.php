@@ -95,7 +95,7 @@ final class ViewsFake implements ViewSource, ViewStore
     public function recorded(Viewable $viewable, ?Closure $filter = null): Collection
     {
         return new Collection($this->store->records())
-            ->filter(fn (ViewRecord $record): bool => ArrayStore::belongsTo($record, $viewable))
+            ->filter(fn (ViewRecord $record): bool => $record->belongsTo($viewable))
             ->when($filter instanceof Closure, fn (Collection $records): Collection => $records->filter($filter))
             ->values();
     }

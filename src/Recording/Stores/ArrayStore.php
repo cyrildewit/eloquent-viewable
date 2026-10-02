@@ -7,7 +7,6 @@ namespace CyrildeWit\EloquentViewable\Recording\Stores;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
-use CyrildeWit\EloquentViewable\Support\ViewableKey;
 
 final class ArrayStore implements ViewStore
 {
@@ -31,7 +30,7 @@ final class ArrayStore implements ViewStore
     {
         $this->records = array_values(array_filter(
             $this->records,
-            fn (ViewRecord $record): bool => ! self::belongsTo($record, $viewable),
+            fn (ViewRecord $record): bool => ! $record->belongsTo($viewable),
         ));
     }
 
@@ -39,16 +38,5 @@ final class ArrayStore implements ViewStore
     public function records(): array
     {
         return $this->records;
-    }
-
-    public static function belongsTo(ViewRecord $record, Viewable $viewable): bool
-    {
-        if ($record->viewableType !== $viewable->getMorphClass()) {
-            return false;
-        }
-
-        $key = ViewableKey::of($viewable);
-
-        return $key === null || (string) $record->viewableId === (string) $key;
     }
 }
