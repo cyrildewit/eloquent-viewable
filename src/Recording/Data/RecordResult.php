@@ -6,10 +6,6 @@ namespace CyrildeWit\EloquentViewable\Recording\Data;
 
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 
-/**
- * What became of a call to record a view: it was stored, it was queued, or a
- * guard refused it. When a guard refused, `skippedBy` holds that guard.
- */
 final readonly class RecordResult
 {
     private function __construct(
