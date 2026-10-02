@@ -1,16 +1,37 @@
 includes:
     - vendor/larastan/larastan/extension.neon
-    - phpstan-baseline.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
 
 parameters:
-    level: 6
+    level: 10
 
     paths:
         - src
         - config
+        - database/factories
+        - tests/Fixtures
 
-    treatPhpDocTypesAsCertain: false
     checkModelProperties: true
     checkOctaneCompatibility: true
     noUnnecessaryCollectionCall: true
     checkNullables: true
+    treatPhpDocTypesAsCertain: true
+    checkBenevolentUnionTypes: true
+    checkUninitializedProperties: true
+    checkMissingCallableSignature: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkTooWideThrowTypesInProtectedAndPublicMethods: true
+    reportPossiblyNonexistentGeneralArrayOffset: true
+    reportPossiblyNonexistentConstantArrayOffset: true
+    reportAlwaysTrueInLastCondition: true
+    reportAnyTypeWideningInVarTag: true
+    reportWrongPhpDocTypeInVarTag: true
+
+    strictRules:
+        # Larastan forwards Eloquent builder calls through __callStatic, which this rule misreads.
+        dynamicCallOnStaticMethod: false
+
+    # The package ships its migration as a stub, so only the fixtures' tables can be read.
+    databaseMigrationsPath:
+        - tests/database/migrations

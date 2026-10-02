@@ -42,11 +42,14 @@
         "pestphp/pest": "^5.0",
         "pestphp/pest-plugin-rector": "^5.0",
         "pestphp/pest-plugin-type-coverage": "^5.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
         "rector/rector": "^2.3"
     },
     "autoload": {
         "psr-4": {
-            "CyrildeWit\\EloquentViewable\\": "src/"
+            "CyrildeWit\\EloquentViewable\\": "src/",
+            "CyrildeWit\\EloquentViewable\\Database\\Factories\\": "database/factories/"
         },
         "files": [
             "src/helpers.php"
@@ -62,7 +65,7 @@
         "lint": "pint",
         "test:lint": "pint --test",
         "test": "pest",
-        "test:arch": "pest --testsuite=Architecture",
+        "test:arch": "pest --testsuite=Arch",
         "test:unit": "pest --testsuite=Unit",
         "test:feature": "pest --testsuite=Feature",
         "test:samples": "pest --testsuite=Samples",

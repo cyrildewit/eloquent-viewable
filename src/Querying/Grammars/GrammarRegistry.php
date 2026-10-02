@@ -10,28 +10,26 @@ use Illuminate\Container\Container;
 
 final class GrammarRegistry
 {
-    /**
-     * @var array<string, class-string<BucketGrammar>|BucketGrammar>
-     */
+    /** @var array<string, class-string<BucketGrammar>|BucketGrammar> */
     private array $grammars = [];
 
-    /**
-     * @param  class-string<BucketGrammar>|BucketGrammar  $grammar
-     */
+    /** @param  class-string<BucketGrammar>|BucketGrammar  $grammar */
     public function register(string $driver, string|BucketGrammar $grammar): void
     {
         $this->grammars[$driver] = $grammar;
     }
 
-    /**
-     * @throws UnsupportedDriver
-     */
+    /** @throws UnsupportedDriver */
     public function for(string $driver): BucketGrammar
     {
         $grammar = $this->grammars[$driver] ?? throw UnsupportedDriver::noBucketGrammar($driver);
 
         if (is_string($grammar)) {
-            return $this->grammars[$driver] = Container::getInstance()->make($grammar);
+            // Larastan only resolves `make()` for a literal class name.
+            /** @var BucketGrammar $instance */
+            $instance = Container::getInstance()->make($grammar);
+
+            return $this->grammars[$driver] = $instance;
         }
 
         return $grammar;

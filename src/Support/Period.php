@@ -22,9 +22,7 @@ final readonly class Period
 
     private ?CarbonInterface $endDateTime;
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     public function __construct(
         DateTimeInterface|string|null $startDateTime = null,
         DateTimeInterface|string|null $endDateTime = null,
@@ -43,9 +41,7 @@ final readonly class Period
         $this->guardChronologicalOrder();
     }
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     public static function create(
         DateTimeInterface|string|null $startDateTime = null,
         DateTimeInterface|string|null $endDateTime = null
@@ -53,17 +49,13 @@ final readonly class Period
         return new self($startDateTime, $endDateTime);
     }
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     public static function since(DateTimeInterface|string|null $startDateTime = null): self
     {
         return new self($startDateTime);
     }
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     public static function upto(DateTimeInterface|string|null $endDateTime = null): self
     {
         return new self(null, $endDateTime);
@@ -146,9 +138,7 @@ final readonly class Period
             ?? "{$this->startDateTime?->timestamp}-{$this->endDateTime?->timestamp}";
     }
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     private static function relative(PeriodAnchor $anchor, PeriodInterval $interval, int $value): self
     {
         $startDateTime = $interval->subtract($anchor->dateTime(), $value);
@@ -156,9 +146,7 @@ final readonly class Period
         return new self($startDateTime, null, "{$anchor->value}{$value}{$interval->value}");
     }
 
-    /**
-     * @throws InvalidPeriod
-     */
+    /** @throws InvalidPeriod */
     private function guardChronologicalOrder(): void
     {
         if (! $this->startDateTime instanceof CarbonInterface || ! $this->endDateTime instanceof CarbonInterface) {
