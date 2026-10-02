@@ -15,6 +15,7 @@ use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
@@ -45,7 +46,13 @@ final readonly class Reader
             throw InvalidInterval::periodWithoutStartDateTime();
         }
 
-        $this->guardIntervalCap($granularity, $startDateTime, $period->getEndDateTime() ?? Carbon::now());
+        $timezone = $query->timezone ?? Timezone::application();
+
+        $this->guardIntervalCap(
+            $granularity,
+            $startDateTime->avoidMutation()->setTimezone($timezone),
+            ($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone),
+        );
 
         $counts = $this->remember(
             $rememberUntil,
@@ -53,7 +60,7 @@ final readonly class Reader
             fn (): array => $this->source->countByInterval($viewable, $query, $granularity),
         );
 
-        return ViewSeries::fill($period, $granularity, $counts);
+        return ViewSeries::fill($period, $granularity, $counts, $timezone);
     }
 
     /**

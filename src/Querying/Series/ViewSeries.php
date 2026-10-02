@@ -10,6 +10,7 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 use IteratorAggregate;
@@ -18,8 +19,9 @@ use Traversable;
 
 /**
  * A gap-filled series of view counts over a period, one bucket per
- * granularity step. Buckets are calendar-aligned, so the first bucket may
- * start before the period and the last may end after it.
+ * granularity step. Buckets are calendar-aligned on the clock of the
+ * timezone, so the first bucket may start before the period and the last may
+ * end after it.
  *
  * @implements Arrayable<string, mixed>
  * @implements IteratorAggregate<int, Bucket>
@@ -33,18 +35,20 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
         public Collection $intervals,
         public Granularity $granularity,
         public Period $period,
+        public Timezone $timezone,
     ) {}
 
     /**
      * Build the series from sparse counts keyed by bucket start label, filling
      * every bucket without views with a count of zero. A null period end walks
-     * up to now.
+     * up to now. The labels are wall clocks of the timezone, the application
+     * timezone unless one is given, and so are the bucket bounds.
      *
      * @param  array<string, int>  $counts
      *
      * @throws InvalidInterval
      */
-    public static function fill(Period $period, Granularity $granularity, array $counts): self
+    public static function fill(Period $period, Granularity $granularity, array $counts, ?Timezone $timezone = null): self
     {
         $startDateTime = $period->getStartDateTime();
 
@@ -52,8 +56,10 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
             throw InvalidInterval::periodWithoutStartDateTime();
         }
 
-        $start = self::toNaiveClock($granularity->floor($startDateTime));
-        $end = self::toNaiveClock($period->getEndDateTime() ?? Carbon::now());
+        $timezone ??= Timezone::application();
+
+        $start = self::toNaiveClock($granularity->floor($startDateTime->avoidMutation()->setTimezone($timezone)));
+        $end = self::toNaiveClock(($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone));
 
         /** @var Collection<int, Bucket> $intervals */
         $intervals = new Collection;
@@ -62,14 +68,14 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
             $label = $cursor->format(self::LABEL_FORMAT);
 
             $intervals->push(new Bucket(
-                start: self::toLocalClock($label),
-                end: self::toLocalClock($granularity->add($cursor, 1)->format(self::LABEL_FORMAT)),
+                start: self::toLocalClock($label, $timezone),
+                end: self::toLocalClock($granularity->add($cursor, 1)->format(self::LABEL_FORMAT), $timezone),
                 count: $counts[$label] ?? 0,
                 label: $cursor->format($granularity->labelFormat()),
             ));
         }
 
-        return new self($intervals, $granularity, $period);
+        return new self($intervals, $granularity, $period, $timezone);
     }
 
     /**
@@ -140,12 +146,8 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
         return CarbonImmutable::parse($dateTime->format(self::LABEL_FORMAT), 'UTC');
     }
 
-    /**
-     * A label read back in the application timezone, the zone the stored
-     * values and the caller both use.
-     */
-    private static function toLocalClock(string $label): CarbonImmutable
+    private static function toLocalClock(string $label, Timezone $timezone): CarbonImmutable
     {
-        return CarbonImmutable::parse($label, date_default_timezone_get());
+        return CarbonImmutable::parse($label, $timezone);
     }
 }

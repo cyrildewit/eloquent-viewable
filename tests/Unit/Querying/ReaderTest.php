@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
@@ -133,6 +134,32 @@ describe('count by interval', function (): void {
         // 2026-09-01 up to 2026-09-10 12:00 is ten day buckets.
         expect(fn (): ViewSeries => reader($source, maxIntervals: 9)->countByInterval($this->viewable, new ViewsQuery(Period::since('2026-09-01')), Granularity::Day))
             ->toThrow(InvalidInterval::class, '10 intervals');
+    });
+
+    it('fills the series on the clock of the query timezone', function (): void {
+        $query = new ViewsQuery(Period::create('2026-09-01', '2026-09-03'), timezone: new Timezone('Australia/Sydney'));
+
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByInterval')->with($this->viewable, $query, Granularity::Day)->andReturn(['2026-09-03 00:00:00' => 2]);
+
+        $series = reader($source)->countByInterval($this->viewable, $query, Granularity::Day);
+
+        expect($series->timezone->getName())->toBe('Australia/Sydney')
+            ->and($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('Y-m-d P'))->all())
+            ->toBe(['2026-09-01 +10:00', '2026-09-02 +10:00', '2026-09-03 +10:00'])
+            ->and($series->intervals->map(fn (Bucket $bucket): int => $bucket->count)->all())->toBe([0, 0, 2]);
+    });
+
+    it('measures the cap on the clock of the query timezone', function (): void {
+        // One UTC day is two Sydney day buckets, 10:00 on the 1st to 10:00 on the 2nd.
+        $period = Period::create('2026-09-01', '2026-09-02');
+
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByInterval')->once()->andReturn([]);
+
+        expect(reader($source, maxIntervals: 1)->countByInterval($this->viewable, new ViewsQuery($period), Granularity::Day)->intervals)->toHaveCount(1)
+            ->and(fn (): ViewSeries => reader($source, maxIntervals: 1)->countByInterval($this->viewable, new ViewsQuery($period, timezone: new Timezone('Australia/Sydney')), Granularity::Day))
+            ->toThrow(InvalidInterval::class, '2 intervals');
     });
 
     it('remembers the sparse counts, not the filled series', function (): void {

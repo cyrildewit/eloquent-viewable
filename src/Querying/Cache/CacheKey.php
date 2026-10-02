@@ -61,6 +61,7 @@ final readonly class CacheKey
             $query->period?->cacheSignature(),
             $query->unique,
             $query->collection,
+            $query->timezone?->getName(),
             $granularity?->value,
         ]));
     }

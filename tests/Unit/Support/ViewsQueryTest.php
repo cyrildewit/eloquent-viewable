@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 it('is immutable', function (): void {
@@ -12,20 +14,55 @@ it('is immutable', function (): void {
         ->and($reflection->isReadOnly())->toBeTrue();
 });
 
-it('defaults to no period, no collection and non-unique', function (): void {
+it('defaults to no period, no collection, non-unique and no timezone', function (): void {
     $query = new ViewsQuery;
 
     expect($query->period)->toBeNull()
         ->and($query->collection)->toBeNull()
-        ->and($query->unique)->toBeFalse();
+        ->and($query->unique)->toBeFalse()
+        ->and($query->timezone)->toBeNull();
 });
 
 it('exposes what it was constructed with', function (): void {
-    $period = Period::pastDays(3);
+    $period = Period::create('2026-09-01', '2026-09-02');
+    $timezone = new Timezone('Australia/Sydney');
 
-    $query = new ViewsQuery($period, 'custom', true);
+    $query = new ViewsQuery($period, 'custom', true, $timezone);
 
     expect($query->period)->toBe($period)
         ->and($query->collection)->toBe('custom')
-        ->and($query->unique)->toBeTrue();
+        ->and($query->unique)->toBeTrue()
+        ->and($query->timezone)->toBe($timezone);
+});
+
+describe('timezone', function (): void {
+    beforeEach(function (): void {
+        // 23:00 UTC on the 1st is 09:00 on the 2nd in Sydney.
+        Carbon::setTestNow('2026-09-01 23:00:00');
+    });
+
+    it('re-anchors a relative period on its clock', function (): void {
+        $query = new ViewsQuery(Period::pastDays(1), timezone: new Timezone('Australia/Sydney'));
+
+        expect($query->period->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-09-01 00:00:00', 'Australia/Sydney')->timestamp)
+            ->and($query->period->cacheSignature())->toBe('past1days@Australia/Sydney');
+    });
+
+    it('leaves a relative period with a zone of its own alone', function (): void {
+        $period = Period::pastDays(1, 'Europe/Amsterdam');
+
+        expect(new ViewsQuery($period, timezone: new Timezone('Australia/Sydney'))->period)->toBe($period);
+    });
+
+    it('leaves an absolute period alone', function (): void {
+        $period = Period::create('2026-09-01', '2026-09-02');
+
+        expect(new ViewsQuery($period, timezone: new Timezone('Australia/Sydney'))->period)->toBe($period);
+    });
+
+    it('leaves a relative period alone without a timezone', function (): void {
+        $period = Period::pastDays(1);
+
+        expect(new ViewsQuery($period)->period)->toBe($period);
+    });
 });

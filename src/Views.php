@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Reader;
@@ -18,9 +19,11 @@ use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
+use DateTimeZone;
 use Illuminate\Support\Traits\Macroable;
 
 class Views
@@ -40,6 +43,8 @@ class Views
     protected ?bool $queue = null;
 
     protected ?CarbonInterface $cacheLifetime = null;
+
+    protected ?Timezone $timezone = null;
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -103,6 +108,14 @@ class Views
         return $this;
     }
 
+    /** @throws InvalidTimezone */
+    public function timezone(DateTimeZone|string|null $timezone): self
+    {
+        $this->timezone = $timezone === null ? null : Timezone::from($timezone);
+
+        return $this;
+    }
+
     public function collection(?string $name): self
     {
         $this->collection = $name;
@@ -146,7 +159,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface

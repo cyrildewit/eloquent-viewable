@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
@@ -68,8 +69,10 @@ final class ViewsFake implements ViewSource, ViewStore
     /** @return array<string, int> */
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
+        $timezone = $query->timezone ?? Timezone::application();
+
         $counts = $this->matching($viewable, $query)
-            ->groupBy(fn (ViewRecord $record): string => $granularity->floor($record->viewedAt)->format('Y-m-d H:i:s'))
+            ->groupBy(fn (ViewRecord $record): string => $granularity->floor($record->viewedAt->avoidMutation()->setTimezone($timezone))->format('Y-m-d H:i:s'))
             ->map(fn (Collection $bucket): int => $this->aggregate($bucket, $query))
             ->sortKeys()
             ->all();
