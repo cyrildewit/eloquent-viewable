@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -87,6 +88,13 @@ describe('viewer', function () use ($sqliteOnly): void {
         expect($query->toSql())->toBe('select * from "views" where "views"."viewer_type" = ? and "views"."viewer_id" = ?')
             ->and($query->getBindings())->toBe([$user->getMorphClass(), $user->getKey()]);
     })->skip($sqliteOnly, 'SQL string assertions are written for the SQLite grammar');
+
+    it('refuses a viewer without a key rather than matching guest views', function (): void {
+        View::factory()->for(Post::factory()->create(), 'viewable')->create();
+
+        expect(fn (): int => View::byViewer(new User)->count())
+            ->toThrow(InvalidViewer::class, 'The key of the viewer ['.User::class.'] must be an integer or a string, null given.');
+    });
 
     it('counts only the views of the viewer', function (): void {
         $user = User::factory()->create();
