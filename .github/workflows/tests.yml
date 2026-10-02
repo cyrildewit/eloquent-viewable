@@ -75,6 +75,14 @@ jobs:
           - 5432:5432
         options: --health-cmd="pg_isready -U testing" --health-interval=5s --health-timeout=5s --health-retries=20
 
+      # The `redis` store driver's tests run on every leg, through phpredis
+      # and Predis, so the SQLite leg's coverage gate sees both clients.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=2s --health-timeout=5s --health-retries=20
+
     env:
       DB_CONNECTION: ${{ matrix.connection }}
       DB_HOST: 127.0.0.1
@@ -82,6 +90,8 @@ jobs:
       DB_DATABASE: testing
       DB_USERNAME: testing
       DB_PASSWORD: testing
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
 
     steps:
       - name: Checkout code
@@ -93,7 +103,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, pdo_mysql, pdo_pgsql
+          extensions: mbstring, pdo_mysql, pdo_pgsql, redis
           coverage: xdebug
 
       - name: Setup problem matchers
