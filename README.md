@@ -527,7 +527,8 @@ views($post)->remember()->count();
 ## Samples
 
 The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
-[trending articles](samples/TrendingArticles) list. Each sample is tested with the rest of the suite.
+[trending articles](samples/TrendingArticles) list or a [stats page](samples/ListingStats) for one listing. Each sample
+is tested with the rest of the suite.
 
 ## Optimizing
 
