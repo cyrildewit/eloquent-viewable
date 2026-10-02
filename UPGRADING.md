@@ -66,6 +66,57 @@ return new class extends Migration
 
 On a large `views` table, building the index locks writes for the duration. MySQL 8 and MariaDB 10.5 do this online, and on Postgres you can swap the `up()` body for `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
 
+### Add the `viewer` and `context` columns
+
+The `create_views_table` stub now creates two nullable columns for the model that was signed in when a view was recorded, `viewer_type` and `viewer_id` with an index, and a nullable `context` JSON column. Every store writes all three, so the columns have to exist even if you never record a viewer or a context. Your published migration has already run, so add them in a migration of your own:
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    protected Builder $schema;
+
+    protected string $table;
+
+    public function __construct()
+    {
+        $this->schema = Schema::connection(
+            config('eloquent-viewable.models.view.connection')
+        );
+
+        $this->table = config('eloquent-viewable.models.view.table_name');
+    }
+
+    public function up(): void
+    {
+        $this->schema->table($this->table, function (Blueprint $table) {
+            $table->nullableMorphs('viewer');
+            $table->json('context')->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        $this->schema->table($this->table, function (Blueprint $table) {
+            $table->dropMorphs('viewer');
+            $table->dropColumn('context');
+        });
+    }
+};
+```
+
+Recording the viewer stays off until you set `recording.viewer.enabled`, so nothing changes in what is stored until you opt in. See [Who viewed what](README.md#who-viewed-what).
+
+### The visitor reports the signed-in model
+
+`Visitors\Contracts\Visitor` gained `viewer(): ?Model`, the signed-in Eloquent model or `null` for a guest. A custom visitor has to implement it; returning `null` is correct wherever there is no session to read, and the view is then recorded as a guest view unless `viewedBy()` names a viewer. The shipped `Visitors\Visitor` reads the model from the guard named by `recording.viewer.guard` and takes `Illuminate\Contracts\Auth\Factory` as a fourth constructor argument. A subclass that overrides the constructor passes it on; a class resolved from the container needs no change.
+
 ### The `View` and `Views` contracts are gone
 
 `CyrildeWit\EloquentViewable\Contracts\View` and `CyrildeWit\EloquentViewable\Contracts\Views` no longer exist. Type hints, `instanceof` checks and container bindings against them break.
