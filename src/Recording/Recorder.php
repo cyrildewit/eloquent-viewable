@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
@@ -30,7 +31,7 @@ final readonly class Recorder
     ) {}
 
     /** @throws RecordingFailed */
-    public function record(ViewAttempt $attempt): bool
+    public function record(ViewAttempt $attempt): RecordResult
     {
         $key = ViewableKey::of($attempt->viewable);
 
@@ -42,7 +43,7 @@ final readonly class Recorder
             if (! $guard->allows($attempt)) {
                 $this->events->dispatch(new ViewSkipped($attempt, $guard));
 
-                return false;
+                return RecordResult::skipped($guard);
             }
         }
 
@@ -54,7 +55,7 @@ final readonly class Recorder
             viewedAt: Carbon::now(),
         );
 
-        $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
+        $result = $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
 
         foreach ($this->guards as $guard) {
             if ($guard instanceof RemembersRecordedViews) {
@@ -62,10 +63,10 @@ final readonly class Recorder
             }
         }
 
-        return true;
+        return $result;
     }
 
-    private function handOn(ViewRecord $record, bool $queue): void
+    private function handOn(ViewRecord $record, bool $queue): RecordResult
     {
         if ($queue) {
             $this->bus->dispatch(
@@ -74,9 +75,11 @@ final readonly class Recorder
                     ->onQueue($this->config->queueName())
             );
 
-            return;
+            return RecordResult::queued();
         }
 
         $this->action->handle($record);
+
+        return RecordResult::stored();
     }
 }

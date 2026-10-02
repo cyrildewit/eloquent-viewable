@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
@@ -100,7 +101,7 @@ beforeEach(function (): void {
 it('refuses a viewable without a key', function (): void {
     $visitor = Mockery::mock(Visitor::class);
 
-    expect(fn (): bool => recorder([neverRuns()], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class))
+    expect(fn (): RecordResult => recorder([neverRuns()], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class))
         ->record(new ViewAttempt(new Post, $visitor)))
         ->toThrow(RecordingFailed::class);
 });
@@ -111,7 +112,11 @@ it('hands the record to the action when nothing refuses', function (): void {
     $action = Mockery::mock(RecordsViews::class);
     $action->expects('handle')->with(Mockery::on(recordFor($attempt)));
 
-    expect(recorder([guardThat(true, $attempt), guardThat(true, $attempt)], Mockery::mock(BusDispatcher::class), $action)->record($attempt))->toBeTrue();
+    $result = recorder([guardThat(true, $attempt), guardThat(true, $attempt)], Mockery::mock(BusDispatcher::class), $action)->record($attempt);
+
+    expect($result->recorded)->toBeTrue()
+        ->and($result->queued)->toBeFalse()
+        ->and($result->skippedBy)->toBeNull();
 });
 
 it('records without guards', function (): void {
@@ -120,7 +125,7 @@ it('records without guards', function (): void {
     $action = Mockery::mock(RecordsViews::class);
     $action->expects('handle')->with(Mockery::on(recordFor($attempt)));
 
-    expect(recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt))->toBeTrue();
+    expect(recorder([], Mockery::mock(BusDispatcher::class), $action)->record($attempt)->recorded)->toBeTrue();
 });
 
 it('stops at the first guard that refuses and says which one', function (): void {
@@ -133,7 +138,11 @@ it('stops at the first guard that refuses and says which one', function (): void
     $events = Mockery::mock(EventDispatcher::class);
     $events->expects('dispatch')->with(Mockery::on(fn (ViewSkipped $event): bool => $event->attempt === $attempt && $event->guard === $refusing));
 
-    expect(recorder([guardThat(true), $refusing, neverRuns()], Mockery::mock(BusDispatcher::class), $action, events: $events)->record($attempt))->toBeFalse();
+    $result = recorder([guardThat(true), $refusing, neverRuns()], Mockery::mock(BusDispatcher::class), $action, events: $events)->record($attempt);
+
+    expect($result->recorded)->toBeFalse()
+        ->and($result->queued)->toBeFalse()
+        ->and($result->skippedBy)->toBe($refusing);
 });
 
 it('queues the record when the attempt asks for it', function (): void {
@@ -147,7 +156,11 @@ it('queues the record when the attempt asks for it', function (): void {
     $action = Mockery::mock(RecordsViews::class);
     $action->shouldNotReceive('handle');
 
-    expect(recorder([], $bus, $action, ['enabled' => false, 'connection' => 'sqs', 'queue' => 'views'])->record($attempt))->toBeTrue();
+    $result = recorder([], $bus, $action, ['enabled' => false, 'connection' => 'sqs', 'queue' => 'views'])->record($attempt);
+
+    expect($result->recorded)->toBeTrue()
+        ->and($result->queued)->toBeTrue()
+        ->and($result->skippedBy)->toBeNull();
 });
 
 it('queues the record when the config asks for it and the attempt does not say', function (): void {
@@ -156,7 +169,7 @@ it('queues the record when the config asks for it and the attempt does not say',
     $bus = Mockery::mock(BusDispatcher::class);
     $bus->expects('dispatch')->with(Mockery::on(fn (RecordViewJob $job): bool => $job->connection === null && $job->queue === null));
 
-    expect(recorder([], $bus, Mockery::mock(RecordsViews::class), ['enabled' => true])->record($attempt))->toBeTrue();
+    expect(recorder([], $bus, Mockery::mock(RecordsViews::class), ['enabled' => true])->record($attempt)->queued)->toBeTrue();
 });
 
 it('records synchronously when the attempt overrides the config', function (): void {
@@ -168,7 +181,7 @@ it('records synchronously when the attempt overrides the config', function (): v
     $bus = Mockery::mock(BusDispatcher::class);
     $bus->shouldNotReceive('dispatch');
 
-    expect(recorder([], $bus, $action, ['enabled' => true])->record($attempt))->toBeTrue();
+    expect(recorder([], $bus, $action, ['enabled' => true])->record($attempt)->queued)->toBeFalse();
 });
 
 it('remembers the view once every guard has allowed it and it is handed on', function (bool $queue): void {
@@ -180,7 +193,7 @@ it('remembers the view once every guard has allowed it and it is handed on', fun
     $bus = Mockery::mock(BusDispatcher::class);
     $bus->allows('dispatch');
 
-    expect(recorder([rememberingGuard(true, $attempt), guardThat(true)], $bus, $action)->record($attempt))->toBeTrue();
+    expect(recorder([rememberingGuard(true, $attempt), guardThat(true)], $bus, $action)->record($attempt)->recorded)->toBeTrue();
 })->with([
     'stored' => [false],
     'queued' => [true],
@@ -192,7 +205,7 @@ it('does not remember a view a later guard refuses', function (): void {
     $events = Mockery::mock(EventDispatcher::class);
     $events->allows('dispatch');
 
-    expect(recorder([rememberingGuard(false), guardThat(false)], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events)->record($attempt))->toBeFalse();
+    expect(recorder([rememberingGuard(false), guardThat(false)], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events)->record($attempt)->recorded)->toBeFalse();
 });
 
 it('does not remember a view the action fails to store', function (): void {
@@ -201,6 +214,6 @@ it('does not remember a view the action fails to store', function (): void {
     $action = Mockery::mock(RecordsViews::class);
     $action->expects('handle')->andThrow(new RuntimeException('The store is down.'));
 
-    expect(fn (): bool => recorder([rememberingGuard(false)], Mockery::mock(BusDispatcher::class), $action)->record($attempt))
+    expect(fn (): RecordResult => recorder([rememberingGuard(false)], Mockery::mock(BusDispatcher::class), $action)->record($attempt))
         ->toThrow(RuntimeException::class, 'The store is down.');
 });
