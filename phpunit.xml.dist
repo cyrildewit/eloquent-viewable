@@ -22,6 +22,9 @@
         <testsuite name="Feature">
             <directory>./tests/Feature</directory>
         </testsuite>
+        <testsuite name="Samples">
+            <directory>./samples</directory>
+        </testsuite>
     </testsuites>
     <logging>
         <junit outputFile="build/report.junit.xml"/>

@@ -3,7 +3,7 @@ DEFAULT_GOAL := help
 
 # None of these targets produce a file. `build` in particular would otherwise
 # clash with the build/ directory and never run.
-.PHONY: help build install lint rector ready test test-arch test-unit test-feature test-lint test-types deptrac-graph test-type-coverage test-coverage test-mutation test-mysql test-mariadb test-pgsql test-drivers db-stop
+.PHONY: help build install lint rector ready test test-arch test-unit test-feature test-samples test-lint test-types deptrac-graph test-type-coverage test-coverage test-mutation test-mysql test-mariadb test-pgsql test-drivers db-stop
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-40s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -34,6 +34,9 @@ test-unit: ## Run the unit tests (no Laravel application is booted)
 
 test-feature: ## Run the feature tests (booted through Testbench)
 	docker compose run --rm composer test:feature
+
+test-samples: ## Run the samples' tests (booted through Testbench)
+	docker compose run --rm composer test:samples
 
 test-lint: ## Check the code style without fixing it
 	docker compose run --rm composer test:lint

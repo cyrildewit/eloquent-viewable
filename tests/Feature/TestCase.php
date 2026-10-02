@@ -43,5 +43,10 @@ abstract class TestCase extends OrchestraTestCase
         new \CreateViewsTable()->up();
         new \CreatePostsTable()->up();
         new \CreateApartmentsTable()->up();
+
+        // Each sample keeps its own tables next to its code.
+        foreach (glob(__DIR__.'/../../samples/*/database/migrations/*.php') ?: [] as $migration) {
+            (require $migration)->up();
+        }
     }
 }

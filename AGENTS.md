@@ -17,6 +17,7 @@ make test               # the full Pest suite
 make test-unit          # tests/Unit
 make test-feature       # tests/Feature
 make test-arch          # tests/Architecture
+make test-samples       # the tests next to each sample in samples/
 make test-lint          # pint --test, checks style without fixing
 make test-types         # phpstan
 make deptrac-graph      # draws the dependencies between layers to build/deptrac.png
