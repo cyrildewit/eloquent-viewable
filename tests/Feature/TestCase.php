@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Tests\Feature;
 
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Env;
+use Illuminate\Support\ServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
 {
     use RefreshDatabase;
 
+    /**
+     * @param  Application  $app
+     * @return list<class-string<ServiceProvider>>
+     */
     protected function getPackageProviders($app): array
     {
         return [
@@ -20,6 +26,7 @@ abstract class TestCase extends OrchestraTestCase
         ];
     }
 
+    /** @param  Application  $app */
     protected function defineEnvironment($app): void
     {
         // The in-memory SQLite connection by default. CI sets DB_CONNECTION to
@@ -36,7 +43,7 @@ abstract class TestCase extends OrchestraTestCase
      */
     protected function defineDatabaseMigrationsAfterDatabaseRefreshed(): void
     {
-        require_once __DIR__.'/../../migrations/create_views_table.php.stub';
+        require_once __DIR__.'/../../database/migrations/create_views_table.php.stub';
         require_once __DIR__.'/../database/migrations/2018_02_22_194715_create_posts_table.php';
         require_once __DIR__.'/../database/migrations/2018_02_22_194716_create_apartments_table.php';
 

@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories;
+namespace CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Factories;
 
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends Factory<Apartment>
- */
+/** @extends Factory<Apartment> */
 class ApartmentFactory extends Factory
 {
     #[\Override]
     protected $model = Apartment::class;
 
+    /** @return array<model-property<Apartment>, mixed> */
     public function definition(): array
     {
         return [

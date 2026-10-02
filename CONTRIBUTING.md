@@ -155,7 +155,7 @@ DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer 
 A handful of tests assert raw SQL strings or read a SQLite query plan. Those skip on the other drivers, so the counts
 differ between runs.
 
-The suite is split in three. Tests in `tests/Architecture` are Pest arch expectations about the source tree. Tests in
+The suite is split in three. Tests in `tests/Arch` are Pest arch expectations about the source tree. Tests in
 `tests/Unit` extend plain PHPUnit and never boot a Laravel application, so they run in well under a second. Tests in
 `tests/Feature` extend the Testbench test case and get a booted application with a database. Put a test in
 `tests/Feature` when it needs the container, a database, a facade or the service provider.
