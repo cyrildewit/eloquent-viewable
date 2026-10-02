@@ -7,12 +7,12 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Php;
 use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Benchmarks\Models\Article;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Application;
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\Cooldown;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
-use Illuminate\Config\Repository;
-use Illuminate\Session\ArraySessionHandler;
-use Illuminate\Session\Store;
+use Illuminate\Contracts\Session\Session;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Groups;
 use PhpBench\Attributes\Iterations;
@@ -21,10 +21,11 @@ use PhpBench\Attributes\ParamProviders;
 use PhpBench\Attributes\Revs;
 
 /**
- * `CooldownManager::push()`: every call first sweeps the expired cooldowns
- * out of the session, parsing a date per entry, so the cost grows with the
- * number of viewables the visitor has seen recently. Runs against an array
- * session; the application is only booted so the viewable models resolve.
+ * `CooldownStore::put()` on the session store `CooldownManager` builds:
+ * every put first sweeps the expired cooldowns out of the session, so the
+ * cost grows with the number of cooldowns the visitor has running. Runs
+ * against the array session; the application is only booted so the manager
+ * and its store resolve.
  */
 #[Groups(['php'])]
 #[BeforeMethods('setUp')]
@@ -33,9 +34,9 @@ use PhpBench\Attributes\Revs;
 #[Iterations(5)]
 final class CooldownManagerBench
 {
-    private CooldownManager $cooldownManager;
+    private CooldownStore $store;
 
-    private Article $article;
+    private string $key;
 
     private CarbonImmutable $expiresAt;
 
@@ -55,32 +56,29 @@ final class CooldownManagerBench
      */
     public function setUp(array $params): void
     {
-        Application::boot();
+        $app = Application::boot();
 
-        $config = new Config(new Repository([
-            'eloquent-viewable' => require Application::projectPath('config/eloquent-viewable.php'),
-        ]));
-
-        $session = new Store('benchmark', new ArraySessionHandler(120));
-        $this->cooldownManager = new CooldownManager($config, $session);
+        $this->store = $app->make(CooldownManager::class)->driver('session');
         $this->expiresAt = CarbonImmutable::now()->addDay();
 
-        // Written straight into the session, the way the manager stores them.
-        // Pushing them one by one would sweep the session on every push and
+        // Written straight into the session, the way the store keeps them.
+        // Putting them one by one would sweep the session on every put and
         // take minutes for the largest case.
-        $namespace = $config->cooldownKey().'.'.strtolower(str_replace('\\', '-', Article::class));
+        $running = [];
 
         for ($id = 1; $id <= $params['entries']; $id++) {
-            $session->put("{$namespace}.{$id}", ['viewable_id' => $id, 'expires_at' => $this->expiresAt]);
+            $running[Cooldown::of($this->viewable($id), 'visitor')->key()] = $this->expiresAt->getTimestamp();
         }
 
-        $this->article = $this->viewable($params['entries'] + 1);
+        $app->make(Session::class)->put($app->make(Config::class)->cooldownKey(), $running);
+
+        $this->key = Cooldown::of($this->viewable($params['entries'] + 1), 'visitor')->key();
     }
 
     #[ParamProviders('provideSessionSizes')]
     public function benchPush(): void
     {
-        $this->cooldownManager->push($this->article, $this->expiresAt);
+        $this->store->put($this->key, $this->expiresAt);
     }
 
     private function viewable(int $id): Article
