@@ -9,12 +9,12 @@ use Exception;
 
 final class InvalidInterval extends Exception implements EloquentViewableException
 {
-    public static function periodWithoutStartDateTime(): static
+    public static function periodWithoutStartDateTime(): self
     {
         return new self('Counting views by interval requires a period with a start date time.');
     }
 
-    public static function producesTooManyIntervals(int $intervals, int $maximum): static
+    public static function producesTooManyIntervals(int $intervals, int $maximum): self
     {
         return new self("The period and granularity produce {$intervals} intervals, which exceeds the configured maximum of {$maximum}.");
     }

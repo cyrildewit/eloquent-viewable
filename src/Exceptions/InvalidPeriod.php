@@ -9,7 +9,7 @@ use Exception;
 
 final class InvalidPeriod extends Exception implements EloquentViewableException
 {
-    public static function startDateTimeCannotBeAfterEndDateTime(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): static
+    public static function startDateTimeCannotBeAfterEndDateTime(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): self
     {
         return new self("Start date `{$startDateTime->format('Y-m-d')}` cannot be after end date `{$endDateTime->format('Y-m-d')}`.");
     }

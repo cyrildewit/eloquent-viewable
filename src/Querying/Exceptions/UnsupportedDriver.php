@@ -10,7 +10,7 @@ use Exception;
 
 final class UnsupportedDriver extends Exception implements EloquentViewableException
 {
-    public static function noBucketGrammar(string $driver): static
+    public static function noBucketGrammar(string $driver): self
     {
         return new self("No bucket grammar is registered for the `{$driver}` database driver. Register one through `".GrammarRegistry::class.'::register()`.');
     }
