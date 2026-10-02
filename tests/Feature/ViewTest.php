@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Factories\ViewFactory;
-use CyrildeWit\EloquentViewable\Tests\TestClasses\Models\Post;
-use CyrildeWit\EloquentViewable\View;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
 use Illuminate\Support\Facades\Config;
 
 $sqliteOnly = fn (): bool => driver() !== 'sqlite';
@@ -23,6 +23,29 @@ it('reads the table name from the config', function (): void {
     Config::set('eloquent-viewable.models.view.table_name', 'page_views');
 
     expect(new View()->getTable())->toBe('page_views');
+});
+
+it('prefers the connection name set on the model over the config', function (): void {
+    Config::set('database.connections.analytics', ['driver' => 'sqlite', 'database' => ':memory:']);
+    Config::set('eloquent-viewable.models.view.connection', 'analytics');
+
+    $view = new class extends View
+    {
+        protected $connection = 'testing';
+    };
+
+    expect($view->getConnectionName())->toBe('testing');
+});
+
+it('prefers the table name set on the model over the config', function (): void {
+    Config::set('eloquent-viewable.models.view.table_name', 'page_views');
+
+    $view = new class extends View
+    {
+        protected $table = 'article_views';
+    };
+
+    expect($view->getTable())->toBe('article_views');
 });
 
 it('can belong to viewable model', function (): void {
@@ -55,9 +78,9 @@ describe('within period', function () use ($sqliteOnly): void {
     it('includes the start and excludes the end', function (): void {
         $post = Post::factory()->create();
 
-        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-01 00:00:00'))->create();
-        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-15 12:00:00'))->create();
-        ViewFactory::new()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-31 00:00:00'))->create();
+        View::factory()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-01 00:00:00'))->create();
+        View::factory()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-15 12:00:00'))->create();
+        View::factory()->for($post, 'viewable')->viewedAt(Carbon::parse('2019-01-31 00:00:00'))->create();
 
         expect(View::withinPeriod(Period::create('2019-01-01', '2019-01-31'))->count())->toBe(2)
             ->and(View::withinPeriod(Period::upto('2019-01-31'))->count())->toBe(2)
@@ -98,8 +121,8 @@ describe('for viewable', function () use ($sqliteOnly): void {
         $postOne = Post::factory()->create();
         $postTwo = Post::factory()->create();
 
-        ViewFactory::new()->for($postOne, 'viewable')->create();
-        ViewFactory::new()->for($postTwo, 'viewable')->count(2)->create();
+        View::factory()->for($postOne, 'viewable')->create();
+        View::factory()->for($postTwo, 'viewable')->count(2)->create();
 
         expect(View::forViewable($postOne)->count())->toBe(1)
             ->and(View::forViewable($postTwo)->count())->toBe(2)
@@ -148,10 +171,45 @@ describe('new query for', function (): void {
     it('covers every viewable of the type when the viewable has no key', function (): void {
         $post = Post::factory()->create();
 
-        ViewFactory::new()->for($post, 'viewable')->create();
-        ViewFactory::new()->for(Post::factory()->create(), 'viewable')->create();
+        View::factory()->for($post, 'viewable')->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->create();
 
         expect((new View)->newQueryFor(new Post, new ViewsQuery)->count())->toBe(2)
             ->and((new View)->newQueryFor($post, new ViewsQuery)->count())->toBe(1);
+    });
+});
+
+describe('factory', function (): void {
+    it('creates a view of a viewable', function (): void {
+        $post = Post::factory()->create();
+
+        $view = View::factory()->for($post, 'viewable')->create();
+
+        expect($view->viewable)->toBeInstanceOf(Post::class)
+            ->and($view->visitor)->toBeString()
+            ->and($view->collection)->toBeNull()
+            ->and($view->viewed_at)->not->toBeNull();
+    });
+
+    it('has states for the visitor, the collection and the time of the view', function (): void {
+        $view = View::factory()
+            ->for(Post::factory()->create(), 'viewable')
+            ->fromVisitor('visitor_one')
+            ->inCollection('sidebar')
+            ->viewedAt(Carbon::parse('2026-09-01 08:00:00'))
+            ->create()
+            ->fresh();
+
+        expect($view->visitor)->toBe('visitor_one')
+            ->and($view->collection)->toBe('sidebar')
+            ->and(Carbon::parse($view->viewed_at)->toDateTimeString())->toBe('2026-09-01 08:00:00');
+    });
+
+    it('builds instances of a model that extends the view', function (): void {
+        $views = SoftDeletableView::factory()->for(Post::factory()->create(), 'viewable')->count(2)->create();
+
+        expect($views)->toHaveCount(2)
+            ->each->toBeInstanceOf(SoftDeletableView::class)
+            ->and(View::count())->toBe(2);
     });
 });

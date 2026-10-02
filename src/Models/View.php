@@ -2,21 +2,33 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable;
+namespace CyrildeWit\EloquentViewable\Models;
 
 use Carbon\CarbonInterface;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Database\Factories\ViewFactory;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class View extends Model implements ViewContract
+/**
+ * @property int $id
+ * @property string $viewable_type
+ * @property int|string $viewable_id
+ * @property string|null $visitor
+ * @property string|null $collection
+ * @property string $viewed_at
+ */
+class View extends Model
 {
+    /** @use HasFactory<ViewFactory> */
+    use HasFactory;
+
     #[\Override]
     protected $guarded = [];
 
@@ -26,22 +38,30 @@ class View extends Model implements ViewContract
     #[\Override]
     public function getTable(): string
     {
-        return Container::getInstance()
-            ->make(Config::class)
-            ->viewTable() ?? parent::getTable();
+        return $this->table ?? $this->config()->viewTable() ?? parent::getTable();
     }
 
     #[\Override]
     public function getConnectionName(): ?string
     {
-        return Container::getInstance()
-            ->make(Config::class)
-            ->viewConnection() ?? parent::getConnectionName();
+        return parent::getConnectionName() ?? $this->config()->viewConnection();
+    }
+
+    private function config(): Config
+    {
+        return Container::getInstance()->make(Config::class);
     }
 
     /**
-     * @return MorphTo<Model, $this>
+     * The factory behind `View::factory()`. A model that extends this one
+     * inherits it and gets instances of its own class back.
      */
+    protected static function newFactory(): ViewFactory
+    {
+        return ViewFactory::new()->forModel(static::class);
+    }
+
+    /** @return MorphTo<Model, $this> */
     public function viewable(): MorphTo
     {
         return $this->morphTo();
@@ -61,7 +81,7 @@ class View extends Model implements ViewContract
      * Scope a query to only include views within the period. The period is
      * half-open: the start is included and the end is excluded.
      *
-     * @param  Builder<Model>  $query
+     * @param  Builder<View>  $query
      */
     public function scopeWithinPeriod(Builder $query, Period $period): void
     {
@@ -77,11 +97,7 @@ class View extends Model implements ViewContract
         }
     }
 
-    /**
-     * Scope a query to only include views within the collection.
-     *
-     * @param  Builder<Model>  $query
-     */
+    /** @param  Builder<View>  $query */
     public function scopeCollection(Builder $query, ?string $collection = null): void
     {
         $query->where('collection', $collection);
