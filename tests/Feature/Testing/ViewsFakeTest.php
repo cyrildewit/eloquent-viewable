@@ -180,6 +180,17 @@ describe('counting', function (): void {
             ->and($unique->intervals->pluck('count')->all())->toBe([1, 0, 1]);
     });
 
+    it('counts by interval on the clock of the timezone', function (): void {
+        // 15:00 UTC on the 1st is already the 2nd in Sydney.
+        Carbon::setTestNow('2026-09-01 15:00:00');
+        views($this->post)->useVisitor(visitor('one'))->record();
+
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(views($this->post)->period($period)->countByInterval(Granularity::Day)->intervals->pluck('count')->all())->toBe([1, 0])
+            ->and(views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Day)->intervals->pluck('count')->all())->toBe([0, 1, 0]);
+    });
+
     it('refuses the scopes', function (): void {
         expect(fn () => Post::withViewsCount()->get())
             ->toThrow(UnsupportedInFake::class, 'withViewsCount() and orderByViews() cannot read from it');

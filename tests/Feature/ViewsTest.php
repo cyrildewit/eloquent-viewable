@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -670,6 +671,150 @@ describe('counting by interval', function (): void {
 
             expect(counts($series))->toBe([0, 1, 0, 1])
                 ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+    });
+
+    describe('in another timezone', function (): void {
+        it('aligns day buckets to that clock', function (): void {
+            // 13:00 UTC is 23:00 in Sydney on the same day; 15:00 UTC is 01:00 the next.
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 13:00:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-03 00:00:00', 'UTC'));
+
+            $series = views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Day);
+
+            expect(counts(views($this->post)->period($period)->countByInterval(Granularity::Day)))->toBe([2, 0])
+                ->and(counts($series))->toBe([1, 1, 0])
+                ->and($series->timezone->getName())->toBe('Australia/Sydney')
+                ->and($series->intervals->first()->start->format('Y-m-d H:i P'))->toBe('2026-09-01 00:00 +10:00')
+                ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+
+        it('re-anchors a relative period on that clock', function (): void {
+            // 23:00 UTC on the 1st is 09:00 on the 2nd in Sydney, so "yesterday"
+            // in Sydney is the 1st, and a UTC-anchored period would start on the 31st.
+            Carbon::setTestNow('2026-09-01 23:00:00');
+
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-08-31 15:00:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $series = views($this->post)->period(Period::pastDays(1))->timezone('Australia/Sydney')->countByInterval(Granularity::Day);
+
+            expect($series->period->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-09-01 00:00:00', 'Australia/Sydney')->timestamp)
+                ->and($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('Y-m-d'))->all())->toBe(['2026-09-01', '2026-09-02'])
+                ->and(counts($series))->toBe([1, 1])
+                ->and(views($this->post)->period(Period::pastDays(1))->timezone('Australia/Sydney')->count())->toBe(2)
+                ->and(views($this->post)->period(Period::pastDays(1))->count())->toBe(2);
+        });
+
+        it('accepts a DateTimeZone', function (): void {
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-02 00:00:00', 'UTC'));
+
+            expect(counts(views($this->post)->period($period)->timezone(new DateTimeZone('Australia/Sydney'))->countByInterval(Granularity::Day)))->toBe([0, 1]);
+        });
+
+        it('drills from a bucket into the same count', function (): void {
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 13:00:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-03 00:00:00', 'UTC'));
+
+            foreach (views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Day) as $bucket) {
+                expect(views($this->post)->period($bucket->period())->count())->toBe($bucket->count);
+            }
+        });
+
+        it('follows the spring transition of that zone', function (): void {
+            // Sydney skips 02:00 on 2026-10-04, at 2026-10-03 16:00 UTC. The
+            // rows straddle it, so the offsets differ on either side.
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-03 15:30:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-03 16:30:00', 'UTC'))->create();
+
+            // 14:00 UTC is 00:00 AEST; 17:00 UTC is already 04:00 AEDT.
+            $period = Period::create(Carbon::parse('2026-10-03 14:00:00', 'UTC'), Carbon::parse('2026-10-03 17:00:00', 'UTC'));
+
+            $series = views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Hour);
+            $skipped = $series->intervals[2];
+
+            expect(counts($series))->toBe([0, 1, 0, 1])
+                ->and($skipped->start->diffInMinutes($skipped->end))->toBe(0.0)
+                ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+
+        it('keeps both real hours of the ambiguous wall clock of that zone in one bucket', function (): void {
+            // Sydney repeats 02:00 on 2026-04-05, at 2026-04-04 16:00 UTC.
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-04-04 15:30:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-04-04 16:30:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-04-04 13:00:00', 'UTC'), Carbon::parse('2026-04-04 17:00:00', 'UTC'));
+
+            $series = views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Hour);
+
+            expect($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('H:i'))->all())->toBe(['00:00', '01:00', '02:00'])
+                ->and(counts($series))->toBe([0, 0, 2])
+                ->and($series->total())->toBe(views($this->post)->period($period)->count());
+        });
+
+        it('counts the same rows as without a timezone when the clocks agree', function (): void {
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 13:00:00', 'UTC'))->create();
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-02 15:00:00', 'UTC'))->create();
+
+            $period = Period::create('2026-09-01', '2026-09-03');
+
+            expect(counts(views($this->post)->period($period)->timezone(date_default_timezone_get())->countByInterval(Granularity::Day)))
+                ->toBe(counts(views($this->post)->period($period)->countByInterval(Granularity::Day)));
+        });
+
+        it('keeps a separate cache entry per timezone', function (): void {
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-02 00:00:00', 'UTC'));
+
+            expect(counts(views($this->post)->period($period)->remember(60)->countByInterval(Granularity::Day)))->toBe([1])
+                ->and(counts(views($this->post)->period($period)->remember(60)->timezone('Australia/Sydney')->countByInterval(Granularity::Day)))->toBe([0, 1]);
+        });
+
+        it('rejects a timezone that is not an identifier', function (): void {
+            expect(fn (): Views => views($this->post)->timezone('+10:00'))
+                ->toThrow(InvalidTimezone::class, '`+10:00` is not a timezone identifier');
+        });
+
+        it('can be cleared again', function (): void {
+            View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-01 15:00:00', 'UTC'))->create();
+
+            $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-02 00:00:00', 'UTC'));
+
+            expect(counts(views($this->post)->period($period)->timezone('Australia/Sydney')->timezone(null)->countByInterval(Granularity::Day)))->toBe([1]);
+        });
+
+        describe('from a non-UTC application timezone', function (): void {
+            beforeEach(function (): void {
+                $this->timezone = date_default_timezone_get();
+                date_default_timezone_set('Europe/Amsterdam');
+            });
+
+            afterEach(function (): void {
+                date_default_timezone_set($this->timezone);
+            });
+
+            it('converts across the fall-back transition of the storage zone', function (): void {
+                // Amsterdam falls back on 2026-10-25. 15:30 CEST on the 24th is
+                // 00:30 on the 25th in Sydney; 14:30 CET on the 26th is 00:30 on the 27th.
+                View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-24 15:30:00'))->create();
+                View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-10-26 14:30:00'))->create();
+
+                $period = Period::create('2026-10-24', '2026-10-27');
+
+                $series = views($this->post)->period($period)->timezone('Australia/Sydney')->countByInterval(Granularity::Day);
+
+                expect($series->intervals->map(fn (Bucket $bucket): string => $bucket->start->format('Y-m-d'))->all())
+                    ->toBe(['2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'])
+                    ->and(counts($series))->toBe([0, 1, 0, 1])
+                    ->and($series->total())->toBe(views($this->post)->period($period)->count());
+            });
         });
     });
 

@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Connection;
 
@@ -124,4 +125,18 @@ it('changes the key when the granularity changes', function (): void {
         ->not->toBe($default)
         ->and(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), Granularity::Hour))
         ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), Granularity::Day));
+});
+
+it('changes the key when the timezone changes', function (): void {
+    $default = cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), Granularity::Day);
+
+    expect(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2), timezone: new Timezone('Australia/Sydney')), Granularity::Day))
+        ->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2), timezone: new Timezone('Australia/Sydney')), Granularity::Day))
+        ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2), timezone: new Timezone('Europe/Amsterdam')), Granularity::Day));
+});
+
+it('changes the key when a relative period is anchored in another timezone', function (): void {
+    expect(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2, 'Australia/Sydney'))))
+        ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2))));
 });
