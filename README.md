@@ -444,6 +444,30 @@ a customer in Sydney means by "the last seven days":
 Period::pastDays(7, 'Australia/Sydney');
 ```
 
+##### From a string
+
+Dashboards carry the period in the URL. `Period::parse()` reads the string forms, so the controller does not have
+to:
+
+```php
+Period::parse('7d');                        // Period::pastDays(7)
+Period::parse('3w');                        // Period::pastWeeks(3)
+Period::parse('6m');                        // Period::pastMonths(6)
+Period::parse('1y');                        // Period::pastYears(1)
+Period::parse('12h');                       // Period::subHours(12), likewise 30min and 90s
+Period::parse('2026-01-01..2026-02-01');    // Period::create('2026-01-01', '2026-02-01')
+Period::parse('2026-01-01..');              // Period::since('2026-01-01')
+Period::parse('..2026-02-01');              // Period::upto('2026-02-01')
+
+Period::parse('7d', 'Australia/Sydney');    // Period::pastDays(7, 'Australia/Sydney')
+```
+
+A calendar unit (`d`, `w`, `m`, `y`) counts back from midnight and a clock unit (`s`, `min`, `h`) from now, matching
+the constructors. A range bound is a date, `2026-01-01`, or a date and time, `2026-01-01T10:30:00`, read on the
+clock of the timezone when one is given. The range is half-open like every period, so `2026-01-01..2026-02-01` is
+January. Anything else throws `InvalidPeriod`.
+
+
 ##### Timezones
 
 `viewed_at` is stored as the wall clock of your application timezone. Period bounds use that same zone, and bounds

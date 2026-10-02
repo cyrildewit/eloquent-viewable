@@ -200,3 +200,82 @@ describe('relative periods in a timezone', function (): void {
             ->and(Period::pastDays(7)->cacheSignature())->toBe('past7days');
     });
 });
+
+describe('parse', function (): void {
+    beforeEach(function (): void {
+        Carbon::setTestNow('2026-09-10 12:34:56');
+    });
+
+    it('reads the {shorthand} shorthand as the matching constructor', function (string $shorthand, string $method, int $value): void {
+        $period = Period::parse($shorthand);
+
+        expect($period->getStartDateTime()->toIso8601String())->toBe(Period::{$method}($value)->getStartDateTime()->toIso8601String())
+            ->and($period->getEndDateTime())->toBeNull()
+            ->and($period->cacheSignature())->toBe(Period::{$method}($value)->cacheSignature());
+    })->with([
+        '90s' => ['90s', 'subSeconds', 90],
+        '30min' => ['30min', 'subMinutes', 30],
+        '12h' => ['12h', 'subHours', 12],
+        '7d' => ['7d', 'pastDays', 7],
+        '3w' => ['3w', 'pastWeeks', 3],
+        '6m' => ['6m', 'pastMonths', 6],
+        '1y' => ['1y', 'pastYears', 1],
+    ]);
+
+    it('reads a shorthand on the clock of a timezone', function (): void {
+        expect(Period::parse('7d', 'Australia/Sydney')->getStartDateTime()->toIso8601String())
+            ->toBe(Period::pastDays(7, 'Australia/Sydney')->getStartDateTime()->toIso8601String());
+    });
+
+    it('reads a range of two bounds', function (): void {
+        $period = Period::parse('2026-01-01..2026-02-01');
+
+        expect($period->getStartDateTime()->format('Y-m-d H:i:s'))->toBe('2026-01-01 00:00:00')
+            ->and($period->getEndDateTime()->format('Y-m-d H:i:s'))->toBe('2026-02-01 00:00:00')
+            ->and($period->cacheSignature())->toBe(Period::create('2026-01-01', '2026-02-01')->cacheSignature());
+    });
+
+    it('reads bounds with a time of day', function (): void {
+        $period = Period::parse('2026-01-01T10:30:00..2026-01-01T12:00:00');
+
+        expect($period->getStartDateTime()->format('Y-m-d H:i:s'))->toBe('2026-01-01 10:30:00')
+            ->and($period->getEndDateTime()->format('Y-m-d H:i:s'))->toBe('2026-01-01 12:00:00');
+    });
+
+    it('reads an open-ended range on either side', function (): void {
+        expect(Period::parse('2026-01-01..')->getStartDateTime()->format('Y-m-d'))->toBe('2026-01-01')
+            ->and(Period::parse('2026-01-01..')->getEndDateTime())->toBeNull()
+            ->and(Period::parse('..2026-02-01')->getStartDateTime())->toBeNull()
+            ->and(Period::parse('..2026-02-01')->getEndDateTime()->format('Y-m-d'))->toBe('2026-02-01');
+    });
+
+    it('reads range bounds on the clock of a timezone', function (): void {
+        $period = Period::parse('2026-01-01..2026-02-01', 'Australia/Sydney');
+
+        expect($period->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-01-01', 'Australia/Sydney')->timestamp)
+            ->and($period->getStartDateTime()->getTimezone()->getName())->toBe(date_default_timezone_get());
+    });
+
+    it('rejects a range that runs backwards', function (): void {
+        expect(fn (): Period => Period::parse('2026-02-01..2026-01-01'))->toThrow(InvalidPeriod::class, 'cannot be after');
+    });
+
+    it('rejects {input}', function (string $input): void {
+        expect(fn (): Period => Period::parse($input))->toThrow(InvalidPeriod::class, "`{$input}` is not a period");
+    })->with([
+        'an empty string' => [''],
+        'a word' => ['nonsense'],
+        'an unknown unit' => ['7x'],
+        'a negative value' => ['-7d'],
+        'a bare separator' => ['..'],
+        'a range with a word in it' => ['2026-01-01..nonsense'],
+        'a range with a relative bound' => ['2026-01-01..tomorrow'],
+        'a bound with a space' => ['2026-01-01 10:00:00..2026-02-01'],
+        'a bound with a month out of range' => ['2026-13-01..'],
+        'two separators' => ['2026-01-01..2026-02-01..2026-03-01'],
+    ]);
+
+    it('rejects a timezone that is not an identifier', function (): void {
+        expect(fn (): Period => Period::parse('7d', 'CEST'))->toThrow(InvalidTimezone::class);
+    });
+});
