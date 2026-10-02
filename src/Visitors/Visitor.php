@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Cookie;
 
 class Visitor implements VisitorContract
 {
@@ -32,7 +33,7 @@ class Visitor implements VisitorContract
     {
         $cookieName = $this->config->visitorCookieName();
 
-        $id = $this->request()->cookie($cookieName);
+        $id = $this->request()->cookie($cookieName) ?? $this->queuedId($cookieName);
 
         if (is_string($id)) {
             return $id;
@@ -79,6 +80,20 @@ class Visitor implements VisitorContract
     public function hasGlobalPrivacyControl(): bool
     {
         return (int) $this->request()->header(self::GPC) === 1;
+    }
+
+    /**
+     * Every visitor instance in a request must hand out the same new id.
+     */
+    protected function queuedId(string $cookieName): ?string
+    {
+        foreach ($this->cookies->getQueuedCookies() as $cookie) {
+            if ($cookie instanceof Cookie && $cookie->getName() === $cookieName) {
+                return $cookie->getValue();
+            }
+        }
+
+        return null;
     }
 
     protected function request(): Request
