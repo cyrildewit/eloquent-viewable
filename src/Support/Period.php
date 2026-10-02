@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Support;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Carbon\Exceptions\InvalidFormatException;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use DateTimeInterface;
@@ -17,9 +18,16 @@ use DateTimeZone;
  *
  * Bounds are converted to the application timezone on construction, because
  * that is the wall clock `viewed_at` is stored in.
+ *
+ * A period has a string form, `7d`, `3m` or `2026-01-01..2026-02-01`, that
+ * `parse()` reads, so it can travel in a URL.
  */
 final readonly class Period
 {
+    private const string RANGE_SEPARATOR = '..';
+
+    private const string BOUND_PATTERN = '/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/';
+
     private ?CarbonInterface $startDateTime;
 
     private ?CarbonInterface $endDateTime;
@@ -35,6 +43,47 @@ final readonly class Period
         $this->endDateTime = Carbon::make($endDateTime)?->setTimezone(date_default_timezone_get());
 
         $this->guardChronologicalOrder();
+    }
+
+    /**
+     * A shorthand such as `7d`, `3w`, `6m` or `1y`, counted back from midnight
+     * like `pastDays()`, or `90s`, `30min` or `12h`, counted back from now like
+     * `subHours()`; or two ISO 8601 bounds around `..`, either of which may be
+     * left out.
+     *
+     * @throws InvalidPeriod
+     * @throws InvalidTimezone
+     */
+    public static function parse(string $period, DateTimeZone|string|null $timezone = null): self
+    {
+        $timezone = $timezone === null ? null : Timezone::from($timezone);
+
+        if (preg_match('/^(\d+)([a-z]+)$/', $period, $matches) === 1) {
+            $interval = PeriodInterval::fromShorthand($matches[2]) ?? throw InvalidPeriod::unparsable($period);
+
+            return self::relative($interval->anchor(), $interval, (int) $matches[1], $timezone);
+        }
+
+        $bounds = explode(self::RANGE_SEPARATOR, $period);
+
+        if (count($bounds) !== 2 || $bounds === ['', '']) {
+            throw InvalidPeriod::unparsable($period);
+        }
+
+        foreach ($bounds as $bound) {
+            if ($bound !== '' && preg_match(self::BOUND_PATTERN, $bound) !== 1) {
+                throw InvalidPeriod::unparsable($period);
+            }
+        }
+
+        try {
+            return new self(
+                $bounds[0] === '' ? null : Carbon::parse($bounds[0], $timezone),
+                $bounds[1] === '' ? null : Carbon::parse($bounds[1], $timezone),
+            );
+        } catch (InvalidFormatException) {
+            throw InvalidPeriod::unparsable($period);
+        }
     }
 
     /** @throws InvalidPeriod */
