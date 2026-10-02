@@ -465,6 +465,21 @@ $series->total();  // the same number as views($post)->period(Period::pastDays(3
 $series->intervals; // Collection<int, Bucket>
 ```
 
+A series feeds a chart without reshaping. Labels are formatted down to the bucket width (`2026-09-01 14:00` for hours,
+`2026-09-01` for days and weeks, where a week is labelled by its Monday, `2026-09` for months and `2026` for years):
+
+```php
+$series->labels();  // ['2026-09-01', '2026-09-02', ...]
+$series->values();  // [14, 22, ...]
+$series->peak();    // the Bucket with the most views, the earliest on a tie, or null without buckets
+$series->average(); // float, the mean count per bucket
+
+$series->toArray(); // ['granularity' => 'day', 'total' => 36, 'labels' => [...], 'values' => [...]]
+```
+
+`ViewSeries` is `Arrayable` and `JsonSerializable`, so returning it from a controller sends that array as JSON. Each
+bucket carries its label as `$bucket->label` too.
+
 Buckets are calendar-aligned, so the first one may start before the period, and weeks start on Monday. A bucket is
 half-open like a period, so drilling into one gives the same count:
 
