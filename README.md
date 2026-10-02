@@ -58,6 +58,7 @@
       </ul>
     </li>
     <li><a href="#samples">Samples</a></li>
+    <li><a href="#testing">Testing</a></li>
     <li><a href="#optimizing">Optimizing</a>
       <ul>
         <li><a href="#database-indexes">Database indexes</a></li>
@@ -70,6 +71,8 @@
         <li><a href="#using-your-own-views-eloquent-model">Using your own Views Eloquent model</a></li>
         <li><a href="#using-your-own-view-eloquent-model">Using your own View Eloquent model</a></li>
         <li><a href="#customizing-how-views-are-created">Customizing how views are created</a></li>
+        <li><a href="#choosing-where-views-are-stored">Choosing where views are stored</a></li>
+        <li><a href="#adding-a-recording-guard">Adding a recording guard</a></li>
         <li><a href="#customizing-how-views-are-counted">Customizing how views are counted</a></li>
         <li><a href="#adding-a-bucket-grammar-for-another-database-driver">Adding a bucket grammar for another database driver</a></li>
         <li><a href="#using-a-custom-crawler-detector">Using a custom crawler detector</a></li>
@@ -113,7 +116,7 @@ views($post)->record();
 - Prevent duplicate views with a configurable **cooldown system**
 - Order models by views and unique visitors
 - Optimize performance with **built-in caching**
-- Ignore views from **crawlers, blocked IPs, and DNT users**
+- Ignore views from **crawlers, blocked IPs, and visitors who opt out** with Do Not Track or Global Privacy Control
 
 ## Getting Started
 
@@ -159,13 +162,13 @@ php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewa
 To associate views with a model, the model **must** implement the following interface and trait:
 
 - **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
-- **Trait:** `CyrildeWit\EloquentViewable\InteractsWithViews`
+- **Trait:** `CyrildeWit\EloquentViewable\Concerns\InteractsWithViews`
 
 Example:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use CyrildeWit\EloquentViewable\InteractsWithViews;
+use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 
 class Post extends Model implements Viewable
@@ -200,9 +203,29 @@ public function show(Post $post)
 
 This ensures that views are only recorded when the page is actually rendered for a user.
 
-> [!WARNING]  
-> By default, this package **automatically ignores views from crawlers** to prevent inaccurate counts. Keep this in mind
-> when testing—tools like **Postman** are often detected as crawlers and will not trigger a recorded view.
+Every call to `record()` passes a list of guards before anything is written. The list lives under `recording.guards`
+in the config file and is the only switch: a guard runs when it is listed and not otherwise. Out of the box bot traffic
+and the addresses in `recording.ignored_ip_addresses` are dropped and cooldowns are enforced. Publish the config and
+uncomment `IgnoreDoNotTrack` or `IgnoreGlobalPrivacyControl` to honour those headers, or remove a guard to turn its
+check off. Or add a guard of your own, see [Adding a recording guard](#adding-a-recording-guard).
+
+> [!NOTE]
+> `IgnoreCrawlers` is listed by default, so keep it in mind when testing. Tools like **Postman** are often detected as
+> crawlers and will not trigger a recorded view.
+
+When a guard refuses, the package dispatches `Recording\Events\ViewSkipped` with the attempt and the guard. Listen
+for it to find out why a count stays where it is:
+
+```php
+use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
+
+Event::listen(ViewSkipped::class, function (ViewSkipped $event): void {
+    Log::debug('View skipped by '.$event->guard::class, [
+        'viewable' => $event->attempt->viewable->getKey(),
+        'collection' => $event->attempt->collection,
+    ]);
+});
+```
 
 ### Queueing view recording
 
@@ -219,10 +242,12 @@ views($post)->queue()->record();
 Or enable queueing globally in the `eloquent-viewable.php` config file:
 
 ```php
-'queue' => [
-    'enabled' => true,      // queue every recorded view
-    'connection' => null,   // null uses the default queue connection
-    'queue' => null,        // null uses the connection's default queue
+'recording' => [
+    'queue' => [
+        'enabled' => true,      // queue every recorded view
+        'connection' => null,   // null uses the default queue connection
+        'queue' => null,        // null uses the connection's default queue
+    ],
 ],
 ```
 
@@ -237,13 +262,17 @@ All filtering still runs during the request, including crawler detection, the Do
 header, ignored IP addresses and cooldowns. Bots and views on cooldown are therefore never
 queued; only the database write is deferred.
 
+Queueing defers the write, and so does a store that buffers views before landing them in the
+table. Combining the two is harmless but gains nothing: every view becomes a job whose only
+work is handing the record to the buffer. With a buffering store, leave `recording.queue.enabled` off.
+
 > [!WARNING]  
 > When a view is queued, the `ViewRecorded` event is dispatched from the queue worker
 > instead of the request. Its listeners therefore run **without request context**. The
 > session, cookies, `request()` and `auth()->user()` are unavailable and will return empty
 > or `null` values. If a listener needs request-derived data (such as the authenticated
 > user or the IP address), capture it during the request instead of reading it inside the
-> listener.
+> listener. The event carries the `ViewRecord` that was recorded, under `$event->record`.
 
 ### Setting a cooldown
 
@@ -390,7 +419,7 @@ The database does the grouping, so the package ships a grammar per driver: SQLit
 other driver throws `UnsupportedDriver` until you
 [register a grammar](#adding-a-bucket-grammar-for-another-database-driver) for it.
 
-A call that would produce more than `max_intervals` buckets (10,000 by default, configurable) throws
+A call that would produce more than `querying.max_intervals` buckets (10,000 by default, configurable) throws
 `InvalidInterval` before the database is queried.
 
 #### Get unique view count
@@ -482,11 +511,14 @@ views($post)
 
 ### Remove views on delete
 
-When a viewable model is deleted, the package deletes its views with it. To keep the views, set the
-`removeViewsOnDelete` property to `false` in your model definition.
+When a viewable model is deleted, the package deletes its views with it. To keep the views, override
+`shouldRemoveViewsOnDelete()` in your model.
 
 ```php
-protected $removeViewsOnDelete = false;
+public function shouldRemoveViewsOnDelete(): bool
+{
+    return false;
+}
 ```
 
 A soft delete leaves the views in place, so a restored model still has its view count. Only `forceDelete()` removes
@@ -494,6 +526,10 @@ them. If you want to drop the views of a soft-deleted model anyway, call `views(
 
 If your custom `View` model uses `SoftDeletes`, a force delete of the viewable soft deletes its views instead of
 removing the rows.
+
+A view that is queued or buffered when the model is force deleted can still be written afterwards, because the
+delete only removes what is already stored. The row is harmless: nothing counts views for a model that no longer
+exists, and keys are not reused.
 
 ### Caching view counts
 
@@ -529,6 +565,54 @@ views($post)->remember()->count();
 The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
 [trending articles](samples/TrendingArticles) list, a [stats page](samples/ListingStats) for one listing or a
 [most viewed](samples/PopularProducts) sort over a large catalog. Each sample is tested with the rest of the suite.
+
+## Testing
+
+`Views::fake()` swaps the store and the source for one in-memory fake, so a test can record views without a `views`
+table and read them back through the same `views()` calls. Call it before the code under test runs.
+
+```php
+use CyrildeWit\EloquentViewable\Facades\Views;
+use CyrildeWit\EloquentViewable\Data\ViewRecord;
+
+it('records a view of the post', function (): void {
+    $fake = Views::fake();
+
+    $this->get(route('posts.show', $post));
+
+    $fake->assertRecorded($post);
+    $fake->assertRecorded($post, 1);
+    $fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->collection === 'sidebar');
+    $fake->assertNotRecorded($otherPost);
+    $fake->assertNothingRecorded();
+    $fake->assertForgotten($post);
+});
+```
+
+`recorded($post)` returns the matching `ViewRecord` objects as a collection. A viewable without a key, such as
+`new Post`, stands for every viewable of its type.
+
+The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
+in the fake either. `count()`,
+`unique()`, `period()`, `collection()` and `countByInterval()` read from the fake. The `withViewsCount()` and
+`orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
+
+The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
+process that should keep views in memory without the assertions.
+
+For tests and seeders that need rows in the `views` table, the `View` model ships a factory. `fromVisitor()`,
+`inCollection()` and `viewedAt()` set the three columns a count reads; everything else is a plain Laravel factory.
+
+```php
+use CyrildeWit\EloquentViewable\Models\View;
+
+View::factory()->for($post, 'viewable')->count(3)->create();
+View::factory()->for($post, 'viewable')->fromVisitor('visitor_one')->inCollection('sidebar')->create();
+View::factory()->for($post, 'viewable')->viewedAt(now()->subDays(2))->create();
+```
+
+A [custom `View` model](#using-your-own-view-eloquent-model) inherits the factory and gets instances of its own
+class back from `factory()`.
 
 ## Optimizing
 
@@ -596,46 +680,51 @@ foreach($posts as $post) {
 
 If you want to extend or replace one of the core classes with your own implementations, you can override them:
 
-- `CyrildeWit\EloquentViewable\Views`
-- `CyrildeWit\EloquentViewable\View`
-- `CyrildeWit\EloquentViewable\Visitor`
-- `CyrildeWit\EloquentViewable\CrawlerDetectAdapter`
-- `CyrildeWit\EloquentViewable\Actions\CreateView`
-- `CyrildeWit\EloquentViewable\Querying\Actions\CountViews`
-- `CyrildeWit\EloquentViewable\Querying\Actions\CountViewsByInterval`
+- `CyrildeWit\EloquentViewable\Models\View`
+- `CyrildeWit\EloquentViewable\Visitors\Visitor`
+- `CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter`
+- `CyrildeWit\EloquentViewable\Recording\Actions\RecordView`
+- `CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore`
+- `CyrildeWit\EloquentViewable\Recording\Stores\NullStore`
+- `CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers`, `IgnoreDoNotTrack`, `IgnoreGlobalPrivacyControl`,
+  `IgnoreIpAddresses` and `EnforceCooldown`
+- `CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource`
 
 > [!NOTE]
 > Don't forget that all custom classes must implement their original interfaces.
 
 ### Custom information about visitor
 
-The `Visitor` class is responsible for providing the `Views` builder information about the current visitor. The
-following information is provided:
+The `Visitor` class reports what the request says about the current visitor. The guards turn those facts into a
+decision, so a visitor never judges anything itself. It provides:
 
-- a unique identifier (stored in a cookie)
-- ip address
-- check for Do No Track header
-- check for crawler
+- a unique identifier (stored in a cookie named by `visitor.cookie.name`, for `visitor.cookie.lifetime` minutes)
+- the IP address
+- the user agent, including the device headers a proxy such as Opera Mini adds
+- whether the Do Not Track header is set
+- whether the Global Privacy Control signal is set
 
 The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using
-the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor.
+the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor. Return
+`null` for a user agent you do not have; a missing user agent is never treated as a crawler.
 
 You can override the `Visitor` class globally or locally.
 
 #### Create your own `Visitor` class
 
 Create you own `Visitor` class in your Laravel application and implement the
-`CyrildeWit\EloquentViewable\Contracts\Visitor` interface. Create the required methods by the interface.
+`CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor` interface. Create the required methods by the interface.
 
 Alternatively, you can extend the default `Visitor` class that comes with this package.
 
 #### Globally
 
-Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentViewable\Contracts\Visitor` contract.
+Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor`
+contract.
 
 ```php
 $this->app->bind(
-    \CyrildeWit\EloquentViewable\Contracts\Visitor::class,
+    \CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor::class,
     \App\Services\Views\Visitor::class
 );
 ```
@@ -652,98 +741,287 @@ views($post)
     ->record();
 ```
 
-### Using your own `Views` Eloquent model
-
-Bind your custom `Views` implementation to the `\CyrildeWit\EloquentViewable\Contracts\Views`.
-
-Change the following code snippet and place it in the `register` method in a service provider (for example
-`AppServiceProvider`).
-
-```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Contracts\Views::class,
-    \App\Services\Views\Views::class
-);
-```
-
 ### Using your own `View` Eloquent model
 
-Bind your custom `View` implementation to the `\CyrildeWit\EloquentViewable\Contracts\View`.
-
-Change the following code snippet and place it in the `register` method in a service provider (for example
-`AppServiceProvider`).
+Extend the shipped model and name your class in the config file. The package instantiates that class wherever it
+reads or writes views, so the relation on your viewables, the counts and the record path all use it.
 
 ```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Contracts\View::class,
-    \App\Models\View::class
-);
+// config/eloquent-viewable.php
+'models' => [
+    'view' => [
+        'class' => \App\Models\View::class,
+        // ...
+    ],
+],
 ```
+
+```php
+namespace App\Models;
+
+use CyrildeWit\EloquentViewable\Models\View as BaseView;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class View extends BaseView
+{
+    use SoftDeletes;
+}
+```
+
+A class that does not extend `CyrildeWit\EloquentViewable\Models\View` throws `InvalidConfiguration` the first time it
+is resolved. The `table_name` and `connection` keys stay the way to change those without a class. A `$table` or
+`$connection` property on your subclass takes precedence over them at runtime. The published migration reads the two
+config keys, so if you rename the table through the model, set `table_name` to match or edit the migration. The `Views`
+builder has no replacement hook. It is `Macroable`, so add methods with `Views::macro()`, and
+change how views are counted or stored by binding the actions and the store described below.
 
 ### Customizing how views are created
 
-The `CreateView` action is responsible for turning a resolved `PendingView` into a stored view and dispatching the
-`ViewRecorded` event. Both the synchronous and queued recording paths go through this action, so it is the single place
-to hook into if you want to change how a view is persisted (for example to add extra attributes, write to a different
-store, or skip the event).
+The `RecordView` action hands a `ViewRecord` to the store and dispatches the `ViewRecorded` event. Both the
+synchronous and queued recording paths go through this action, so it is the single place to hook into if you want
+to add attributes, skip the event, or write somewhere else entirely. The guards have already run by the time the
+action is called; a view they refuse never reaches it.
 
-Bind your custom implementation to the `\CyrildeWit\EloquentViewable\Contracts\CreateView` contract.
+Bind your custom implementation to the `\CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews` contract.
 
 Change the following code snippet and place it in the `register` method in a service provider (for example
 `AppServiceProvider`).
 
 ```php
 $this->app->bind(
-    \CyrildeWit\EloquentViewable\Contracts\CreateView::class,
-    \App\Actions\Views\CreateView::class
+    \CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews::class,
+    \App\Actions\Views\RecordView::class
 );
 ```
 
-Your implementation receives the `PendingView` value object and must return a `View` instance.
+Your implementation receives the `ViewRecord` value object. It holds the viewable type and key, the visitor, the
+collection and `viewed_at`, and returns nothing. The shipped action passes the record to the bound
+`Recording\Contracts\ViewStore`, which is where the row is written and where `views($post)->destroy()` and a force
+delete remove rows again. To change only where views are written, bind a store instead of replacing the action. See
+[Choosing where views are stored](#choosing-where-views-are-stored).
 
 ```php
-use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\PendingView;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
+use CyrildeWit\EloquentViewable\Data\ViewRecord;
 
-final class CreateView implements CreateViewContract
+final class RecordView implements RecordsViews
 {
-    public function handle(PendingView $pending): ViewContract
+    public function handle(ViewRecord $record): void
     {
         // ...
     }
 }
 ```
 
-### Customizing how views are counted
+### Choosing where views are stored
 
-`count()` and `countByInterval()` each delegate to an action, `CountViews` and `CountViewsByInterval`. Both receive
-the viewable and a `ViewsQuery` value object holding the period, collection and unique flag. Bind your own
-implementation to read from somewhere else, for example a rollup table.
+The `recording.store.driver` config key names the store that receives every recorded view. Two drivers ship:
+
+- `database` writes a row to the views table. This is the default.
+- `null` discards every view. Use it in an environment that should not record anything, or in a test suite that
+  records views but never reads them back.
+
+```php
+'recording' => [
+    'store' => [
+        'driver' => 'database',
+    ],
+],
+```
+
+Counts always read from the views table, whichever driver is set. A store that writes somewhere else is a buffer in
+front of that table and has to land its records there before they count.
+
+To add a driver, implement `Recording\Contracts\ViewStore` and register it with the `StoreManager` in the `register`
+method of a service provider. Then name it in the config.
+
+```php
+use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
+use Illuminate\Contracts\Foundation\Application;
+
+$this->app->make(StoreManager::class)->extend('clickhouse', fn (Application $app): ViewStore => new ClickHouseStore(
+    $app->make(ClickHouseClient::class),
+));
+```
+
+`store()` receives one `ViewRecord`. `storeMany()` receives an iterable of them and is how a buffer lands a batch
+in as few writes as the store allows; the shipped database store issues one insert statement for the whole batch.
+`forget()` receives a viewable and removes every view of it, in every collection. A viewable without a key stands for
+every viewable of its type. `ViewRecord::toPayload()` flattens a record to scalars for a stream entry or a JSON body,
+and `ViewRecord::fromPayload()` rebuilds it.
+
+Stores write through the query builder, so `Models\View` model events are not fired when a view is stored. Listen for
+`Recording\Events\ViewRecorded` instead. That event is dispatched once the store has accepted the record. With the
+database store the row exists at that moment; a store that buffers writes lands it later. A listener reads what it
+needs from `$event->record` and does not query the views table for the row.
+
+```php
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Data\ViewRecord;
+
+final class ClickHouseStore implements ViewStore
+{
+    public function store(ViewRecord $record): void
+    {
+        $this->storeMany([$record]);
+    }
+
+    public function storeMany(iterable $records): void
+    {
+        // $record->toPayload() for each record, in one request
+    }
+
+    public function forget(Viewable $viewable): void
+    {
+        // $viewable->getMorphClass(), $viewable->getKey()
+    }
+}
+```
+
+If the store does not need a name, binding the contract directly is the smaller change:
 
 ```php
 $this->app->bind(
-    \CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval::class,
-    \App\Actions\Views\CountViewsByInterval::class
+    \CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore::class,
+    \App\Views\ClickHouseStore::class
 );
 ```
 
-`CountViewsByInterval` returns sparse counts keyed by the bucket start formatted as `Y-m-d H:i:s`. Buckets without
-views are left out, and the package fills them in.
+### Adding a recording guard
+
+A guard decides whether a call to `record()` becomes a view. The `recording.guards` config key lists them in order,
+and the first one that refuses drops the view. The list is the only switch: a guard runs when it is listed and not
+otherwise. The package ships five. `IgnoreCrawlers`, `IgnoreIpAddresses` and `EnforceCooldown` are listed out of the
+box; `cooldown()` does nothing without the last. The two privacy guards are commented out in the published config,
+ready to switch on:
+
+| Guard                        | Refuses                                         | Reads                            |
+|------------------------------|-------------------------------------------------|----------------------------------|
+| `EnforceCooldown`            | a second view inside the cooldown asked for     | the session                      |
+| `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | the visitor's user agent         |
+| `IgnoreIpAddresses`          | listed IP addresses                             | `recording.ignored_ip_addresses` |
+| `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | the visitor                      |
+| `IgnoreGlobalPrivacyControl` | visitors sending `Sec-GPC: 1`                   | the visitor                      |
+
+The order only decides which guard is asked first. A cooldown starts once every guard has allowed the view, so a view
+another guard drops never starts one, wherever `EnforceCooldown` is listed.
+
+To add a guard, implement `Recording\Contracts\RecordingGuard` and add the class to the list. The guard receives a
+`ViewAttempt` with the viewable, the visitor, the collection and the cooldown the call asked for. Guards are resolved
+from the container, so constructor injection works.
 
 ```php
-use CyrildeWit\EloquentViewable\Querying\Contracts\CountsViewsByInterval as CountsViewsByIntervalContract;
+// config/eloquent-viewable.php
+'recording' => [
+    'guards' => [
+        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers::class,
+        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack::class,
+        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses::class,
+        \App\Views\Guards\IgnoreAuthors::class,
+        \CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown::class,
+    ],
+],
+```
+
+```php
+namespace App\Views\Guards;
+
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use Illuminate\Contracts\Auth\Guard;
+
+final readonly class IgnoreAuthors implements RecordingGuard
+{
+    public function __construct(private Guard $auth) {}
+
+    public function allows(ViewAttempt $attempt): bool
+    {
+        return $attempt->viewable->author_id !== $this->auth->id();
+    }
+}
+```
+
+A class in the list that does not implement `RecordingGuard` throws `InvalidConfiguration` on the first `record()`.
+
+A guard that keeps state about the views it lets through, as the cooldown does, also implements
+`Recording\Contracts\RemembersRecordedViews`. Keep `allows()` free of side effects and write the state in
+`remember()`, which runs once every guard has allowed the view and it has been stored or queued.
+
+### Customizing how views are counted
+
+Every number the package reports comes from one `Querying\Contracts\ViewSource`: `count()`, `countByInterval()`,
+and the `withViewsCount()` and `orderByViews()` scopes. The `querying.source.driver` config key names it, and the
+shipped `database` driver reads the views table.
+
+```php
+'querying' => [
+    'source' => [
+        'driver' => 'database',
+    ],
+],
+```
+
+To read from somewhere else, for example a rollup table, implement the contract and register a driver with the
+`SourceManager` in the `register` method of a service provider.
+
+The driver name is part of the `remember()` cache key, so switching `querying.source.driver` starts fresh cache
+entries instead of serving counts the old source produced. A custom source with settings of its own, such as the name
+of the rollup table, is identified by its driver name only; change `querying.cache.key` when those settings change.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
+use Illuminate\Contracts\Foundation\Application;
+
+$this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app): ViewSource => new AggregateSource(
+    $app->make(ViewAggregate::class),
+));
+```
+
+The contract has three methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
+bucket start formatted as `Y-m-d H:i:s`; buckets without views are left out, and the package fills them in.
+`countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
+table, which the scopes add as a subselect. It has to correlate on the viewable's qualified key. A viewable without a
+key stands for every viewable of its type.
+
+```php
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use Illuminate\Database\Query\Builder;
 
-final class CountViewsByInterval implements CountsViewsByIntervalContract
+final class AggregateSource implements ViewSource
 {
-    public function handle(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+    public function count(Viewable $viewable, ViewsQuery $query): int
+    {
+        // ...
+    }
+
+    public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
         // return ['2026-09-01 00:00:00' => 14, '2026-09-03 00:00:00' => 2];
     }
+
+    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
+    {
+        // return DB::table('view_aggregates')
+        //     ->whereColumn('view_aggregates.viewable_id', $viewable->getQualifiedKeyName())
+        //     ->where('view_aggregates.viewable_type', $viewable->getMorphClass())
+        //     ->selectRaw('coalesce(sum(views), 0)');
+    }
 }
+```
+
+If the source does not need a name, binding the contract directly is the smaller change:
+
+```php
+$this->app->bind(
+    \CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource::class,
+    \App\Views\AggregateSource::class
+);
 ```
 
 ### Adding a bucket grammar for another database driver
@@ -763,15 +1041,31 @@ $this->app->afterResolving(GrammarRegistry::class, function (GrammarRegistry $gr
 
 ### Using a custom crawler detector
 
-Bind your custom `CrawlerDetector` implementation to the `\CyrildeWit\EloquentViewable\Contracts\CrawlerDetector`.
+The `IgnoreCrawlers` guard hands the visitor's user agent to the bound `CrawlerDetector`, which answers whether it
+belongs to a crawler. The shipped detector wraps [CrawlerDetect](https://github.com/JayBizzle/Crawler-Detect). A
+detector is a function of the user agent string and holds no request state, so one instance serves the whole
+process. A `null` or empty user agent is never a crawler.
 
-Change the following code snippet and place it in the `register` method in a service provider (for example
-`AppServiceProvider`).
+```php
+namespace App\Services\Views;
+
+use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
+
+final class ListedCrawlerDetector implements CrawlerDetector
+{
+    public function isCrawler(?string $userAgent): bool
+    {
+        return $userAgent !== null && preg_match('/bot|crawler|spider/i', $userAgent) === 1;
+    }
+}
+```
+
+Bind it to the contract in the `register` method of a service provider (for example `AppServiceProvider`):
 
 ```php
 $this->app->singleton(
-    \CyrildeWit\EloquentViewable\Contracts\CrawlerDetector::class,
-    \App\Services\Views\CustomCrawlerDetectorAdapter::class
+    \CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector::class,
+    \App\Services\Views\ListedCrawlerDetector::class
 );
 ```
 
