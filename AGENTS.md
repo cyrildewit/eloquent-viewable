@@ -38,7 +38,10 @@ make bench-indexes      # add or drop the optional indexes, INDEXES=
 make bench-describe     # the seeded dataset and database as JSON, ARGS=--output=<file>
 ```
 
-If `docker compose` complains that the image is missing, run `make build` first.
+If `docker compose` complains that the image is missing, run `make build` first. The image carries the phpredis
+extension and every `php` and `composer` run starts the `redis` service, because the tests of the `redis` store
+driver talk to a real Redis through phpredis and Predis both. An image built before the extension was added needs
+`make build` again, or those tests are skipped on the phpredis side and coverage drops below 100%.
 
 ## Running a subset
 

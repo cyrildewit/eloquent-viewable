@@ -2,6 +2,9 @@ services:
   php:
     build:
       context: ./docker
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - .:/var/www/html
       - bench-sqlite:/var/lib/benchmarks
@@ -18,12 +21,19 @@ services:
       DB_DATABASE: ${DB_DATABASE:-testing}
       DB_USERNAME: testing
       DB_PASSWORD: testing
+      # The Redis store's tests talk to the `redis` service below, through
+      # phpredis and Predis both.
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       # The SQLite benchmark dataset lives on a named volume, see below.
       BENCH_SQLITE_PATH: /var/lib/benchmarks/benchmark.sqlite
 
   composer:
     build:
       context: ./docker
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - .:/var/www/html
       - bench-sqlite:/var/lib/benchmarks
@@ -41,8 +51,22 @@ services:
       DB_DATABASE: ${DB_DATABASE:-testing}
       DB_USERNAME: testing
       DB_PASSWORD: testing
+      # The Redis store's tests talk to the `redis` service below, through
+      # phpredis and Predis both.
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       # The SQLite benchmark dataset lives on a named volume, see below.
       BENCH_SQLITE_PATH: /var/lib/benchmarks/benchmark.sqlite
+
+  # The buffer behind the `redis` store driver. Every `php` and `composer` run
+  # starts it, because the suite's Redis tests need a real stream and the
+  # service is up in well under a second.
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 20
 
   # `make test-mysql`, `make test-mariadb` and `make test-pgsql` start these and
   # run the suite against them. By hand, for example:
