@@ -288,7 +288,7 @@ describe('grammar resolution', function (): void {
         $period = Period::create(Carbon::parse('2026-09-01 00:00:00', 'UTC'), Carbon::parse('2026-09-03 00:00:00', 'UTC'));
 
         expect(viewSource()->countByInterval($this->post, new ViewsQuery($period, timezone: new Timezone('Australia/Sydney')), Granularity::Day))
-            ->toBe(['2026-09-01 00:00:00' => 1, '2026-09-02 00:00:00' => 1]);
+            ->toEqual(['2026-09-01 00:00:00' => 1, '2026-09-02 00:00:00' => 1]);
     });
 
     it('requires a period to convert timezones', function (): void {
