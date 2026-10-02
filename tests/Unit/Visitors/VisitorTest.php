@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Cookie\QueueingFactory;
+use Illuminate\Cookie\CookieJar;
 use Illuminate\Http\Request;
 
 const VISITOR_COOKIE_NAME = 'eloquent_viewable';
@@ -24,6 +25,7 @@ beforeEach(function (): void {
         'eloquent-viewable' => require __DIR__.'/../../../config/eloquent-viewable.php',
     ]));
     $this->cookies = Mockery::mock(QueueingFactory::class);
+    $this->cookies->allows('getQueuedCookies')->andReturn([]);
 
     $this->visitor = fn (Request $request): Visitor => new Visitor(
         $request,
@@ -108,6 +110,23 @@ it('generates a visitor id and queues it as a cookie when none exists', function
 
     expect($id)->toHaveLength(80)
         ->and($queued)->toBe($id);
+});
+
+it('hands out the id queued earlier in the request', function (): void {
+    $cookies = new CookieJar;
+    $cookies->queue('another-cookie', 'value');
+
+    $first = new Visitor(visitorRequest(), $this->config, $cookies)->id();
+
+    expect(new Visitor(visitorRequest(), $this->config, $cookies)->id())->toBe($first)
+        ->and($cookies->getQueuedCookies())->toHaveCount(2);
+});
+
+it('prefers the cookie the request carries over a queued one', function (): void {
+    $cookies = new CookieJar;
+    $cookies->queue(VISITOR_COOKIE_NAME, 'queued');
+
+    expect(new Visitor(visitorRequest(cookies: [VISITOR_COOKIE_NAME => 'sent']), $this->config, $cookies)->id())->toBe('sent');
 });
 
 it('queues the cookie with the configured name and lifetime', function (): void {

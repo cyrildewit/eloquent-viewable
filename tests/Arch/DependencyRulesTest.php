@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Views;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
+use Symfony\Component\HttpFoundation\Cookie;
 
 const FOUNDATION = [
     'CyrildeWit\EloquentViewable\Support',
@@ -91,6 +92,7 @@ arch('visitors report facts and judge nothing')
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Visitors',
         'Illuminate',
+        Cookie::class,
     ]);
 
 arch('recording does not depend on querying')
