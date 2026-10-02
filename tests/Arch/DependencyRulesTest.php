@@ -22,6 +22,7 @@ const FOUNDATION = [
 const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Contracts',
     'CyrildeWit\EloquentViewable\Recording\Contracts',
+    'CyrildeWit\EloquentViewable\Recording\Streams\Contracts',
     'CyrildeWit\EloquentViewable\Visitors\Contracts',
     'CyrildeWit\EloquentViewable\Crawlers\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Contracts',
