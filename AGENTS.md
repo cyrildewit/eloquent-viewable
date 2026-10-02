@@ -29,6 +29,13 @@ make test-mariadb       # the suite against MariaDB
 make test-pgsql         # the suite against PostgreSQL
 make test-drivers       # the suite against all four drivers
 make db-stop            # stop the database services
+make bench-seed         # seed the benchmark dataset, DRIVER= and SIZE= pick the database and size
+make bench              # run the phpbench suite in benchmarks/, see benchmarks/README.md
+make bench-baseline     # store a run under TAG= to compare against
+make bench-compare      # compare against the stored TAG= and fail on a regression
+make bench-explain      # the SQL and query plan of every read path
+make bench-indexes      # add or drop the optional indexes, INDEXES=
+make bench-describe     # the seeded dataset and database as JSON, ARGS=--output=<file>
 ```
 
 If `docker compose` complains that the image is missing, run `make build` first.
@@ -56,6 +63,21 @@ make test-drivers
 
 Each driver target starts its database service and waits for the healthcheck, so the first run is slow.
 `make db-stop` shuts the services down again.
+
+## Benchmarks
+
+`benchmarks/` holds a phpbench suite that runs against a seeded dataset of a million rows or more. It is not part
+of `make test` or `make ready` and never runs in CI. `benchmarks/README.md` explains the dataset, the targets and
+how to compare a branch against `main`. Run it only through the `make bench-*` targets: they turn Xdebug off and
+point `DB_*` at the `bench-*` services, and a benchmark refuses to run with Xdebug active. Benchmarks that touch
+the database extend `Support\BenchCase`; the seeder, the dataset description and the application boot live in
+`benchmarks/Support`. A change to what the seeder generates needs a bump of `Dataset::SCHEMA_VERSION`, so stale
+datasets are refused instead of compared against.
+
+The [results repository](https://github.com/cyrildewit/eloquent-viewable-benchmarks) runs releases through the
+`make bench-*` targets and matches subjects across releases by class, subject and parameter set name. Do not rename a
+benchmark, subject or parameter set, change those targets' variables, or remove a key from `Dataset::toArray()` as a
+side effect of other work; `benchmarks/README.md` has the contract.
 
 ## Where a test belongs
 
