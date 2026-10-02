@@ -25,6 +25,7 @@ const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Visitors\Contracts',
     'CyrildeWit\EloquentViewable\Crawlers\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Contracts',
+    'CyrildeWit\EloquentViewable\Cooldowns\Contracts',
 ];
 
 const MODULES = [
