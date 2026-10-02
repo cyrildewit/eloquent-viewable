@@ -30,7 +30,7 @@ class RecountProductViews
             ->chunkById(self::CHUNK_SIZE, function (Collection $products) use (&$corrected): void {
                 /** @var Collection<int, Product> $products */
                 foreach ($products as $product) {
-                    $recorded = (int) $product->getAttribute('recorded_views');
+                    $recorded = (int) $product->recorded_views;
 
                     if ($product->views_count === $recorded) {
                         continue;
