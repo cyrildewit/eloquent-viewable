@@ -18,8 +18,8 @@ class CountProductView
 
         // Every viewable type fires the same event. Views recorded into a
         // collection are a different kind of view and are not counted either.
-        if ($view->getAttribute('viewable_type') !== new Product()->getMorphClass()
-            || $view->getAttribute('collection') !== null) {
+        if ($view->viewable_type !== new Product()->getMorphClass()
+            || $view->collection !== null) {
             return;
         }
 
@@ -28,7 +28,7 @@ class CountProductView
         // the base query builder because the Eloquent one would also set
         // `updated_at`, and a view is not an edit.
         Product::query()
-            ->whereKey($view->getAttribute('viewable_id'))
+            ->whereKey($view->viewable_id)
             ->toBase()
             ->increment('views_count');
     }
