@@ -126,7 +126,7 @@ bench-baseline: bench-db ## Run the benchmarks and store the result under TAG (d
 bench-compare: bench-db ## Run the benchmarks against the stored TAG and fail on a subject that got over 10% slower
 	$(BENCH_RUN) bench -- --ref=$(TAG) --assert="mode(variant.time.avg) <= mode(baseline.time.avg) +/- 10%" $(ARGS)
 
-bench-explain: bench-db ## Print the SQL and query plan of every read path, add ARGS=--analyze to execute them
+bench-explain: bench-db ## Print the SQL and query plan of every read benchmark, ARGS=--output=<file> writes JSON too, --analyze executes, --group=<name> picks a group
 	$(BENCH_RUN) bench:explain -- $(ARGS)
 
 bench-describe: bench-db ## Print the seeded dataset and the database as JSON, ARGS=--output=<file> writes a file
