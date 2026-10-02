@@ -46,10 +46,12 @@ abstract class TestCase extends OrchestraTestCase
         require_once __DIR__.'/../../database/migrations/create_views_table.php.stub';
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194715_create_posts_table.php';
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194716_create_apartments_table.php';
+        require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194717_create_users_table.php';
 
         new \CreateViewsTable()->up();
         new \CreatePostsTable()->up();
         new \CreateApartmentsTable()->up();
+        new \CreateUsersTable()->up();
 
         // Each sample keeps its own tables next to its code.
         foreach (glob(__DIR__.'/../../samples/*/database/migrations/*.php') ?: [] as $migration) {

@@ -9,7 +9,9 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -361,4 +363,76 @@ describe('view source', function (): void {
         expect(Post::orderByViews()->pluck('id'))->toEqual(keysOf($postThree, $postTwo, $this->post))
             ->and(Post::orderByViews('asc')->pluck('id'))->toEqual(keysOf($this->post, $postTwo, $postThree));
     });
+});
+
+describe('viewed by', function (): void {
+    beforeEach(function (): void {
+        $this->user = User::factory()->create();
+    });
+
+    it('keeps the models the viewer has viewed', function (): void {
+        $viewed = $this->post;
+        $other = Post::factory()->create();
+        Post::factory()->create();
+
+        View::factory()->for($viewed, 'viewable')->by($this->user)->count(2)->create();
+        View::factory()->for($other, 'viewable')->by(User::factory()->create())->create();
+        View::factory()->for($other, 'viewable')->create();
+
+        expect(Post::whereViewedBy($this->user)->pluck('id'))->toEqual(keysOf($viewed));
+    });
+
+    it('keeps the models the viewer has not viewed', function (): void {
+        $viewed = $this->post;
+        $other = Post::factory()->create();
+        $unread = Post::factory()->create();
+
+        View::factory()->for($viewed, 'viewable')->by($this->user)->create();
+        View::factory()->for($other, 'viewable')->by(User::factory()->create())->create();
+
+        expect(Post::whereNotViewedBy($this->user)->orderBy('id')->pluck('id'))->toEqual(keysOf($other, $unread));
+    });
+
+    it('narrows to a period and a collection', function (): void {
+        $recent = $this->post;
+        $old = Post::factory()->create();
+        $sidebar = Post::factory()->create();
+
+        View::factory()->for($recent, 'viewable')->by($this->user)->viewedAt(Carbon::parse('2026-09-05 10:00:00'))->create();
+        View::factory()->for($old, 'viewable')->by($this->user)->viewedAt(Carbon::parse('2026-08-01 10:00:00'))->create();
+        View::factory()->for($sidebar, 'viewable')->by($this->user)->viewedAt(Carbon::parse('2026-09-05 10:00:00'))->inCollection('sidebar')->create();
+
+        expect(Post::whereViewedBy($this->user, Period::since('2026-09-01'))->orderBy('id')->pluck('id'))->toEqual(keysOf($recent, $sidebar))
+            ->and(Post::whereViewedBy($this->user, collection: 'sidebar')->pluck('id'))->toEqual(keysOf($sidebar))
+            ->and(Post::whereNotViewedBy($this->user, Period::since('2026-09-01'))->pluck('id'))->toEqual(keysOf($old));
+    });
+
+    it('accepts any model as the viewer', function (): void {
+        $apartment = Apartment::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($apartment)->create();
+        Post::factory()->create();
+
+        expect(Post::whereViewedBy($apartment)->pluck('id'))->toEqual(keysOf($this->post));
+    });
+
+    it('keeps the models a visitor has or has not viewed', function (): void {
+        $seen = $this->post;
+        $unseen = Post::factory()->create();
+
+        View::factory()->for($seen, 'viewable')->fromVisitor('visitor_one')->create();
+        View::factory()->for($unseen, 'viewable')->fromVisitor('visitor_two')->create();
+
+        expect(Post::whereViewedByVisitor('visitor_one')->pluck('id'))->toEqual(keysOf($seen))
+            ->and(Post::whereNotViewedByVisitor('visitor_one')->pluck('id'))->toEqual(keysOf($unseen))
+            ->and(Post::whereViewedByVisitor('visitor_one', Period::since('2030-01-01'))->count())->toBe(0)
+            ->and(Post::whereNotViewedByVisitor('visitor_one', collection: 'sidebar')->count())->toBe(2);
+    });
+
+    it('builds an existence check on the views relation', function (): void {
+        expect(Post::whereViewedBy($this->user)->toSql())
+            ->toBe('select * from "posts" where exists (select * from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "views"."viewer_type" = ? and "views"."viewer_id" = ?)')
+            ->and(Post::whereNotViewedByVisitor('visitor_one')->toSql())
+            ->toBe('select * from "posts" where not exists (select * from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "views"."visitor" = ?)');
+    })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
 });

@@ -62,6 +62,8 @@ final readonly class CacheKey
             $query->unique,
             $query->collection,
             $query->timezone?->getName(),
+            $query->viewer?->getMorphClass(),
+            $query->viewer?->getKey(),
             $granularity?->value,
         ]));
     }
