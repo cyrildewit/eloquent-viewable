@@ -156,6 +156,23 @@ Publish the database migrations and review them:
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 ```
 
+#### Models keyed by UUID or ULID
+
+The migration creates `viewable_id` and `viewer_id` with Laravel's `morphs()` and `nullableMorphs()`, which follow the
+morph key type of your application. Integer keys are the default. If your models use `HasUuids` or `HasUlids` and you
+already call `Schema::morphUsingUuids()` or `Schema::morphUsingUlids()` in a service provider's `boot()` method, the
+migration creates matching columns without changes.
+
+Otherwise, edit the published migration before you run it, and pick the `viewer` columns to match your user model:
+
+```php
+$table->uuidMorphs('viewable');         // or ulidMorphs('viewable')
+$table->nullableUuidMorphs('viewer');   // or nullableUlidMorphs('viewer')
+```
+
+All viewable models share one `viewable_id` column, so they need the same key type. A table cannot hold views of
+models keyed by integers and models keyed by UUIDs at once.
+
 Run the database migrations to create the necessary tables:
 
 ```bash
@@ -1277,7 +1294,7 @@ supported database, and prints the query plan each driver chooses. The optional 
 ### Database indexes
 
 The `views` table migration creates two indexes: one on `viewable_type` and `viewable_id` (from `morphs()`), and a
-composite one named `views_viewable_viewed_at_index` on `viewable_type`, `viewable_id` and `viewed_at`. The second one
+composite one named `views_viewable_viewed_at_index`, after the configured table, on `viewable_type`, `viewable_id` and `viewed_at`. The second one
 lets `period()` counts and `countByInterval()` range-scan only the rows inside the period instead of every view of the
 model.
 
