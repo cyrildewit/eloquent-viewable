@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -30,18 +31,25 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 final readonly class Reader
 {
+    private CacheVersions $versions;
+
     public function __construct(
         private ViewSource $source,
         private CacheRepository $cache,
         private Config $config,
         private View $view,
         private ViewableLoader $loader,
-    ) {}
+    ) {
+        // Built here rather than injected, so the versions are always read
+        // from the store the entries live in, and no lookup slows a read.
+        $this->versions = new CacheVersions($cache, $config);
+    }
 
     public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
     {
         return $this->remember(
             $rememberUntil,
+            $viewable,
             fn (): string => $this->cacheKey($viewable)->make($query),
             fn (): int => $this->source->count($viewable, $query),
         );
@@ -75,8 +83,8 @@ final readonly class Reader
             return [];
         }
 
-        $cacheKeys = $rememberUntil instanceof CarbonInterface ? $this->cacheKeys($viewables, $query) : [];
-        $counts = $this->cached($cacheKeys);
+        $entries = $rememberUntil instanceof CarbonInterface ? $this->entries($viewables, $query) : [];
+        $counts = $this->cached($entries);
         $missing = array_values(array_filter($viewables->keys(), fn (int|string $key): bool => ! isset($counts[$key])));
 
         if ($missing !== []) {
@@ -88,7 +96,7 @@ final readonly class Reader
             }
 
             if ($rememberUntil instanceof CarbonInterface) {
-                $this->cacheMany($cacheKeys, $fresh, $rememberUntil);
+                $this->cacheMany($entries, $fresh, $rememberUntil);
             }
 
             $counts += $fresh;
@@ -117,6 +125,7 @@ final readonly class Reader
 
         $counts = $this->remember(
             $rememberUntil,
+            $viewable,
             fn (): string => $this->cacheKey($viewable)->make($query, $granularity),
             fn (): array => $this->source->countByInterval($viewable, $query, $granularity),
         );
@@ -135,6 +144,7 @@ final readonly class Reader
     {
         $counts = $this->remember(
             $rememberUntil,
+            $viewable,
             fn (): string => $this->cacheKey($viewable)->make($query, grouping: 'collection'),
             fn (): array => $this->source->countByCollection($viewable, $query),
         );
@@ -163,6 +173,7 @@ final readonly class Reader
 
         $rows = $this->remember(
             $rememberUntil,
+            $viewable,
             fn (): string => $this->cacheKey($viewable)->make($query, limit: $limit),
             fn (): array => $this->source->top($viewable, $query, $limit),
         );
@@ -176,21 +187,48 @@ final readonly class Reader
     }
 
     /**
-     * @param  array<int|string, string>  $cacheKeys
-     * @return array<int|string, int>
+     * The entry of every viewable in the set and the version it must carry,
+     * read in one round trip with the versions themselves.
+     *
+     * @return array<int|string, array{key: string, version: string, cached: mixed}>
      */
-    private function cached(array $cacheKeys): array
+    private function entries(ViewableSet $viewables, ViewsQuery $query): array
     {
-        if ($cacheKeys === []) {
-            return [];
+        $cacheKeys = [];
+        $versionKeys = [];
+
+        foreach ($viewables->all() as $key => $viewable) {
+            $cacheKeys[$key] = $this->cacheKey($viewable)->make($query);
+            $versionKeys[$key] = $this->versions->keys($viewable);
         }
 
-        $keys = array_flip($cacheKeys);
+        $shared = array_values(array_unique(array_merge(...array_values($versionKeys))));
+        $read = $this->read([...array_values($cacheKeys), ...$shared]);
+        $versions = $this->versions->resolve($shared, $read);
+        $entries = [];
+
+        foreach ($cacheKeys as $key => $cacheKey) {
+            $entries[$key] = [
+                'key' => $cacheKey,
+                'version' => $this->versions->stamp($versions, $versionKeys[$key] ?? []),
+                'cached' => $read[$cacheKey] ?? null,
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  array<int|string, array{key: string, version: string, cached: mixed}>  $entries
+     * @return array<int|string, int>
+     */
+    private function cached(array $entries): array
+    {
         $counts = [];
 
-        foreach ($this->cache->getMultiple(array_keys($keys)) as $cacheKey => $count) {
-            if (is_numeric($count) && isset($keys[$cacheKey])) {
-                $counts[$keys[$cacheKey]] = (int) $count;
+        foreach ($entries as $key => $entry) {
+            if ($this->isCurrent($entry['cached'], $entry['version']) && is_int($entry['cached']['value'])) {
+                $counts[$key] = $entry['cached']['value'];
             }
         }
 
@@ -198,16 +236,16 @@ final readonly class Reader
     }
 
     /**
-     * @param  array<int|string, string>  $cacheKeys
+     * @param  array<int|string, array{key: string, version: string, cached: mixed}>  $entries
      * @param  array<int|string, int>  $counts
      */
-    private function cacheMany(array $cacheKeys, array $counts, CarbonInterface $until): void
+    private function cacheMany(array $entries, array $counts, CarbonInterface $until): void
     {
         $values = [];
 
-        foreach ($cacheKeys as $key => $cacheKey) {
+        foreach ($entries as $key => $entry) {
             if (isset($counts[$key])) {
-                $values[$cacheKey] = $counts[$key];
+                $values[$entry['key']] = ['version' => $entry['version'], 'value' => $counts[$key]];
             }
         }
 
@@ -216,46 +254,63 @@ final readonly class Reader
         $this->cache->setMultiple($values, Carbon::now()->diff($until));
     }
 
-    /** @return array<int|string, string> */
-    private function cacheKeys(ViewableSet $viewables, ViewsQuery $query): array
-    {
-        return array_map(
-            fn (Viewable $viewable): string => $this->cacheKey($viewable)->make($query),
-            $viewables->all(),
-        );
-    }
-
     /**
+     * An entry is kept with the version it was counted under, and only
+     * served while that is still the current one. The entry and the versions
+     * are read in one round trip, and a recount overwrites a stale entry
+     * rather than leaving it behind.
+     *
      * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>
      *
      * @param  Closure(): string  $key
      * @param  Closure(): TValue  $resolve
      * @return TValue
      */
-    private function remember(?CarbonInterface $until, Closure $key, Closure $resolve): int|array
+    private function remember(?CarbonInterface $until, ?Viewable $viewable, Closure $key, Closure $resolve): int|array
     {
         if (! $until instanceof CarbonInterface) {
             return $resolve();
         }
 
         $cacheKey = $key();
-        $cached = $this->cache->get($cacheKey);
+        $versionKeys = $this->versions->keys($viewable);
+        $read = $this->read([$cacheKey, ...$versionKeys]);
+        $version = $this->versions->stamp($this->versions->resolve($versionKeys, $read), $versionKeys);
+        $cached = $read[$cacheKey] ?? null;
 
-        // Redis keeps a number as it is and hands it back as a string.
-        if (is_numeric($cached)) {
-            $cached = (int) $cached;
-        }
+        if ($this->isCurrent($cached, $version)) {
+            /** @var TValue $value */
+            $value = $cached['value'];
 
-        /** @var TValue|null $cached */
-        if ($cached !== null) {
-            return $cached;
+            return $value;
         }
 
         $value = $resolve();
 
-        $this->cache->put($cacheKey, $value, $until);
+        $this->cache->put($cacheKey, ['version' => $version, 'value' => $value], $until);
 
         return $value;
+    }
+
+    /** @phpstan-assert-if-true array{version: string, value: mixed} $cached */
+    private function isCurrent(mixed $cached, string $version): bool
+    {
+        return is_array($cached) && ($cached['version'] ?? null) === $version && array_key_exists('value', $cached);
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return array<string, mixed>
+     */
+    private function read(array $keys): array
+    {
+        $read = [];
+
+        foreach ($this->cache->getMultiple($keys) as $key => $value) {
+            $read[$key] = $value;
+        }
+
+        return $read;
     }
 
     /** @throws InvalidInterval */

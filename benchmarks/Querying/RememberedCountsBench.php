@@ -21,10 +21,11 @@ use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
 /**
- * Counts read back with `remember()`. Every entry is written outside the
- * timed region, so the reads measure a cache hit and never the views table.
- * The `array` store shows the PHP side, the `redis` store what the round
- * trips add.
+ * Counts read back with `remember()`, and forgetting them. Every entry is
+ * written outside the timed region, so the reads measure a cache hit and
+ * never the views table: the entry and the versions it carries in one round
+ * trip, for a set of twenty as for one. The `array` store shows the PHP
+ * side, the `redis` store what the round trip adds.
  */
 #[Groups(['cache'])]
 #[BeforeMethods(['setUp', 'rememberCounts'])]
@@ -88,6 +89,24 @@ final class RememberedCountsBench extends BenchCase
     public function benchRememberedCounts(array $params): void
     {
         $this->views()->forViewables($this->page)->remember(60)->counts();
+    }
+
+    /**
+     * @param  array{store: string}  $params
+     */
+    #[ParamProviders('provideStores')]
+    public function benchForgetCache(array $params): void
+    {
+        views($this->target(['target' => 'hot']))->forgetCache();
+    }
+
+    /**
+     * @param  array{store: string}  $params
+     */
+    #[ParamProviders('provideStores')]
+    public function benchFlushCache(array $params): void
+    {
+        $this->views()->flushCache();
     }
 
     private function views(): Views

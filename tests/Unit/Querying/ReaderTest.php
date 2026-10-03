@@ -7,6 +7,8 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -57,10 +59,70 @@ function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxInte
     return new Reader(
         $source,
         $cache ?? new CacheRepository(new ArrayStore),
-        new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views'], 'source' => ['driver' => 'database'], 'max_intervals' => $maxIntervals]]])),
+        readerConfig($maxIntervals),
         readerView(),
         new ViewableLoader,
     );
+}
+
+function readerConfig(int $maxIntervals = 10_000): Config
+{
+    return new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views'], 'source' => ['driver' => 'database'], 'max_intervals' => $maxIntervals]]]));
+}
+
+/**
+ * An array store that counts the round trips a repository makes to it.
+ */
+function countingStore(): ArrayStore
+{
+    return new class extends ArrayStore
+    {
+        public int $reads = 0;
+
+        private bool $reading = false;
+
+        #[Override]
+        public function get($key): mixed
+        {
+            // many() reads every key through get(), within one round trip.
+            if (! $this->reading) {
+                $this->reads++;
+            }
+
+            return parent::get($key);
+        }
+
+        /** @param  array<string>  $keys */
+        #[Override]
+        public function many(array $keys): array
+        {
+            $this->reads++;
+            $this->reading = true;
+
+            try {
+                return parent::many($keys);
+            } finally {
+                $this->reading = false;
+            }
+        }
+    };
+}
+
+/**
+ * The remembered values in the store, without the versions they carry.
+ *
+ * @return list<array{value: mixed, expiresAt: float|int}>
+ */
+function cachedEntries(CacheRepository $cache): array
+{
+    /** @var ArrayStore $store */
+    $store = $cache->getStore();
+
+    return array_values(array_filter(
+        $store->all(),
+        fn (string $key): bool => ! str_starts_with($key, 'views:version:'),
+        ARRAY_FILTER_USE_KEY,
+    ));
 }
 
 beforeEach(function (): void {
@@ -106,6 +168,52 @@ describe('count', function (): void {
         expect($reader->count($this->viewable, $this->query, Carbon::now()->addMinutes(10)))->toBe(4);
     });
 
+    it('reads the entry and its versions in one round trip', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->once()->andReturn(3);
+
+        $store = countingStore();
+        $reader = reader($source, new CacheRepository($store));
+        $until = Carbon::now()->addMinutes(10);
+
+        $reader->count($this->viewable, $this->query, $until);
+        $store->reads = 0;
+
+        expect($reader->count($this->viewable, $this->query, $until))->toBe(3)
+            ->and($store->reads)->toBe(1);
+    });
+
+    it('counts again once the viewable is forgotten, over the stale entry', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->twice()->andReturn(3, 4);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->count($this->viewable, $this->query, $until))->toBe(3);
+
+        new CacheVersions($cache, readerConfig())->forgetCache($this->viewable);
+
+        expect($reader->count($this->viewable, $this->query, $until))->toBe(4)
+            ->and($reader->count($this->viewable, $this->query, $until))->toBe(4)
+            ->and(cachedEntries($cache))->toHaveCount(1);
+    });
+
+    it('counts again over an entry without the current version', function (mixed $stale): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->once()->andReturn(3);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $cache->put(new CacheKey($this->viewable, readerView()->getConnection(), 'views', 'database')->make($this->query), $stale, 600);
+
+        expect(reader($source, $cache)->count($this->viewable, $this->query, Carbon::now()->addMinutes(10)))->toBe(3);
+    })->with([
+        'a bare count, as stored before versions' => [7],
+        'another version' => [['version' => 'stale', 'value' => 7]],
+        'no value' => [['version' => null]],
+    ]);
+
     it('keeps a separate entry per query', function (): void {
         $source = Mockery::mock(ViewSource::class);
         $source->expects('count')->twice()->andReturn(3, 5);
@@ -148,7 +256,7 @@ describe('compare', function (): void {
 
         expect($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
             ->and($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
-            ->and($cache->getStore()->all())->toHaveCount(2)
+            ->and(cachedEntries($cache))->toHaveCount(2)
             ->and($reader->count($this->viewable, $this->query->withPeriod($this->query->period->previous()), $until))->toBe(2);
     });
 
@@ -244,7 +352,7 @@ describe('count by interval', function (): void {
         $reader->countByInterval($this->viewable, $this->query, Granularity::Day, $until);
         $again = $reader->countByInterval($this->viewable, $this->query, Granularity::Day, $until);
 
-        expect(array_values($cache->getStore()->all()))->toHaveCount(1)
+        expect(cachedEntries($cache))->toHaveCount(1)
             ->and($again->intervals->map(fn (Bucket $bucket): int => $bucket->count)->all())->toBe([2, 0]);
     });
 });
@@ -297,7 +405,7 @@ describe('countByCollection', function (): void {
         $reader->countByCollection($this->viewable, $this->query, $until);
         $again = $reader->countByCollection($this->viewable, $this->query, $until);
 
-        expect(array_values($cache->getStore()->all()))->toHaveCount(1)
+        expect(cachedEntries($cache))->toHaveCount(1)
             ->and($again)->toBe(['sidebar' => 1]);
     });
 
@@ -357,7 +465,7 @@ describe('count many', function (): void {
 
         expect($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
             ->and($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
-            ->and($cache->getStore()->all())->toHaveCount(3);
+            ->and(cachedEntries($cache))->toHaveCount(3);
     });
 
     it('shares the entry count() remembers and only reads the rest', function (): void {
@@ -393,7 +501,7 @@ describe('count many', function (): void {
         $cache = new CacheRepository(new ArrayStore);
 
         expect(reader($source, $cache)->countMany($this->set, $this->query, Carbon::now()->subMinute())[7])->toBe(1)
-            ->and($cache->getStore()->all())->toBe([]);
+            ->and(cachedEntries($cache))->toBeEmpty();
     });
 });
 
@@ -450,10 +558,10 @@ describe('top', function (): void {
         $reader->top(null, $this->query, 10, $until);
         $reader->top(null, $this->query, 10, $until);
 
-        $entries = array_values($cache->getStore()->all());
+        $entries = cachedEntries($cache);
 
         expect($entries)->toHaveCount(1)
-            ->and($entries[0]['value'])->toBe($this->rows);
+            ->and($entries[0]['value']['value'])->toBe($this->rows);
     });
 
     it('keeps a separate entry per limit and apart from the count', function (): void {
@@ -471,6 +579,6 @@ describe('top', function (): void {
         $reader->top($type, $this->query, 10, $until);
 
         expect($reader->count($type, $this->query, $until))->toBe(3)
-            ->and($cache->getStore()->all())->toHaveCount(3);
+            ->and(cachedEntries($cache))->toHaveCount(3);
     });
 });

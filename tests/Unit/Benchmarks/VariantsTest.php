@@ -202,7 +202,9 @@ it('names the parameter sets of the remembered count benchmarks', function (): v
         'cold article,redis store',
         'all articles,redis store',
     ])
-        ->and(setsOf(RememberedCountsBench::class, 'benchRememberedCounts'))->toBe($stores);
+        ->and(setsOf(RememberedCountsBench::class, 'benchRememberedCounts'))->toBe($stores)
+        ->and(setsOf(RememberedCountsBench::class, 'benchForgetCache'))->toBe($stores)
+        ->and(setsOf(RememberedCountsBench::class, 'benchFlushCache'))->toBe($stores);
 });
 
 it('names the parameter sets of one provider after its keys', function (): void {
