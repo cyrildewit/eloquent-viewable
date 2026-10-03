@@ -13,6 +13,10 @@ final class StoreIsNotBuffered extends Exception implements EloquentViewableExce
 {
     public static function forStore(ViewStore $store): self
     {
-        return new self('The configured view store `'.$store::class.'` writes views straight to their table, so there is nothing to flush. Flushing needs a store that implements `'.BufferedViewStore::class.'`, such as the `redis` driver.');
+        $class = $store::class;
+
+        $buffered = BufferedViewStore::class;
+
+        return new self("The configured view store `{$class}` writes views straight to their table, so there is nothing to flush. Flushing needs a store that implements `{$buffered}`, such as the `redis` driver.");
     }
 }
