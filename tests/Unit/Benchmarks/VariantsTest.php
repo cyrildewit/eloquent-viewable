@@ -128,8 +128,28 @@ it('names the parameter sets of the page benchmarks', function (): void {
 
     expect(setsOf(CountViewsForViewablesBench::class, 'benchCounts'))->toBe($expected)
         ->and(setsOf(CountViewsForViewablesBench::class, 'benchUniqueCounts'))->toBe($expected)
-        ->and(setsOf(CountViewsForViewablesBench::class, 'benchCountLoop'))->toBe($expected)
-        ->and(benchmark(CountViewsForViewablesBench::class)->variants)->toHaveCount(24);
+        ->and(setsOf(CountViewsForViewablesBench::class, 'benchCountLoop'))->toBe($expected);
+});
+
+it('names the parameter sets of the long list benchmarks', function (): void {
+    $expected = [
+        '100 articles,all time',
+        '250 articles,all time',
+        '1,000 articles,all time',
+        '100 articles,past year',
+        '250 articles,past year',
+        '1,000 articles,past year',
+        '100 articles,past 30 days',
+        '250 articles,past 30 days',
+        '1,000 articles,past 30 days',
+        '100 articles,past day',
+        '250 articles,past day',
+        '1,000 articles,past day',
+    ];
+
+    expect(setsOf(CountViewsForViewablesBench::class, 'benchCountsManyKeys'))->toBe($expected)
+        ->and(setsOf(CountViewsForViewablesBench::class, 'benchCountLoopManyKeys'))->toBe($expected)
+        ->and(benchmark(CountViewsForViewablesBench::class)->variants)->toHaveCount(48);
 });
 
 it('names the parameter sets of the interval benchmarks', function (): void {
