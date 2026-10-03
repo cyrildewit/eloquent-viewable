@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 
 final readonly class Fingerprint
 {
-    private const string MAPPED_IPV4_PREFIX = "\0\0\0\0\0\0\0\0\0\0\xff\xff";
+    private const string MappedIpv4Prefix = "\0\0\0\0\0\0\0\0\0\0\xff\xff";
 
     public function __construct(
         private Config $config,
@@ -33,8 +33,8 @@ final readonly class Fingerprint
 
         $packed = (string) inet_pton($ip);
 
-        if (str_starts_with($packed, self::MAPPED_IPV4_PREFIX)) {
-            $packed = substr($packed, strlen(self::MAPPED_IPV4_PREFIX));
+        if (str_starts_with($packed, self::MappedIpv4Prefix)) {
+            $packed = substr($packed, strlen(self::MappedIpv4Prefix));
         }
 
         $kept = strlen($packed) === 4 ? 3 : 6;

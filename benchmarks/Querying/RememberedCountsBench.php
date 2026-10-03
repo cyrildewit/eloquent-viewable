@@ -28,7 +28,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class RememberedCountsBench extends BenchCase
 {
-    private const int PAGE = 20;
+    private const int Page = 20;
 
     /** @var Collection<int, Article> */
     private Collection $page;
@@ -37,7 +37,7 @@ final class RememberedCountsBench extends BenchCase
     public function provideStores(): Generator
     {
         yield 'array store' => ['store' => 'array'];
-        yield 'redis store' => ['store' => Application::REDIS_CACHE_STORE];
+        yield 'redis store' => ['store' => Application::RedisCacheStore];
     }
 
     /** @param  array{store: string}  $params */
@@ -45,7 +45,7 @@ final class RememberedCountsBench extends BenchCase
     {
         config()->set('eloquent-viewable.querying.cache.store', $params['store']);
 
-        $this->page = Article::query()->orderBy('id')->limit(self::PAGE)->get();
+        $this->page = Article::query()->orderBy('id')->limit(self::Page)->get();
 
         foreach (['hot', 'cold', 'type'] as $target) {
             views($this->target(['target' => $target]))->remember(60)->count();

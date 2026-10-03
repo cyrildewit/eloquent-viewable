@@ -28,7 +28,7 @@ $options = getopt('', ['output:']);
 
 $app = Application::boot();
 
-$connection = DB::connection(Application::CONNECTION);
+$connection = DB::connection(Application::Connection);
 
 if (! $connection instanceof Connection) {
     throw new RuntimeException('The benchmark connection does not report its server version.');

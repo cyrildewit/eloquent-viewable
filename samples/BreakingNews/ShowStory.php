@@ -10,7 +10,7 @@ class ShowStory
      * A reader who refreshes a developing story is counted once per
      * quarter of an hour.
      */
-    private const int COOLDOWN_MINUTES = 15;
+    private const int CooldownMinutes = 15;
 
     public function __invoke(Story $story): Story
     {
@@ -18,7 +18,7 @@ class ShowStory
         // `redis` store the view itself is one XADD; the insert happens when
         // the buffer is flushed.
         views($story)
-            ->cooldown(self::COOLDOWN_MINUTES)
+            ->cooldown(self::CooldownMinutes)
             ->record();
 
         return $story;

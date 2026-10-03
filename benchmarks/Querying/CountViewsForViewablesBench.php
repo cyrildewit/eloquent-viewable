@@ -24,9 +24,9 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class CountViewsForViewablesBench extends BenchCase
 {
-    private const int PAGE = 20;
+    private const int Page = 20;
 
-    private const int LIST = 1_000;
+    private const int List = 1_000;
 
     /** @var Collection<int, Article> */
     private Collection $hotPage;
@@ -39,9 +39,9 @@ final class CountViewsForViewablesBench extends BenchCase
 
     public function loadPages(): void
     {
-        $this->hotPage = Article::query()->orderBy('id')->limit(self::PAGE)->get();
-        $this->coldPage = Article::query()->orderByDesc('id')->limit(self::PAGE)->get()->reverse()->values();
-        $this->list = Article::query()->orderBy('id')->limit(self::LIST)->get();
+        $this->hotPage = Article::query()->orderBy('id')->limit(self::Page)->get();
+        $this->coldPage = Article::query()->orderByDesc('id')->limit(self::Page)->get()->reverse()->values();
+        $this->list = Article::query()->orderBy('id')->limit(self::List)->get();
     }
 
     /**

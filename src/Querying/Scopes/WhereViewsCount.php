@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 
 final readonly class WhereViewsCount
 {
-    private const array OPERATORS = ['=', '!=', '<>', '<', '<=', '>', '>='];
+    private const array Operators = ['=', '!=', '<>', '<', '<=', '>', '>='];
 
     public function __construct(
         private SubquerySource $source,
@@ -21,8 +21,8 @@ final readonly class WhereViewsCount
         private string $operator,
         private int $count,
     ) {
-        if (! in_array($operator, self::OPERATORS, true)) {
-            throw InvalidOperator::notAComparison($operator, implode(', ', self::OPERATORS));
+        if (! in_array($operator, self::Operators, true)) {
+            throw InvalidOperator::notAComparison($operator, implode(', ', self::Operators));
         }
     }
 

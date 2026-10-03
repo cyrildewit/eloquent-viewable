@@ -28,4 +28,4 @@ $seed = (int) ($options['seed'] ?? 20_260_101);
 
 Application::boot();
 
-new Seeder(DB::connection(Application::CONNECTION))->seed($size, $seed);
+new Seeder(DB::connection(Application::Connection))->seed($size, $seed);

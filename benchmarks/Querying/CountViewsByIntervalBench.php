@@ -31,7 +31,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class CountViewsByIntervalBench extends BenchCase
 {
-    private const string TIMEZONE = 'Europe/Amsterdam';
+    private const string Timezone = 'Europe/Amsterdam';
 
     /**
      * @return Generator<string, array{target: string}>
@@ -85,7 +85,7 @@ final class CountViewsByIntervalBench extends BenchCase
     {
         views($this->target($params))
             ->period($this->period($params))
-            ->timezone(self::TIMEZONE)
+            ->timezone(self::Timezone)
             ->countByInterval(Granularity::from($params['granularity']));
     }
 }

@@ -21,11 +21,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class VisitorIdentity
 {
-    public const string COOKIE = 'cookie';
+    public const string Cookie = 'cookie';
 
-    public const string VIEWER = 'viewer';
+    public const string Viewer = 'viewer';
 
-    public const string FINGERPRINT = 'fingerprint';
+    public const string Fingerprint = 'fingerprint';
 
     public function __construct(
         private Config $config,
@@ -41,13 +41,13 @@ final readonly class VisitorIdentity
     {
         $identity = $this->config->visitorIdentity();
 
-        if ($viewer instanceof Model && $identity !== self::COOKIE) {
+        if ($viewer instanceof Model && $identity !== self::Cookie) {
             return $this->ofViewer($viewer);
         }
 
         // Only the cookie id is read from the visitor here, so a fingerprint
         // never queues the cookie.
-        return $identity === self::FINGERPRINT ? $this->fingerprint->of($visitor) : $visitor->id();
+        return $identity === self::Fingerprint ? $this->fingerprint->of($visitor) : $visitor->id();
     }
 
     /**
