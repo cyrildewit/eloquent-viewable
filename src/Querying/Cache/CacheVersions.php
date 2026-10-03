@@ -23,8 +23,8 @@ final readonly class CacheVersions
     }
 
     /**
-     * The versions an entry depends on. A type without a key stands for every
-     * viewable of the type, and no type at all for every type.
+     * These are the versions an entry depends on. A type without a key stands
+     * for every viewable of the type, and no type at all for every type.
      *
      * @return list<string>
      */

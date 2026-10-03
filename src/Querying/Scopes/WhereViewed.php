@@ -11,8 +11,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * An existence check rather than a count, read from the same source as the
- * counting scopes so the two agree.
+ * This scope checks for existence rather than counting, and reads from the
+ * same source as the counting scopes so the two agree.
  */
 final readonly class WhereViewed
 {

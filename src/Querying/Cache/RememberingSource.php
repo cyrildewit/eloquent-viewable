@@ -13,8 +13,8 @@ use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 /**
- * A source in front of another that serves what it read before from the
- * cache, until the moment `remember()` names. It keeps what the source
+ * This source sits in front of another and serves what it read before from
+ * the cache, until the moment `remember()` names. It keeps what the source
  * returns as it is, so the reader shapes cached and fresh results alike.
  * Entries are stored under the `querying.cache.key` prefix, and the identity
  * of the source keeps the entries of two sources apart.

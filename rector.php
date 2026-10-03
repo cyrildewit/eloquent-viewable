@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pest\Rector\Set\PestSetList;
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -22,4 +23,8 @@ return RectorConfig::configure()
     ->withSets([
         PestSetList::CODING_STYLE,
     ])
-    ->withPhpSets();
+    ->withPhpSets()
+    // A method that documents one parameter documents all of them.
+    ->withSkip([
+        RemoveUselessParamTagRector::class,
+    ]);
