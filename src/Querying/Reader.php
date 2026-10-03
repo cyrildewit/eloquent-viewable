@@ -9,15 +9,21 @@ use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
+use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
@@ -27,13 +33,15 @@ final readonly class Reader
         private ViewSource $source,
         private CacheRepository $cache,
         private Config $config,
+        private View $view,
+        private ViewableLoader $loader,
     ) {}
 
     public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
     {
         return $this->remember(
             $rememberUntil,
-            fn (): string => new CacheKey($viewable, $this->config->cacheKey(), $this->config->sourceDriver())->make($query),
+            fn (): string => $this->cacheKey($viewable)->make($query),
             fn (): int => $this->source->count($viewable, $query),
         );
     }
@@ -77,7 +85,7 @@ final readonly class Reader
 
         $counts = $this->remember(
             $rememberUntil,
-            fn (): string => new CacheKey($viewable, $this->config->cacheKey(), $this->config->sourceDriver())->make($query, $granularity),
+            fn (): string => $this->cacheKey($viewable)->make($query, $granularity),
             fn (): array => $this->source->countByInterval($viewable, $query, $granularity),
         );
 
@@ -95,7 +103,7 @@ final readonly class Reader
     {
         $counts = $this->remember(
             $rememberUntil,
-            fn (): string => new CacheKey($viewable, $this->config->cacheKey(), $this->config->sourceDriver())->make($query, grouping: 'collection'),
+            fn (): string => $this->cacheKey($viewable)->make($query, grouping: 'collection'),
             fn (): array => $this->source->countByCollection($viewable, $query),
         );
 
@@ -108,7 +116,35 @@ final readonly class Reader
     }
 
     /**
-     * @template TValue of int|array<string, int>
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit);
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        $rows = $this->remember(
+            $rememberUntil,
+            fn (): string => $this->cacheKey($viewable)->make($query, limit: $limit),
+            fn (): array => $this->source->top($viewable, $query, $limit),
+        );
+
+        return $this->loader->load($rows);
+    }
+
+    private function cacheKey(?Viewable $viewable): CacheKey
+    {
+        return new CacheKey($viewable, $this->view->getConnection(), $this->config->cacheKey(), $this->config->sourceDriver());
+    }
+
+    /**
+     * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>
      *
      * @param  Closure(): string  $key
      * @param  Closure(): TValue  $resolve

@@ -15,27 +15,30 @@ use Illuminate\Database\Connection;
 /**
  * Build a viewable double exposing only what CacheKey reads from a model.
  */
-function viewableStub(
-    ?int $key = 1,
-    string $morphClass = 'App\Models\Post',
-    string $connection = 'testing',
-    string $database = ':memory:',
-): Viewable {
-    $connectionMock = Mockery::mock(Connection::class);
-    $connectionMock->allows('getName')->andReturn($connection);
-    $connectionMock->allows('getDatabaseName')->andReturn($database);
-
+function viewableStub(?int $key = 1, string $morphClass = 'App\Models\Post'): Viewable
+{
     $viewable = Mockery::mock(Viewable::class);
     $viewable->allows('getKey')->andReturn($key);
     $viewable->allows('getMorphClass')->andReturn($morphClass);
-    $viewable->allows('getConnection')->andReturn($connectionMock);
 
     return $viewable;
 }
 
-function cacheKey(Viewable $viewable, string $source = 'database'): CacheKey
+/**
+ * The connection the views are read from, as CacheKey sees it.
+ */
+function connectionStub(string $connection = 'testing', string $database = ':memory:'): Connection
 {
-    return new CacheKey($viewable, 'test-namespace', $source);
+    $connectionMock = Mockery::mock(Connection::class);
+    $connectionMock->allows('getName')->andReturn($connection);
+    $connectionMock->allows('getDatabaseName')->andReturn($database);
+
+    return $connectionMock;
+}
+
+function cacheKey(?Viewable $viewable, string $source = 'database', ?Connection $connection = null): CacheKey
+{
+    return new CacheKey($viewable, $connection ?? connectionStub(), 'test-namespace', $source);
 }
 
 beforeEach(function (): void {
@@ -70,12 +73,34 @@ it('never collides across different viewable types', function (): void {
         ->not->toBe(cacheKey($apartment)->make(new ViewsQuery));
 });
 
-it('changes the key when the connection changes', function (): void {
+it('changes the key when the views connection changes', function (): void {
     $default = cacheKey($this->firstPost)->make(new ViewsQuery);
 
-    expect(cacheKey(viewableStub(connection: 'analytics'))->make(new ViewsQuery))
+    expect(cacheKey($this->firstPost, connection: connectionStub(connection: 'analytics'))->make(new ViewsQuery))
         ->not->toBe($default)
-        ->and(cacheKey(viewableStub(database: 'tenant_two'))->make(new ViewsQuery))->not->toBe($default);
+        ->and(cacheKey($this->firstPost, connection: connectionStub(database: 'tenant_two'))->make(new ViewsQuery))->not->toBe($default)
+        ->and(cacheKey(null, connection: connectionStub(connection: 'analytics'))->make(new ViewsQuery, limit: 10))
+        ->not->toBe(cacheKey(null)->make(new ViewsQuery, limit: 10));
+});
+
+it('labels a ranking over every type in the head', function (): void {
+    expect(cacheKey(null)->make(new ViewsQuery, limit: 10))
+        ->toStartWith('test-namespace:top:')
+        ->and(cacheKey(viewableStub(key: null))->make(new ViewsQuery, limit: 10))
+        ->toStartWith('test-namespace:type:App\Models\Post:');
+});
+
+it('changes the key when the limit changes', function (): void {
+    $type = viewableStub(key: null);
+
+    expect(cacheKey($type)->make(new ViewsQuery, limit: 10))
+        ->not->toBe(cacheKey($type)->make(new ViewsQuery))
+        ->and(cacheKey($type)->make(new ViewsQuery, limit: 10))
+        ->not->toBe(cacheKey($type)->make(new ViewsQuery, limit: 5))
+        ->and(cacheKey($type)->make(new ViewsQuery, limit: 10))
+        ->toBe(cacheKey($type)->make(new ViewsQuery, limit: 10))
+        ->and(cacheKey(null)->make(new ViewsQuery, limit: 10))
+        ->not->toBe(cacheKey($type)->make(new ViewsQuery, limit: 10));
 });
 
 it('changes the key when the period changes', function (): void {
@@ -109,8 +134,8 @@ it('changes the key when the collection changes', function (): void {
 });
 
 it('changes the key when the prefix changes', function (): void {
-    expect(new CacheKey($this->firstPost, 'one', 'database')->make(new ViewsQuery))
-        ->not->toBe(new CacheKey($this->firstPost, 'two', 'database')->make(new ViewsQuery));
+    expect(new CacheKey($this->firstPost, connectionStub(), 'one', 'database')->make(new ViewsQuery))
+        ->not->toBe(new CacheKey($this->firstPost, connectionStub(), 'two', 'database')->make(new ViewsQuery));
 });
 
 it('changes the key when the source driver changes', function (): void {
