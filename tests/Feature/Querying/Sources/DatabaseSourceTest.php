@@ -80,6 +80,86 @@ describe('count', function (): void {
     });
 });
 
+describe('count many', function (): void {
+    it('counts the views of each key, zero for a key without views', function (): void {
+        $other = Post::factory()->create();
+        $unviewed = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->count(3)->create();
+        View::factory()->for($other, 'viewable')->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->create();
+
+        expect(viewSource()->countMany(new Post, [$this->post->getKey(), $other->getKey(), $unviewed->getKey()], new ViewsQuery))
+            ->toEqual([$this->post->getKey() => 3, $other->getKey() => 1, $unviewed->getKey() => 0]);
+    });
+
+    it('only counts views of the type', function (): void {
+        $apartment = Apartment::factory()->create();
+
+        View::factory()->for($apartment, 'viewable')->count(2)->create();
+
+        expect(viewSource()->countMany(new Post, [$apartment->getKey()], new ViewsQuery))->toBe([$apartment->getKey() => 0]);
+    });
+
+    it('counts unique visitors per key', function (): void {
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_two')->create();
+
+        expect(viewSource()->countMany(new Post, [$this->post->getKey()], new ViewsQuery(unique: true)))->toBe([$this->post->getKey() => 2]);
+    });
+
+    it('applies the period, collection and viewer per key', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-01-10'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-02-10'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->by($user)->viewedAt(Carbon::parse('2026-02-11'))->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-02-10'))->create();
+
+        expect(viewSource()->countMany(new Post, [$this->post->getKey()], new ViewsQuery(Period::since('2026-02-01'), 'custom')))->toBe([$this->post->getKey() => 2])
+            ->and(viewSource()->countMany(new Post, [$this->post->getKey()], new ViewsQuery(Period::since('2026-02-01'), 'custom', viewer: $user)))->toBe([$this->post->getKey() => 1]);
+    });
+
+    it('inlines integer keys and binds any other', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        $connection = viewConnection();
+        $connection->flushQueryLog();
+        $connection->enableQueryLog();
+
+        $integers = viewSource()->countMany(new Post, [$this->post->getKey()], new ViewsQuery);
+        $strings = viewSource()->countMany(new Post, [(string) $this->post->getKey(), '999999999'], new ViewsQuery);
+
+        [$inlined, $bound] = $connection->getQueryLog();
+        $connection->disableQueryLog();
+
+        expect($integers)->toBe([$this->post->getKey() => 2])
+            ->and($strings)->toEqual([$this->post->getKey() => 2, 999999999 => 0])
+            ->and($inlined['bindings'])->toBe([$this->post->getMorphClass()])
+            ->and($bound['bindings'])->toBe([(string) $this->post->getKey(), $this->post->getMorphClass(), (string) $this->post->getKey(), '999999999', $this->post->getMorphClass(), '999999999']);
+    });
+
+    it('splits a long list of keys into one query per hundred', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        $first = $this->post->getKey() + 1;
+        $keys = [...range($first, $first + 149), $this->post->getKey()];
+
+        $connection = viewConnection();
+        $connection->flushQueryLog();
+        $connection->enableQueryLog();
+
+        $counts = viewSource()->countMany(new Post, $keys, new ViewsQuery);
+        $queries = count($connection->getQueryLog());
+        $connection->disableQueryLog();
+
+        expect($counts)->toHaveCount(151)
+            ->and($counts[$this->post->getKey()])->toBe(2)
+            ->and(array_sum($counts))->toBe(2)
+            ->and($queries)->toBe(2);
+    });
+});
+
 describe('count subquery', function (): void {
     /** @return array<int|string, int> */
     function countsPerPost(ViewsQuery $query): array

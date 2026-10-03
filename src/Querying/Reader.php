@@ -24,6 +24,7 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\ViewableSet;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
@@ -63,6 +64,43 @@ final readonly class Reader
             $period,
             $previous,
         );
+    }
+
+    /**
+     * Every viewable of the set, in the order given, keyed by its key. A
+     * remembered count shares its entry with `count()` for that viewable, so
+     * only the viewables missing from the cache reach the source.
+     *
+     * @return array<int|string, int>
+     */
+    public function countMany(ViewableSet $viewables, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    {
+        $type = $viewables->type();
+
+        if (! $type instanceof Viewable) {
+            return [];
+        }
+
+        $cacheKeys = $rememberUntil instanceof CarbonInterface ? $this->cacheKeys($viewables, $query) : [];
+        $counts = $this->cached($cacheKeys);
+        $missing = array_values(array_filter($viewables->keys(), fn (int|string $key): bool => ! isset($counts[$key])));
+
+        if ($missing !== []) {
+            $fetched = $this->source->countMany($type, $missing, $query);
+            $fresh = [];
+
+            foreach ($missing as $key) {
+                $fresh[$key] = $fetched[$key] ?? 0;
+            }
+
+            if ($rememberUntil instanceof CarbonInterface) {
+                $this->cacheMany($cacheKeys, $fresh, $rememberUntil);
+            }
+
+            $counts += $fresh;
+        }
+
+        return array_replace(array_fill_keys(array_keys($viewables->all()), 0), $counts);
     }
 
     /** @throws InvalidInterval */
@@ -141,6 +179,62 @@ final readonly class Reader
     private function cacheKey(?Viewable $viewable): CacheKey
     {
         return new CacheKey($viewable, $this->view->getConnection(), $this->config->cacheKey(), $this->config->sourceDriver());
+    }
+
+    /**
+     * The counts the cache holds, keyed by viewable key.
+     *
+     * @param  array<int|string, string>  $cacheKeys
+     * @return array<int|string, int>
+     */
+    private function cached(array $cacheKeys): array
+    {
+        if ($cacheKeys === []) {
+            return [];
+        }
+
+        $keys = array_flip($cacheKeys);
+        $counts = [];
+
+        foreach ($this->cache->getMultiple(array_keys($keys)) as $cacheKey => $count) {
+            if (is_int($count) && isset($keys[$cacheKey])) {
+                $counts[$keys[$cacheKey]] = $count;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<int|string, string>  $cacheKeys
+     * @param  array<int|string, int>  $counts
+     */
+    private function cacheMany(array $cacheKeys, array $counts, CarbonInterface $until): void
+    {
+        $values = [];
+
+        foreach ($cacheKeys as $key => $cacheKey) {
+            if (isset($counts[$key])) {
+                $values[$cacheKey] = $counts[$key];
+            }
+        }
+
+        // The PSR contract takes an interval, not a moment. One that lies in
+        // the past makes the repository forget the keys, as put() does.
+        $this->cache->setMultiple($values, Carbon::now()->diff($until));
+    }
+
+    /**
+     * The entry `count()` uses for each viewable, keyed by viewable key.
+     *
+     * @return array<int|string, string>
+     */
+    private function cacheKeys(ViewableSet $viewables, ViewsQuery $query): array
+    {
+        return array_map(
+            fn (Viewable $viewable): string => $this->cacheKey($viewable)->make($query),
+            $viewables->all(),
+        );
     }
 
     /**

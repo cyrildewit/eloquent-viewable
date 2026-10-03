@@ -23,6 +23,13 @@ use stdClass;
 
 final readonly class DatabaseSource implements ViewSource
 {
+    /**
+     * Keys per statement in `countMany()`. Each key is a branch of its own
+     * with its own bindings, so this stays well below the bindings any
+     * supported driver allows and SQLite's limit of 500 branches.
+     */
+    private const int CHUNK = 100;
+
     public function __construct(
         private View $view,
         private GrammarRegistry $grammars,
@@ -99,6 +106,38 @@ final readonly class DatabaseSource implements ViewSource
         return $counts;
     }
 
+    /**
+     * One statement of a `count()` per key, joined by `union all`. Each
+     * branch is an index lookup on its own key. A single `in` list grouped
+     * by key reads the same rows, but once the keys cover a large share of
+     * the table MySQL scans the whole index for it instead.
+     *
+     * @param  non-empty-list<int|string>  $keys
+     * @return array<int|string, int>
+     */
+    public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+    {
+        $counts = [];
+
+        foreach (array_chunk($keys, self::CHUNK) as $chunk) {
+            $branches = array_map(fn (int|string $key): Builder => $this->countOne($viewable, $key, $query), $chunk);
+            $statement = array_shift($branches);
+
+            foreach ($branches as $branch) {
+                $statement->unionAll($branch);
+            }
+
+            /** @var Collection<int|string, int|string> $rows */
+            $rows = $statement->pluck('aggregate', 'viewable_id');
+
+            foreach ($rows as $key => $count) {
+                $counts[$key] = (int) $count;
+            }
+        }
+
+        return $counts;
+    }
+
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase();
@@ -141,6 +180,30 @@ final readonly class DatabaseSource implements ViewSource
         }
 
         return $ranking;
+    }
+
+    /**
+     * The views of one key, as a row of the key and its count. The key is
+     * selected as a literal rather than grouped on, so the branch is the
+     * plain aggregate `count()` runs.
+     */
+    private function countOne(Viewable $viewable, int|string $key, ViewsQuery $query): Builder
+    {
+        $builder = $this->view->newQuery()->matching($query)->toBase()
+            ->where('viewable_type', $viewable->getMorphClass());
+        $aggregate = $this->aggregate($query, $builder->getGrammar());
+
+        // An integer is inlined, as Eloquent does when eager loading, which
+        // spares two bindings per branch. Anything else is bound.
+        if (is_int($key)) {
+            return $builder
+                ->whereIntegerInRaw('viewable_id', [$key])
+                ->selectRaw("{$key} as viewable_id, {$aggregate} as aggregate"); // @phpstan-ignore argument.type (an integer and wrapped identifiers, not user input)
+        }
+
+        return $builder
+            ->where('viewable_id', $key)
+            ->selectRaw("? as viewable_id, {$aggregate} as aggregate", [$key]); // @phpstan-ignore argument.type (built from wrapped identifiers, the key is bound)
     }
 
     /**
