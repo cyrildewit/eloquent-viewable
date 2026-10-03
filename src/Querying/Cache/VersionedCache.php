@@ -26,10 +26,6 @@ final readonly class VersionedCache
     /**
      * @template TValue
      *
-     * @param  string  $key
-     * @param  ?string  $type
-     * @param  int|string|null  $id
-     * @param  CarbonInterface  $until
      * @param  Closure(): TValue  $resolve
      * @return TValue
      */
@@ -62,9 +58,7 @@ final readonly class VersionedCache
      *
      * @template TValue
      *
-     * @param  string  $type
      * @param  array<int|string, string>  $keys
-     * @param  CarbonInterface  $until
      * @param  Closure(non-empty-list<int|string>): array<int|string, TValue>  $resolve
      * @return array<int|string, TValue>
      */
