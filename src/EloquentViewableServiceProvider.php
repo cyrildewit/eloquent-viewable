@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
@@ -86,7 +87,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             return new $model;
         });
 
-        $this->app->when(Reader::class)
+        $this->app->when([Reader::class, CacheVersions::class])
             ->needs(CacheRepository::class)
             ->give(fn (): CacheRepository => $this->app->make(CacheFactory::class)->store(
                 $this->app->make(Config::class)->cacheStore()

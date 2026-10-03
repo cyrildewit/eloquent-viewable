@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
@@ -65,6 +66,7 @@ class Views
         protected Recorder $recorder,
         protected Reader $reader,
         protected ViewStore $store,
+        protected CacheVersions $cacheVersions,
     ) {}
 
     public function forViewable(Viewable $viewable): self
@@ -155,6 +157,21 @@ class Views
     public function destroy(): void
     {
         $this->store->forget($this->viewable());
+    }
+
+    /**
+     * Forgets every count remembered of the viewable, of its type as a whole
+     * and of rankings. A viewable without a key forgets its whole type.
+     */
+    public function forgetCache(): void
+    {
+        $this->cacheVersions->forgetCache($this->viewable());
+    }
+
+    /** Forgets every remembered count. */
+    public function flushCache(): void
+    {
+        $this->cacheVersions->flushCache();
     }
 
     public function cooldown(DateTimeInterface|int|null $cooldown): self

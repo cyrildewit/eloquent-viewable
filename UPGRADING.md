@@ -282,7 +282,7 @@ if ($result->wasSkippedBy(EnforceCooldown::class)) {
 
 `Recording\Recorder::record()` returns that `RecordResult` instead of `bool`. Only code that calls the recorder directly rather than through `Views` is affected.
 
-The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader` and `Recording\Contracts\ViewStore`. The config, the cache, the cooldown manager, the bus dispatcher and the count actions are gone from it. Only a subclass that overrides the constructor is affected.
+The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Contracts\ViewStore` and `Querying\Cache\CacheVersions`. The config, the cache, the cooldown manager, the bus dispatcher and the count actions are gone from it. Only a subclass that overrides the constructor is affected.
 
 ### Prefetched pages are no longer counted
 

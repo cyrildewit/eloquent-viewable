@@ -94,7 +94,7 @@ it('keeps a double set on the facade', function (): void {
 it('requires a viewable before it counts, records, attempts or destroys views', function (string $method): void {
     expect(fn (): mixed => $this->app->make(Views::class)->{$method}())
         ->toThrow(InvalidViewable::class, 'No viewable was given. Call forViewable() before counting, recording or destroying views.');
-})->with(['count', 'record', 'attempt', 'destroy']);
+})->with(['count', 'record', 'attempt', 'destroy', 'forgetCache']);
 
 describe('recording', function (): void {
     it('can record a view', function (): void {
@@ -1657,6 +1657,49 @@ describe('remembering in redis', function (): void {
         View::factory()->for($this->post, 'viewable')->create();
 
         expect(viewsOf([$this->post])->remember(60)->counts()->all())->toBe([$this->post->getKey() => 3]);
+    });
+});
+
+describe('forgetting remembered counts', function (): void {
+    beforeEach(function (): void {
+        $this->other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->count(3)->create();
+        View::factory()->for($this->other, 'viewable')->count(2)->create();
+
+        expect(views($this->post)->remember(60)->count())->toBe(3)
+            ->and(views($this->other)->remember(60)->count())->toBe(2)
+            ->and(views(Post::class)->remember(60)->count())->toBe(5)
+            ->and(ViewsFacade::remember(60)->top()->entries->first()?->count)->toBe(3);
+
+        View::factory()->for($this->post, 'viewable')->create();
+        View::factory()->for($this->other, 'viewable')->create();
+    });
+
+    it('forgets the counts of a model, the total of its type and the ranking', function (): void {
+        views($this->post)->forgetCache();
+
+        expect(views($this->post)->remember(60)->count())->toBe(4)
+            ->and(views($this->other)->remember(60)->count())->toBe(2)
+            ->and(views(Post::class)->remember(60)->count())->toBe(7)
+            ->and(ViewsFacade::remember(60)->top()->entries->first()?->count)->toBe(4);
+    });
+
+    it('forgets every model of a type', function (): void {
+        views(Post::class)->forgetCache();
+
+        expect(views($this->post)->remember(60)->count())->toBe(4)
+            ->and(views($this->other)->remember(60)->count())->toBe(3)
+            ->and(views(Post::class)->remember(60)->count())->toBe(7);
+    });
+
+    it('forgets every remembered count on a flush', function (): void {
+        ViewsFacade::flushCache();
+
+        expect(views($this->post)->remember(60)->count())->toBe(4)
+            ->and(views($this->other)->remember(60)->count())->toBe(3)
+            ->and(views(Post::class)->remember(60)->count())->toBe(7)
+            ->and(ViewsFacade::remember(60)->top()->entries->first()?->count)->toBe(4);
     });
 });
 
