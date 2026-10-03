@@ -104,12 +104,20 @@ it('reads the visitor cookie settings', function (): void {
 
 it('reads the visitor identity', function (): void {
     expect(packageConfig(['visitor' => ['identity' => 'viewer']]))->visitorIdentity()->toBe('viewer')
+        ->and(packageConfig(['visitor' => ['identity' => 'fingerprint']]))->visitorIdentity()->toBe('fingerprint')
         ->and(packageConfig())->visitorIdentity()->toBe('cookie');
+});
+
+it('reads the fingerprint settings', function (): void {
+    expect(packageConfig(['visitor' => ['fingerprint' => ['store' => 'redis', 'key' => 'salt']]]))
+        ->fingerprintCacheStore()->toBe('redis')
+        ->fingerprintKey()->toBe('salt')
+        ->and(packageConfig())->fingerprintCacheStore()->toBeNull();
 });
 
 it('rejects an unknown visitor identity', function (mixed $value, string $described): void {
     expect(fn (): string => packageConfig(['visitor' => ['identity' => $value]])->visitorIdentity())
-        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, {$described} given.");
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, `fingerprint`, {$described} given.");
 })->with([
     'word' => ['session', '`"session"`'],
     'null' => [null, 'null'],
@@ -156,6 +164,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'viewer guard' => ['viewerGuard', 'recording.viewer.guard'],
     'cache store' => ['cacheStore', 'querying.cache.store'],
     'cooldown cache store' => ['cooldownCacheStore', 'cooldown.cache.store'],
+    'fingerprint cache store' => ['fingerprintCacheStore', 'visitor.fingerprint.store'],
 ]);
 
 it('rejects an empty key', function (string $method, string $key): void {
@@ -171,6 +180,7 @@ it('rejects an empty key', function (string $method, string $key): void {
     'cooldown store' => ['cooldownStore', 'cooldown.store'],
     'cooldown key' => ['cooldownKey', 'cooldown.key'],
     'visitor cookie name' => ['visitorCookieName', 'visitor.cookie.name'],
+    'fingerprint key' => ['fingerprintKey', 'visitor.fingerprint.key'],
     'store driver' => ['storeDriver', 'recording.store.driver'],
     'source driver' => ['sourceDriver', 'querying.source.driver'],
 ]);
