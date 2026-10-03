@@ -201,7 +201,10 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
 
     private function countOne(Viewable $viewable, int|string $key, ViewsQuery $query): Builder
     {
-        $builder = $this->view->newQuery()->matching($query)->toBase()
+        $builder = $this->view
+            ->newQuery()
+            ->matching($query)
+            ->toBase()
             ->where('viewable_type', $viewable->getMorphClass());
         $aggregate = $this->aggregate($query, $builder->getGrammar());
 
