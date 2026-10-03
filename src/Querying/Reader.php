@@ -8,7 +8,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
@@ -33,6 +35,25 @@ final readonly class Reader
             $rememberUntil,
             fn (): string => new CacheKey($viewable, $this->config->cacheKey(), $this->config->sourceDriver())->make($query),
             fn (): int => $this->source->count($viewable, $query),
+        );
+    }
+
+    /**
+     * Two counts, one over the period and one over `Period::previous()`,
+     * each remembered under its own key.
+     *
+     * @throws InvalidPeriod
+     */
+    public function compare(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): ViewComparison
+    {
+        $period = $query->period ?? throw InvalidPeriod::comparedWithoutPeriod();
+        $previous = $period->previous();
+
+        return ViewComparison::between(
+            $this->count($viewable, $query, $rememberUntil),
+            $this->count($viewable, $query->withPeriod($previous), $rememberUntil),
+            $period,
+            $previous,
         );
     }
 

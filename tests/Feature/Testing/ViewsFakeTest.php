@@ -167,6 +167,18 @@ describe('counting', function (): void {
             ->and(views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->collection('custom')->count())->toBe(1);
     });
 
+    it('compares with the previous period', function (): void {
+        Carbon::setTestNow('2026-08-30 10:00:00');
+        views($this->post)->record();
+
+        Carbon::setTestNow('2026-09-05 10:00:00');
+        views($this->post)->record();
+        views($this->post)->record();
+
+        expect(views($this->post)->period(Period::create('2026-09-01', '2026-09-08'))->compare()->toArray())
+            ->toBe(['current' => 2, 'previous' => 1, 'delta' => 1, 'percent' => 100.0]);
+    });
+
     it('counts by interval', function (): void {
         Carbon::setTestNow('2026-09-01 10:00:00');
         views($this->post)->useVisitor(visitor('one'))->record();

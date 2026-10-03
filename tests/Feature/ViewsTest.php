@@ -5,9 +5,11 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
@@ -627,6 +629,92 @@ describe('counting', function (): void {
         View::factory()->for($apartment, 'viewable')->fromVisitor('visitor_one')->create();
 
         expect(new Post)->toHaveUniqueViewsCount(2);
+    });
+});
+
+describe('comparing', function (): void {
+    function viewedAt(Viewable $viewable, string ...$dateTimes): void
+    {
+        foreach ($dateTimes as $dateTime) {
+            View::factory()->for($viewable, 'viewable')->viewedAt(Carbon::parse($dateTime))->create();
+        }
+    }
+
+    beforeEach(function (): void {
+        Carbon::setTestNow('2026-09-10 12:00:00');
+    });
+
+    it('compares the period with the one before it', function (): void {
+        viewedAt($this->post, '2026-08-26 23:59:59', '2026-08-27 00:00:00', '2026-09-02 23:59:59', '2026-09-03 00:00:00', '2026-09-05 12:00:00', '2026-09-10 08:00:00');
+
+        $comparison = views($this->post)->period(Period::pastDays(7))->compare();
+
+        expect($comparison)->toBeInstanceOf(ViewComparison::class)
+            ->and($comparison->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
+            ->and($comparison->previousPeriod->getRouteKey())->toBe('2026-08-27..2026-09-03');
+    });
+
+    it('splits an absolute period at its start', function (): void {
+        viewedAt($this->post, '2026-08-31 23:59:59', '2026-09-01 00:00:00', '2026-09-05 00:00:00');
+
+        $comparison = views($this->post)->period(Period::create('2026-09-03', '2026-09-05'))->compare();
+
+        expect($comparison->toArray())->toBe(['current' => 0, 'previous' => 1, 'delta' => -1, 'percent' => -100.0]);
+    });
+
+    it('reads both periods as unique visitors in a collection for one viewer', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('one')->viewedAt(Carbon::parse('2026-09-04'))->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('one')->viewedAt(Carbon::parse('2026-08-28'))->create();
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('two')->viewedAt(Carbon::parse('2026-08-28'))->create();
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('three')->viewedAt(Carbon::parse('2026-08-28'))->create(['collection' => 'other']);
+        View::factory()->for($this->post, 'viewable')->fromVisitor('four')->viewedAt(Carbon::parse('2026-08-28'))->create();
+
+        expect(views($this->post)->period(Period::pastDays(7))->unique()->viewedBy($user)->compare()->toArray())
+            ->toBe(['current' => 1, 'previous' => 3, 'delta' => -2, 'percent' => -66.7])
+            ->and(views($this->post)->period(Period::pastDays(7))->collection('other')->compare()->previous)->toBe(1);
+    });
+
+    it('steps a relative period back on the clock of the timezone', function (): void {
+        // 12:00 UTC on the 10th is 22:00 in Sydney, where the past day started at 14:00 UTC on the 8th.
+        viewedAt($this->post, '2026-09-07 13:59:59', '2026-09-07 14:00:00', '2026-09-08 13:59:59', '2026-09-08 14:00:00');
+
+        $comparison = views($this->post)->period(Period::pastDays(1))->timezone('Australia/Sydney')->compare();
+
+        expect($comparison->toArray())->toBe(['current' => 1, 'previous' => 2, 'delta' => -1, 'percent' => -50.0]);
+    });
+
+    it('remembers both counts', function (): void {
+        viewedAt($this->post, '2026-09-01 12:00:00', '2026-09-05 12:00:00');
+
+        expect(views($this->post)->period(Period::pastDays(7))->remember(60)->compare()->toArray())
+            ->toBe(['current' => 1, 'previous' => 1, 'delta' => 0, 'percent' => 0.0]);
+
+        viewedAt($this->post, '2026-09-01 12:00:00', '2026-09-05 12:00:00');
+
+        expect(views($this->post)->period(Period::pastDays(7))->remember(60)->compare()->toArray())
+            ->toBe(['current' => 1, 'previous' => 1, 'delta' => 0, 'percent' => 0.0])
+            ->and(views($this->post)->period(Period::pastDays(7))->compare()->toArray())
+            ->toBe(['current' => 2, 'previous' => 2, 'delta' => 0, 'percent' => 0.0]);
+    });
+
+    it('compares every viewable of a type', function (): void {
+        viewedAt(Post::factory()->create(), '2026-09-05 12:00:00');
+        viewedAt($this->post, '2026-09-05 12:00:00');
+
+        expect(views(Post::class)->period(Period::pastDays(7))->compare()->toArray())
+            ->toBe(['current' => 2, 'previous' => 0, 'delta' => 2, 'percent' => null]);
+    });
+
+    it('requires a period', function (): void {
+        expect(fn (): ViewComparison => views($this->post)->compare())
+            ->toThrow(InvalidPeriod::class, 'Comparing needs a period.');
+    });
+
+    it('requires a period with a width', function (): void {
+        expect(fn (): ViewComparison => views($this->post)->period(Period::since('2026-09-01'))->compare())
+            ->toThrow(InvalidPeriod::class, 'has no previous period');
     });
 });
 
