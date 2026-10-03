@@ -21,7 +21,9 @@ use Illuminate\Support\Carbon;
 class Post extends Model implements Viewable
 {
     /** @use HasFactory<PostFactory> */
-    use HasFactory, InteractsWithViews;
+    use HasFactory;
+
+    use InteractsWithViews;
 
     #[\Override]
     protected $guarded = [];

@@ -17,7 +17,8 @@ use Illuminate\Support\Carbon;
  */
 class UuidUser extends Model
 {
-    use HasUuids, HasViewHistory;
+    use HasUuids;
+    use HasViewHistory;
 
     #[\Override]
     protected $table = 'uuid_users';
