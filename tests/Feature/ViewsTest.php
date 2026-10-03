@@ -20,6 +20,7 @@ use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
@@ -1700,6 +1701,28 @@ describe('forgetting remembered counts', function (): void {
             ->and(views($this->other)->remember(60)->count())->toBe(3)
             ->and(views(Post::class)->remember(60)->count())->toBe(7)
             ->and(ViewsFacade::remember(60)->top()->entries->first()?->count)->toBe(4);
+    });
+
+    it('forgets the remembered counts of destroyed views', function (): void {
+        views($this->post)->destroy();
+
+        expect(views($this->post)->remember(60)->count())->toBe(0)
+            ->and(views($this->other)->remember(60)->count())->toBe(2)
+            ->and(views(Post::class)->remember(60)->count())->toBe(3);
+    });
+
+    it('forgets the remembered counts of a model deleted with its views', function (): void {
+        $this->post->delete();
+
+        expect(views(Post::class)->remember(60)->count())->toBe(3);
+    });
+
+    it('announces destroyed views', function (): void {
+        Event::fake([ViewsDestroyed::class]);
+
+        views($this->post)->destroy();
+
+        Event::assertDispatched(ViewsDestroyed::class, fn (ViewsDestroyed $event): bool => $event->viewable === $this->post);
     });
 });
 
