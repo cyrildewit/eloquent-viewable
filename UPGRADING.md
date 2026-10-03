@@ -216,6 +216,25 @@ A published v8 config has a `cooldown` block without the new keys, and Laravel d
 
 `CooldownManager::push()` is gone. Code that called it uses the store instead, with a key from `Cooldowns\Cooldown::of($viewable, $visitorId, $collection)->key()`. The session store keeps cooldowns in a new format, so cooldowns running when you deploy end early, once.
 
+### Every facade call starts a fresh builder
+
+The `Views` facade used to hand back the same builder for the rest of the request, so the viewable, period, collection and every other option of one call leaked into the next: `Views::forViewable($post)->record()` followed by `Views::count()` counted the post. The facade now resolves a fresh builder on every static call, like the `views()` helper always did. Keep a chain on one line, or hold the builder in a variable:
+
+```php
+// Before: counted $post through the leaked viewable. Now: throws InvalidViewable.
+Views::forViewable($post)->record();
+Views::count();
+
+// Either of these.
+Views::forViewable($post)->count();
+
+$views = Views::forViewable($post);
+$views->record();
+$views->count();
+```
+
+Doubles are unaffected: `Views::shouldReceive()` and `Views::swap()` still take over every call.
+
 ### Counting goes through a source
 
 `Views::count()`, `Views::countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes all read through the `Querying\Contracts\ViewSource` bound in the container. If you replaced the `Views` class to change how counts are computed, implementing that contract is now the smaller change, and it reaches the scopes too. The `querying.source.driver` config key names the source; the package default is `database`, so nothing changes until you set it. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).

@@ -118,6 +118,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 ### Fixed
 
+- Fixed the `Views` facade carrying the viewable, period, collection and every other option of one call into the next within a request. The facade no longer caches the resolved builder, so `Views::period($period)->count()` followed by `Views::count()` no longer shares the period. See the [upgrade guide](UPGRADING.md#every-facade-call-starts-a-fresh-builder)
 - Fixed `PeriodInterval::subtract()` mutating the date instance passed to it
 - Fixed a visitor without a cookie getting a new id, and queueing another cookie, from every `Visitor` instance in the same request
 - Fixed expired session cooldowns being pruned only for the viewable type being checked, so cooldowns for other types piled up in the session

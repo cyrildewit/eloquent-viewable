@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Facade;
 /** @see ViewsBuilder */
 class Views extends Facade
 {
+    #[\Override]
+    protected static $cached = false;
+
     public static function fake(): ViewsFake
     {
         return ViewsFake::bind(static::getFacadeApplication() ?? Container::getInstance());
