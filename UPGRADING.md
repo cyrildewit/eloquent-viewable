@@ -200,7 +200,7 @@ A direct `$this->app->bind(ViewStore::class, ...)` keeps working and overrides t
 
 ### Cooldowns are selected through `cooldown.store`
 
-`Cooldowns\CooldownManager` now builds the `Cooldowns\Contracts\CooldownStore` named by the new `cooldown.store` config key, and `EnforceCooldown` depends on that contract. The `session` driver is the default and behaves as in v8. The new `cache` driver keeps cooldowns in the cache store named by `cooldown.cache.store`, so they also work on routes without a session. See the README under [Where cooldowns are kept](README.md#where-cooldowns-are-kept).
+`Cooldowns\CooldownManager` now builds the `Cooldowns\Contracts\CooldownStore` named by the new `cooldown.store` config key, and `EnforceCooldown` depends on that contract. The `session` driver is the default and behaves as in v8. The new `cache` driver keeps cooldowns in the cache store named by `cooldown.cache.store`, so they also work on routes without a session. See the README under [Setting a cooldown](README.md#setting-a-cooldown).
 
 A published v8 config has a `cooldown` block without the new keys, and Laravel does not merge nested defaults into it. Add them, otherwise every `views()` call throws `Exceptions\InvalidConfiguration` naming `cooldown.store`:
 

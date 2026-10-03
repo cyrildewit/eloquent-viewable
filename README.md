@@ -19,7 +19,11 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li><a href="#introduction">Introduction</a></li>
+    <li><a href="#introduction">Introduction</a>
+      <ul>
+        <li><a href="#start-simple-scale-when-you-need-to">Start simple, scale when you need to</a></li>
+      </ul>
+    </li>
     <li><a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#version-compatibility">Version Compatibility</a></li>
@@ -29,38 +33,13 @@
     <li><a href="#usage">Usage</a>
       <ul>
         <li><a href="#preparing-your-model">Preparing your model</a></li>
-        <li><a href="#recording-views">Recording views</a>
-          <ul>
-            <li><a href="#recording-from-a-route">Recording from a route</a></li>
-            <li><a href="#finding-out-why-a-view-was-not-recorded">Finding out why a view was not recorded</a></li>
-          </ul>
-        </li>
+        <li><a href="#recording-views">Recording views</a></li>
         <li><a href="#queueing-view-recording">Queueing view recording</a></li>
         <li><a href="#setting-a-cooldown">Setting a cooldown</a></li>
         <li><a href="#recording-without-a-cookie">Recording without a cookie</a></li>
-        <li><a href="#retrieving-view-counts">Retrieving view counts</a>
-          <ul>
-            <li><a href="#get-total-view-count">Get total view count</a></li>
-            <li><a href="#get-view-count-for-a-specific-period">Get view count for a specific period</a>
-            </li>
-            <li><a href="#compare-with-the-previous-period">Compare with the previous period</a></li>
-            <li><a href="#get-view-counts-grouped-by-interval">Get view counts grouped by interval</a></li>
-            <li><a href="#get-view-counts-per-collection">Get view counts per collection</a></li>
-            <li><a href="#get-unique-view-count">Get unique view count</a></li>
-          </ul>
-        </li>
-        <li><a href="#ordering-models-by-view-count">Ordering models by view count</a>
-          <ul>
-            <li><a href="#order-by-view-count">Order by view count</a></li>
-            <li><a href="#order-by-unique-view-count">Order by unique view count</a></li>
-            <li><a href="#order-by-view-count-within-the-specified-period">Order by view count within the
-              specified period</a></li>
-            <li><a href="#order-by-view-count-within-the-specified-collection">Order by view count within
-              the specified collection</a></li>
-          </ul>
-        </li>
+        <li><a href="#retrieving-view-counts">Retrieving view counts</a></li>
+        <li><a href="#ordering-and-filtering-models-by-view-count">Ordering and filtering models by view count</a></li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
-        <li><a href="#get-view-count-of-viewable-type">Get view count of viewable type</a></li>
         <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
@@ -74,13 +53,13 @@
     <li><a href="#optimizing">Optimizing</a>
       <ul>
         <li><a href="#database-indexes">Database indexes</a></li>
-        <li><a href="#caching">Caching</a></li>
+        <li><a href="#storing-counts-on-your-own-table">Storing counts on your own table</a></li>
+        <li><a href="#buffering-views-in-redis">Buffering views in Redis</a></li>
       </ul>
     </li>
     <li><a href="#extending">Extending</a>
       <ul>
         <li><a href="#custom-information-about-visitor">Custom information about visitor</a></li>
-        <li><a href="#using-your-own-views-eloquent-model">Using your own Views Eloquent model</a></li>
         <li><a href="#using-your-own-view-eloquent-model">Using your own View Eloquent model</a></li>
         <li><a href="#customizing-how-views-are-created">Customizing how views are created</a></li>
         <li><a href="#choosing-where-views-are-stored">Choosing where views are stored</a></li>
@@ -111,25 +90,47 @@ views without relying on external analytics services.
 Once installed, you can track and retrieve views effortlessly:
 
 ```php
+// Record a view
+views($post)->record();
+
 // Return total view count
 views($post)->count();
 
-// Return total unique view count since 20 February 2017
-views($post)->unique()->period(Period::since('2017-02-20'))->count();
+// Return unique view count of the past 7 days, compared with the 7 days before
+views($post)->unique()->period(Period::pastDays(7))->compare();
 
-// Record a view
-views($post)->record();
+// Daily counts for a chart
+views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 ```
 
 ### Key Features
 
-- Track **total** and **unique** views for any Eloquent model
-- Query views by custom date ranges or time periods
+- Track **total** and **unique** views for any Eloquent model, from a controller or with one route middleware
+- Query views by custom periods, compare with the previous period and group them **per hour, day, week, month or year**
+- Order and filter models by views, and rank the **most viewed content** across every model
+- Know **who viewed what** by linking views to the signed-in user
 - Prevent duplicate views with a configurable **cooldown system**
 - Count unique visitors **without a cookie**, with a daily rotating fingerprint
-- Order models by views and unique visitors, and rank the most viewed content across every model
-- Optimize performance with **built-in caching**
-- Ignore views from **crawlers, blocked IPs, and visitors who opt out** with Do Not Track or Global Privacy Control
+- Ignore views from **crawlers, blocked IPs, prefetches, and visitors who opt out** with Do Not Track or Global Privacy
+  Control
+- Scale with **caching, queued recording or a Redis buffer**, and test with `Views::fake()`
+
+### Start simple, scale when you need to
+
+Out of the box every view is one insert during the request and every count is one query. That is fine for most
+applications and needs nothing beyond the migration. When traffic grows, switch on what you need, one config key at a
+time. Counts always read from the `views` table, so none of these changes how you query.
+
+| Option                                                  | What you gain                                                    | What you need                                     |
+|---------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------|
+| Default                                                 | Views count immediately, nothing to set up                       | The migration                                     |
+| [`remember()`](#caching-view-counts)                    | Repeated counts, series and rankings served from the cache       | Any cache store                                   |
+| [Queued recording](#queueing-view-recording)            | The insert moves out of the request                              | A queue worker                                    |
+| [Redis buffer](#buffering-views-in-redis)               | One Redis write per request, one insert per thousand views       | Redis 7+ and a scheduled `views:flush`            |
+| [Optional indexes](#database-indexes)                   | Faster unique counts and counts over a whole model type          | A migration of your own                           |
+| [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled command                  |
+| [Cache cooldowns](#setting-a-cooldown)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |
+| [Fingerprint identity](#recording-without-a-cookie)     | Unique visitors without setting a cookie                         | A shared cache store, trusted proxies configured  |
 
 ## Getting Started
 
@@ -144,57 +145,37 @@ Support for Lumen is not maintained.
 
 ### Installation
 
-First, you need to install the package via Composer:
+Install the package via Composer, publish the migration and run it:
 
 ```bash
 composer require cyrildewit/eloquent-viewable:^8
-```
-
-Publish the database migrations and review them:
-
-```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
-```
-
-#### Models keyed by UUID or ULID
-
-The migration creates `viewable_id` and `viewer_id` with Laravel's `morphs()` and `nullableMorphs()`, which follow the
-morph key type of your application. Integer keys are the default. If your models use `HasUuids` or `HasUlids` and you
-already call `Schema::morphUsingUuids()` or `Schema::morphUsingUlids()` in a service provider's `boot()` method, the
-migration creates matching columns without changes.
-
-Otherwise, edit the published migration before you run it, and pick the `viewer` columns to match your user model:
-
-```php
-$table->uuidMorphs('viewable');         // or ulidMorphs('viewable')
-$table->nullableUuidMorphs('viewer');   // or nullableUlidMorphs('viewer')
-```
-
-All viewable models share one `viewable_id` column, so they need the same key type. A table cannot hold views of
-models keyed by integers and models keyed by UUIDs at once.
-
-Run the database migrations to create the necessary tables:
-
-```bash
 php artisan migrate
 ```
 
-You can optionally publish the config file:
+Optionally publish the config file:
 
 ```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config"
 ```
 
+#### Models keyed by UUID or ULID
+
+The migration follows your application's morph key type, so if you already call `Schema::morphUsingUuids()` or
+`Schema::morphUsingUlids()` it needs no changes. Otherwise edit the published migration before running it:
+
+```php
+$table->uuidMorphs('viewable');         // or ulidMorphs('viewable')
+$table->nullableUuidMorphs('viewer');   // or nullableUlidMorphs('viewer'), to match your user model
+```
+
+All viewable models share one `viewable_id` column, so they need the same key type.
+
 ## Usage
 
 ### Preparing your model
 
-To associate views with a model, the model **must** implement the following interface and trait:
-
-- **Interface:** `CyrildeWit\EloquentViewable\Contracts\Viewable`
-- **Trait:** `CyrildeWit\EloquentViewable\Concerns\InteractsWithViews`
-
-Example:
+Implement the `Viewable` interface and use the `InteractsWithViews` trait:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
@@ -204,25 +185,14 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 class Post extends Model implements Viewable
 {
     use InteractsWithViews;
-
-    // ...
 }
 ```
 
 ### Recording views
 
-To track a view, simply call the `record` method on the fluent `Views` instance:
+Record a view in the controller method that shows the model:
 
 ```php
-views($post)->record();
-```
-
-**Where Should You Record Views?**
-
-The recommended place to record views is inside your controller’s method that handles displaying the model. For example:
-
-```php
-// PostController.php
 public function show(Post $post)
 {
     views($post)->record();
@@ -231,37 +201,26 @@ public function show(Post $post)
 }
 ```
 
-This ensures that views are only recorded when the page is actually rendered for a user.
-
-Every call to `record()` passes a list of guards before anything is written. The list lives under `recording.guards`
-in the config file and is the only switch: a guard runs when it is listed and not otherwise. Out of the box bot traffic,
-the addresses in `recording.ignored_ip_addresses` and pages the browser only prefetches are dropped and cooldowns are
-enforced. Publish the config and
-uncomment `IgnoreDoNotTrack` or `IgnoreGlobalPrivacyControl` to honour those headers, or remove a guard to turn its
-check off. Or add a guard of your own, see [Adding a recording guard](#adding-a-recording-guard).
+`record()` returns `true` when the view was stored or queued and `false` when a guard refused it. The guards are listed
+under `recording.guards` in the config. Out of the box they drop crawlers, the addresses in
+`recording.ignored_ip_addresses` and browser prefetches, and enforce cooldowns. Uncomment `IgnoreDoNotTrack` or
+`IgnoreGlobalPrivacyControl` to honour those headers, remove a guard to turn its check off, or
+[add your own](#adding-a-recording-guard).
 
 > [!NOTE]
-> `IgnoreCrawlers` is listed by default, so keep it in mind when testing. Tools like **Postman** are often detected as
-> crawlers and will not trigger a recorded view.
-
-`record()` returns `true` when the view was stored or queued and `false` when a guard refused it.
+> Tools like **Postman** are often detected as crawlers, so keep `IgnoreCrawlers` in mind when testing.
 
 #### Recording from a route
 
-To record a view without touching the controller, add the `views` middleware to the route. It records the model bound
-to the route once the response is ready:
+Or leave the controller alone and add the `views` middleware to the route:
 
 ```php
 Route::get('/posts/{post}', ShowPost::class)->middleware('views');
 ```
 
-Only a successful response to a `GET` request records a view, so a 404, a redirect, an error or a form post records
-nothing. The view passes the same guards as `record()` in a controller. The middleware reads the bound models after the
-controller has run, so it works on either side of `SubstituteBindings`.
-
-Without arguments it records the last route parameter bound to a `Viewable` model. In `/users/{user}/posts/{post}`
-that is the post, the page's subject. Name a route parameter or a model class to pick another, or several to record
-each of them:
+It records the last route parameter bound to a `Viewable` model, and only for a successful response to a `GET`
+request, so a 404, a redirect or a form post records nothing. Name a parameter or a model class to pick another, and
+pass options the same way:
 
 ```php
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
@@ -272,23 +231,16 @@ use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 ->middleware(RecordViews::using('post', collection: 'amp', cooldown: 30, queue: true))
 ```
 
-As with Laravel's `can` middleware, a value with a backslash is a class name and anything else a route parameter.
-`RecordViews::using()` builds the middleware string, `views:post,collection=amp,cooldown=30,queue=true`, which you can
-also write by hand. A route that binds nothing to record, or a parameter that is not a `Viewable`, throws
-`InvalidViewable` on the first request, so a typo shows up straight away.
-
-If storing the view fails, the middleware reports the `RecordingFailed` exception and still sends the page. For a
-condition, a `viewedBy()` or a `context()`, call `views()` in the controller instead.
+A parameter that does not resolve to a `Viewable` throws `InvalidViewable` on the first request. A failed write is
+reported and the page is still sent. For a condition, a `viewedBy()` or a `context()`, call `views()` in the controller.
 
 > [!TIP]
-> Inertia and Livewire reload a page with another `GET` to the same route, which the middleware counts again. A
-> `cooldown` keeps those reloads from adding views.
+> Inertia and Livewire reload a page with another `GET` to the same route. A `cooldown` keeps those reloads from
+> adding views.
 
 #### Finding out why a view was not recorded
 
-`record()` only says whether the view got through. When you need to know what became of it, call `attempt()` instead.
-It runs the same guards and writes the same view, but returns a `Recording\Data\RecordResult` that says whether the
-view was stored, queued, or skipped and by which guard:
+`attempt()` records like `record()` but returns a `Recording\Data\RecordResult`:
 
 ```php
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
@@ -299,317 +251,144 @@ $result->recorded;   // true when the view was stored or queued
 $result->queued;     // true when the write was handed to the queue
 $result->skippedBy;  // the guard that refused the view, or null
 
-if ($result->wasSkippedBy(EnforceCooldown::class)) {
-    // the visitor saw this post a moment ago
-}
+$result->wasSkippedBy(EnforceCooldown::class);
 ```
 
-The same information reaches listeners through an event. When a guard refuses, the package dispatches
-`Recording\Events\ViewSkipped` with the attempt and the guard. Listen for it to log why a count stays where it is
-without touching the code that records:
-
-```php
-use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
-
-Event::listen(ViewSkipped::class, function (ViewSkipped $event): void {
-    Log::debug('View skipped by '.$event->guard::class, [
-        'viewable' => $event->attempt->viewable->getKey(),
-        'collection' => $event->attempt->collection,
-    ]);
-});
-```
+Each refusal also dispatches `Recording\Events\ViewSkipped` with the attempt and the guard, so you can log skipped views
+without touching the code that records them.
 
 ### Queueing view recording
 
-By default, views are stored during the request. On high-traffic pages you can defer the
-database write to a queued job instead. This keeps the request fast and moves the insert to
-a queue worker.
-
-Queue an individual view on the fly using the `queue()` method:
+Move the insert to a queue worker to keep busy pages fast. Queue a single view, or every view from the config:
 
 ```php
 views($post)->queue()->record();
+views($post)->queue(false)->record(); // record synchronously when queueing is on globally
 ```
-
-Or enable queueing globally in the `eloquent-viewable.php` config file:
 
 ```php
 'recording' => [
     'queue' => [
-        'enabled' => true,      // queue every recorded view
+        'enabled' => true,
         'connection' => null,   // null uses the default queue connection
         'queue' => null,        // null uses the connection's default queue
     ],
 ],
 ```
 
-When queueing is enabled globally, you can still force an individual view to be recorded
-synchronously:
+The guards still run during the request, so bots and views on cooldown are never queued. Leave queueing off when you
+use the [Redis buffer](#buffering-views-in-redis), which already moves the write out of the request.
 
-```php
-views($post)->queue(false)->record();
-```
-
-All filtering still runs during the request, including crawler detection, the Do Not Track
-header, ignored IP addresses and cooldowns. Bots and views on cooldown are therefore never
-queued; only the database write is deferred.
-
-Queueing defers the write, and so does a store that buffers views before landing them in the
-table. Combining the two is harmless but gains nothing: every view becomes a job whose only
-work is handing the record to the buffer. With a buffering store, leave `recording.queue.enabled` off.
-
-> [!WARNING]  
-> When a view is queued, the `ViewRecorded` event is dispatched from the queue worker
-> instead of the request. Its listeners therefore run **without request context**. The
-> session, cookies, `request()` and `auth()->user()` are unavailable and will return empty
-> or `null` values. If a listener needs request-derived data (such as the IP address),
-> capture it during the request instead of reading it inside the listener. The event
-> carries the `ViewRecord` that was recorded, under `$event->record`. The signed-in model
-> is already on it as `viewerType` and `viewerId` when [recording the viewer](#who-viewed-what)
-> is enabled, and anything passed to [`context()`](#storing-context-with-a-view) as `context`.
+> [!WARNING]
+> A queued view dispatches `ViewRecorded` from the worker, where the session, cookies, `request()` and `auth()` are
+> unavailable. Read what you need from `$event->record`, which carries the viewer and the
+> [context](#storing-context-with-a-view) captured during the request.
 
 ### Setting a cooldown
 
-You may use the `cooldown` method on the `Views` instance to add a cooldown between view records. When you set a
-cooldown, you need to specify the number of minutes.
+A cooldown ignores repeated views of the same model by the same visitor for a number of minutes, or until a given time:
 
 ```php
-views($post)
-    ->cooldown($minutes)
-    ->record();
+views($post)->cooldown(30)->record();
+views($post)->cooldown(now()->addHours(3))->record();
 ```
 
-Instead of passing the number of minutes as an integer, you can also pass a `DateTimeInterface` instance.
+While a cooldown runs, `record()` returns `false` and `attempt()` reports `EnforceCooldown`. Two requests that arrive at
+the same moment may both be recorded.
 
-```php
-$expiresAt = now()->addHours(3);
-
-views($post)
-    ->cooldown($expiresAt)
-    ->record();
-```
-
-#### How it works
-
-When a view is recorded with a cooldown, the `EnforceCooldown` guard starts a cooldown for that visitor, viewable and
-collection. While it runs, `record()` returns `false` for the same combination and `attempt()` reports the
-`EnforceCooldown` guard under `skippedBy`. Checking and starting a cooldown are
-two separate steps, so two requests from the same visitor that arrive at the same moment may both be recorded.
-
-#### Where cooldowns are kept
-
-The `cooldown.store` config key names the store. Two drivers ship:
-
-- `session` keeps cooldowns in the visitor's session, as in v8. This is the default. On routes without a session, such
-  as stateless API routes, cooldowns do nothing.
-- `cache` keeps cooldowns in a cache store, keyed by the visitor's id, so they also work without a session. With the
-  default identity the id comes from the visitor cookie, so a client that does not send the cookie back gets a new id,
-  and a new cooldown, on every request.
+Cooldowns are kept in the session by default, so they do nothing on routes without one, such as stateless API routes.
+Set `cooldown.store` to `cache` to keep them in a cache store instead:
 
 ```php
 'cooldown' => [
     'store' => 'cache',
-    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
     'cache' => [
         'store' => 'redis', // null uses the default cache store
     ],
 ],
 ```
 
-To add a driver, implement `Cooldowns\Contracts\CooldownStore` and register it with the `CooldownManager` in the
-`register` method of a service provider. Then name it in the config.
-
-```php
-use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
-use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
-use Illuminate\Contracts\Foundation\Application;
-
-$this->app->make(CooldownManager::class)->extend('dynamodb', fn (Application $app): CooldownStore => new DynamoDbCooldownStore(
-    $app->make(DynamoDbClient::class),
-));
-```
-
-A store receives a string key and, for `put()`, the time the cooldown ends. `has()` returns whether a cooldown is still
-running under that key.
+To add a store, implement `Cooldowns\Contracts\CooldownStore` and register it with
+`CooldownManager::extend()` in a service provider.
 
 ### Recording without a cookie
 
-By default every guest who views a model gets a cookie with a random id, which `unique()` counts and a cooldown is
-keyed on. Set `visitor.identity` to `fingerprint` to identify guests without one:
+By default each guest gets a cookie with a random id, which `unique()` counts and cooldowns are keyed on. Set
+`visitor.identity` to `fingerprint` to identify guests without one:
 
 ```php
-// config/eloquent-viewable.php
 'visitor' => [
     'identity' => 'fingerprint',
     'fingerprint' => [
         'store' => 'redis', // null uses the default cache store
-        'key' => 'cyrildewit.eloquent-viewable.fingerprint',
     ],
 ],
 ```
 
-The `visitor` column then holds an HMAC of the visitor's IP address and user agent, keyed with a random salt. The IP
-address is truncated before it is hashed, to its /24 network for IPv4 and its /48 for IPv6. The salt is generated
-on the first view of the day, kept in the cache store named by `visitor.fingerprint.store` and expires at midnight in
-the application's timezone. A visitor's hash is the same all day and different the next, and once the salt is gone
-there is no way, with or without `app.key`, to work out which network and browser a stored hash came from. The package
-sets no cookie, and neither the IP address nor the user agent ends up in the `views` table.
+The visitor id becomes an HMAC of the truncated IP address (/24 for IPv4, /48 for IPv6) and the user agent, keyed with a
+salt that rotates at midnight. Neither the IP address nor the user agent is stored, and once the salt is gone a hash
+cannot be traced back. Signed-in users are identified by their account instead, as with the
+[`viewer` identity](#counting-one-account-as-one-visitor).
 
-Signed-in models are not fingerprinted. When one is known through `recording.viewer` or `viewedBy()`, the visitor id
-is derived from it as with the [`viewer` identity](#counting-one-account-as-one-visitor).
+The trade-offs compared to the cookie:
 
-What changes compared to the cookie:
+- **`unique()` counts visitors per day.** The same guest on Monday and Tuesday counts twice over a week.
+- **Cooldowns end at midnight** at the latest.
+- **Visitors sharing a network and browser count as one**, so unique counts come out lower. Totals are unaffected.
+- **Configure trusted proxies** behind a load balancer or CDN, or every visitor hashes the same address.
+- **Every server needs the same cache store** for the salt. The `array` store does not work.
+- **Use the `cache` cooldown store**, because the `session` store still sets the session cookie.
 
-- **`unique()` counts visitors per day.** The same guest on Monday and Tuesday is two unique visitors, so the unique
-  count of a week adds up the daily uniques. Within a single day it means what it did before.
-- **A cooldown ends at midnight at the latest**, when the visitor's id changes, however long it was set for.
-- **Visitors who share a network and a browser are one visitor.** An office, a campus or a mobile carrier puts many
-  people behind one /24, and current browsers send nearly identical user agents, so unique counts come out lower than
-  with the cookie. Total counts are unaffected.
-- **The IP address has to be the visitor's.** Behind a load balancer or a CDN, configure Laravel's trusted proxies,
-  or every visitor hashes the same address and unique counts collapse.
-- **The salt store has to be shared.** Every server that records views must read the same cache store, or each hashes
-  under its own salt and one visitor counts once per server. The `array` store is per process and does not work.
-- **The `session` cooldown store still uses the session cookie.** Use the [`cache` store](#where-cooldowns-are-kept)
-  to keep cooldowns without one.
-
-Not setting a cookie does not settle whether you need consent, which depends on your jurisdiction and on what else your
-application does. The package can only tell you what it stores.
+Whether you need consent depends on your jurisdiction and the rest of your application, not only on this package.
 
 ### Retrieving view counts
 
-#### Get total view count
-
 ```php
 views($post)->count();
+views($post)->unique()->count();
+views(Post::class)->count();            // every post together, also views(new Post)
 ```
 
-#### Get view count for a specific period
+#### Periods
+
+Narrow a count to a period:
 
 ```php
 use CyrildeWit\EloquentViewable\Support\Period;
 
-// Example: get view count from 2017 up to 2018
-views($post)
-    ->period(Period::create('2017', '2018'))
-    ->count();
+views($post)->period(Period::create('2017-01-01', '2018-01-01'))->count();
 ```
 
-The `Period` class that comes with this package provides many handy features. The API of the `Period` class looks as
-follows:
-
-A period is half-open: the start is included and the end is excluded. `Period::create('2018-01-01', '2018-02-01')`
-covers all of January and nothing of February.
-
-##### Specifying a date range
+A period includes its start and excludes its end, so `Period::create('2018-01-01', '2018-02-01')` is January.
 
 ```php
-$startDateTime = Carbon::createFromDate(2017, 4, 12);
-$endDateTime = '2017-06-12';
+Period::create($start, $end);
+Period::since($start);
+Period::upto($end);                    // up to, but not including
 
-Period::create($startDateTime, $endDateTime);
+Period::pastDays(7);                   // from midnight 7 days ago, also pastWeeks, pastMonths, pastYears
+Period::subHours(6);                   // from now minus 6 hours, also subSeconds, subMinutes, subDays, ...
+Period::pastDays(7, 'Australia/Sydney'); // from midnight in that timezone
 ```
 
-##### Since a specific date
+`Period::parse()` reads the short forms a dashboard puts in a URL, and `Period` binds as a route parameter, responding
+with a 404 to anything it cannot read:
 
 ```php
-Period::since(Carbon::create(2017));
-```
+Period::parse('7d');                       // pastDays(7), likewise 3w, 6m, 1y
+Period::parse('12h');                      // subHours(12), likewise 30min and 90s
+Period::parse('2026-01-01..2026-02-01');   // create(), and '2026-01-01..' or '..2026-02-01' for open ends
 
-##### Up to, but not including, a specific date
-
-```php
-Period::upto(Carbon::createFromDate(2018, 6, 1));
-```
-
-##### For past period
-
-Uses `Carbon::today()` as start datetime minus the given unit.
-
-```php
-Period::pastDays(int $days);
-Period::pastWeeks(int $weeks);
-Period::pastMonths(int $months);
-Period::pastYears(int $years);
-```
-
-##### For custom time subtraction
-
-Uses `Carbon::now()` as start datetime minus the given unit.
-
-```php
-Period::subSeconds(int $seconds);
-Period::subMinutes(int $minutes);
-Period::subHours(int $hours);
-Period::subDays(int $days);
-Period::subWeeks(int $weeks);
-Period::subMonths(int $months);
-Period::subYears(int $years);
-```
-
-Every relative constructor takes an optional timezone, an identifier such as `Australia/Sydney` or a `DateTimeZone`
-built from one. A `past` period then starts at midnight of that zone instead of your application's, which is what
-a customer in Sydney means by "the last seven days":
-
-```php
-Period::pastDays(7, 'Australia/Sydney');
-```
-
-##### From a string
-
-Dashboards carry the period in the URL. `Period::parse()` reads the string forms, so the controller does not have
-to:
-
-```php
-Period::parse('7d');                        // Period::pastDays(7)
-Period::parse('3w');                        // Period::pastWeeks(3)
-Period::parse('6m');                        // Period::pastMonths(6)
-Period::parse('1y');                        // Period::pastYears(1)
-Period::parse('12h');                       // Period::subHours(12), likewise 30min and 90s
-Period::parse('2026-01-01..2026-02-01');    // Period::create('2026-01-01', '2026-02-01')
-Period::parse('2026-01-01..');              // Period::since('2026-01-01')
-Period::parse('..2026-02-01');              // Period::upto('2026-02-01')
-
-Period::parse('7d', 'Australia/Sydney');    // Period::pastDays(7, 'Australia/Sydney')
-```
-
-A calendar unit (`d`, `w`, `m`, `y`) counts back from midnight and a clock unit (`s`, `min`, `h`) from now, matching
-the constructors. A range bound is a date, `2026-01-01`, or a date and time, `2026-01-01T10:30:00`, read on the
-clock of the timezone when one is given. The range is half-open like every period, so `2026-01-01..2026-02-01` is
-January. Anything else throws `InvalidPeriod`.
-
-`getRouteKey()` writes the string form back: the shorthand for a relative period, otherwise the bounds around `..`.
-`Period::subDays(7)` counts from now rather than midnight, which no shorthand says, so it renders as its bounds and
-the URL carries the moment it was built. The timezone a relative period was built in is not part of the key either;
-pass it to `parse()` again on the way back.
-
-##### In a route
-
-`Period` is `UrlRoutable`, so a `{period}` route parameter binds without a `Route::bind()` call and an unreadable
-value responds with a 404:
-
-```php
-Route::get('/posts/{post}/stats/{period}', function (Post $post, Period $period) {
-    return views($post)->period($period)->countByInterval(Granularity::Day);
-});
+Route::get('/posts/{post}/stats/{period}', fn (Post $post, Period $period) => views($post)->period($period)->count());
 
 route('posts.stats', [$post, Period::pastDays(7)]); // /posts/1/stats/7d
 ```
 
-Implicit binding reads the value in your application timezone. For a per-tenant zone, take the parameter as a
-string and call `Period::parse($value, $tenant->timezone)` yourself.
-
-##### Timezones
-
-`viewed_at` is stored as the wall clock of your application timezone. Period bounds use that same zone, and bounds
-you pass in another timezone are converted before they are compared. Keep `app.timezone` at `UTC`, Laravel's default,
-unless you have a reason not to. To draw buckets on another clock, see
-[buckets in another timezone](#buckets-in-another-timezone).
+`viewed_at` is stored in your application timezone. Keep `app.timezone` at `UTC` unless you have a reason not to.
 
 #### Compare with the previous period
 
-The first thing a dashboard shows next to a count is how it moved. `compare()` counts the period and the period right
-before it:
+`compare()` counts the period and the one right before it, of the same width:
 
 ```php
 $trend = views($post)->period(Period::pastDays(7))->compare();
@@ -617,299 +396,97 @@ $trend = views($post)->period(Period::pastDays(7))->compare();
 $trend->current;        // 340
 $trend->previous;       // 290
 $trend->delta;          // 50
-$trend->percent;        // 17.2, rounded to one decimal
-$trend->currentPeriod;  // Period
+$trend->percent;        // 17.2, or null when there were no views before
 $trend->previousPeriod; // Period, for a "compared with 20–27 Aug" label
 ```
 
-`percent` is `null` when there were no views before, because growth from nothing has no percentage. `toArray()` gives
-`current`, `previous`, `delta` and `percent`, and the comparison is `JsonSerializable`, so a controller can return it.
-
-The previous period is `Period::previous()`, which is as wide as the period and ends exactly where it starts:
-
-```php
-Period::pastDays(7)->previous();                           // the 7 whole days before the last 7
-Period::pastMonths(1)->previous();                         // the month before the last month
-Period::subHours(12)->previous();                          // from 24 to 12 hours ago
-Period::create('2026-01-01', '2026-02-01')->previous();    // 2025-12-01..2026-01-01
-Period::pastDays(7)->previous()->previous();               // keeps going back
-```
-
-A relative period steps back by its own unit, so it stays aligned to the calendar. It has no end, though, so
-`Period::pastDays(7)` also includes today so far while the 7 days before it are whole. An absolute period steps back
-by its exact duration, so `2026-02-01..2026-03-01` gives the 28 days before it, not January. A period without both
-bounds, such as `Period::since()`, keeps growing and has no width, so `previous()` and `compare()` throw
-`InvalidPeriod`, as `compare()` does without a period.
-
-`unique()`, `collection()`, `viewedBy()` and `timezone()` apply to both counts. With `remember()`, each count is cached
-under its own key, so the previous window is cached as well.
+The result is `JsonSerializable`, so a controller can return it. A period without both bounds, such as
+`Period::since()`, has no width and throws `InvalidPeriod`.
 
 #### Get view counts grouped by interval
 
-`countByInterval()` returns the view count per hour, day, week, month or year over the period, with buckets that have
-no views filled in with zero. It needs a period with a start date.
+`countByInterval()` returns the count per hour, day, week, month or year, with empty buckets filled in with zero:
 
 ```php
 use CyrildeWit\EloquentViewable\Support\Granularity;
-use CyrildeWit\EloquentViewable\Support\Period;
 
 $series = views($post)
     ->period(Period::pastDays(30))
     ->countByInterval(Granularity::Day);
 
-foreach ($series as $bucket) {
-    $bucket->start; // Carbon, the start of the bucket
-    $bucket->end;   // Carbon, the start of the next bucket
-    $bucket->count; // int
-}
-
-$series->total();  // the same number as views($post)->period(Period::pastDays(30))->count()
-$series->intervals; // Collection<int, Bucket>
-```
-
-A series feeds a chart without reshaping. Labels are formatted down to the bucket width (`2026-09-01 14:00` for hours,
-`2026-09-01` for days and weeks, where a week is labelled by its Monday, `2026-09` for months and `2026` for years):
-
-```php
 $series->labels();  // ['2026-09-01', '2026-09-02', ...]
 $series->values();  // [14, 22, ...]
-$series->peak();    // the Bucket with the most views, the earliest on a tie, or null without buckets
-$series->average(); // float, the mean count per bucket
-
-$series->toArray(); // ['granularity' => 'day', 'total' => 36, 'labels' => [...], 'values' => [...]]
+$series->total();   // the same number as count() over the period
+$series->peak();    // the busiest Bucket, with start, end, label and count
 ```
 
-`ViewSeries` is `Arrayable` and `JsonSerializable`, so returning it from a controller sends that array as JSON. Each
-bucket carries its label as `$bucket->label` too.
+The series is `JsonSerializable`, so it feeds a chart straight from a controller. Buckets follow the calendar, weeks
+start on Monday, and `views($post)->period($bucket->period())->count()` gives the same number as the bucket.
 
-Buckets are calendar-aligned, so the first one may start before the period, and weeks start on Monday. A bucket is
-half-open like a period, so drilling into one gives the same count:
+Buckets follow your application timezone. Pass `timezone('Australia/Sydney')` to start each day at Sydney midnight;
+daylight saving transitions are handled without timezone tables in the database. A call that would produce more than
+`querying.max_intervals` buckets (10,000 by default) throws `InvalidInterval`.
 
-```php
-views($post)->period($bucket->period())->count(); // === $bucket->count
-```
-
-`unique()`, `collection()` and `remember()` work as they do for `count()`:
-
-```php
-views($post)->period(Period::pastMonths(6))->unique()->countByInterval(Granularity::Month);
-views(Post::class)->period(Period::pastWeeks(12))->collection('homepage')->countByInterval(Granularity::Week);
-```
-
-##### Buckets in another timezone
-
-Buckets follow the clock of your application timezone. A dashboard for a customer in Sydney wants its days to start
-at Sydney midnight, so name the zone the bucket boundaries should follow:
-
-```php
-$series = views($post)
-    ->period(Period::pastDays(30))
-    ->timezone('Australia/Sydney')
-    ->countByInterval(Granularity::Day);
-
-$series->timezone;                  // DateTimeZone, Australia/Sydney
-$series->intervals->first()->start; // 00:00 in Australia/Sydney
-```
-
-`timezone()` takes an identifier such as `Europe/Amsterdam` or a `DateTimeZone` built from one. An offset or an
-abbreviation throws `InvalidTimezone`, because it carries no daylight saving rules.
-
-A relative period follows the same clock: `Period::pastDays(30)` in the example above starts at Sydney midnight
-thirty days ago, not at midnight of your application timezone, so the first bucket is a whole day. A relative period
-built with a zone of its own, `Period::pastDays(30, 'Europe/Amsterdam')`, keeps it. Absolute bounds are instants and
-are not moved.
-
-A plain `count()` reads the same re-anchored period but has no buckets to align, so the zone changes nothing else.
-`remember()` keeps a separate cache entry per timezone.
-
-The database shifts `viewed_at` before it truncates, by a fixed number of seconds the package works out in PHP, one
-per stretch between daylight saving transitions of either zone inside the period. No driver needs zone tables, and
-the labels the database emits agree with the series by construction, whichever tzdata the server carries.
-
-A wall-clock hour that a transition repeats, in either zone, lands in one bucket, and an hour a transition skips
-stays empty. Both match what happens without a timezone.
-
-The database does the grouping, so the package ships a grammar per driver: SQLite, MySQL, MariaDB and Postgres. Any
-other driver throws `UnsupportedDriver` until you
-[register a grammar](#adding-a-bucket-grammar-for-another-database-driver) for it.
-
-A call that would produce more than `querying.max_intervals` buckets (10,000 by default, configurable) throws
-`InvalidInterval` before the database is queried.
+Grouping happens in the database, with a grammar for SQLite, MySQL, MariaDB and Postgres. Other drivers need
+[a grammar of their own](#adding-a-bucket-grammar-for-another-database-driver).
 
 #### Get view counts per collection
 
-`collection()` narrows a count to one collection. `countByCollection()` returns the count of every collection at once,
-keyed by name, with the most viewed first and ties in name order. Views recorded without a collection are keyed by
-the empty string. Only collections with views are present, so a viewable without views gives an empty array.
-
 ```php
 views($post)->countByCollection();
-// ['' => 1200, 'sidebar' => 340, 'feed' => 88]
+// ['' => 1200, 'sidebar' => 340, 'feed' => 88], most viewed first, '' for views without a collection
 ```
 
-`unique()`, `period()`, `viewedBy()` and `remember()` work as they do for `count()`, and `collection()` narrows the
-result to that one entry:
+#### Combining
+
+Every option combines with every way of counting: `unique()`, `period()`, `collection()`, `viewedBy()`, `timezone()` and
+`remember()` work with `count()`, `compare()`, `countByInterval()`, `countByCollection()`, `counts()` and `top()`.
+
+### Ordering and filtering models by view count
 
 ```php
-views($post)->period(Period::pastDays(30))->unique()->countByCollection();
-views(Post::class)->countByCollection();
-```
+Post::orderByViews()->get();                                        // most viewed first
+Post::orderByViews('asc')->get();
+Post::orderByUniqueViews('desc', Period::pastDays(3))->get();
+Post::orderByViews('desc', null, 'custom-collection')->get();
 
-#### Get unique view count
-
-If you only want to retrieve the unique view count, you can simply add the `unique` method to the chain.
-
-```php
-views($post)
-    ->unique()
-    ->count();
-```
-
-### Ordering models by view count
-
-The `Viewable` trait adds two scopes to your model: `orderByViews` and `orderByUniqueViews`.
-
-#### Order by view count
-
-```php
-Post::orderByViews()->get(); // descending
-Post::orderByViews('asc')->get(); // ascending
-```
-
-#### Order by unique view count
-
-```php
-Post::orderByUniqueViews()->get(); // descending
-Post::orderByUniqueViews('asc')->get(); // ascending
-```
-
-#### Order by view count within the specified period
-
-```php
-Post::orderByViews('asc', Period::pastDays(3))->get();  // ascending
-Post::orderByViews('desc', Period::pastDays(3))->get(); // descending
-```
-
-And of course, it's also possible with the unique views variant:
-
-```php
-Post::orderByUniqueViews('asc', Period::pastDays(3))->get();  // ascending
-Post::orderByUniqueViews('desc', Period::pastDays(3))->get(); // descending
-```
-
-#### Order by view count within the specified collection
-
-```php
-Post::orderByViews('asc', null, 'custom-collection')->get();  // ascending
-Post::orderByViews('desc', null, 'custom-collection')->get(); // descending
-
-Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // ascending
-Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // descending
-```
-
-### Filtering models by view count
-
-`whereViewsCount` keeps the models whose view count compares to a number. It takes the same period, collection and
-unique arguments as `orderByViews`, and `whereUniqueViewsCount` is the unique shorthand.
-
-```php
 Post::whereViewsCount('>=', 1000)->get();
-Post::whereViewsCount('>=', 100, Period::pastDays(7))->get();
-Post::whereViewsCount('>=', 10, null, 'custom-collection')->get();
 Post::whereUniqueViewsCount('>=', 50, Period::pastDays(30))->get();
+Post::whereViewsCount('>=', 100)->orderByViews()->get();
 ```
 
-A model without views counts as zero, so `whereViewsCount('<', 10)` includes it. The operator is one of `=`, `!=`,
-`<>`, `<`, `<=`, `>` or `>=`; anything else throws `Querying\Exceptions\InvalidOperator`. It combines with the other scopes, and
-`orWhere()` takes it in a closure:
-
-```php
-Post::whereViewsCount('>=', 100)->orderByViews()->get(); // filtered, sorted, with views_count
-
-Post::where('featured', true)
-    ->orWhere(fn ($query) => $query->whereViewsCount('>=', 1000))
-    ->get();
-```
-
-The count is a correlated subquery, which the database runs for every row it considers. Narrow the query with other
-conditions where you can. When you only need to know whether a model has views at all, Laravel's
-`Post::has('views')` is cheaper, because it stops at the first view instead of counting them all.
+`whereViewsCount()` takes the same period and collection arguments, counts a model without views as zero, and accepts
+`=`, `!=`, `<>`, `<`, `<=`, `>` and `>=`. Both scopes run a subquery per row, so narrow the query where you can. To
+only check whether a model has any views, `Post::has('views')` is cheaper. For large lists, see
+[storing counts on your own table](#storing-counts-on-your-own-table).
 
 ### Most viewed across the app
 
-`orderByViews()` ranks the rows of one model. `Views::top()` answers what the most viewed content in the whole
-application is, across every viewable type, in one grouped query over the views table followed by one query per type
-to load the models, the way a `morphTo` relation does.
+`Views::top()` ranks the most viewed content across every model type:
 
 ```php
 use CyrildeWit\EloquentViewable\Facades\Views;
 
-$ranking = Views::top();                                      // the ten most viewed, of any type
-$ranking = Views::period(Period::pastDays(7))->top(5);        // the five most viewed this week
+$ranking = Views::period(Period::pastDays(7))->top(5);
 
 foreach ($ranking as $entry) {
     $entry->rank;      // 1, 2, 3, ...
     $entry->count;     // the number of views
     $entry->viewable;  // a Post, a Video, ... whichever model it is
 }
+
+views(Post::class)->top(10);  // within one model
 ```
 
-A viewable without a key stands for every viewable of its type, as it does for `count()`, so the same call ranks
-within one model:
-
-```php
-views(Post::class)->top(10);
-Views::forViewable(new Post)->period(Period::pastDays(7))->top(10);
-```
-
-Every option a count takes applies: `period()`, `collection()`, `unique()`, `viewedBy()`, `timezone()` to anchor a
-relative period on another clock, and `remember()` to cache. The cache keeps the ranked keys and counts; the models
-are loaded afresh on every call, so a cached ranking never shows stale attributes.
-
-```php
-Views::collection('sidebar')->unique()->remember(60)->top(5);
-```
-
-The result is a `Querying\Ranking\Ranking` of `Entry` objects, best first. Ties are broken by type and key, so the
-order is stable. `viewables()` gives the models as an Eloquent collection in rank order, `count()` and `isEmpty()`
-describe the ranking, and it serializes to JSON as a list of `rank`, `count` and `viewable`, the model through its
-own `toArray()` so hidden attributes stay hidden.
-
-```php
-return Views::period(Period::pastDays(30))->top();   // [{"rank": 1, "count": 1403, "viewable": {...}}, ...]
-```
-
-A viewable whose model can no longer be loaded is left out and the ranks are renumbered: a model that was deleted
-with its views kept through `shouldRemoveViewsOnDelete()`, a soft-deleted model hidden by its global scope, or a
-`viewable_type` that no longer maps to a class. A ranking can therefore hold fewer entries than the limit.
-`views($post)->top()` with a saved model throws `InvalidViewable`, because one viewable has nothing to rank, and a
-limit below one throws `Querying\Exceptions\InvalidLimit`.
-
-### Get view count of viewable type
-
-If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the
-`views()` helper like so:
-
-```php
-views(new Post())->count();
-```
-
-You can also pass a fully qualified class name. The package will then resolve an instance from the application
-container.
-
-```php
-views(Post::class)->count();
-views('App\Post')->count();
-```
+The models are loaded with one query per type and never cached, so a `remember()`ed ranking shows fresh attributes. A
+model that can no longer be loaded, for example because it was deleted, is left out, so a ranking can hold fewer
+entries than the limit. The ranking serializes to JSON as `rank`, `count` and `viewable`.
 
 ### Get view counts of models you already have
 
-`withViewsCount()` adds the count to models you are about to fetch. For models you already have, such as a page of
-results or the hits of a search, `forViewables()` counts them all in one query instead of one `count()` per model:
+For a page of results you already loaded, `forViewables()` counts them all in one query instead of one per model:
 
 ```php
-use CyrildeWit\EloquentViewable\Facades\Views;
-
 $posts = Post::query()->latest()->paginate(20);
 
 $counts = Views::forViewables($posts)->period(Period::pastDays(7))->counts();
@@ -917,51 +494,29 @@ $counts = Views::forViewables($posts)->period(Period::pastDays(7))->counts();
 $counts[$post->getKey()]; // 0 for a post without views
 ```
 
-`counts()` returns a collection keyed by model key, in the order the models were given, with every model in it. It
-takes any iterable of saved models of one type: a collection, a paginator or an array. A model given twice is counted
-once. `period()`, `unique()`, `collection()`, `viewedBy()` and `remember()` apply as they do to `count()`. With
-`remember()`, each model is cached under the same entry `views($post)->remember()->count()` uses, so only the models
-missing from the cache are counted.
-
-Models of more than one type, or a model that was not saved, throw `InvalidViewable`: their keys would collide in
-the result, and a model without a key stands for its whole type. An empty set returns an empty collection without a
-query. The query joins one `count()` per model with `UNION ALL`, a hundred models per query, so each model is the
-same index lookup `count()` does and only the round trips go away. A single `IN` list grouped by `viewable_id` reads
-the same rows, but once the models hold a large share of the views MySQL scans the whole index for it instead.
+It takes any collection, paginator or array of saved models of one type. With `remember()`, only the models missing
+from the cache are counted.
 
 ### View collections
 
-If you have different types of views for the same viewable type, you may want to store them in their own collection.
+Store different kinds of views of the same model in their own collection, and count them the same way:
 
 ```php
-views($post)
-    ->collection('customCollection')
-    ->record();
+views($post)->collection('customCollection')->record();
+views($post)->collection('customCollection')->count();
 ```
-
-To retrieve the view count in a specific collection, you can reuse the same `collection()` method.
-
-```php
-views($post)
-    ->collection('customCollection')
-    ->count();
-```
-
-To see every collection at once, use [`countByCollection()`](#get-view-counts-per-collection).
 
 ### Who viewed what
 
-A view can be linked to the model that was signed in when it was recorded. The link is a polymorphic pair,
-`viewer_type` and `viewer_id`, so any Eloquent model can be a viewer: a `User`, an `Admin`, a `Team` acting through
-a token, or a mix of them in the same table. Guests leave the columns `null`.
+A view can be linked to the signed-in model through the polymorphic `viewer_type` and `viewer_id` columns, so any model
+can be a viewer. Guests leave them `null`.
 
 #### Recording the viewer
 
-Recording the signed-in model is off by default, because it ties a view to an identity. Turn it on in the config
-file. `guard` names the auth guard the model is read from, and `null` means the application's default guard.
+Recording the viewer is off by default, because it ties a view to an identity. Turn it on in the config; `guard` names
+the auth guard, and `null` means the default one:
 
 ```php
-// config/eloquent-viewable.php
 'recording' => [
     'viewer' => [
         'enabled' => true,
@@ -970,88 +525,48 @@ file. `guard` names the auth guard the model is read from, and `null` means the 
 ],
 ```
 
-Every `record()` call then stores the model that guard returns. To credit a view to a model yourself, for example
-in a console command or when recording on behalf of someone, pass it to `viewedBy()`. It wins over the signed-in
-model and works whether or not the switch is on. `viewedBy(null)` clears it again, so the signed-in model, if any,
-is used.
+To credit a view to a model yourself, for example in a console command, use `viewedBy()`. It works whether or not the
+switch is on. A queued view keeps its viewer.
 
 ```php
 views($post)->viewedBy($user)->record();
 ```
 
-The viewer is resolved during the request, so a queued view keeps it. The `ViewRecord` on the `ViewRecorded` event
-carries it as `viewerType` and `viewerId`.
-
-The `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl` guards drop the whole view for visitors who send those
-headers, so listing them is the way to respect that choice; there is no "record the view but not who" variant.
-
 #### Counting the views of one viewer
-
-The same `viewedBy()` method narrows a count. It combines with every other modifier.
 
 ```php
 views($post)->viewedBy($user)->count();
-views($post)->viewedBy($user)->period(Period::pastDays(7))->count();
-views($post)->viewedBy($user)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
-views(Post::class)->viewedBy($user)->count(); // every post
+views(Post::class)->viewedBy($user)->period(Period::pastDays(7))->count(); // every post
 ```
-
-`unique()` keeps counting distinct visitors, not distinct viewers. To make one account count as one visitor, see
-[Counting one account as one visitor](#counting-one-account-as-one-visitor).
 
 #### Counting one account as one visitor
 
-By default the `visitor` column holds the random id from the cookie, so `unique()` counts browsers and a cooldown
-holds per browser. A user on three devices is three unique views, and a request on an API without a cookie is a new
-visitor every time. Set `visitor.identity` to `viewer` to derive the visitor id from the signed-in model instead,
-whenever one is known through `recording.viewer` or `viewedBy()`. Guests still get the cookie id.
+By default `unique()` counts browsers, so a user on three devices counts three times. Set `visitor.identity` to `viewer`
+to count signed-in users by their account instead. Guests keep the cookie id.
 
 ```php
-// config/eloquent-viewable.php
 'visitor' => [
     'identity' => 'viewer',
 ],
 ```
 
-The id is an HMAC of the model's type and key with `app.key`, so the column does not reveal the key on its own, and
-it is sixty-four characters long. Rotating the application key changes every derived id, which splits the unique
-counts of signed-in users at that moment. For the visitor-based scopes, the same id comes from the
-`Visitors\VisitorIdentity` service:
-
-```php
-$visitor = app(\CyrildeWit\EloquentViewable\Visitors\VisitorIdentity::class)->ofViewer($user);
-
-Post::whereNotViewedByVisitor($visitor)->get();
-```
-
-A visitor who views as a guest and then signs in is two unique visitors, once under the cookie and once under the
-account. Every analytics tool has that seam.
+The id is an HMAC of the model with `app.key`, so rotating the application key splits the unique counts of signed-in
+users at that moment. A guest who signs in counts as two visitors.
 
 #### Which models a viewer has seen
 
-Two scopes on your viewable models answer "has this user seen it" for a whole result set. Both take an optional
-period and collection and build an existence check against the `views` table.
-
 ```php
 Post::whereViewedBy($user)->get();
-Post::whereNotViewedBy($user)->get();                          // the unread ones
+Post::whereNotViewedBy($user)->get();                       // the unread ones
 Post::whereViewedBy($user, Period::pastDays(7))->get();
 Post::whereNotViewedBy($user, collection: 'sidebar')->get();
-```
 
-For a guest the same question can be asked of the visitor id, which the `Visitor` class reads from its cookie.
-
-```php
-$visitor = app(\CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor::class)->id();
-
-Post::whereViewedByVisitor($visitor)->get();
-Post::whereNotViewedByVisitor($visitor)->get();
+Post::whereNotViewedByVisitor($visitorId)->get();          // for guests, by visitor id
 ```
 
 #### The viewer side
 
-Add the `HasViewHistory` trait to the model that views things. It is optional: the `viewer` relation on the `View`
-model and the `View::byViewer($user)` scope work on any model without it.
+Add the optional `HasViewHistory` trait to the model that views things:
 
 ```php
 use CyrildeWit\EloquentViewable\Concerns\HasViewHistory;
@@ -1060,87 +575,41 @@ class User extends Authenticatable
 {
     use HasViewHistory;
 }
-```
 
-```php
-$user->viewed();                                 // MorphMany of View, newest first
-$user->viewed()->with('viewable')->paginate();   // what they looked at
-$user->hasViewed($post);                         // bool
-$user->hasViewed($post, Period::pastDays(7));
-$user->hasViewed(new Post);                      // any post at all
+$user->viewed()->with('viewable')->paginate();   // what they looked at, newest first
+$user->hasViewed($post, Period::pastDays(7));    // bool
 $user->lastViewedAt($post);                      // Carbon or null
 ```
 
-The relation is called `viewed()` rather than `views()` because a model can be viewable and a viewer at once, and
-`InteractsWithViews` already owns `views()`.
-
-Reading the other way round, every `View` has a `viewer` relation, and `View::byViewer($user)` and
-`View::byVisitor($id)` scope a query on the view model.
-
-```php
-$post->views()->with('viewer')->latest('viewed_at')->get();
-$post->views()->byViewer($user)->exists();
-```
+Each `View` also has a `viewer` relation and `byViewer()` and `byVisitor()` scopes.
 
 #### Deleting a user
 
-Nothing happens to the views automatically, and there is no foreign key: a `views` table often lives on another
-connection, and a constraint would make deleting a user walk through every row they ever viewed. Their views keep
-pointing at a model that is gone and `$view->viewer` returns `null`. For an account deletion flow, detach them first
-so the counts survive and the identity does not:
+There is no foreign key, so a deleted user's views keep pointing at a model that is gone. To keep the counts but drop
+the identity, detach them first:
 
 ```php
 $user->viewed()->update(['viewer_type' => null, 'viewer_id' => null]);
 ```
 
-A view that is queued or buffered at that moment can still land afterwards with the viewer set, in the same way a
-queued view can land after a force delete.
-
 ### Storing context with a view
 
-The `views` table has a nullable `context` JSON column for whatever you want to keep with a view: a referrer, a
-source, a locale, a tenant, an identity that is not an Eloquent model. The package writes it and never reads it.
-Pass an array to `context()`; it is encoded on the way in and cast back to an array on the `View` model.
+Keep anything else with a view, such as a referrer, a source or a tenant, in the nullable `context` JSON column. The
+package writes it and never reads it. A queued view keeps it.
 
 ```php
-views($post)->context([
-    'source' => request('src'),
-    'referrer' => request()->headers->get('referer'),
-])->record();
-```
+views($post)->context(['source' => request('src')])->record();
 
-The context is captured during the request, so a queued view keeps it. Query it with Laravel's JSON path syntax,
-which works on MySQL, MariaDB, PostgreSQL and SQLite alike:
-
-```php
 $post->views()->where('context->source', 'newsletter')->count();
-$post->views()->whereNull('context->referrer')->count();
 ```
 
-MySQL stores a JSON object with its keys sorted, so do not rely on the order of the keys when reading it back.
-
-A query on a JSON path cannot use the table's indexes. If one key is hot, add a generated column for it in a
-migration of your own and index that:
-
-```php
-$table->string('source')->virtualAs("json_unquote(json_extract(context, '$.source'))")->nullable()->index();
-```
-
-If you prefer an object with accessors over a plain array, add
-[spatie/laravel-schemaless-attributes](https://github.com/spatie/laravel-schemaless-attributes) to your
-application and put its cast on [your own `View` model](#using-your-own-view-eloquent-model):
-
-```php
-protected function casts(): array
-{
-    return ['context' => SchemalessAttributes::class];
-}
-```
+A JSON path cannot use the table's indexes. If one key is queried often, add an indexed generated column for it in a
+migration of your own.
 
 ### Remove views on delete
 
-When a viewable model is deleted, the package deletes its views with it. To keep the views, override
-`shouldRemoveViewsOnDelete()` in your model.
+A model's views are deleted with it. A soft delete keeps them until `forceDelete()`. To keep the views, override
+`shouldRemoveViewsOnDelete()`:
 
 ```php
 public function shouldRemoveViewsOnDelete(): bool
@@ -1149,73 +618,30 @@ public function shouldRemoveViewsOnDelete(): bool
 }
 ```
 
-A soft delete leaves the views in place, so a restored model still has its view count. Only `forceDelete()` removes
-them. If you want to drop the views of a soft-deleted model anyway, call `views($post)->destroy()` yourself.
-
-If your custom `View` model uses `SoftDeletes`, a force delete of the viewable soft deletes its views instead of
-removing the rows.
-
-A view that is queued or buffered when the model is force deleted can still be written afterwards, because the
-delete only removes what is already stored. The row is harmless: nothing counts views for a model that no longer
-exists, and keys are not reused.
+To drop the views of a soft-deleted model anyway, call `views($post)->destroy()`.
 
 ### Caching view counts
 
-Caching the view count can be challenging in some scenarios. The period can be for example dynamic which makes caching
-not possible. That's why you can make use of the in-built caching functionality.
-
-To cache the view count, simply add the `remember()` method to the chain. The default lifetime is forever.
-
-Examples:
+Add `remember()` to cache a count, a series or a ranking. The lifetime is forever by default:
 
 ```php
 views($post)->remember()->count();
-views($post)->period(Period::create('2018-01-24', '2018-05-22'))->remember()->count();
-views($post)->period(Period::upto('2018-11-10'))->unique()->remember()->count();
-views($post)->period(Period::pastMonths(2))->remember()->count();
-views($post)->period(Period::subHours(6))->remember()->count();
+views($post)->remember(3600)->count();                          // for an hour
+views($post)->remember(now()->addWeeks(2))->count();
 views($post)->period(Period::pastDays(30))->remember()->countByInterval(Granularity::Day);
 Views::period(Period::pastDays(7))->remember()->top(10);
 ```
 
-```php
-// Cache for 3600 seconds
-views($post)->remember(3600)->count();
-
-// Cache until the defined DateTime
-views($post)->remember(now()->addWeeks(2))->count();
-
-// Cache forever
-views($post)->remember()->count();
-```
-
-#### Forgetting remembered counts
-
-A remembered count is kept for its lifetime: recording a view does not touch it. Deleting views does.
-`views($post)->destroy()`, and deleting a model that removes its views, forget every count remembered of that model,
-the total and rankings of its type, and rankings across every type.
-
-To forget remembered counts yourself, for example after importing views or removing those of a bot:
+Relative periods such as `Period::pastDays(30)` are cached too. Recording a view leaves a remembered count alone;
+deleting views forgets it. To forget remembered counts yourself, for example after an import:
 
 ```php
-// Every count remembered of the post, its type as a whole and every ranking
-views($post)->forgetCache();
-
-// Every count remembered of every post
-views(Post::class)->forgetCache();
-
-// Every remembered count
-Views::flushCache();
+views($post)->forgetCache();      // the post, its type and every ranking
+views(Post::class)->forgetCache(); // every post
+Views::flushCache();               // everything
 ```
 
-It works much like Laravel's cache tags, but on every cache store, including `file` and `database`, which do not
-support tags. Each entry is stored with a version of the model, of its type and of the whole cache, and is only served
-while those are current. Forgetting replaces a version, so the next read counts again and overwrites the entry. The
-versions are read together with the entry, so a remembered count still takes one round trip to the cache store.
-
-Forgetting on every recorded view is deliberately not offered. Most pages record a view and read the count in the same
-request, so every read would miss and the cache would cost more than it saves. For fresher counts, use a shorter
-lifetime.
+This works on every cache store, including those without tags. For fresher counts, use a shorter lifetime.
 
 ## Samples
 
@@ -1227,8 +653,8 @@ suite.
 
 ## Testing
 
-`Views::fake()` swaps the store and the source for one in-memory fake, so a test can record views without a `views`
-table and read them back through the same `views()` calls. Call it before the code under test runs.
+`Views::fake()` swaps storage for an in-memory fake, so a test records views without a `views` table and reads them
+back through the same `views()` calls:
 
 ```php
 use CyrildeWit\EloquentViewable\Facades\Views;
@@ -1242,198 +668,111 @@ it('records a view of the post', function (): void {
     $fake->assertRecorded($post);
     $fake->assertRecorded($post, 1);
     $fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->collection === 'sidebar');
-    $fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->viewerId === $user->getKey());
     $fake->assertNotRecorded($otherPost);
     $fake->assertNothingRecorded();
     $fake->assertForgotten($post);
 });
 ```
 
-`recorded($post)` returns the matching `ViewRecord` objects as a collection. A viewable without a key, such as
-`new Post`, stands for every viewable of its type.
+The guards still run. Every count reads from the fake, but the scopes, `withViewsCount()`, `orderByViews()`,
+`whereViewsCount()` and the `whereViewedBy()` family, need SQL and throw `Querying\Exceptions\UnsupportedBySource`.
 
-The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
-in the fake either. `count()`,
-`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()`, `countByCollection()`, `counts()` and
-`top()` read from the fake; `top()` ranks the recorded views and then loads the models from the database, so those
-have to exist. The scopes, `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and the `whereViewedBy()`
-family, need SQL and throw `Querying\Exceptions\UnsupportedBySource`; test those against the database.
-
-The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
-process that should keep views in memory without the assertions.
-
-For tests and seeders that need rows in the `views` table, the `View` model ships a factory. `fromVisitor()`,
-`inCollection()`, `viewedAt()`, `by()` and `withContext()` set the columns a count or a scope reads; everything else
-is a plain Laravel factory.
+For tests and seeders that need real rows, the `View` model ships a factory:
 
 ```php
 use CyrildeWit\EloquentViewable\Models\View;
 
 View::factory()->for($post, 'viewable')->count(3)->create();
 View::factory()->for($post, 'viewable')->fromVisitor('visitor_one')->inCollection('sidebar')->create();
-View::factory()->for($post, 'viewable')->viewedAt(now()->subDays(2))->create();
-View::factory()->for($post, 'viewable')->by($user)->withContext(['source' => 'newsletter'])->create();
+View::factory()->for($post, 'viewable')->viewedAt(now()->subDays(2))->by($user)->create();
 ```
-
-A [custom `View` model](#using-your-own-view-eloquent-model) inherits the factory and gets instances of its own
-class back from `factory()`.
 
 ## Optimizing
 
-Storing every view as its own record is what makes detailed, time-based analytics possible, but it also means the
-`views` table grows with traffic. For high-traffic applications, keep the following scalability considerations in mind:
+Every view is its own row, so the `views` table grows with traffic. The table in
+[Start simple, scale when you need to](#start-simple-scale-when-you-need-to) lists what to switch on. Two more things
+help at scale: deleting rows you no longer need from a scheduled command, as the package does not prune them, and
+partitioning the table.
 
-- **Caching** counts (see below) to reduce load on the growing table.
-- **Removing old records** you no longer need. The package does not prune records for you, so if you don't need a full
-  history you can periodically delete rows from the `views` table yourself (for example with a scheduled command).
-- **Table partitioning** at very large scale to keep queries fast.
-
-The repository has a [benchmark suite](benchmarks) that times these paths against millions of seeded views on every
-supported database, and prints the query plan each driver chooses. The optional indexes below were measured with it.
+The repository has a [benchmark suite](benchmarks) that times the expensive paths against millions of seeded views on
+every supported database. The optional indexes below were measured with it.
 
 ### Database indexes
 
-The `views` table migration creates two indexes: one on `viewable_type` and `viewable_id` (from `morphs()`), and a
-composite one named `views_viewable_viewed_at_index`, after the configured table, on `viewable_type`, `viewable_id` and `viewed_at`. The second one
-lets `period()` counts and `countByInterval()` range-scan only the rows inside the period instead of every view of the
-model.
+The migration indexes `(viewable_type, viewable_id)` and `(viewable_type, viewable_id, viewed_at)`, so period counts and
+series only read the rows inside the period. If you installed before the second index existed, the
+[upgrade guide](UPGRADING.md#add-an-index-on-viewable_type-viewable_id-and-viewed_at) has a migration for it.
 
-If you ran the migration before that index existed, the
-[upgrade guide](UPGRADING.md#add-an-index-on-viewable_type-viewable_id-and-viewed_at) has a migration you can copy into
-your application to add it.
+Two optional indexes, added in a migration of your own:
 
-Two optional indexes for apps that need them, added in your own migration:
+- `visitor` as a fourth column of that composite index, or `include (visitor)` on Postgres, speeds up `unique()` counts.
+- `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
+  `views(Post::class)->countByInterval()`.
 
-- `visitor` as a fourth column of that composite index (or `include (visitor)` on Postgres) makes `unique()` series
-  index-only.
-- `(viewable_type, viewed_at)` serves `views(Post::class)->countByInterval()` over a whole type, which the composite
-  index above cannot narrow by date.
+### Storing counts on your own table
 
-If you have enough storage available, you can add another index for the `visitor` column. Depending on the amount of
-views, this may speed up unique view counts (`->unique()`) in some cases. The `visitor` column is a `string`
-(`VARCHAR(255)`), so it can be indexed directly.
-
-### Caching
-
-Caching view counts can have a big impact on the performance of your application. You can read the documentation about
-caching the view count [here](#caching-view-counts).
-
-Using the `remember()` method will only cache view counts made by the `count()` method. The `orderByViews` and
-`orderByUnique` query scopes aren't using these values because they only add something to the query builder. To optimize
-these queries, you can add an extra column or multiple columns to your viewable database table with these counts.
-
-Example: we want to order our blog posts by **unique views** count. The first thing that may come to your mind is to use
-the `orderByUniqueViews` query scope.
+`remember()` caches counts, but `orderByViews()` and `whereViewsCount()` still count in SQL on every query. For large
+lists, store the count in a column of your own, such as `unique_views_count`, refresh it from a scheduled command and
+sort on that:
 
 ```php
-$posts = Post::latest()->orderByUniqueViews()->paginate(20);
-```
-
-This query is quite slow when you have a lot of views stored. To speed things up, you can add for example a
-`unique_views_count` column to your `posts` table. We will have to update this column periodically with the unique views
-count. This can easily be achieved using a scheduled Laravel command.
-
-There may be a faster way to do this, but such command can be like:
-
-```php
-$posts = Post::all();
-
-foreach($posts as $post) {
+Post::query()->each(function (Post $post): void {
     $post->unique_views_count = views($post)->unique()->count();
-}
+    $post->save();
+});
 ```
 
 ### Buffering views in Redis
 
-With the `database` store every recorded view is an insert statement during the request. The `redis` store replaces
-that with one `XADD` to a Redis stream, and a flusher moves the buffered views into the views table in batches of one
-insert statement each. The request gets faster and the database sees a thousand rows per statement instead of one row
-per request.
+The `redis` store replaces the insert during the request with one `XADD` to a Redis stream. A scheduled command moves
+the buffered views into the `views` table, a thousand rows per insert statement.
 
 ```mermaid
 flowchart LR
     record["record()"] -->|"XADD"| stream[("Redis stream")]
     stream -->|"batches"| flusher["views:flush"]
     flusher -->|"one insert per batch"| table[("views table")]
-    flusher -.->|"acknowledge and delete"| stream
     table --> reads["count(), countByInterval(), scopes"]
 ```
 
-Views are written to the stream during the request and read from the views table, so a view counts once the flusher
-has landed it.
+Setting it up takes three steps:
 
-```php
-'recording' => [
-    'store' => [
-        'driver' => 'redis',
-        'redis' => [
-            'connection' => null,                    // a connection from database.redis, null is the default one
-            'stream' => 'eloquent-viewable:views',   // the stream key
-            'group' => 'eloquent-viewable',          // the consumer group the flusher reads through
-            'landing' => 'database',                 // the store driver flushed views land in
-        ],
-    ],
-],
-```
+1. Run Redis 7 or newer, with the `phpredis` extension or Predis 3.3+ (`composer require predis/predis`).
+2. Switch the store:
 
-The store needs:
+   ```php
+   'recording' => [
+       'store' => [
+           'driver' => 'redis',
+           'redis' => [
+               'connection' => null, // a connection from database.redis, null is the default one
+           ],
+       ],
+   ],
+   ```
 
-- Redis 7 or newer.
-- One Redis client: the `phpredis` extension, or Predis 3.3 or newer with `composer require predis/predis`.
-  `database.redis.client` picks which one is used. Older Predis releases lack the consumer group commands.
-- `illuminate/redis`, which comes with `laravel/framework`. Outside the full framework, `composer require
-  illuminate/redis`.
+3. Schedule the flush:
 
-Schedule the `views:flush` command to run every minute. It lands every buffered view and reports how many. The
-`--batch` option sets how many views go into one insert statement, a thousand by default.
+   ```php
+   Schedule::command('views:flush')->everyMinute()->withoutOverlapping();
+   ```
 
-```php
-Schedule::command('views:flush')->everyMinute()->withoutOverlapping();
-```
+`views:flush --batch=500` sets the batch size, and `Recording\Jobs\FlushBufferedViewsJob` does the same from a job.
+Running several flushers at once is safe.
 
-Or dispatch `Recording\Jobs\FlushBufferedViewsJob` from wherever fits, with the same batch size as its only argument:
+What to know:
 
-```php
-Schedule::job(new FlushBufferedViewsJob(500))->everyMinute();
-
-dispatch(new FlushBufferedViewsJob(500));
-```
-
-Both go through `Recording\Buffering\Flusher`, which refuses with `Recording\Exceptions\StoreIsNotBuffered` when the
-configured store does not buffer. Running the flusher more than once at a time is safe: the consumer group hands every
-view to one flusher only.
-
-What changes when views are buffered:
-
-- **Counts lag until the next flush.** `count()`, `countByInterval()` and the scopes read the views table, so a view
-  counts once it has landed. A count cached with `remember()` can be stale by the cache lifetime plus the flush
-  interval.
-- **A view may land twice after a crash.** The flusher inserts a batch and then acknowledges it; a worker that dies in
-  between leaves the batch pending, and the next flush that finds it idle for a minute lands it again. The window is
-  two consecutive commands and the harm is a few views counted twice, which is accepted for view counts.
-- **`ViewRecorded` means the stream accepted the view**, not that the row exists. A listener reads what it needs from
-  `$event->record`, as the [store section](#choosing-where-views-are-stored) says.
-- **Deleting a viewable scans the stream.** `forget()` reads the buffered views to find the ones of that viewable, then
-  removes them and the landed ones. Acknowledged views are deleted from the stream on landing, so the scan covers the
-  last flush interval of traffic. A view that is being flushed at that very moment can still land afterwards, as a
-  queued view can.
-- **Leave `recording.queue.enabled` off.** Queueing defers the write and so does the buffer; combined, every view
-  becomes a job whose only work is one `XADD`.
-
-Buffered views live in Redis memory until they land, so the Redis instance holding the stream needs the same care
-as one holding a queue. Entries are never trimmed or expired by the package, because that would drop views that have
-not landed, so the stream grows for as long as the flusher does not run; keep `views:flush` monitored like any other
-scheduled task. Set the instance's `maxmemory-policy` to `noeviction`, or to one of the `volatile-*` policies, which
-only evict keys that carry an expiry. Under `allkeys-*` policies Redis may evict the whole stream when memory runs
-short. And enable persistence (AOF or RDB) if a restart must not lose the views recorded since the last flush; with a
-flush every minute, the loss without it is bounded to about a minute of traffic.
-
-The `landing` driver is where flushed views go: `database` out of the box, or any driver registered with
-`StoreManager::extend()` other than `redis` itself. A custom landing store receives the batch through `storeMany()`.
+- **Counts lag until the next flush**, because they read the `views` table.
+- **A view may land twice** if a flusher crashes between inserting a batch and acknowledging it.
+- **`ViewRecorded` means the stream accepted the view**, not that the row exists yet.
+- **Leave `recording.queue.enabled` off**, it gains nothing on top of the buffer.
+- **Treat Redis like a queue.** The stream grows until the flusher runs, so monitor `views:flush`. Use
+  `maxmemory-policy` `noeviction` or a `volatile-*` policy so Redis never evicts the stream, and enable persistence if a
+  restart must not lose up to a minute of views.
 
 ## Extending
 
-If you want to extend or replace one of the core classes with your own implementations, you can override them:
+You can replace these classes with your own, as long as they implement the same interface:
 
 - `CyrildeWit\EloquentViewable\Models\View`
 - `CyrildeWit\EloquentViewable\Visitors\Visitor`
@@ -1445,72 +784,33 @@ If you want to extend or replace one of the core classes with your own implement
   `IgnoreIpAddresses`, `IgnorePrefetch` and `EnforceCooldown`
 - `CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource`
 
-> [!NOTE]
-> Don't forget that all custom classes must implement their original interfaces.
-
 ### Custom information about visitor
 
-The `Visitor` class reports what the request says about the current visitor. The guards turn those facts into a
-decision, so a visitor never judges anything itself. It provides:
+The `Visitor` class reads the current visitor from the request: a unique id from a cookie, the signed-in model, the IP
+address, the user agent, and the Do Not Track and Global Privacy Control signals. On a RESTful API without that request
+information, provide your own by implementing `CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor` or extending the
+default class. Return `null` for a user agent you do not have; it is never treated as a crawler.
 
-- a unique identifier (stored in a cookie named by `visitor.cookie.name`, for `visitor.cookie.lifetime` minutes). The
-  `fingerprint` identity never asks for it, so no cookie is set
-- the signed-in model, read from the guard named by `recording.viewer.guard`, or `null` for a guest. A custom
-  visitor that cannot know, say on an API without a session, returns `null` and records guest views unless
-  `viewedBy()` names a viewer
-- the IP address
-- the user agent, including the device headers a proxy such as Opera Mini adds
-- whether the Do Not Track header is set
-- whether the Global Privacy Control signal is set
-
-The default `Visitor` class gets its information from the request. Therefore, you may experience some issues when using
-the `Views` builder via a RESTful API. To solve this, you will need to provide your own data about the visitor. Return
-`null` for a user agent you do not have; a missing user agent is never treated as a crawler.
-
-You can override the `Visitor` class globally or locally.
-
-#### Create your own `Visitor` class
-
-Create you own `Visitor` class in your Laravel application and implement the
-`CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor` interface. Create the required methods by the interface.
-
-Alternatively, you can extend the default `Visitor` class that comes with this package.
-
-#### Globally
-
-Simply bind your custom `Visitor` implementation to the `CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor`
-contract.
+Bind it globally in a service provider, or pass it for one call:
 
 ```php
 $this->app->bind(
     \CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor::class,
     \App\Services\Views\Visitor::class
 );
-```
 
-#### Locally
-
-You can also set the visitor instance using the `useVisitor` setter method on the `Views` builder.
-
-```php
-use App\Services\Views\Visitor;
-
-views($post)
-    ->useVisitor(new Visitor()) // or app(Visitor::class)
-    ->record();
+views($post)->useVisitor(new Visitor())->record();
 ```
 
 ### Using your own `View` Eloquent model
 
-Extend the shipped model and name your class in the config file. The package instantiates that class wherever it
-reads or writes views, so the relation on your viewables, the counts and the record path all use it.
+Extend the shipped model and name your class in the config:
 
 ```php
 // config/eloquent-viewable.php
 'models' => [
     'view' => [
         'class' => \App\Models\View::class,
-        // ...
     ],
 ],
 ```
@@ -1519,49 +819,25 @@ reads or writes views, so the relation on your viewables, the counts and the rec
 namespace App\Models;
 
 use CyrildeWit\EloquentViewable\Models\View as BaseView;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class View extends BaseView
 {
-    use SoftDeletes;
+    // ...
 }
 ```
 
-A class that does not extend `CyrildeWit\EloquentViewable\Models\View` throws `InvalidConfiguration` the first time it
-is resolved. The `table_name` and `connection` keys stay the way to change those without a class. A `$table` or
-`$connection` property on your subclass takes precedence over them at runtime. The published migration reads the two
-config keys, so if you rename the table through the model, set `table_name` to match or edit the migration. The `Views`
-builder has no replacement hook. It is `Macroable`, so add methods with `Views::macro()`, and
-change how views are counted or stored by binding the actions and the store described below.
+A class that does not extend the shipped model throws `InvalidConfiguration`. If you rename the table through the
+model, set `table_name` to match, because the migration reads the config.
 
 ### Customizing how views are created
 
-The `RecordView` action hands a `ViewRecord` to the store and dispatches the `ViewRecorded` event. Both the
-synchronous and queued recording paths go through this action, so it is the single place to hook into if you want
-to add attributes, skip the event, or write somewhere else entirely. The guards have already run by the time the
-action is called; a view they refuse never reaches it.
-
-Bind your custom implementation to the `\CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews` contract.
-
-Change the following code snippet and place it in the `register` method in a service provider (for example
-`AppServiceProvider`).
+The `RecordView` action receives every `ViewRecord` that passed the guards, hands it to the store and dispatches
+`ViewRecorded`. Bind your own to add attributes or skip the event. To only change where views are written,
+[register a store](#choosing-where-views-are-stored) instead.
 
 ```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews::class,
-    \App\Actions\Views\RecordView::class
-);
-```
-
-Your implementation receives the `ViewRecord` value object. It holds the viewable type and key, the viewer type and
-key, the visitor, the collection, the context and `viewed_at`, and returns nothing. The shipped action passes the record to the bound
-`Recording\Contracts\ViewStore`, which is where the row is written and where `views($post)->destroy()` and a force
-delete remove rows again. To change only where views are written, bind a store instead of replacing the action. See
-[Choosing where views are stored](#choosing-where-views-are-stored).
-
-```php
-use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 
 final class RecordView implements RecordsViews
 {
@@ -1570,129 +846,54 @@ final class RecordView implements RecordsViews
         // ...
     }
 }
+
+$this->app->bind(RecordsViews::class, \App\Actions\Views\RecordView::class);
 ```
 
 ### Choosing where views are stored
 
-The `recording.store.driver` config key names the store that receives every recorded view. Four drivers ship:
+`recording.store.driver` names the store for every recorded view:
 
-- `database` writes a row to the views table. This is the default.
-- `redis` appends the view to a Redis stream and lands it in the views table in batches, see
-  [Buffering views in Redis](#buffering-views-in-redis).
+- `database` writes a row to the `views` table. This is the default.
+- `redis` buffers views in a Redis stream, see [Buffering views in Redis](#buffering-views-in-redis).
 - `array` keeps views in memory for the process, see [Testing](#testing).
-- `null` discards every view. Use it in an environment that should not record anything, or in a test suite that
-  records views but never reads them back.
+- `null` discards every view.
 
-```php
-'recording' => [
-    'store' => [
-        'driver' => 'database',
-    ],
-],
-```
+Counts always read from the `views` table. A store that writes elsewhere is a buffer in front of it and implements
+`Recording\Contracts\BufferedViewStore`, so `views:flush` can drain it.
 
-Counts always read from the views table, whichever driver is set. A store that writes somewhere else is a buffer in
-front of that table and has to land its records there before they count. Such a store implements
-`Recording\Contracts\BufferedViewStore`, which adds `flush(int $limit): int` to the contract, so the `views:flush`
-command and the `FlushBufferedViewsJob` can drain it. The shipped `redis` driver is one.
-
-To add a driver, implement `Recording\Contracts\ViewStore` and register it with the `StoreManager` in the `register`
-method of a service provider. Then name it in the config.
+To add a driver, implement `Recording\Contracts\ViewStore` and register it in a service provider:
 
 ```php
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
-use Illuminate\Contracts\Foundation\Application;
 
-$this->app->make(StoreManager::class)->extend('clickhouse', fn (Application $app): ViewStore => new ClickHouseStore(
+$this->app->make(StoreManager::class)->extend('clickhouse', fn ($app): ViewStore => new ClickHouseStore(
     $app->make(ClickHouseClient::class),
 ));
 ```
 
-`store()` receives one `ViewRecord`. `storeMany()` receives an iterable of them and is how a buffer lands a batch
-in as few writes as the store allows; the shipped database store issues one insert statement for the whole batch.
-`forget()` receives a viewable and removes every view of it, in every collection. A viewable without a key stands for
-every viewable of its type. `ViewRecord::toPayload()` flattens a record to scalars for a stream entry or a JSON body,
-and `ViewRecord::fromPayload()` rebuilds it.
-
-Stores write through the query builder, so `Models\View` model events are not fired when a view is stored. Listen for
-`Recording\Events\ViewRecorded` instead. That event is dispatched once the store has accepted the record. With the
-database store the row exists at that moment; a store that buffers writes lands it later. A listener reads what it
-needs from `$event->record` and does not query the views table for the row.
-
-```php
-use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
-use CyrildeWit\EloquentViewable\Data\ViewRecord;
-
-final class ClickHouseStore implements ViewStore
-{
-    public function store(ViewRecord $record): void
-    {
-        $this->storeMany([$record]);
-    }
-
-    public function storeMany(iterable $records): void
-    {
-        // $record->toPayload() for each record, in one request
-    }
-
-    public function forget(Viewable $viewable): void
-    {
-        // $viewable->getMorphClass(), $viewable->getKey()
-    }
-}
-```
-
-If the store does not need a name, binding the contract directly is the smaller change:
-
-```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore::class,
-    \App\Views\ClickHouseStore::class
-);
-```
+A store implements `store()` for one record, `storeMany()` for a batch and `forget()` to remove every view of a
+viewable. Stores bypass Eloquent, so listen for `Recording\Events\ViewRecorded` and not for `View` model events.
 
 ### Adding a recording guard
 
-A guard decides whether a call to `record()` becomes a view. The `recording.guards` config key lists them in order,
-and the first one that refuses drops the view. The list is the only switch: a guard runs when it is listed and not
-otherwise. The package ships six. `IgnoreCrawlers`, `IgnoreIpAddresses`, `IgnorePrefetch` and `EnforceCooldown` are
-listed out of the box; `cooldown()` does nothing without the last. The two privacy guards are commented out in the published config,
-ready to switch on:
+A guard decides whether a call to `record()` becomes a view. `recording.guards` lists them, and the first that refuses
+drops the view:
 
-| Guard                        | Refuses                                         | Reads                            |
-|------------------------------|-------------------------------------------------|----------------------------------|
-| `EnforceCooldown`            | a second view inside the cooldown asked for     | the `cooldown.store`             |
-| `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | the visitor's user agent         |
-| `IgnoreIpAddresses`          | listed IP addresses                             | `recording.ignored_ip_addresses` |
-| `IgnorePrefetch`             | pages the browser prefetches or prerenders      | the visitor                      |
-| `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | the visitor                      |
-| `IgnoreGlobalPrivacyControl` | visitors sending `Sec-GPC: 1`                   | the visitor                      |
+| Guard                        | Refuses                                         | On by default |
+|------------------------------|-------------------------------------------------|---------------|
+| `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | yes           |
+| `IgnoreIpAddresses`          | `recording.ignored_ip_addresses`                | yes           |
+| `IgnorePrefetch`             | pages the browser prefetches or prerenders      | yes           |
+| `EnforceCooldown`            | a second view inside the cooldown               | yes           |
+| `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | no            |
+| `IgnoreGlobalPrivacyControl` | visitors sending `Sec-GPC: 1`                   | no            |
 
-The order only decides which guard is asked first. A cooldown starts once every guard has allowed the view, so a view
-another guard drops never starts one, wherever `EnforceCooldown` is listed.
-
-To add a guard, implement `Recording\Contracts\RecordingGuard` and add the class to the list. The guard receives a
-`ViewAttempt` with the viewable, the visitor, the collection and the cooldown the call asked for. Guards are resolved
-from the container, so constructor injection works.
+To add one, implement `Recording\Contracts\RecordingGuard` and add the class to the list. Guards are resolved from the
+container.
 
 ```php
-// config/eloquent-viewable.php
-'recording' => [
-    'guards' => [
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers::class,
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack::class,
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses::class,
-        \App\Views\Guards\IgnoreAuthors::class,
-        \CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown::class,
-    ],
-],
-```
-
-```php
-namespace App\Views\Guards;
-
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use Illuminate\Contracts\Auth\Guard;
@@ -1708,159 +909,43 @@ final readonly class IgnoreAuthors implements RecordingGuard
 }
 ```
 
-A class in the list that does not implement `RecordingGuard` throws `InvalidConfiguration` on the first `record()`.
-
 A guard that keeps state about the views it lets through, as the cooldown does, also implements
-`Recording\Contracts\RemembersRecordedViews`. Keep `allows()` free of side effects and write the state in
-`remember()`, which runs once every guard has allowed the view and it has been stored or queued.
+`Recording\Contracts\RemembersRecordedViews`, whose `remember()` runs once the view is stored or queued.
 
 ### Customizing how views are counted
 
-Every number the package reports comes from one `Querying\Contracts\ViewSource`: `count()`, `countByInterval()`,
-`countByCollection()`, `counts()` and `top()`. The scopes, `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and
-the `whereViewedBy()` family, read from the same source when it also implements `Querying\Contracts\SubquerySource`.
-The `querying.source.driver` config key names it, and the shipped `database` driver reads the views table and
-implements both.
-
-```php
-'querying' => [
-    'source' => [
-        'driver' => 'database',
-    ],
-],
-```
-
-To read from somewhere else, for example a rollup table, implement the contract and register a driver with the
-`SourceManager` in the `register` method of a service provider.
+Every number comes from one `Querying\Contracts\ViewSource`, named by `querying.source.driver`. The shipped `database`
+source reads the `views` table. To read from somewhere else, such as a rollup table, implement the contract and register
+it:
 
 ```php
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
-use Illuminate\Contracts\Foundation\Application;
 
-$this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app): ViewSource => new AggregateSource(
+$this->app->make(SourceManager::class)->extend('aggregate', fn ($app): ViewSource => new AggregateSource(
     $app->make(ViewAggregate::class),
 ));
 ```
 
-`ViewSource` has five methods, and each returns plain values, so a source can read from any backend. `count()` returns
-a total. `countByInterval()` returns sparse counts keyed by the bucket start formatted as `Y-m-d H:i:s`; buckets
-without views are left out, and the package fills them in. `countByCollection()` returns counts keyed by collection
-name, the default collection as the empty string, in any order; the package sorts them. `countMany()` receives one
-viewable of the type and the keys to count, sorted and without duplicates, and returns sparse counts keyed by those
-keys; the package fills in the zeros. `top()` returns the most viewed viewables as rows of `type`, the morph class,
-`id`, the key as stored, and `count`, best first and at most `$limit` of them; the package loads the models. A viewable
-without a key stands for every viewable of its type, and `top()` receives `null` to rank across every type.
+The contract has one method per way of counting: `count()`, `countByInterval()`, `countByCollection()`, `countMany()`
+and `top()`. Each method's docblock describes what it returns; the package fills in missing buckets and zeros and sorts
+the results.
 
-```php
-use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
-use CyrildeWit\EloquentViewable\Support\Granularity;
-use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+The scopes add SQL to a query over the viewable's table, so they need a source in the same database that also
+implements `Querying\Contracts\SubquerySource`: `countSubquery()` for the counts and `viewsSubquery()` for the
+`whereViewedBy()` checks. Any other source throws `Querying\Exceptions\UnsupportedBySource` from a scope. The `database`
+source implements both, and a rollup can hand `viewsSubquery()` on to it so the existence checks keep reading the
+`views` table.
 
-final class AggregateSource implements ViewSource
-{
-    public function count(Viewable $viewable, ViewsQuery $query): int
-    {
-        // ...
-    }
-
-    public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
-    {
-        // return ['2026-09-01 00:00:00' => 14, '2026-09-03 00:00:00' => 2];
-    }
-
-    public function countByCollection(Viewable $viewable, ViewsQuery $query): array
-    {
-        // return ['' => 14, 'sidebar' => 2];
-    }
-
-    public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
-    {
-        // return [1 => 14, 3 => 2];
-    }
-
-    public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
-    {
-        // return [['type' => 'App\Models\Post', 'id' => 7, 'count' => 1403], ...];
-    }
-}
-```
-
-The scopes add SQL to a query over the viewable's table, so they need a source in the same database. A source that is
-not throws `Querying\Exceptions\UnsupportedBySource` from a scope; count through `views()` instead. One that is
-implements `SubquerySource` as well. `countSubquery()` returns a query selecting one integer, the count for the row of
-the outer query, and `viewsSubquery()` the views of that row, narrowed to a visitor when one is given, for the existence
-checks of `whereViewedBy()`. Both correlate on the viewable's qualified key. A rollup without a row per view can take
-`viewsSubquery()` from the shipped `DatabaseSource`, so the existence checks keep reading the views table.
-
-```php
-use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
-use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
-use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\DB;
-
-final class AggregateSource implements SubquerySource, ViewSource
-{
-    public function __construct(private DatabaseSource $views) {}
-
-    // ...
-
-    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-    {
-        return DB::table('view_aggregates')
-            ->whereColumn('view_aggregates.viewable_id', $viewable->getQualifiedKeyName())
-            ->where('view_aggregates.viewable_type', $viewable->getMorphClass())
-            ->selectRaw('coalesce(sum(views), 0)');
-    }
-
-    public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
-    {
-        return $this->views->viewsSubquery($viewable, $query, $visitor);
-    }
-}
-```
-
-`remember()` keeps the entries of two sources apart by the driver name. A source whose counts depend on settings of
-its own, such as the name of the rollup table, also implements `Querying\Contracts\IdentifiesSource` and returns
-those settings from `cacheIdentity()`, so changing them starts fresh entries instead of serving counts the old settings
-produced. The `database` driver returns its connection and database name.
-
-```php
-use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
-
-final class AggregateSource implements IdentifiesSource, SubquerySource, ViewSource
-{
-    public function cacheIdentity(): string
-    {
-        return $this->table;
-    }
-
-    // ...
-}
-```
-
-If the source does not need a name, binding the contract directly is the smaller change:
-
-```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource::class,
-    \App\Views\AggregateSource::class
-);
-```
+`remember()` keeps the entries of two sources apart by the driver name. A source whose counts depend on settings of its
+own, such as the name of the rollup table, implements `Querying\Contracts\IdentifiesSource` and returns them from
+`cacheIdentity()`, so changing them starts fresh entries.
 
 ### Adding a bucket grammar for another database driver
 
-The SQL that truncates `viewed_at` to a bucket differs per database, so the package ships a grammar for SQLite,
-MySQL, MariaDB and Postgres. For another driver, implement `BucketGrammar` and register it in a service provider.
-The column comes in already quoted. `truncate()` must yield the bucket start as `YYYY-MM-DD HH:MM:SS` with weeks
-starting on Monday. `convertTimezone()` receives a `Querying\Data\TimezoneConversion` with the `from` and `to`
-zones and the period bounds, and must yield the column read as a wall clock of `from` and rendered as a wall clock
-of `to`; the result is handed to `truncate()` in place of the column. The shipped grammars use the
-`Querying\Grammars\Concerns\ConvertsByOffset` trait, which builds that expression from the conversion's
-`segments()` and only asks the grammar how to add seconds to a column, so a new driver can do the same by
-implementing `shift()`. A grammar may convert natively instead, with `CONVERT_TZ()` or `AT TIME ZONE`, as long as
-the server's tzdata matches PHP's.
+`countByInterval()` groups in SQL, which differs per database. For a driver other than SQLite, MySQL, MariaDB or
+Postgres, implement `BucketGrammar` and register it. The `Querying\Grammars\Concerns\ConvertsByOffset` trait handles
+timezones, so a new grammar only implements `truncate()` and `shift()`.
 
 ```php
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
@@ -1872,14 +957,10 @@ $this->app->afterResolving(GrammarRegistry::class, function (GrammarRegistry $gr
 
 ### Using a custom crawler detector
 
-The `IgnoreCrawlers` guard hands the visitor's user agent to the bound `CrawlerDetector`, which answers whether it
-belongs to a crawler. The shipped detector wraps [CrawlerDetect](https://github.com/JayBizzle/Crawler-Detect). A
-detector is a function of the user agent string and holds no request state, so one instance serves the whole
-process. A `null` or empty user agent is never a crawler.
+The `IgnoreCrawlers` guard asks the bound `CrawlerDetector` whether a user agent belongs to a crawler. The shipped
+detector wraps [CrawlerDetect](https://github.com/JayBizzle/Crawler-Detect).
 
 ```php
-namespace App\Services\Views;
-
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
 
 final class ListedCrawlerDetector implements CrawlerDetector
@@ -1889,15 +970,8 @@ final class ListedCrawlerDetector implements CrawlerDetector
         return $userAgent !== null && preg_match('/bot|crawler|spider/i', $userAgent) === 1;
     }
 }
-```
 
-Bind it to the contract in the `register` method of a service provider (for example `AppServiceProvider`):
-
-```php
-$this->app->singleton(
-    \CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector::class,
-    \App\Services\Views\ListedCrawlerDetector::class
-);
+$this->app->singleton(CrawlerDetector::class, ListedCrawlerDetector::class);
 ```
 
 ### Adding macros to the `Views` class
@@ -1905,22 +979,11 @@ $this->app->singleton(
 ```php
 use CyrildeWit\EloquentViewable\Views;
 
-Views::macro('countAndRemember', function () {
-    return $this->remember()->count();
-});
-
 Views::macro('countByDay', function () {
     return $this->countByInterval(Granularity::Day);
 });
-```
 
-Now you're able to use these shorthands like this:
-
-```php
-views($post)->countAndRemember();
 views($post)->period(Period::pastDays(30))->countByDay();
-
-Views::forViewable($post)->countAndRemember();
 ```
 
 ## Upgrading
