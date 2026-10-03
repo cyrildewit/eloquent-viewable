@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Recording\Streams\Clients\ClientFactory;
 use CyrildeWit\EloquentViewable\Recording\Streams\ViewStream;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Redis\Connections\Connection;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,25 @@ it('buffers a recorded view until it is flushed', function (string $client): voi
         ->and($view->collection)->toBe('sidebar')
         ->and(Carbon::parse($view->viewed_at)->equalTo(Carbon::parse('2021-01-01 12:30:00')))->toBeTrue()
         ->and($this->post)->toHaveViewsCount(1);
+})->with('redis clients');
+
+it('lands the viewer and the context of a buffered view', function (string $client): void {
+    $store = useRedisStore($client);
+    $user = User::factory()->create();
+
+    views($this->post)->viewedBy($user)->context(['source' => 'newsletter', 'tags' => ['a', 'b']])->record();
+    views($this->post)->record();
+
+    expect($store->flush())->toBe(2);
+
+    $credited = View::whereNotNull('viewer_id')->sole();
+    $guest = View::whereNull('viewer_id')->sole();
+
+    expect($credited->viewer->is($user))->toBeTrue()
+        // MySQL stores a JSON object with its keys sorted, so the order is not asserted.
+        ->and($credited->context)->toEqual(['source' => 'newsletter', 'tags' => ['a', 'b']])
+        ->and($guest->viewer_type)->toBeNull()
+        ->and($guest->context)->toBeNull();
 })->with('redis clients');
 
 it('dispatches ViewRecorded once the stream has accepted the view', function (string $client): void {
