@@ -23,11 +23,6 @@ use stdClass;
 
 final readonly class DatabaseSource implements ViewSource
 {
-    /**
-     * Keys per statement in `countMany()`. Each key is a branch of its own
-     * with its own bindings, so this stays well below the bindings any
-     * supported driver allows and SQLite's limit of 500 branches.
-     */
     private const int CHUNK = 100;
 
     public function __construct(
@@ -107,11 +102,6 @@ final readonly class DatabaseSource implements ViewSource
     }
 
     /**
-     * One statement of a `count()` per key, joined by `union all`. Each
-     * branch is an index lookup on its own key. A single `in` list grouped
-     * by key reads the same rows, but once the keys cover a large share of
-     * the table MySQL scans the whole index for it instead.
-     *
      * @param  non-empty-list<int|string>  $keys
      * @return array<int|string, int>
      */
@@ -182,11 +172,6 @@ final readonly class DatabaseSource implements ViewSource
         return $ranking;
     }
 
-    /**
-     * The views of one key, as a row of the key and its count. The key is
-     * selected as a literal rather than grouped on, so the branch is the
-     * plain aggregate `count()` runs.
-     */
     private function countOne(Viewable $viewable, int|string $key, ViewsQuery $query): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase()

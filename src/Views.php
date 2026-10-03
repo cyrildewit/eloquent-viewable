@@ -76,9 +76,6 @@ class Views
     }
 
     /**
-     * Saved viewables of one type, such as a page of results, to count in
-     * one query with `counts()`.
-     *
      * @param  iterable<Viewable>  $viewables
      *
      * @throws InvalidViewable
@@ -103,9 +100,6 @@ class Views
     }
 
     /**
-     * The views of every viewable given to `forViewables()`, keyed by its
-     * key in the order given, with 0 for one that has none.
-     *
      * @return Collection<int|string, int>
      *
      * @throws InvalidViewable
