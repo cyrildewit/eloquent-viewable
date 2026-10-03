@@ -232,6 +232,18 @@ describe('views subquery', function (): void {
     });
 });
 
+describe('cache identity', function (): void {
+    it('names the connection and the database the views are read from', function (): void {
+        Config::set('database.connections.analytics', ['driver' => 'sqlite', 'database' => ':memory:']);
+
+        $analytics = new View;
+        $analytics->setConnection('analytics');
+
+        expect(databaseSource()->cacheIdentity())->toBe(json_encode([viewConnection()->getName(), viewConnection()->getDatabaseName()]))
+            ->and(new DatabaseSource($analytics, grammars())->cacheIdentity())->toBe('["analytics",":memory:"]');
+    });
+});
+
 describe('top', function (): void {
     it('ranks the viewables of every type by their views', function (): void {
         $apartment = Apartment::factory()->create();

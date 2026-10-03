@@ -6,10 +6,11 @@ use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
-use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
@@ -27,7 +28,6 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Config\Repository;
-use Illuminate\Database\Connection;
 
 function readerViewable(int|string|null $key = 7): Viewable
 {
@@ -38,29 +38,14 @@ function readerViewable(int|string|null $key = 7): Viewable
     return $viewable;
 }
 
-/**
- * The view model, which the reader only asks for the connection the views
- * are read from.
- */
-function readerView(): View
-{
-    $connection = Mockery::mock(Connection::class);
-    $connection->allows('getName')->andReturn('testing');
-    $connection->allows('getDatabaseName')->andReturn(':memory:');
-
-    $view = Mockery::mock(View::class);
-    $view->allows('getConnection')->andReturn($connection);
-
-    return $view;
-}
-
 function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxIntervals = 10_000): Reader
 {
+    $cache ??= new CacheRepository(new ArrayStore);
+
     return new Reader(
         $source,
-        $cache ?? new CacheRepository(new ArrayStore),
+        new VersionedCache($cache, new CacheVersions($cache, readerConfig())),
         readerConfig($maxIntervals),
-        readerView(),
         new ViewableLoader,
     );
 }
@@ -198,7 +183,7 @@ describe('count', function (): void {
         $source->expects('count')->once()->andReturn(3);
 
         $cache = new CacheRepository(new ArrayStore);
-        $cache->put(new CacheKey($this->viewable, readerView()->getConnection(), 'views', 'database')->make($this->query), $stale, 600);
+        $cache->put(new CacheKey('posts', 7, 'views', 'database')->make($this->query), $stale, 600);
 
         expect(reader($source, $cache)->count($this->viewable, $this->query, Carbon::now()->addMinutes(10)))->toBe(3);
     })->with([
@@ -217,6 +202,21 @@ describe('count', function (): void {
         expect($reader->count($this->viewable, $this->query, $until))->toBe(3)
             ->and($reader->count($this->viewable, new ViewsQuery, $until))->toBe(5)
             ->and($reader->count($this->viewable, $this->query, $until))->toBe(3);
+    });
+});
+
+describe('source identity', function (): void {
+    it('keeps the entries of a source apart by the identity it reports', function (): void {
+        $cache = new CacheRepository(new ArrayStore);
+        $until = Carbon::now()->addMinutes(10);
+
+        $identified = fn (string $identity, int $count): ViewSource => tap(Mockery::mock(ViewSource::class, IdentifiesSource::class), function ($source) use ($identity, $count): void {
+            $source->allows('cacheIdentity')->andReturn($identity);
+            $source->expects('count')->once()->andReturn($count);
+        });
+
+        expect(reader($identified('one', 3), $cache)->count($this->viewable, $this->query, $until))->toBe(3)
+            ->and(reader($identified('two', 4), $cache)->count($this->viewable, $this->query, $until))->toBe(4);
     });
 });
 

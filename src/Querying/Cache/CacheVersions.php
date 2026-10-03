@@ -22,15 +22,17 @@ final readonly class CacheVersions
         $this->prefix = "{$config->cacheKey()}:version:";
     }
 
-    /** @return list<string> */
-    public function keys(?Viewable $viewable): array
+    /**
+     * The versions an entry depends on. A type without a key stands for every
+     * viewable of the type, and no type at all for every type.
+     *
+     * @return list<string>
+     */
+    public function keys(?string $type, int|string|null $key = null): array
     {
-        if (! $viewable instanceof Viewable) {
+        if ($type === null) {
             return [$this->key('all'), $this->key('ranking')];
         }
-
-        $type = $viewable->getMorphClass();
-        $key = ViewableKey::of($viewable);
 
         return [
             $this->key('all'),
