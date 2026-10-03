@@ -12,6 +12,8 @@ final class UnsupportedRedisClient extends Exception implements EloquentViewable
 {
     public static function forConnection(Connection $connection): self
     {
-        return new self('The `redis` view store needs a phpredis or Predis connection, `'.$connection::class.'` given.');
+        $class = $connection::class;
+
+        return new self("The `redis` view store needs a phpredis or Predis connection, `{$class}` given.");
     }
 }

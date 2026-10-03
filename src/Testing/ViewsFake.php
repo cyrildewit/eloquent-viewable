@@ -120,7 +120,7 @@ final class ViewsFake implements ViewSource, ViewStore
         $rows = [];
 
         $grouped = $this->matchingRecords($query, fn (ViewRecord $record): bool => $type === null || $record->viewableType === $type)
-            ->groupBy(fn (ViewRecord $record): string => $record->viewableType.':'.$record->viewableId);
+            ->groupBy(fn (ViewRecord $record): string => "{$record->viewableType}:{$record->viewableId}");
 
         foreach ($grouped as $views) {
             /** @var ViewRecord $first */
@@ -160,9 +160,11 @@ final class ViewsFake implements ViewSource, ViewStore
             return;
         }
 
+        $filter = $callback instanceof Closure ? ' that matches the filter' : '';
+
         PHPUnit::assertTrue(
             $this->recorded($viewable, $callback)->isNotEmpty(),
-            "No view of {$name} was recorded".($callback instanceof Closure ? ' that matches the filter.' : '.'),
+            "No view of {$name} was recorded{$filter}.",
         );
     }
 
@@ -171,7 +173,11 @@ final class ViewsFake implements ViewSource, ViewStore
     {
         $count = $this->recorded($viewable, $callback)->count();
 
-        PHPUnit::assertSame(0, $count, 'A view of '.$this->describe($viewable).' was recorded'.($callback instanceof Closure ? ' that matches the filter.' : '.'));
+        $name = $this->describe($viewable);
+
+        $filter = $callback instanceof Closure ? ' that matches the filter' : '';
+
+        PHPUnit::assertSame(0, $count, "A view of {$name} was recorded{$filter}.");
     }
 
     public function assertNothingRecorded(): void
@@ -183,10 +189,12 @@ final class ViewsFake implements ViewSource, ViewStore
 
     public function assertForgotten(Viewable $viewable): void
     {
+        $name = $this->describe($viewable);
+
         PHPUnit::assertContains(
             [$viewable->getMorphClass(), ViewableKey::of($viewable)],
             $this->forgotten,
-            'The views of '.$this->describe($viewable).' were not forgotten.',
+            "The views of {$name} were not forgotten.",
         );
     }
 

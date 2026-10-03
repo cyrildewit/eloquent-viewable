@@ -12,6 +12,8 @@ final class UnsupportedDriver extends Exception implements EloquentViewableExcep
 {
     public static function noBucketGrammar(string $driver): self
     {
-        return new self("No bucket grammar is registered for the `{$driver}` database driver. Register one through `".GrammarRegistry::class.'::register()`.');
+        $registry = GrammarRegistry::class;
+
+        return new self("No bucket grammar is registered for the `{$driver}` database driver. Register one through `{$registry}::register()`.");
     }
 }
