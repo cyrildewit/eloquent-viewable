@@ -138,6 +138,7 @@ time. Counts always read from the `views` table, so none of these changes how yo
 
 | Package Version                                                            | Laravel    | PHP  |
 |----------------------------------------------------------------------------|------------|------|
+| [9.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#9.x-dev) | 13.x       | 8.5+ |
 | [8.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#8.x-dev) | 13.x       | 8.5+ |
 | [7.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#7.x-dev) | 6.x – 13.x | 7.4+ |
 
@@ -148,7 +149,7 @@ Support for Lumen is not maintained.
 Install the package via Composer, publish the migration and run it:
 
 ```bash
-composer require cyrildewit/eloquent-viewable:^8
+composer require cyrildewit/eloquent-viewable:^9
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 php artisan migrate
 ```
