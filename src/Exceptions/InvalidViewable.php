@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Exceptions;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use InvalidArgumentException;
 
 final class InvalidViewable extends InvalidArgumentException implements EloquentViewableException
@@ -17,6 +18,15 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
     public static function missing(): self
     {
         return new self('No viewable was given. Call forViewable() before counting, recording or destroying views.');
+    }
+
+    public static function cannotRankOne(Viewable $viewable): self
+    {
+        return new self(sprintf(
+            'top() ranks every viewable of a type or every type. [%s] with key %s was given; pass a model without a key, or none at all.',
+            $viewable::class,
+            ViewableKey::of($viewable),
+        ));
     }
 
     public static function unsupportedKey(string $class, mixed $key): self
