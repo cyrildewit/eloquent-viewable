@@ -100,6 +100,29 @@ final class ViewsFake implements ViewSource, ViewStore
         throw UnsupportedInFake::scopes();
     }
 
+    /** @return list<array{type: string, id: int|string, count: int}> */
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+    {
+        $type = $viewable?->getMorphClass();
+
+        $rows = [];
+
+        $grouped = $this->matchingRecords($query, fn (ViewRecord $record): bool => $type === null || $record->viewableType === $type)
+            ->groupBy(fn (ViewRecord $record): string => $record->viewableType.':'.$record->viewableId);
+
+        foreach ($grouped as $views) {
+            /** @var ViewRecord $first */
+            $first = $views->first();
+
+            $rows[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'count' => $this->aggregate($views, $query)];
+        }
+
+        // Highest count first, then type, then key, as the database orders.
+        usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);
+
+        return array_slice($rows, 0, $limit);
+    }
+
     /**
      * @param  (Closure(ViewRecord): bool)|null  $filter
      * @return Collection<int, ViewRecord>
@@ -158,6 +181,15 @@ final class ViewsFake implements ViewSource, ViewStore
     /** @return Collection<int, ViewRecord> */
     private function matching(Viewable $viewable, ViewsQuery $query): Collection
     {
+        return $this->matchingRecords($query, fn (ViewRecord $record): bool => $record->belongsTo($viewable));
+    }
+
+    /**
+     * @param  Closure(ViewRecord): bool  $filter
+     * @return Collection<int, ViewRecord>
+     */
+    private function matchingRecords(ViewsQuery $query, Closure $filter): Collection
+    {
         $start = $query->period?->getStartDateTime();
         $end = $query->period?->getEndDateTime();
 
@@ -168,10 +200,13 @@ final class ViewsFake implements ViewSource, ViewStore
         $viewer = $query->viewer;
         $viewerKey = $viewer instanceof Model ? (string) ViewerKey::of($viewer) : null;
 
-        return $this->recorded($viewable, fn (ViewRecord $record): bool => (! $start instanceof CarbonInterface || $record->viewedAt->greaterThanOrEqualTo($start))
-            && (! $end instanceof CarbonInterface || $record->viewedAt->lessThan($end))
-            && ($query->collection === null || $record->collection === $query->collection)
-            && (! $viewer instanceof Model || ($record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === $viewerKey)));
+        return new Collection($this->store->records())
+            ->filter($filter)
+            ->filter(fn (ViewRecord $record): bool => (! $start instanceof CarbonInterface || $record->viewedAt->greaterThanOrEqualTo($start))
+                && (! $end instanceof CarbonInterface || $record->viewedAt->lessThan($end))
+                && ($query->collection === null || $record->collection === $query->collection)
+                && (! $viewer instanceof Model || ($record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === $viewerKey)))
+            ->values();
     }
 
     /** @param  Collection<int, ViewRecord>  $records */
