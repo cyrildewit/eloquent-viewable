@@ -1126,6 +1126,34 @@ views($post)->remember(now()->addWeeks(2))->count();
 views($post)->remember()->count();
 ```
 
+#### Forgetting remembered counts
+
+A remembered count is kept for its lifetime: recording a view does not touch it. Deleting views does.
+`views($post)->destroy()`, and deleting a model that removes its views, forget every count remembered of that model,
+the total and rankings of its type, and rankings across every type.
+
+To forget remembered counts yourself, for example after importing views or removing those of a bot:
+
+```php
+// Every count remembered of the post, its type as a whole and every ranking
+views($post)->forgetCache();
+
+// Every count remembered of every post
+views(Post::class)->forgetCache();
+
+// Every remembered count
+Views::flushCache();
+```
+
+It works much like Laravel's cache tags, but on every cache store, including `file` and `database`, which do not
+support tags. Each entry is stored with a version of the model, of its type and of the whole cache, and is only served
+while those are current. Forgetting replaces a version, so the next read counts again and overwrites the entry. The
+versions are read together with the entry, so a remembered count still takes one round trip to the cache store.
+
+Forgetting on every recorded view is deliberately not offered. Most pages record a view and read the count in the same
+request, so every read would miss and the cache would cost more than it saves. For fresher counts, use a shorter
+lifetime.
+
 ## Samples
 
 The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
