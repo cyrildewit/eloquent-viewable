@@ -212,7 +212,31 @@ final readonly class Period implements UrlRoutable
             return $this;
         }
 
-        return self::relative($this->relative->anchor, $this->relative->interval, $this->relative->value, $timezone);
+        return self::fromRelative($this->relative->in($timezone));
+    }
+
+    /**
+     * The window right before this one, as wide as it and ending where it
+     * starts. A relative period steps back by its own unit, so `pastMonths(1)`
+     * gives the month before and `pastDays(7)` the seven whole days before;
+     * since the current window runs on past now, it also holds today so far.
+     * An absolute period steps back by its exact duration.
+     *
+     * @throws InvalidPeriod when the period lacks a bound and so has no width
+     */
+    public function previous(): self
+    {
+        if ($this->relative instanceof RelativePeriod) {
+            return self::fromRelative($this->relative->previous());
+        }
+
+        if (! $this->startDateTime instanceof CarbonInterface || ! $this->endDateTime instanceof CarbonInterface) {
+            throw InvalidPeriod::withoutWidth($this);
+        }
+
+        $width = $this->endDateTime->getPreciseTimestamp() - $this->startDateTime->getPreciseTimestamp();
+
+        return new self($this->startDateTime->avoidMutation()->subMicroseconds((int) round($width)), $this->startDateTime);
     }
 
     public function getRouteKeyName(): string
@@ -247,9 +271,12 @@ final readonly class Period implements UrlRoutable
      */
     private static function relative(PeriodAnchor $anchor, PeriodInterval $interval, int $value, DateTimeZone|string|null $timezone): self
     {
-        $relative = new RelativePeriod($anchor, $interval, $value, $timezone === null ? null : Timezone::from($timezone));
+        return self::fromRelative(new RelativePeriod($anchor, $interval, $value, $timezone === null ? null : Timezone::from($timezone)));
+    }
 
-        return new self($relative->startDateTime(), null, $relative);
+    private static function fromRelative(RelativePeriod $relative): self
+    {
+        return new self($relative->startDateTime(), $relative->endDateTime(), $relative);
     }
 
     private function formatBound(?CarbonInterface $bound): string
