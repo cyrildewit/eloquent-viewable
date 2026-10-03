@@ -18,7 +18,11 @@ use PhpBench\Attributes\Warmup;
  * `views($viewable)->countByInterval()`: a `group by` on a date expression
  * over `viewed_at`. No index serves the grouping, so the database range
  * scans the period and aggregates every row in it. The ranges cover a week
- * of hours up to two years of months.
+ * of hours up to two years of months. `benchCountByIntervalInTimezone` runs
+ * the same ranges in a zone with daylight saving time, where the bucket
+ * expression shifts `viewed_at` by a different offset on each side of every
+ * transition: one shift for the ranges inside winter time, a `case` over
+ * two to four transitions for the year and longer.
  */
 #[Groups(['read'])]
 #[BeforeMethods('setUp')]
@@ -27,6 +31,8 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class CountViewsByIntervalBench extends BenchCase
 {
+    private const string TIMEZONE = 'Europe/Amsterdam';
+
     /**
      * @return Generator<string, array{target: string}>
      */
@@ -68,6 +74,18 @@ final class CountViewsByIntervalBench extends BenchCase
         views($this->target($params))
             ->period($this->period($params))
             ->unique()
+            ->countByInterval(Granularity::from($params['granularity']));
+    }
+
+    /**
+     * @param  array{target: string, days: int, granularity: string}  $params
+     */
+    #[ParamProviders(['provideSeriesTargets', 'provideRanges'])]
+    public function benchCountByIntervalInTimezone(array $params): void
+    {
+        views($this->target($params))
+            ->period($this->period($params))
+            ->timezone(self::TIMEZONE)
             ->countByInterval(Granularity::from($params['granularity']));
     }
 }
