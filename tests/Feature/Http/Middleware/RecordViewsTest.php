@@ -29,10 +29,6 @@ beforeEach(function (): void {
     Route::model('user', User::class);
 });
 
-/**
- * A test route with the bindings the `web` group would substitute, and the
- * given `views` middleware.
- */
 function viewsRoute(string $uri, string $middleware = 'views', ?Closure $action = null, string $method = 'get'): void
 {
     Route::middleware([SubstituteBindings::class, $middleware])

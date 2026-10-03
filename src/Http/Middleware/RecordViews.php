@@ -9,6 +9,8 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Views;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
@@ -20,12 +22,11 @@ final readonly class RecordViews
     public const string ALIAS = 'views';
 
     public function __construct(
+        private Container $container,
         private ExceptionHandler $exceptions,
     ) {}
 
-    /**
-     * @param  string|list<string>  $models  route parameter names or model classes
-     */
+    /** @param  string|list<string>  $models  route parameter names or model classes */
     public static function using(
         string|array $models = [],
         ?string $collection = null,
@@ -58,127 +59,50 @@ final readonly class RecordViews
     public function handle(Request $request, Closure $next, string ...$arguments): Response
     {
         $response = $next($request);
-
-        // The bindings are resolved by now, whichever order the middleware ran in.
-        if (! $request->isMethod('GET') || ! $response->isSuccessful()) {
-            return $response;
-        }
-
         $route = $request->route();
 
-        if (! $route instanceof Route) {
+        // The bindings are resolved by now, whichever order the middleware ran in.
+        if (! $request->isMethod('GET') || ! $response->isSuccessful() || ! $route instanceof Route) {
             return $response;
         }
 
-        [$selectors, $options] = $this->parse(array_values($arguments));
+        $views = $this->views(...$arguments);
+        $selectors = array_filter($arguments, fn (string $argument): bool => ! str_contains($argument, '='));
 
-        foreach ($this->viewables($route, $selectors) as $viewable) {
-            $this->record($viewable, $options);
+        foreach ($this->viewables($route, ...$selectors) as $viewable) {
+            try {
+                $views->forViewable($viewable)->record();
+            } catch (RecordingFailed $exception) {
+                $this->exceptions->report($exception);
+            }
         }
 
         return $response;
     }
 
-    /**
-     * @param  array{collection: ?string, cooldown: ?int, queue: ?bool}  $options
-     */
-    private function record(Viewable $viewable, array $options): void
+    private function views(string ...$arguments): Views
     {
-        $views = views($viewable)->collection($options['collection'])->cooldown($options['cooldown']);
-
-        if ($options['queue'] !== null) {
-            $views->queue($options['queue']);
-        }
-
-        try {
-            $views->record();
-        } catch (RecordingFailed $exception) {
-            $this->exceptions->report($exception);
-        }
-    }
-
-    /**
-     * @param  list<string>  $selectors
-     * @return list<Viewable>
-     *
-     * @throws InvalidViewable
-     */
-    private function viewables(Route $route, array $selectors): array
-    {
-        $parameters = $route->parameters();
-
-        if ($selectors === []) {
-            $viewables = array_values(array_filter($parameters, fn (mixed $value): bool => $value instanceof Viewable));
-
-            return $viewables === [] ? throw InvalidViewable::noneInRoute($route->uri()) : [array_last($viewables)];
-        }
-
-        $viewables = [];
-
-        foreach ($selectors as $selector) {
-            array_push($viewables, ...$this->select($route, $parameters, $selector));
-        }
-
-        return $viewables;
-    }
-
-    /**
-     * A selector with a backslash names a model class, the way Laravel's `can`
-     * middleware tells a class from a route parameter.
-     *
-     * @param  array<array-key, mixed>  $parameters
-     * @return list<Viewable>
-     *
-     * @throws InvalidViewable
-     */
-    private function select(Route $route, array $parameters, string $selector): array
-    {
-        if (str_contains($selector, '\\')) {
-            $viewables = array_values(array_filter(
-                $parameters,
-                fn (mixed $value): bool => $value instanceof $selector && $value instanceof Viewable,
-            ));
-
-            return $viewables === [] ? throw InvalidViewable::notInRoute($selector, $route->uri()) : $viewables;
-        }
-
-        $value = $parameters[$selector] ?? throw InvalidViewable::notInRoute($selector, $route->uri());
-
-        return $value instanceof Viewable ? [$value] : throw InvalidViewable::routeParameterNotViewable($selector, $route->uri());
-    }
-
-    /**
-     * @param  list<string>  $arguments
-     * @return array{list<string>, array{collection: ?string, cooldown: ?int, queue: ?bool}}
-     *
-     * @throws InvalidConfiguration
-     */
-    private function parse(array $arguments): array
-    {
-        $selectors = [];
-        $options = ['collection' => null, 'cooldown' => null, 'queue' => null];
+        $views = $this->container->make(Views::class);
 
         foreach ($arguments as $argument) {
             if (! str_contains($argument, '=')) {
-                $selectors[] = $argument;
-
                 continue;
             }
 
             $value = Str::after($argument, '=');
 
-            $options = match (Str::before($argument, '=')) {
-                'collection' => [...$options, 'collection' => $value],
-                'cooldown' => [...$options, 'cooldown' => $this->minutes($value, $argument)],
-                'queue' => [...$options, 'queue' => $this->boolean($value, $argument)],
+            match (Str::before($argument, '=')) {
+                'collection' => $views->collection($value),
+                'cooldown' => $views->cooldown($this->minutes($value, $argument)),
+                'queue' => $views->queue(filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+                    ?? throw InvalidConfiguration::invalidMiddlewareOption($argument)),
                 default => throw InvalidConfiguration::invalidMiddlewareOption($argument),
             };
         }
 
-        return [$selectors, $options];
+        return $views;
     }
 
-    /** @throws InvalidConfiguration */
     private function minutes(string $value, string $argument): int
     {
         $minutes = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -186,10 +110,32 @@ final readonly class RecordViews
         return is_int($minutes) ? $minutes : throw InvalidConfiguration::invalidMiddlewareOption($argument);
     }
 
-    /** @throws InvalidConfiguration */
-    private function boolean(string $value, string $argument): bool
+    /** @return list<Viewable> */
+    private function viewables(Route $route, string ...$selectors): array
     {
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
-            ?? throw InvalidConfiguration::invalidMiddlewareOption($argument);
+        $viewables = array_filter($route->parameters(), fn (mixed $value): bool => $value instanceof Viewable);
+
+        if ($selectors === []) {
+            return $viewables === [] ? throw InvalidViewable::noneInRoute($route->uri()) : [array_last($viewables)];
+        }
+
+        $selected = [];
+
+        // A selector with a backslash names a model class, the way Laravel's `can` middleware tells them apart.
+        foreach ($selectors as $selector) {
+            $matches = str_contains($selector, '\\')
+                ? array_filter($viewables, fn (Viewable $viewable): bool => $viewable instanceof $selector)
+                : array_intersect_key($viewables, [$selector => true]);
+
+            if ($matches === []) {
+                throw $route->hasParameter($selector)
+                    ? InvalidViewable::routeParameterNotViewable($selector, $route->uri())
+                    : InvalidViewable::notInRoute($selector, $route->uri());
+            }
+
+            array_push($selected, ...array_values($matches));
+        }
+
+        return $selected;
     }
 }
