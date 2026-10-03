@@ -52,6 +52,11 @@ it('accepts a custom driver', function (): void {
         {
             return DB::query()->selectRaw('7');
         }
+
+        public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+        {
+            return [];
+        }
     };
 
     $this->app->make(SourceManager::class)->extend('custom', fn (Application $app): ViewSource => $custom);

@@ -19,6 +19,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Support\Collection;
+use stdClass;
 
 final readonly class DatabaseSource implements ViewSource
 {
@@ -106,6 +107,40 @@ final readonly class DatabaseSource implements ViewSource
             ->where($this->view->qualifyColumn('viewable_type'), $viewable->getMorphClass())
             ->whereColumn($this->view->qualifyColumn('viewable_id'), $viewable->getQualifiedKeyName())
             ->selectRaw($this->aggregate($query, $builder->getGrammar())); // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+    }
+
+    /** @return list<array{type: string, id: int|string, count: int}> */
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+    {
+        $builder = $this->view->newQuery()->matching($query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        $type = $this->view->qualifyColumn('viewable_type');
+        $id = $this->view->qualifyColumn('viewable_id');
+
+        if ($viewable instanceof Viewable) {
+            $builder->where($type, $viewable->getMorphClass());
+        }
+
+        // Ordered by the alias, which every driver accepts, then by the group
+        // columns so ties come back in the same order everywhere.
+        $rows = $builder
+            ->selectRaw("{$grammar->wrap($type)}, {$grammar->wrap($id)}, {$this->aggregate($query, $grammar)} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+            ->groupBy($type, $id)
+            ->orderByDesc('aggregate')
+            ->orderBy($type)
+            ->orderBy($id)
+            ->limit($limit)
+            ->get();
+
+        $ranking = [];
+
+        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
+        foreach ($rows as $row) {
+            $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
+        }
+
+        return $ranking;
     }
 
     /**

@@ -13,6 +13,8 @@ use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -265,6 +267,47 @@ describe('counting', function (): void {
         views($this->post)->context(['source' => 'newsletter'])->record();
 
         $this->fake->assertRecorded($this->post, fn (ViewRecord $record): bool => $record->context === ['source' => 'newsletter']);
+    });
+
+    it('ranks the recorded views of every type, within the filters', function (): void {
+        $other = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
+
+        Carbon::setTestNow('2026-09-01 10:00:00');
+        views($this->post)->useVisitor(visitor('one'))->record();
+        views($this->post)->useVisitor(visitor('one'))->record();
+        views($this->post)->useVisitor(visitor('two'))->collection('custom')->record();
+        views($apartment)->useVisitor(visitor('one'))->record();
+        views($apartment)->useVisitor(visitor('two'))->record();
+
+        Carbon::setTestNow('2026-09-05 10:00:00');
+        views($other)->useVisitor(visitor('one'))->record();
+
+        $ids = fn (array $rows): array => array_map(fn (array $row): array => [$row['type'], $row['id'], $row['count']], $rows);
+
+        expect($ids($this->fake->top(null, new ViewsQuery, 10)))->toBe([
+            [$this->post->getMorphClass(), $this->post->getKey(), 3],
+            [$apartment->getMorphClass(), $apartment->getKey(), 2],
+            [$other->getMorphClass(), $other->getKey(), 1],
+        ])
+            ->and($ids($this->fake->top(new Post, new ViewsQuery, 10)))->toBe([
+                [$this->post->getMorphClass(), $this->post->getKey(), 3],
+                [$other->getMorphClass(), $other->getKey(), 1],
+            ])
+            ->and($ids($this->fake->top(null, new ViewsQuery(unique: true), 10)))->toBe([
+                [$apartment->getMorphClass(), $apartment->getKey(), 2],
+                [$this->post->getMorphClass(), $this->post->getKey(), 2],
+                [$other->getMorphClass(), $other->getKey(), 1],
+            ])
+            ->and($ids($this->fake->top(null, new ViewsQuery(Period::since('2026-09-03')), 10)))->toBe([
+                [$other->getMorphClass(), $other->getKey(), 1],
+            ])
+            ->and($ids($this->fake->top(null, new ViewsQuery(collection: 'custom'), 10)))->toBe([
+                [$this->post->getMorphClass(), $this->post->getKey(), 1],
+            ])
+            ->and($ids($this->fake->top(null, new ViewsQuery, 1)))->toBe([
+                [$this->post->getMorphClass(), $this->post->getKey(), 3],
+            ]);
     });
 
     it('refuses the scopes', function (): void {
