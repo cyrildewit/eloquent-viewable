@@ -25,10 +25,6 @@ class Visitor implements VisitorContract
      */
     const string GPC = 'Sec-GPC';
 
-    /**
-     * The request headers a browser marks a prefetch with: `Sec-Purpose` in
-     * current browsers, `Purpose` and `X-Moz` in older ones.
-     */
     const array PREFETCH_HEADERS = ['Sec-Purpose', 'Purpose', 'X-Moz'];
 
     public function __construct(
