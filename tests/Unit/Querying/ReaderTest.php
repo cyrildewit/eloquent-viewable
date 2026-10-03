@@ -5,9 +5,14 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
+use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
@@ -21,18 +26,29 @@ use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Config\Repository;
 use Illuminate\Database\Connection;
 
-function readerViewable(): Viewable
+function readerViewable(?int $key = 7): Viewable
+{
+    $viewable = Mockery::mock(Viewable::class);
+    $viewable->allows('getKey')->andReturn($key);
+    $viewable->allows('getMorphClass')->andReturn('posts');
+
+    return $viewable;
+}
+
+/**
+ * The view model, which the reader only asks for the connection the views
+ * are read from.
+ */
+function readerView(): View
 {
     $connection = Mockery::mock(Connection::class);
     $connection->allows('getName')->andReturn('testing');
     $connection->allows('getDatabaseName')->andReturn(':memory:');
 
-    $viewable = Mockery::mock(Viewable::class);
-    $viewable->allows('getKey')->andReturn(7);
-    $viewable->allows('getMorphClass')->andReturn('posts');
-    $viewable->allows('getConnection')->andReturn($connection);
+    $view = Mockery::mock(View::class);
+    $view->allows('getConnection')->andReturn($connection);
 
-    return $viewable;
+    return $view;
 }
 
 function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxIntervals = 10_000): Reader
@@ -41,6 +57,8 @@ function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxInte
         $source,
         $cache ?? new CacheRepository(new ArrayStore),
         new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views'], 'source' => ['driver' => 'database'], 'max_intervals' => $maxIntervals]]])),
+        readerView(),
+        new ViewableLoader,
     );
 }
 
@@ -292,5 +310,83 @@ describe('countByCollection', function (): void {
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(7)
             ->and($reader->countByCollection($this->viewable, $this->query, $until))->toBe(['sidebar' => 7]);
+    });
+});
+
+describe('top', function (): void {
+    beforeEach(function (): void {
+        // The real loader skips a type that names no model, so the rows are
+        // ranked without a database; ViewableLoaderTest covers the loading.
+        $this->rows = [['type' => 'posts', 'id' => 3, 'count' => 9], ['type' => 'apartments', 'id' => 1, 'count' => 4]];
+    });
+
+    it('ranks every type through the source and loads the rows', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('top')->with(null, $this->query, 10)->andReturn($this->rows);
+
+        $ranking = reader($source)->top(null, $this->query, 10);
+
+        expect($ranking)->toBeInstanceOf(Ranking::class)
+            ->and($ranking->isEmpty())->toBeTrue();
+    });
+
+    it('ranks within a type when the viewable has no key', function (): void {
+        $type = readerViewable(key: null);
+
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('top')->with($type, $this->query, 5)->andReturn($this->rows);
+
+        expect(reader($source)->top($type, $this->query, 5))->toBeInstanceOf(Ranking::class);
+    });
+
+    it('refuses a viewable with a key', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->shouldNotReceive('top');
+
+        expect(fn (): Ranking => reader($source)->top($this->viewable, $this->query, 10))
+            ->toThrow(InvalidViewable::class, 'top() ranks every viewable of a type or every type. ['.$this->viewable::class.'] with key 7 was given; pass a model without a key, or none at all.');
+    });
+
+    it('refuses a limit below one', function (int $limit): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->shouldNotReceive('top');
+
+        expect(fn (): Ranking => reader($source)->top(null, $this->query, $limit))
+            ->toThrow(InvalidLimit::class, "top() needs a limit of at least one, {$limit} given.");
+    })->with([0, -1]);
+
+    it('remembers the rows of the source', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('top')->once()->andReturn($this->rows);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        $reader->top(null, $this->query, 10, $until);
+        $reader->top(null, $this->query, 10, $until);
+
+        $entries = array_values($cache->getStore()->all());
+
+        expect($entries)->toHaveCount(1)
+            ->and($entries[0]['value'])->toBe($this->rows);
+    });
+
+    it('keeps a separate entry per limit and apart from the count', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('top')->twice()->andReturn($this->rows, []);
+        $source->expects('count')->once()->andReturn(3);
+
+        $type = readerViewable(key: null);
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        $reader->top($type, $this->query, 10, $until);
+        $reader->top($type, $this->query, 5, $until);
+        $reader->top($type, $this->query, 10, $until);
+
+        expect($reader->count($type, $this->query, $until))->toBe(3)
+            ->and($cache->getStore()->all())->toHaveCount(3);
     });
 });
