@@ -7,8 +7,10 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
@@ -69,6 +71,12 @@ class Views
     public function count(): int
     {
         return $this->reader->count($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
+    /** @throws InvalidPeriod */
+    public function compare(): ViewComparison
+    {
+        return $this->reader->compare($this->viewable(), $this->query(), $this->cacheLifetime);
     }
 
     /** @throws InvalidInterval */

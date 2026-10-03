@@ -25,4 +25,9 @@ final readonly class ViewsQuery
     ) {
         $this->period = $timezone instanceof Timezone ? $period?->anchoredIn($timezone) : $period;
     }
+
+    public function withPeriod(?Period $period): self
+    {
+        return new self($period, $this->collection, $this->unique, $this->timezone, $this->viewer);
+    }
 }
