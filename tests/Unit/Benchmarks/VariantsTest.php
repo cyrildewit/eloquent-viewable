@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Benchmarks\Php\CooldownManagerBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Php\ViewSeriesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
@@ -52,6 +53,7 @@ it('finds every benchmark class in path order', function (): void {
         CooldownManagerBench::class,
         ViewSeriesBench::class,
         CountViewsBench::class,
+        CountViewsByCollectionBench::class,
         CountViewsByIntervalBench::class,
         OrderByViewsBench::class,
         BufferViewsBench::class,
@@ -66,7 +68,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByIntervalBench', 'OrderByViewsBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'OrderByViewsBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('missing'))->toBeEmpty();
@@ -97,6 +99,14 @@ it('names the parameter sets of two providers as phpbench does, first provider i
     expect(setsOf(CountViewsBench::class, 'benchCount'))->toBe($expected)
         ->and(setsOf(CountViewsBench::class, 'benchUniqueCount'))->toBe($expected)
         ->and(benchmark(CountViewsBench::class)->variants)->toHaveCount(24);
+});
+
+it('names the parameter sets of the collection benchmarks as those of the plain count', function (): void {
+    $expected = setsOf(CountViewsBench::class, 'benchCount');
+
+    expect(setsOf(CountViewsByCollectionBench::class, 'benchCountByCollection'))->toBe($expected)
+        ->and(setsOf(CountViewsByCollectionBench::class, 'benchUniqueCountByCollection'))->toBe($expected)
+        ->and(benchmark(CountViewsByCollectionBench::class)->variants)->toHaveCount(24);
 });
 
 it('names the parameter sets of the interval benchmarks', function (): void {

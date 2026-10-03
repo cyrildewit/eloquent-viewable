@@ -142,6 +142,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | Group   | Benchmark                   | Measures                                                                                                                              |
 |---------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `read`  | `CountViewsBench`           | `count()` and `unique()->count()`, for the hot article, the cold article and the whole type, over all time, a year, 30 days and a day |
+| `read`  | `CountViewsByCollectionBench` | `countByCollection()`, plain and unique, for the same targets and periods as `CountViewsBench`, so the two show what the grouping adds |
 | `read`  | `CountViewsByIntervalBench` | `countByInterval()`, plain and unique, from a week of hours to two years of months                                                    |
 | `read`  | `OrderByViewsBench`         | `orderByViews()` and `orderByUniqueViews()`, first page of twenty, over the same periods                                              |
 | `write` | `RecordViewBench`           | `record()` into the full table, direct and through the sync queue                                                                     |
