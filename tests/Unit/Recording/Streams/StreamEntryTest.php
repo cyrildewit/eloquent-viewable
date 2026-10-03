@@ -29,6 +29,28 @@ it('encodes the visitor and the collection when set', function (): void {
     ]);
 });
 
+it('encodes the viewer and the context, the context as JSON', function (): void {
+    $record = new ViewRecord(
+        viewableId: 7,
+        viewableType: 'posts',
+        visitor: null,
+        collection: null,
+        viewedAt: Carbon::parse('2021-01-01 12:30:00', 'UTC'),
+        viewerType: 'users',
+        viewerId: 3,
+        context: ['source' => 'newsletter', 'tags' => ['a', 'b']],
+    );
+
+    expect(StreamEntry::encode($record))->toBe([
+        'viewable_id' => '7',
+        'viewable_type' => 'posts',
+        'viewer_type' => 'users',
+        'viewer_id' => '3',
+        'context' => '{"source":"newsletter","tags":["a","b"]}',
+        'viewed_at' => '2021-01-01T12:30:00+00:00',
+    ]);
+});
+
 it('rebuilds the record from its fields', function (): void {
     $entry = new StreamEntry('1-0', [
         'viewable_id' => '7',
@@ -47,6 +69,21 @@ it('rebuilds the record from its fields', function (): void {
         ->and($record->viewedAt->equalTo(Carbon::parse('2021-01-01 12:30:00', 'UTC')))->toBeTrue();
 });
 
+it('rebuilds the viewer and decodes the context', function (): void {
+    $record = new StreamEntry('1-0', [
+        'viewable_id' => '7',
+        'viewable_type' => 'posts',
+        'viewer_type' => 'users',
+        'viewer_id' => '3',
+        'context' => '{"source":"newsletter","tags":["a","b"]}',
+        'viewed_at' => '2021-01-01T12:30:00+00:00',
+    ])->record();
+
+    expect($record->viewerType)->toBe('users')
+        ->and($record->viewerId)->toBe('3')
+        ->and($record->context)->toBe(['source' => 'newsletter', 'tags' => ['a', 'b']]);
+});
+
 it('fills the columns that were left out back in as null', function (): void {
     $record = new StreamEntry('1-0', [
         'viewable_id' => '7',
@@ -55,7 +92,10 @@ it('fills the columns that were left out back in as null', function (): void {
     ])->record();
 
     expect($record->visitor)->toBeNull()
-        ->and($record->collection)->toBeNull();
+        ->and($record->collection)->toBeNull()
+        ->and($record->viewerType)->toBeNull()
+        ->and($record->viewerId)->toBeNull()
+        ->and($record->context)->toBeNull();
 });
 
 it('refuses to rebuild a record from an entry that misses a field', function (string $missing): void {
