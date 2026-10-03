@@ -16,7 +16,9 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsPost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Container\Container;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
@@ -124,6 +126,108 @@ describe('count subquery', function (): void {
             ->toBe('select count(*) from "views" where "views"."viewable_type" = ? and "views"."viewable_id" = "posts"."id"')
             ->and(viewSource()->countSubquery(new Post, new ViewsQuery(unique: true))->toSql())
             ->toBe('select count(distinct "views"."visitor") from "views" where "views"."viewable_type" = ? and "views"."viewable_id" = "posts"."id"');
+    })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
+});
+
+describe('top', function (): void {
+    it('ranks the viewables of every type by their views', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($apartment, 'viewable')->count(3)->create();
+        View::factory()->for($other, 'viewable')->create();
+
+        expect(viewSource()->top(null, new ViewsQuery, 10))->toBe([
+            ['type' => $apartment->getMorphClass(), 'id' => $apartment->getKey(), 'count' => 3],
+            ['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'count' => 2],
+            ['type' => $other->getMorphClass(), 'id' => $other->getKey(), 'count' => 1],
+        ]);
+    });
+
+    it('ranks within one type when the viewable has no key', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->create();
+        View::factory()->for($other, 'viewable')->count(2)->create();
+        View::factory()->for(Apartment::factory()->create(), 'viewable')->count(3)->create();
+
+        expect(array_column(viewSource()->top(new Post, new ViewsQuery, 10), 'id'))->toBe([$other->getKey(), $this->post->getKey()]);
+    });
+
+    it('stops at the limit', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($other, 'viewable')->create();
+
+        expect(viewSource()->top(null, new ViewsQuery, 1))->toBe([
+            ['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'count' => 2],
+        ]);
+    });
+
+    it('breaks ties on the type, then the key', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        View::factory()->for($other, 'viewable')->create();
+        View::factory()->for($this->post, 'viewable')->create();
+        View::factory()->for($apartment, 'viewable')->create();
+
+        expect(array_map(fn (array $row): array => [$row['type'], $row['id']], viewSource()->top(null, new ViewsQuery, 10)))->toBe([
+            [$apartment->getMorphClass(), $apartment->getKey()],
+            [$this->post->getMorphClass(), $this->post->getKey()],
+            [$other->getMorphClass(), $other->getKey()],
+        ]);
+    });
+
+    it('counts unique visitors', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->fromVisitor('one')->count(3)->create();
+        View::factory()->for($other, 'viewable')->fromVisitor('one')->create();
+        View::factory()->for($other, 'viewable')->fromVisitor('two')->create();
+
+        expect(array_column(viewSource()->top(null, new ViewsQuery(unique: true), 10), 'count'))->toBe([2, 1])
+            ->and(array_column(viewSource()->top(null, new ViewsQuery, 10), 'count'))->toBe([3, 2]);
+    });
+
+    it('applies the period, collection and viewer', function (): void {
+        $other = Post::factory()->create();
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-01-10'))->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-02-10'))->create();
+        View::factory()->for($other, 'viewable')->inCollection('custom')->viewedAt(Carbon::parse('2026-02-10'))->by($user)->count(2)->create();
+
+        expect(array_column(viewSource()->top(null, new ViewsQuery(Period::since('2026-02-01')), 10), 'id'))->toBe([$other->getKey(), $this->post->getKey()])
+            ->and(array_column(viewSource()->top(null, new ViewsQuery(collection: 'custom'), 10), 'id'))->toBe([$this->post->getKey(), $other->getKey()])
+            ->and(array_column(viewSource()->top(null, new ViewsQuery(Period::since('2026-02-01'), 'custom'), 10), 'id'))->toBe([$other->getKey()])
+            ->and(array_column(viewSource()->top(null, new ViewsQuery(viewer: $user), 10), 'id'))->toBe([$other->getKey()]);
+    });
+
+    it('returns nothing when no view matches', function (): void {
+        expect(viewSource()->top(null, new ViewsQuery, 10))->toBeEmpty();
+    });
+
+    it('keeps the rows of a viewable whose model is gone', function (): void {
+        $post = KeepsViewsPost::create(['title' => 'Title', 'body' => 'Body']);
+        View::factory()->for($post, 'viewable')->count(2)->create();
+        $post->delete();
+
+        expect(viewSource()->top(null, new ViewsQuery, 10))->toBe([
+            ['type' => $post->getMorphClass(), 'id' => $post->getKey(), 'count' => 2],
+        ]);
+    });
+
+    it('groups and orders in one statement', function (): void {
+        DB::enableQueryLog();
+
+        viewSource()->top(new Post, new ViewsQuery(Period::create('2026-01-01', '2026-02-01'), 'custom', unique: true), 5);
+
+        expect(array_column(DB::getQueryLog(), 'query'))->toBe([
+            'select "views"."viewable_type", "views"."viewable_id", count(distinct "views"."visitor") as aggregate from "views" where "viewed_at" >= ? and "viewed_at" < ? and "collection" = ? and "views"."viewable_type" = ? group by "views"."viewable_type", "views"."viewable_id" order by "aggregate" desc, "views"."viewable_type" asc, "views"."viewable_id" asc limit 5',
+        ]);
     })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
 });
 

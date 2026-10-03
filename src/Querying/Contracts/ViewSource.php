@@ -35,4 +35,7 @@ interface ViewSource
      * Selects one integer, correlated on the viewable's qualified key.
      */
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder;
+
+    /** @return list<array{type: string, id: int|string, count: int}> */
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array;
 }

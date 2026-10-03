@@ -350,6 +350,11 @@ describe('view source', function (): void {
                 // The row's own key stands in for a count, so the ordering is observable.
                 return DB::query()->selectRaw($viewable->getQualifiedKeyName());
             }
+
+            public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+            {
+                return [];
+            }
         });
     });
 
