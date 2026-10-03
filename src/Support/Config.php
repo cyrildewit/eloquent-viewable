@@ -34,7 +34,11 @@ final readonly class Config
     {
         $value = $this->get('models.view.class', View::class);
 
-        if (! is_string($value) || ! is_a($value, View::class, true)) {
+        if (! is_string($value)) {
+            throw InvalidConfiguration::mustBeViewModel('models.view.class', $value);
+        }
+
+        if (! is_a($value, View::class, true)) {
             throw InvalidConfiguration::mustBeViewModel('models.view.class', $value);
         }
 
@@ -97,7 +101,11 @@ final readonly class Config
         }
 
         foreach ($value as $guard) {
-            if (! is_string($guard) || ! class_exists($guard)) {
+            if (! is_string($guard)) {
+                throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $guard);
+            }
+
+            if (! class_exists($guard)) {
                 throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $guard);
             }
         }
@@ -257,7 +265,11 @@ final readonly class Config
     {
         $value = $this->get($key);
 
-        if (! is_string($value) || $value === '') {
+        if (! is_string($value)) {
+            throw InvalidConfiguration::mustBeNonEmptyString($key, $value);
+        }
+
+        if ($value === '') {
             throw InvalidConfiguration::mustBeNonEmptyString($key, $value);
         }
 
@@ -270,7 +282,11 @@ final readonly class Config
         $value = $this->get($key);
         $integer = filter_var($value, FILTER_VALIDATE_INT);
 
-        if ($integer === false || $integer < 1) {
+        if ($integer === false) {
+            throw InvalidConfiguration::mustBePositiveInteger($key, $value);
+        }
+
+        if ($integer < 1) {
             throw InvalidConfiguration::mustBePositiveInteger($key, $value);
         }
 
