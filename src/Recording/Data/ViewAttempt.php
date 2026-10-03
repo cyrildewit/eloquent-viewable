@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 final readonly class ViewAttempt
 {
-    /** @param  array<string, mixed>|null  $context */
+    /** @param  ?array<string, mixed>  $context */
     public function __construct(
         public Viewable $viewable,
         public Visitor $visitor,

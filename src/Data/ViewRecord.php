@@ -12,7 +12,7 @@ use JsonException;
 
 final readonly class ViewRecord
 {
-    /** @param  array<string, mixed>|null  $context */
+    /** @param  ?array<string, mixed>  $context */
     public function __construct(
         public int|string $viewableId,
         public string $viewableType,
