@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SoftDeletablePost extends Model implements Viewable
 {
-    use InteractsWithViews, SoftDeletes;
+    use InteractsWithViews;
+    use SoftDeletes;
 
     #[\Override]
     protected $table = 'posts';

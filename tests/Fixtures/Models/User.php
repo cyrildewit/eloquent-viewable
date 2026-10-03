@@ -20,7 +20,9 @@ use Illuminate\Support\Carbon;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasViewHistory;
+    use HasFactory;
+
+    use HasViewHistory;
 
     #[\Override]
     protected $guarded = [];
