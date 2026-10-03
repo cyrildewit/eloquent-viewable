@@ -8,10 +8,13 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsInCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewsCountBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\WithViewsCountBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\DestroyViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\RecordViewBench;
@@ -60,10 +63,13 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsByCollectionBench::class,
         CountViewsByIntervalBench::class,
         CountViewsForViewablesBench::class,
+        CountViewsInCollectionBench::class,
         OrderByViewsBench::class,
         RememberedCountsBench::class,
         TopViewedBench::class,
+        WhereViewedBench::class,
         WhereViewsCountBench::class,
+        WithViewsCountBench::class,
         BufferViewsBench::class,
         DestroyViewsBench::class,
         RecordViewBench::class,
@@ -76,7 +82,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewsCountBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
@@ -117,6 +123,14 @@ it('names the parameter sets of the collection benchmarks as those of the plain 
     expect(setsOf(CountViewsByCollectionBench::class, 'benchCountByCollection'))->toBe($expected)
         ->and(setsOf(CountViewsByCollectionBench::class, 'benchUniqueCountByCollection'))->toBe($expected)
         ->and(benchmark(CountViewsByCollectionBench::class)->variants)->toHaveCount(24);
+});
+
+it('names the parameter sets of the collection filter benchmarks as those of the plain count', function (): void {
+    $expected = setsOf(CountViewsBench::class, 'benchCount');
+
+    expect(setsOf(CountViewsInCollectionBench::class, 'benchCountInCollection'))->toBe($expected)
+        ->and(setsOf(CountViewsInCollectionBench::class, 'benchUniqueCountInCollection'))->toBe($expected)
+        ->and(benchmark(CountViewsInCollectionBench::class)->variants)->toHaveCount(24);
 });
 
 it('names the parameter sets of the page benchmarks', function (): void {
@@ -172,7 +186,8 @@ it('names the parameter sets of the interval benchmarks', function (): void {
     ];
 
     expect(setsOf(CountViewsByIntervalBench::class, 'benchCountByInterval'))->toBe($expected)
-        ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected);
+        ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected)
+        ->and(setsOf(CountViewsByIntervalBench::class, 'benchCountByIntervalInTimezone'))->toBe($expected);
 });
 
 it('names the parameter sets of the ranking benchmark', function (): void {
@@ -189,6 +204,22 @@ it('names the parameter sets of the ranking benchmark', function (): void {
 
     expect(setsOf(TopViewedBench::class, 'benchTop'))->toBe($expected)
         ->and(setsOf(TopViewedBench::class, 'benchUniqueTop'))->toBe($expected);
+});
+
+it('names the parameter sets of the visitor filter benchmarks', function (): void {
+    $expected = [
+        'returning visitor,all time',
+        'new visitor,all time',
+        'returning visitor,past year',
+        'new visitor,past year',
+        'returning visitor,past 30 days',
+        'new visitor,past 30 days',
+        'returning visitor,past day',
+        'new visitor,past day',
+    ];
+
+    expect(setsOf(WhereViewedBench::class, 'benchWhereViewedByVisitor'))->toBe($expected)
+        ->and(setsOf(WhereViewedBench::class, 'benchWhereNotViewedByVisitor'))->toBe($expected);
 });
 
 it('names the parameter sets of the remembered count benchmarks', function (): void {
@@ -214,6 +245,8 @@ it('names the parameter sets of one provider after its keys', function (): void 
         ->and(setsOf(OrderByViewsBench::class, 'benchOrderByUniqueViews'))->toBe($expected)
         ->and(setsOf(WhereViewsCountBench::class, 'benchWhereViewsCount'))->toBe($expected)
         ->and(setsOf(WhereViewsCountBench::class, 'benchWhereUniqueViewsCount'))->toBe($expected)
+        ->and(setsOf(WithViewsCountBench::class, 'benchWithViewsCount'))->toBe($expected)
+        ->and(setsOf(WithViewsCountBench::class, 'benchWithUniqueViewsCount'))->toBe($expected)
         ->and(setsOf(DestroyViewsBench::class, 'benchDestroy'))->toBe(['100 views', '1,000 views', '10,000 views'])
         ->and(setsOf(CooldownManagerBench::class, 'benchPush'))->toBe(['empty session', '100 cooldowns', '1,000 cooldowns', '10,000 cooldowns'])
         ->and(setsOf(ViewSeriesBench::class, 'benchFill'))->toBe(['168 buckets', '720 buckets', '8,760 buckets']);
