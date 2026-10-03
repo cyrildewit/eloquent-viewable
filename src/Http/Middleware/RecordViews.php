@@ -71,7 +71,6 @@ final readonly class RecordViews
         $response = $next($request);
         $route = $request->route();
 
-        // The bindings are resolved by now, whichever order the middleware ran in.
         if (! $request->isMethod('GET')) {
             return $response;
         }
@@ -139,9 +138,10 @@ final readonly class RecordViews
 
         $selected = [];
 
-        // A selector with a backslash names a model class, the way Laravel's `can` middleware tells them apart.
         foreach ($selectors as $selector) {
-            $matches = str_contains($selector, '\\')
+            $namesModelClass = str_contains($selector, '\\');
+
+            $matches = $namesModelClass
                 ? array_filter($viewables, fn (Viewable $viewable): bool => $viewable instanceof $selector)
                 : array_intersect_key($viewables, [$selector => true]);
 

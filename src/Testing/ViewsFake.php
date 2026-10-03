@@ -129,7 +129,6 @@ final class ViewsFake implements ViewSource, ViewStore
             $rows[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'count' => $this->aggregate($views, $query)];
         }
 
-        // Highest count first, then type, then key, as the database orders.
         usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);
 
         return array_slice($rows, 0, $limit);
@@ -213,10 +212,6 @@ final class ViewsFake implements ViewSource, ViewStore
         $start = $query->period?->getStartDateTime();
         $end = $query->period?->getEndDateTime();
 
-        // Resolved before filtering, as the database scope does, so a viewer
-        // without a key is refused even when nothing was recorded. A store
-        // that keeps strings hands back a string key, so keys are compared
-        // as strings.
         $viewer = $query->viewer;
         $viewerKey = $viewer instanceof Model ? (string) ViewerKey::of($viewer) : null;
 

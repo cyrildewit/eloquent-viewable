@@ -115,12 +115,7 @@ final readonly class Reader
     {
         $counts = $this->source($rememberUntil)->countByCollection($viewable, $query);
 
-        // Sorting is stable, so names ordered first settle the ties. Compared as
-        // strings because PHP keys a numeric name such as "2024" as an integer.
-        ksort($counts, SORT_STRING);
-        arsort($counts);
-
-        return $counts;
+        return $this->sortByCountThenName($counts);
     }
 
     /**
@@ -166,6 +161,18 @@ final readonly class Reader
         }
 
         return "{$driver}:{$this->source->cacheIdentity()}";
+    }
+
+    /**
+     * @param  array<string, int>  $counts
+     * @return array<string, int>
+     */
+    private function sortByCountThenName(array $counts): array
+    {
+        ksort($counts, SORT_STRING);
+        arsort($counts);
+
+        return $counts;
     }
 
     /** @throws InvalidInterval */

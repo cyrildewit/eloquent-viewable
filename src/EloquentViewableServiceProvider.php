@@ -48,12 +48,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $router->aliasMiddleware(RecordViews::Alias, RecordViews::class);
         });
 
-        // Recording does not know about the cache, so the counts remembered of
-        // destroyed views are forgotten here, where both sides meet.
-        $this->app->make(EventDispatcher::class)->listen(
-            ViewsDestroyed::class,
-            fn (ViewsDestroyed $event) => $this->app->make(CacheVersions::class)->forgetCache($event->viewable),
-        );
+        $this->forgetCountsOfDestroyedViews();
 
         if ($this->app->runningInConsole()) {
             $this->commands([FlushViewsCommand::class]);
@@ -70,6 +65,14 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 ], 'migrations');
             }
         }
+    }
+
+    protected function forgetCountsOfDestroyedViews(): void
+    {
+        $this->app->make(EventDispatcher::class)->listen(
+            ViewsDestroyed::class,
+            fn (ViewsDestroyed $event) => $this->app->make(CacheVersions::class)->forgetCache($event->viewable),
+        );
     }
 
     #[\Override]
@@ -129,9 +132,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->bind(CooldownStore::class, fn (Application $app): CooldownStore => $app->make(CooldownManager::class)->driver());
 
-        // The detector judges the user agent it is handed, so it holds no
-        // request state and one instance serves the whole process. The
-        // library compiles its pattern list once in the constructor.
         $this->app->singleton(CrawlerDetect::class);
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
     }
