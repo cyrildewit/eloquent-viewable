@@ -10,6 +10,8 @@ final class InvalidViewer extends InvalidArgumentException implements EloquentVi
 {
     public static function unsupportedKey(string $class, mixed $key): self
     {
-        return new self(sprintf('The key of the viewer [%s] must be an integer or a string, %s given.', $class, get_debug_type($key)));
+        $type = get_debug_type($key);
+
+        return new self("The key of the viewer [{$class}] must be an integer or a string, {$type} given.");
     }
 }
