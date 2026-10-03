@@ -87,8 +87,6 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
         $column = $grammar->wrap($this->view->qualifyColumn('collection'));
         $aggregate = $this->aggregate($query, $grammar);
 
-        // The default collection is stored as null, which pluck keys as the
-        // empty string, as any PHP array does.
         /** @var Collection<int|string, int|string> $rows */
         $rows = $builder
             ->selectRaw("{$column} as collection, {$aggregate} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
@@ -182,8 +180,6 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
             $builder->where($type, $viewable->getMorphClass());
         }
 
-        // Ordered by the alias, which every driver accepts, then by the group
-        // columns so ties come back in the same order everywhere.
         $rows = $builder
             ->selectRaw("{$grammar->wrap($type)}, {$grammar->wrap($id)}, {$this->aggregate($query, $grammar)} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
             ->groupBy($type, $id)
@@ -209,8 +205,6 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
             ->where('viewable_type', $viewable->getMorphClass());
         $aggregate = $this->aggregate($query, $builder->getGrammar());
 
-        // An integer is inlined, as Eloquent does when eager loading, which
-        // spares two bindings per branch. Anything else is bound.
         if (is_int($key)) {
             return $builder
                 ->whereIntegerInRaw('viewable_id', [$key])

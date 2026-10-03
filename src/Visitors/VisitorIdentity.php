@@ -45,8 +45,6 @@ final readonly class VisitorIdentity
             return $this->ofViewer($viewer);
         }
 
-        // Only the cookie id is read from the visitor here, so a fingerprint
-        // never queues the cookie.
         return $identity === self::Fingerprint ? $this->fingerprint->of($visitor) : $visitor->id();
     }
 

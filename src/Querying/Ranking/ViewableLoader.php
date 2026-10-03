@@ -27,8 +27,6 @@ final readonly class ViewableLoader
             $query = $instance->newQuery();
 
             foreach ($query->whereKey($group->pluck('id')->all())->get() as $model) {
-                // Keyed as strings, so an integer from the views table matches
-                // a string key and the other way round.
                 if ($model instanceof Viewable) {
                     $models[(string) $type][(string) ViewableKey::of($model)] = $model;
                 }
