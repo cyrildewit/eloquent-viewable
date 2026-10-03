@@ -129,6 +129,15 @@ it('changes the key when the granularity changes', function (): void {
         ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), Granularity::Day));
 });
 
+it('changes the key when the grouping changes', function (): void {
+    $default = cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)));
+
+    expect(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), grouping: 'collection'))
+        ->not->toBe($default)
+        ->and(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), grouping: 'collection'))
+        ->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), grouping: 'collection'));
+});
+
 it('changes the key when the timezone changes', function (): void {
     $default = cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2)), Granularity::Day);
 

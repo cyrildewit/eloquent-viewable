@@ -194,6 +194,26 @@ describe('counting', function (): void {
             ->and($unique->intervals->pluck('count')->all())->toBe([1, 0, 1]);
     });
 
+    it('counts by collection, most viewed first, with the default collection as an empty string', function (): void {
+        Carbon::setTestNow('2026-09-01 10:00:00');
+        views($this->post)->useVisitor(visitor('one'))->collection('sidebar')->record();
+        views($this->post)->useVisitor(visitor('one'))->collection('sidebar')->record();
+        views($this->post)->useVisitor(visitor('two'))->collection('sidebar')->record();
+        views($this->post)->useVisitor(visitor('one'))->record();
+        views($this->post)->useVisitor(visitor('one'))->record();
+
+        Carbon::setTestNow('2026-09-03 10:00:00');
+        views($this->post)->useVisitor(visitor('three'))->collection('feed')->record();
+        views(Post::factory()->create())->useVisitor(visitor('three'))->collection('feed')->record();
+
+        expect(views($this->post)->countByCollection())->toBe(['sidebar' => 3, '' => 2, 'feed' => 1])
+            ->and(views($this->post)->unique()->countByCollection())->toBe(['sidebar' => 2, '' => 1, 'feed' => 1])
+            ->and(views($this->post)->period(Period::since('2026-09-02'))->countByCollection())->toBe(['feed' => 1])
+            ->and(views($this->post)->collection('sidebar')->countByCollection())->toBe(['sidebar' => 3])
+            ->and(views(Post::class)->countByCollection())->toBe(['sidebar' => 3, '' => 2, 'feed' => 2])
+            ->and(views(Post::factory()->create())->countByCollection())->toBeEmpty();
+    });
+
     it('counts by interval on the clock of the timezone', function (): void {
         // 15:00 UTC on the 1st is already the 2nd in Sydney.
         Carbon::setTestNow('2026-09-01 15:00:00');

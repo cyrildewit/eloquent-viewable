@@ -85,6 +85,29 @@ final readonly class Reader
     }
 
     /**
+     * Most viewed first, then by name, so the order is the same on every
+     * driver. Sorting in SQL would place the default collection, stored as
+     * null, differently per database.
+     *
+     * @return array<string, int>
+     */
+    public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    {
+        $counts = $this->remember(
+            $rememberUntil,
+            fn (): string => new CacheKey($viewable, $this->config->cacheKey(), $this->config->sourceDriver())->make($query, grouping: 'collection'),
+            fn (): array => $this->source->countByCollection($viewable, $query),
+        );
+
+        // Sorting is stable, so names ordered first settle the ties. Compared as
+        // strings because PHP keys a numeric name such as "2024" as an integer.
+        ksort($counts, SORT_STRING);
+        arsort($counts);
+
+        return $counts;
+    }
+
+    /**
      * @template TValue of int|array<string, int>
      *
      * @param  Closure(): string  $key

@@ -926,6 +926,11 @@ describe('counting by interval', function (): void {
                 return ['2026-09-01 00:00:00' => 42];
             }
 
+            public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+            {
+                return ['sidebar' => 42];
+            }
+
             public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
             {
                 return DB::query()->selectRaw('0');
@@ -1152,6 +1157,87 @@ describe('counting by interval', function (): void {
         // SQLite reports "USING INDEX" or "USING COVERING INDEX"; both range-scan it.
         expect($plan)->toContain('INDEX views_viewable_viewed_at_index (viewable_type=? AND viewable_id=? AND viewed_at>? AND viewed_at<?)');
     })->skip(fn (): bool => driver() !== 'sqlite', 'Query plans are asserted on SQLite only');
+});
+
+describe('counting by collection', function (): void {
+    it('counts per collection, most viewed first, with the default collection as an empty string', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->inCollection('feed')->create();
+
+        expect(views($this->post)->countByCollection())->toBe(['sidebar' => 3, '' => 2, 'feed' => 1]);
+    });
+
+    it('counts per collection over a whole type', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->inCollection('feed')->create();
+
+        expect(views(Post::class)->countByCollection())->toBe(['feed' => 2]);
+    });
+
+    it('returns no counts for a viewable without views', function (): void {
+        expect(views($this->post)->countByCollection())->toBeEmpty();
+    });
+
+    it('honours unique, period, collection and viewer', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->fromVisitor('visitor_one')->by($user)->viewedAt(Carbon::parse('2026-09-01 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->fromVisitor('visitor_one')->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->fromVisitor('visitor_two')->viewedAt(Carbon::parse('2026-09-02 10:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->fromVisitor('visitor_three')->viewedAt(Carbon::parse('2026-09-04 10:00:00'))->create();
+
+        expect(views($this->post)->unique()->countByCollection())->toBe(['feed' => 2, 'sidebar' => 1])
+            ->and(views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->countByCollection())->toBe(['sidebar' => 2, 'feed' => 1])
+            ->and(views($this->post)->collection('feed')->countByCollection())->toBe(['feed' => 2])
+            ->and(views($this->post)->viewedBy($user)->countByCollection())->toBe(['sidebar' => 1]);
+    });
+
+    it('sums to the plain count', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        expect(array_sum(views($this->post)->countByCollection()))->toBe(views($this->post)->count());
+    });
+
+    it('remembers the counts', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->create();
+
+        expect(views($this->post)->remember(60)->countByCollection())->toBe(['sidebar' => 1]);
+
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->create();
+
+        expect(views($this->post)->remember(60)->countByCollection())->toBe(['sidebar' => 1])
+            ->and(views($this->post)->countByCollection())->toBe(['feed' => 1, 'sidebar' => 1]);
+    });
+
+    it('reads through the ViewSource bound in the container', function (): void {
+        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
+        {
+            public function count(Viewable $viewable, ViewsQuery $query): int
+            {
+                return 0;
+            }
+
+            public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+            {
+                return [];
+            }
+
+            public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+            {
+                return ['feed' => 1, 'sidebar' => 42];
+            }
+
+            public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
+            {
+                return DB::query()->selectRaw('0');
+            }
+        });
+
+        expect(views($this->post)->countByCollection())->toBe(['sidebar' => 42, 'feed' => 1]);
+    });
 });
 
 describe('destroying', function (): void {
