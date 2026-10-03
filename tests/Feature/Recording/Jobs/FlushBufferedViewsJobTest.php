@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Recording\Jobs\FlushBufferedViewsJob;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
+use Illuminate\Support\Facades\Bus;
 
 beforeEach(function (): void {
     $this->post = Post::factory()->create();
@@ -22,11 +23,11 @@ it('lands the buffered views from the queue', function (): void {
     views($this->post)->record();
     views($this->post)->record();
 
-    FlushBufferedViewsJob::dispatchSync(1);
+    Bus::dispatchSync(new FlushBufferedViewsJob(1));
 
     expect($this->post)->toHaveViewsCount(2);
 });
 
 it('fails when the configured store does not buffer', function (): void {
-    expect(fn () => FlushBufferedViewsJob::dispatchSync())->toThrow(StoreIsNotBuffered::class);
+    expect(fn () => Bus::dispatchSync(new FlushBufferedViewsJob))->toThrow(StoreIsNotBuffered::class);
 });

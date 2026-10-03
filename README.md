@@ -1300,7 +1300,14 @@ Schedule the `views:flush` command to run every minute. It lands every buffered 
 Schedule::command('views:flush')->everyMinute()->withoutOverlapping();
 ```
 
-Or dispatch `Recording\Jobs\FlushBufferedViewsJob` from wherever fits, with the same batch size as its only argument.
+Or dispatch `Recording\Jobs\FlushBufferedViewsJob` from wherever fits, with the same batch size as its only argument:
+
+```php
+Schedule::job(new FlushBufferedViewsJob(500))->everyMinute();
+
+dispatch(new FlushBufferedViewsJob(500));
+```
+
 Both go through `Recording\Buffering\Flusher`, which refuses with `Recording\Exceptions\StoreIsNotBuffered` when the
 configured store does not buffer. Running the flusher more than once at a time is safe: the consumer group hands every
 view to one flusher only.

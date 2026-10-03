@@ -363,6 +363,8 @@ Most classes now live in a namespace named after the module they belong to. The 
 
 If you bound your own implementation of the recording action, bind it to `Recording\Contracts\RecordsViews` now and drop the return value, see [above](#recording-returns-nothing-and-the-event-carries-a-viewrecord). A `catch (ViewRecordException $e)` becomes `catch (RecordingFailed $e)`, and `Bus::assertDispatched(StoreView::class)` in your tests becomes `Bus::assertDispatched(RecordViewJob::class)`.
 
+`Recording\Jobs\RecordViewJob` no longer uses the `Dispatchable` trait, so `RecordViewJob::dispatch()` is gone. The package never called it; if your code did, dispatch an instance with `dispatch(new RecordViewJob($record))` or `Bus::dispatch()` instead.
+
 The published migration file is unaffected. The stub now ships from `database/migrations/` inside the package, but `vendor:publish` writes it to the same place in your application.
 
 ## Upgrading from v7.0.3 to v8.0.0
