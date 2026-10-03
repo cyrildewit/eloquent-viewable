@@ -31,7 +31,7 @@ class CreateViewsTable extends Migration
             $table->json('context')->nullable();
             $table->timestamp('viewed_at')->useCurrent();
 
-            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], 'views_viewable_viewed_at_index');
+            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$this->table}_viewable_viewed_at_index");
         });
     }
 

@@ -51,14 +51,14 @@ return new class extends Migration
     public function up(): void
     {
         $this->schema->table($this->table, function (Blueprint $table) {
-            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], 'views_viewable_viewed_at_index');
+            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$this->table}_viewable_viewed_at_index");
         });
     }
 
     public function down(): void
     {
         $this->schema->table($this->table, function (Blueprint $table) {
-            $table->dropIndex('views_viewable_viewed_at_index');
+            $table->dropIndex("{$this->table}_viewable_viewed_at_index");
         });
     }
 };
