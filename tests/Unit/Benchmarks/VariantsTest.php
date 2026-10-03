@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewsCountBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\WithViewsCountBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\DestroyViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\RecordViewBench;
@@ -66,6 +67,7 @@ it('finds every benchmark class in path order', function (): void {
         TopViewedBench::class,
         WhereViewedBench::class,
         WhereViewsCountBench::class,
+        WithViewsCountBench::class,
         BufferViewsBench::class,
         DestroyViewsBench::class,
         RecordViewBench::class,
@@ -78,7 +80,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
@@ -232,6 +234,8 @@ it('names the parameter sets of one provider after its keys', function (): void 
         ->and(setsOf(OrderByViewsBench::class, 'benchOrderByUniqueViews'))->toBe($expected)
         ->and(setsOf(WhereViewsCountBench::class, 'benchWhereViewsCount'))->toBe($expected)
         ->and(setsOf(WhereViewsCountBench::class, 'benchWhereUniqueViewsCount'))->toBe($expected)
+        ->and(setsOf(WithViewsCountBench::class, 'benchWithViewsCount'))->toBe($expected)
+        ->and(setsOf(WithViewsCountBench::class, 'benchWithUniqueViewsCount'))->toBe($expected)
         ->and(setsOf(DestroyViewsBench::class, 'benchDestroy'))->toBe(['100 views', '1,000 views', '10,000 views'])
         ->and(setsOf(CooldownManagerBench::class, 'benchPush'))->toBe(['empty session', '100 cooldowns', '1,000 cooldowns', '10,000 cooldowns'])
         ->and(setsOf(ViewSeriesBench::class, 'benchFill'))->toBe(['168 buckets', '720 buckets', '8,760 buckets']);
