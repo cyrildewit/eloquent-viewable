@@ -14,9 +14,9 @@ use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
@@ -308,6 +308,20 @@ describe('counting', function (): void {
             ->and($ids($this->fake->top(null, new ViewsQuery, 1)))->toBe([
                 [$this->post->getMorphClass(), $this->post->getKey(), 3],
             ]);
+    });
+
+    it('serves the ranking through Views::top() with the models from the database', function (): void {
+        $apartment = Apartment::factory()->create();
+
+        views($this->post)->record();
+        views($apartment)->record();
+        views($apartment)->record();
+
+        expect(Views::top()->viewables()->map(fn ($model): array => [$model::class, $model->getKey()])->all())->toBe([
+            [Apartment::class, $apartment->getKey()],
+            [Post::class, $this->post->getKey()],
+        ])
+            ->and(views(Post::class)->top()->viewables()->modelKeys())->toBe([$this->post->getKey()]);
     });
 
     it('refuses the scopes', function (): void {
