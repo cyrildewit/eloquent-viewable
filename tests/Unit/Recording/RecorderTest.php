@@ -111,11 +111,13 @@ function rememberingGuard(bool $remembered, ?ViewAttempt $expected = null): Reco
     $guard = Mockery::mock(RecordingGuard::class.', '.RemembersRecordedViews::class);
     $guard->shouldReceive('allows')->andReturn(true);
 
-    if ($remembered) {
-        $guard->expects('remember')->with($expected);
-    } else {
+    if (! $remembered) {
         $guard->shouldNotReceive('remember');
+
+        return $guard;
     }
+
+    $guard->expects('remember')->with($expected);
 
     return $guard;
 }

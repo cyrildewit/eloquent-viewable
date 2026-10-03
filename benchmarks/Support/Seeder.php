@@ -303,9 +303,11 @@ final class Seeder
         foreach ($scaled as $index => $value) {
             if ($value < 1) {
                 $small[] = $index;
-            } else {
-                $large[] = $index;
+
+                continue;
             }
+
+            $large[] = $index;
         }
 
         $this->probability = array_fill(0, $articles, 1.0);
@@ -322,9 +324,11 @@ final class Seeder
 
             if ($scaled[$more] < 1) {
                 $small[] = $more;
-            } else {
-                $large[] = $more;
+
+                continue;
             }
+
+            $large[] = $more;
         }
     }
 
