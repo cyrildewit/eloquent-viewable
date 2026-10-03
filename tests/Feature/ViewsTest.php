@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -65,6 +66,23 @@ it('is macroable', function (): void {
     Views::macro('newMethod', fn (): string => 'someValue');
 
     expect($this->app->make(Views::class)->newMethod())->toBe('someValue');
+});
+
+it('starts every facade call with a fresh builder', function (): void {
+    View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-01-10'))->create();
+    View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-02-10'))->create();
+
+    expect(ViewsFacade::forViewable($this->post)->period(Period::since('2026-02-01'))->count())->toBe(1)
+        ->and(ViewsFacade::forViewable($this->post)->count())->toBe(2)
+        ->and(ViewsFacade::getFacadeRoot())->not->toBe(ViewsFacade::getFacadeRoot())
+        ->and(fn (): int => ViewsFacade::count())->toThrow(InvalidViewable::class);
+});
+
+it('keeps a double set on the facade', function (): void {
+    ViewsFacade::shouldReceive('count')->twice()->andReturn(42);
+
+    expect(ViewsFacade::count())->toBe(42)
+        ->and(ViewsFacade::count())->toBe(42);
 });
 
 it('requires a viewable before it counts, records, attempts or destroys views', function (string $method): void {
