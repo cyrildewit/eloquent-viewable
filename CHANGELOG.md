@@ -11,6 +11,8 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 ### Added
 
+- Added `Views::forViewables(iterable $viewables)` and `Views::counts()`, which count the views of models you already have, such as a page of results, in one grouped query instead of one `count()` per model. The result is a collection keyed by model key with a 0 for a model without views. `period()`, `unique()`, `collection()`, `viewedBy()` and `remember()` apply, and a remembered count shares its cache entry with `count()`. Models of more than one type or without a key throw `InvalidViewable`. The fake supports it
+- Added `countMany()` to `Querying\Contracts\ViewSource`, the sparse counts of a list of keys of one type, and `Support\ViewableSet`
 - Added nullable `viewer_type` and `viewer_id` columns to the `create_views_table` stub, a polymorphic link from a view to the model that was signed in when it was recorded. Any Eloquent model can be a viewer; existing installations add the columns with the migration in the upgrade guide
 - Added the `recording.viewer.enabled` and `recording.viewer.guard` config options. When enabled, every recorded view stores the model signed in on that auth guard, or the default guard for `null`. Off by default
 - Added `Views::viewedBy(?Model $viewer)`, which credits a recorded view to the given model whether or not recording the viewer is enabled, and narrows `count()` and `countByInterval()` to the views that model made. `null` clears it
