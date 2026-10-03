@@ -17,7 +17,11 @@ final readonly class CrawlerDetectAdapter implements CrawlerDetector
         // construction when the argument is empty, and construction without
         // arguments reads $_SERVER. Deciding the empty case here keeps the
         // adapter free of request state.
-        if ($userAgent === null || trim($userAgent) === '') {
+        if ($userAgent === null) {
+            return false;
+        }
+
+        if (trim($userAgent) === '') {
             return false;
         }
 

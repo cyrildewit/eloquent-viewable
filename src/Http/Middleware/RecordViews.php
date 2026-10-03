@@ -72,7 +72,15 @@ final readonly class RecordViews
         $route = $request->route();
 
         // The bindings are resolved by now, whichever order the middleware ran in.
-        if (! $request->isMethod('GET') || ! $response->isSuccessful() || ! $route instanceof Route) {
+        if (! $request->isMethod('GET')) {
+            return $response;
+        }
+
+        if (! $response->isSuccessful()) {
+            return $response;
+        }
+
+        if (! $route instanceof Route) {
             return $response;
         }
 
