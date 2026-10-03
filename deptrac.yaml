@@ -4,7 +4,7 @@
 #
 # Layers, from the top down:
 #
-#   EntryPoints   service provider, facade, trait, helpers
+#   EntryPoints   service provider, facade, trait, helpers, middleware
 #   Testing       the fake behind Views::fake(), stands in for both sides
 #   Views         the builder that ties recording and counting together
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
@@ -68,7 +68,7 @@ deptrac:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider$
         - type: classLike
-          value: ^CyrildeWit\\EloquentViewable\\(Facades|Concerns)\\.*
+          value: ^CyrildeWit\\EloquentViewable\\(Facades|Concerns|Http)\\.*
         - type: directory
           value: src/helpers\.php
 

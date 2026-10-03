@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Views;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -42,6 +43,7 @@ const ENTRY_POINTS = [
     ViewsFacade::class,
     InteractsWithViews::class,
     EloquentViewableServiceProvider::class,
+    RecordViews::class,
 ];
 
 const EXCEPTIONS = [
