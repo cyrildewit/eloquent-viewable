@@ -16,15 +16,13 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  * A source in front of another that serves what it read before from the
  * cache, until the moment `remember()` names. It keeps what the source
  * returns as it is, so the reader shapes cached and fresh results alike.
+ * Entries are stored under the `querying.cache.key` prefix, and the identity
+ * of the source keeps the entries of two sources apart.
  *
  * @internal
  */
 final readonly class RememberingSource implements ViewSource
 {
-    /**
-     * @param  string  $prefix  the `querying.cache.key` the entries are stored under
-     * @param  string  $identity  the source's identity, which keeps the entries of two sources apart
-     */
     public function __construct(
         private ViewSource $source,
         private VersionedCache $cache,

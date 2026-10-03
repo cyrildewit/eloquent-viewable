@@ -71,6 +71,7 @@ final readonly class Reader
         $type = $viewables->type();
         $keys = $viewables->keys();
 
+        // A set with a type always has keys; the second check tells PHPStan.
         if (! $type instanceof Viewable || $keys === []) {
             return [];
         }
@@ -159,7 +160,11 @@ final readonly class Reader
     {
         $driver = $this->config->sourceDriver();
 
-        return $this->source instanceof IdentifiesSource ? "{$driver}:{$this->source->cacheIdentity()}" : $driver;
+        if (! $this->source instanceof IdentifiesSource) {
+            return $driver;
+        }
+
+        return "{$driver}:{$this->source->cacheIdentity()}";
     }
 
     /** @throws InvalidInterval */

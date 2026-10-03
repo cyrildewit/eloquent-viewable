@@ -34,8 +34,10 @@ final readonly class WhereViewed
 
         if ($this->not) {
             $builder->whereNotExists($views);
-        } else {
-            $builder->whereExists($views);
+
+            return;
         }
+
+        $builder->whereExists($views);
     }
 }

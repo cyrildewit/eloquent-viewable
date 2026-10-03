@@ -144,7 +144,8 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
     public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
     {
         // The same SQL whereHas() builds on the views relation.
-        $builder = $this->view->newQuery()
+        $builder = $this->view
+            ->newQuery()
             ->whereColumn($viewable->getQualifiedKeyName(), $this->view->qualifyColumn('viewable_id'))
             ->where($this->view->qualifyColumn('viewable_type'), $viewable->getMorphClass())
             ->matching($query);
