@@ -41,6 +41,9 @@ final class Application
         $config = $app->make(Repository::class);
 
         $config->set('app.timezone', 'UTC');
+        // The visitor identity takes its HMAC key from the encrypter, which
+        // refuses to boot without one. Fixed, so derived ids are stable.
+        $config->set('app.key', 'base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=');
         $config->set('database.default', self::CONNECTION);
         $config->set('database.connections.'.self::CONNECTION, self::connection());
         $config->set('cache.default', 'array');
