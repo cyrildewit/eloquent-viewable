@@ -43,10 +43,14 @@ $json = json_encode([
     'laravel' => $app->version(),
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL;
 
-if (isset($options['output']) && is_string($options['output'])) {
-    if (@file_put_contents($options['output'], $json) === false) {
-        throw new RuntimeException("Could not write {$options['output']}, does its directory exist?");
-    }
-} else {
+$output = $options['output'] ?? null;
+
+if (! is_string($output)) {
     fwrite(STDOUT, $json);
+
+    return;
+}
+
+if (@file_put_contents($output, $json) === false) {
+    throw new RuntimeException("Could not write {$output}, does its directory exist?");
 }
