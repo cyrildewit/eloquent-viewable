@@ -58,7 +58,7 @@ class Views
 
     protected ?Model $viewer = null;
 
-    /** @var array<string, mixed>|null */
+    /** @var ?array<string, mixed> */
     protected ?array $context = null;
 
     public function __construct(
@@ -209,7 +209,7 @@ class Views
         return $this;
     }
 
-    /** @param  array<string, mixed>|null  $context */
+    /** @param  ?array<string, mixed>  $context */
     public function context(?array $context): self
     {
         $this->context = $context;
