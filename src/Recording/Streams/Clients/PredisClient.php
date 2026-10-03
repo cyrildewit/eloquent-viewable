@@ -75,15 +75,25 @@ final readonly class PredisClient implements StreamClient
     {
         $response = $this->connection->command('xreadgroup', [$group, $consumer, $count, null, false, $stream, '>']);
 
-        $first = is_array($response) ? $response[0] ?? null : null;
+        if (! is_array($response)) {
+            return [];
+        }
 
-        return $this->fromPairs(is_array($first) ? $first[1] ?? [] : []);
+        $first = $response[0] ?? null;
+
+        if (! is_array($first)) {
+            return [];
+        }
+
+        return $this->fromPairs($first[1] ?? []);
     }
 
     /** @return list<StreamEntry> */
     public function range(string $stream, ?string $after, int $count): array
     {
-        return $this->fromMap($this->connection->command('xrange', [$stream, $after === null ? '-' : "({$after}", '+', $count]));
+        $start = $after === null ? '-' : "({$after}";
+
+        return $this->fromMap($this->connection->command('xrange', [$stream, $start, '+', $count]));
     }
 
     /** @param  list<string>  $ids */
