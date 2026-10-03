@@ -341,7 +341,9 @@ describe('counting', function (): void {
 
     it('refuses the scopes', function (): void {
         expect(fn () => Post::withViewsCount()->get())
-            ->toThrow(UnsupportedInFake::class, 'withViewsCount() and orderByViews() cannot read from it');
+            ->toThrow(UnsupportedInFake::class, 'withViewsCount(), orderByViews() and whereViewsCount() cannot read from it')
+            ->and(fn () => Post::whereViewsCount('>=', 1)->get())
+            ->toThrow(UnsupportedInFake::class);
     });
 });
 

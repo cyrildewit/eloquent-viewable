@@ -326,6 +326,69 @@ it('can load the views count within a period and collection', function (): void 
     expect($post->views_count)->toBe(2);
 });
 
+describe('views count filter', function (): void {
+    beforeEach(function (): void {
+        $this->popular = $this->post;
+        $this->quiet = Post::factory()->create();
+        $this->unseen = Post::factory()->create();
+
+        View::factory()->for($this->popular, 'viewable')->count(3)->create();
+        View::factory()->for($this->quiet, 'viewable')->create();
+    });
+
+    it('keeps the models with at least the given number of views', function (): void {
+        expect(Post::whereViewsCount('>=', 3)->pluck('id'))->toEqual(keysOf($this->popular))
+            ->and(Post::whereViewsCount('>', 0)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->popular, $this->quiet));
+    });
+
+    it('counts a model without views as zero', function (): void {
+        expect(Post::whereViewsCount('<', 2)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->quiet, $this->unseen))
+            ->and(Post::whereViewsCount('=', 0)->pluck('id'))->toEqual(keysOf($this->unseen))
+            ->and(Post::whereViewsCount('!=', 0)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->popular, $this->quiet))
+            ->and(Post::whereViewsCount('<>', 1)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->popular, $this->unseen))
+            ->and(Post::whereViewsCount('<=', 1)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->quiet, $this->unseen));
+    });
+
+    it('only counts the views of its own type', function (): void {
+        View::factory()->count(5)->create([
+            'viewable_type' => (new Apartment)->getMorphClass(),
+            'viewable_id' => $this->unseen->getKey(),
+        ]);
+
+        expect(Post::whereViewsCount('=', 0)->pluck('id'))->toEqual(keysOf($this->unseen));
+    });
+
+    it('keeps the models within a period and collection', function (): void {
+        $this->freezeTime();
+
+        View::factory()->for($this->unseen, 'viewable')->inCollection('reads')->count(2)->create();
+        View::factory()->for($this->unseen, 'viewable')->inCollection('reads')->viewedAt(Carbon::now()->subDays(5))->create();
+
+        expect(Post::whereViewsCount('>=', 2, Period::pastDays(2), 'reads')->pluck('id'))->toEqual(keysOf($this->unseen))
+            ->and(Post::whereViewsCount('>=', 3, collection: 'reads')->pluck('id'))->toEqual(keysOf($this->unseen));
+    });
+
+    it('keeps the models by unique views', function (): void {
+        View::factory()->for($this->quiet, 'viewable')->fromVisitor('visitor_one')->count(4)->create();
+
+        expect(Post::whereViewsCount('>=', 4)->orderBy('id')->pluck('id'))->toEqual(keysOf($this->quiet))
+            ->and(Post::whereUniqueViewsCount('>=', 3)->pluck('id'))->toEqual(keysOf($this->popular))
+            ->and(Post::whereViewsCount('>=', 3, unique: true)->pluck('id'))->toEqual(keysOf($this->popular));
+    });
+
+    it('combines with the count and the ordering', function (): void {
+        $posts = Post::whereViewsCount('>', 0)->orderByViews()->get();
+
+        expect($posts->pluck('id'))->toEqual(keysOf($this->popular, $this->quiet))
+            ->and($posts->pluck('views_count')->all())->toBe([3, 1]);
+    });
+
+    it('combines with other where clauses', function (): void {
+        expect(Post::whereKey($this->quiet->getKey())->orWhere(fn ($query) => $query->whereViewsCount('=', 0))->orderBy('id')->pluck('id'))
+            ->toEqual(keysOf($this->quiet, $this->unseen));
+    });
+});
+
 describe('view source', function (): void {
     beforeEach(function (): void {
         $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
@@ -367,6 +430,12 @@ describe('view source', function (): void {
         View::factory()->for($this->post, 'viewable')->count(3)->create();
 
         expect(Post::withViewsCount()->find($this->post->getKey())->views_count)->toBe($this->post->getKey());
+    });
+
+    it('filters on views count through the bound source', function (): void {
+        Post::factory()->create();
+
+        expect(Post::whereViewsCount('=', $this->post->getKey())->pluck('id'))->toEqual(keysOf($this->post));
     });
 
     it('orders by views through the bound source', function (): void {
