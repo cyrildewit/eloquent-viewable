@@ -16,10 +16,8 @@ use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
@@ -112,11 +110,6 @@ final class ViewsFake implements ViewSource, ViewStore
         }
 
         return $counts;
-    }
-
-    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-    {
-        throw UnsupportedInFake::scopes();
     }
 
     /** @return list<array{type: string, id: int|string, count: int}> */

@@ -11,9 +11,7 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 
 it('is a singleton', function (): void {
     expect($this->app->make(SourceManager::class))->toBe($this->app->make(SourceManager::class));
@@ -51,11 +49,6 @@ it('accepts a custom driver', function (): void {
         public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
         {
             return [];
-        }
-
-        public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-        {
-            return DB::query()->selectRaw('7');
         }
 
         public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array

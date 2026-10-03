@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -391,7 +393,7 @@ describe('views count filter', function (): void {
 
 describe('view source', function (): void {
     beforeEach(function (): void {
-        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
+        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements SubquerySource, ViewSource
         {
             public function count(Viewable $viewable, ViewsQuery $query): int
             {
@@ -417,6 +419,12 @@ describe('view source', function (): void {
             {
                 // The row's own key stands in for a count, so the ordering is observable.
                 return DB::query()->selectRaw($viewable->getQualifiedKeyName());
+            }
+
+            public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
+            {
+                // Nothing counts as viewed, whatever the views table holds.
+                return DB::query()->selectRaw('1')->whereRaw('1 = 0');
             }
 
             public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
@@ -447,6 +455,34 @@ describe('view source', function (): void {
         expect(Post::orderByViews()->pluck('id'))->toEqual(keysOf($postThree, $postTwo, $this->post))
             ->and(Post::orderByViews('asc')->pluck('id'))->toEqual(keysOf($this->post, $postTwo, $postThree));
     });
+
+    it('checks for views through the bound source', function (): void {
+        $user = User::factory()->create();
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('visitor_one')->create();
+
+        expect(Post::whereViewedBy($user)->pluck('id'))->toBeEmpty()
+            ->and(Post::whereViewedByVisitor('visitor_one')->pluck('id'))->toBeEmpty()
+            ->and(Post::whereNotViewedBy($user)->pluck('id'))->toEqual(keysOf($this->post));
+    });
+});
+
+describe('a source that cannot be queried in SQL', function (): void {
+    beforeEach(function (): void {
+        $this->app->bind(ViewSource::class, fn (): ViewSource => Mockery::mock(ViewSource::class));
+    });
+
+    it('refuses every scope', function (string $scope): void {
+        $query = fn () => match ($scope) {
+            'withViewsCount' => Post::withViewsCount(),
+            'orderByViews' => Post::orderByViews(),
+            'whereViewsCount' => Post::whereViewsCount('>=', 1),
+            'whereViewedBy' => Post::whereViewedBy(new User(['id' => 1])),
+            'whereNotViewedByVisitor' => Post::whereNotViewedByVisitor('visitor_one'),
+        };
+
+        expect($query)
+            ->toThrow(UnsupportedBySource::class, 'cannot be queried in SQL, so the withViewsCount(), orderByViews(), whereViewsCount() and whereViewedBy() scopes cannot read from it');
+    })->with(['withViewsCount', 'orderByViews', 'whereViewsCount', 'whereViewedBy', 'whereNotViewedByVisitor']);
 });
 
 describe('viewed by', function (): void {
@@ -513,7 +549,7 @@ describe('viewed by', function (): void {
             ->and(Post::whereNotViewedByVisitor('visitor_one', collection: 'sidebar')->count())->toBe(2);
     });
 
-    it('builds an existence check on the views relation', function (): void {
+    it('builds the existence check whereHas() builds on the views relation', function (): void {
         expect(Post::whereViewedBy($this->user)->toSql())
             ->toBe('select * from "posts" where exists (select * from "views" where "posts"."id" = "views"."viewable_id" and "views"."viewable_type" = ? and "views"."viewer_type" = ? and "views"."viewer_id" = ?)')
             ->and(Post::whereNotViewedByVisitor('visitor_one')->toSql())
