@@ -41,6 +41,7 @@
             <li><a href="#get-total-view-count">Get total view count</a></li>
             <li><a href="#get-view-count-for-a-specific-period">Get view count for a specific period</a>
             </li>
+            <li><a href="#compare-with-the-previous-period">Compare with the previous period</a></li>
             <li><a href="#get-view-counts-grouped-by-interval">Get view counts grouped by interval</a></li>
             <li><a href="#get-unique-view-count">Get unique view count</a></li>
           </ul>
@@ -498,6 +499,44 @@ string and call `Period::parse($value, $tenant->timezone)` yourself.
 you pass in another timezone are converted before they are compared. Keep `app.timezone` at `UTC`, Laravel's default,
 unless you have a reason not to. To draw buckets on another clock, see
 [buckets in another timezone](#buckets-in-another-timezone).
+
+#### Compare with the previous period
+
+The first thing a dashboard shows next to a count is how it moved. `compare()` counts the period and the period right
+before it:
+
+```php
+$trend = views($post)->period(Period::pastDays(7))->compare();
+
+$trend->current;        // 340
+$trend->previous;       // 290
+$trend->delta;          // 50
+$trend->percent;        // 17.2, rounded to one decimal
+$trend->currentPeriod;  // Period
+$trend->previousPeriod; // Period, for a "compared with 20–27 Aug" label
+```
+
+`percent` is `null` when there were no views before, because growth from nothing has no percentage. `toArray()` gives
+`current`, `previous`, `delta` and `percent`, and the comparison is `JsonSerializable`, so a controller can return it.
+
+The previous period is `Period::previous()`, which is as wide as the period and ends exactly where it starts:
+
+```php
+Period::pastDays(7)->previous();                           // the 7 whole days before the last 7
+Period::pastMonths(1)->previous();                         // the month before the last month
+Period::subHours(12)->previous();                          // from 24 to 12 hours ago
+Period::create('2026-01-01', '2026-02-01')->previous();    // 2025-12-01..2026-01-01
+Period::pastDays(7)->previous()->previous();               // keeps going back
+```
+
+A relative period steps back by its own unit, so it stays aligned to the calendar. It has no end, though, so
+`Period::pastDays(7)` also includes today so far while the 7 days before it are whole. An absolute period steps back
+by its exact duration, so `2026-02-01..2026-03-01` gives the 28 days before it, not January. A period without both
+bounds, such as `Period::since()`, keeps growing and has no width, so `previous()` and `compare()` throw
+`InvalidPeriod`, as `compare()` does without a period.
+
+`unique()`, `collection()`, `viewedBy()` and `timezone()` apply to both counts. With `remember()`, each count is cached
+under its own key, so the previous window is cached as well.
 
 #### Get view counts grouped by interval
 
