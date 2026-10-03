@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Env;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
@@ -61,9 +62,34 @@ abstract class TestCase extends OrchestraTestCase
         new \CreateApartmentsTable()->up();
         new \CreateUsersTable()->up();
 
+        require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194718_create_uuid_and_ulid_tables.php';
+
+        new \CreateUuidAndUlidTables()->up();
+
+        // The shipped stub again, the way an application that called
+        // `Schema::morphUsingUuids()` or `morphUsingUlids()` runs it.
+        $this->createViewsTableWithMorphKeyType('uuid', 'uuid_views');
+        $this->createViewsTableWithMorphKeyType('ulid', 'ulid_views');
+
         // Each sample keeps its own tables next to its code.
         foreach (glob(__DIR__.'/../../samples/*/database/migrations/*.php') ?: [] as $migration) {
             (require $migration)->up();
+        }
+    }
+
+    private function createViewsTableWithMorphKeyType(string $type, string $table): void
+    {
+        $config = $this->app['config'];
+        $default = $config->get('eloquent-viewable.models.view.table_name');
+
+        Schema::defaultMorphKeyType($type);
+        $config->set('eloquent-viewable.models.view.table_name', $table);
+
+        try {
+            new \CreateViewsTable()->up();
+        } finally {
+            Schema::defaultMorphKeyType('int');
+            $config->set('eloquent-viewable.models.view.table_name', $default);
         }
     }
 }
