@@ -61,9 +61,7 @@ final readonly class RememberingSource implements ViewSource
      * one only reads the keys the cache lacks. A key the source leaves out
      * is remembered as zero.
      *
-     * @param  Viewable  $viewable
      * @param  non-empty-list<int|string>  $keys
-     * @param  ViewsQuery  $query
      * @return array<int|string, int>
      */
     public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
@@ -100,8 +98,6 @@ final readonly class RememberingSource implements ViewSource
     /**
      * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>
      *
-     * @param  ?Viewable  $viewable
-     * @param  string  $key
      * @param  Closure(): TValue  $resolve
      * @return TValue
      */
