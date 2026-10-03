@@ -1077,8 +1077,8 @@ has landed it.
 The store needs:
 
 - Redis 7 or newer.
-- One Redis client: the `phpredis` extension, or `composer require predis/predis`. `database.redis.client` picks
-  which one is used.
+- One Redis client: the `phpredis` extension, or Predis 3.3 or newer with `composer require predis/predis`.
+  `database.redis.client` picks which one is used. Older Predis releases lack the consumer group commands.
 - `illuminate/redis`, which comes with `laravel/framework`. Outside the full framework, `composer require
   illuminate/redis`.
 
