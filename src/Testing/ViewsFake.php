@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewerKey;
@@ -209,19 +210,53 @@ final class ViewsFake implements ViewSource, ViewStore
      */
     private function matchingRecords(ViewsQuery $query, Closure $filter): Collection
     {
-        $start = $query->period?->getStartDateTime();
-        $end = $query->period?->getEndDateTime();
-
-        $viewer = $query->viewer;
-        $viewerKey = $viewer instanceof Model ? (string) ViewerKey::of($viewer) : null;
+        $viewerKey = $query->viewer instanceof Model ? (string) ViewerKey::of($query->viewer) : null;
 
         return new Collection($this->store->records())
             ->filter($filter)
-            ->filter(fn (ViewRecord $record): bool => (! $start instanceof CarbonInterface || $record->viewedAt->greaterThanOrEqualTo($start))
-                && (! $end instanceof CarbonInterface || $record->viewedAt->lessThan($end))
-                && ($query->collection === null || $record->collection === $query->collection)
-                && (! $viewer instanceof Model || ($record->viewerType === $viewer->getMorphClass() && (string) $record->viewerId === $viewerKey)))
+            ->filter(fn (ViewRecord $record): bool => $this->withinPeriod($record, $query->period))
+            ->filter(fn (ViewRecord $record): bool => $this->inCollection($record, $query->collection))
+            ->filter(fn (ViewRecord $record): bool => $this->byViewer($record, $query->viewer, $viewerKey))
             ->values();
+    }
+
+    private function withinPeriod(ViewRecord $record, ?Period $period): bool
+    {
+        $start = $period?->getStartDateTime();
+
+        if ($start instanceof CarbonInterface && $record->viewedAt->lessThan($start)) {
+            return false;
+        }
+
+        $end = $period?->getEndDateTime();
+
+        if (! $end instanceof CarbonInterface) {
+            return true;
+        }
+
+        return $record->viewedAt->lessThan($end);
+    }
+
+    private function inCollection(ViewRecord $record, ?string $collection): bool
+    {
+        if ($collection === null) {
+            return true;
+        }
+
+        return $record->collection === $collection;
+    }
+
+    private function byViewer(ViewRecord $record, ?Model $viewer, ?string $viewerKey): bool
+    {
+        if (! $viewer instanceof Model) {
+            return true;
+        }
+
+        if ($record->viewerType !== $viewer->getMorphClass()) {
+            return false;
+        }
+
+        return (string) $record->viewerId === $viewerKey;
     }
 
     /** @param  Collection<int, ViewRecord>  $records */
