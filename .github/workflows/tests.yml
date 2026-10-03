@@ -133,9 +133,10 @@ jobs:
         if: matrix.db == 'sqlite'
         run: composer run test:coverage
 
+      # Serially: parallel workers would share the one database on the server.
       - name: Execute tests
         if: matrix.db != 'sqlite'
-        run: composer run test
+        run: composer run test:serial
 
       - name: Upload coverage to Codecov
         if: matrix.db == 'sqlite'

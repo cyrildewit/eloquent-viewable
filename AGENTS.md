@@ -13,7 +13,7 @@ make install            # install dependencies (run once, or after composer.json
 make ready              # rector, pint, phpstan, type coverage, tests
 make lint               # pint, fixes style in place
 make rector             # rector
-make test               # the full Pest suite
+make test               # the full Pest suite, in parallel and without Xdebug
 make test-unit          # tests/Unit
 make test-feature       # tests/Feature
 make test-arch          # tests/Arch
@@ -93,6 +93,12 @@ arch expectations about the shape of `src/`.
 
 Mutation testing applies a patch to a vendored package first, so run `make test-mutation` rather than
 `composer test:mutation`.
+
+`make test`, `make ready` and `make test-coverage` run the suite in parallel, one worker per CPU. On SQLite every
+worker has its own in-memory database, and `tests/Feature/TestCase.php` gives each one its own pair of Redis
+databases from `TEST_TOKEN`. Anything else a test shares outside the process, a file or a fixed cache key, needs the
+same treatment. The driver targets run serially through `composer test:serial`, because the workers would share the
+one database on the server.
 
 Feature tests share one database per process. The schema is created once and `RefreshDatabase` rolls
 each test back, which does not reset auto-increment counters, so ids keep climbing from one test to the
