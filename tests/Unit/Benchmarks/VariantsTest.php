@@ -186,7 +186,8 @@ it('names the parameter sets of the interval benchmarks', function (): void {
     ];
 
     expect(setsOf(CountViewsByIntervalBench::class, 'benchCountByInterval'))->toBe($expected)
-        ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected);
+        ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected)
+        ->and(setsOf(CountViewsByIntervalBench::class, 'benchCountByIntervalInTimezone'))->toBe($expected);
 });
 
 it('names the parameter sets of the ranking benchmark', function (): void {
