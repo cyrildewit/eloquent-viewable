@@ -284,6 +284,12 @@ if ($result->wasSkippedBy(EnforceCooldown::class)) {
 
 The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader` and `Recording\Contracts\ViewStore`. The config, the cache, the cooldown manager, the bus dispatcher and the count actions are gone from it. Only a subclass that overrides the constructor is affected.
 
+### Prefetched pages are no longer counted
+
+The new `IgnorePrefetch` guard is listed in `recording.guards` by default. It drops a view when the browser only prefetches or prerenders the page, which it marks with a `Sec-Purpose`, `Purpose` or `X-Moz` header holding `prefetch`. Counts on sites that use prefetching or speculation rules go down by the pages nobody opened. A published config that lists its own guards keeps that list; add `\CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch::class` to it to drop prefetches too.
+
+`Visitors\Contracts\Visitor` gained `isPrefetch(): bool`. A custom visitor has to implement it; return `false` where the request carries no such header.
+
 ### The visitor reports its user agent, the detector judges it
 
 `Visitors\Contracts\Visitor` lost `isCrawler()` and gained `userAgent(): ?string` and `hasGlobalPrivacyControl(): bool`. The visitor only reports what the request says; the `IgnoreCrawlers` guard hands the user agent to the bound `Crawlers\Contracts\CrawlerDetector`, whose `isCrawler()` now takes that string: `isCrawler(?string $userAgent): bool`. A `null` or empty user agent is never a crawler.
