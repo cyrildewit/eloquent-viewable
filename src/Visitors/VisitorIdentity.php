@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\Model;
  * The value of the `visitor` column, which `unique()` counts and a cooldown
  * is keyed on. With `visitor.identity` set to `viewer` it is derived from the
  * signed-in model instead of the cookie, so one account is one visitor on
- * every device and on an API without a cookie.
+ * every device and on an API without a cookie. With `fingerprint` a guest is
+ * identified by a daily fingerprint and no cookie is set.
  */
 final readonly class VisitorIdentity
 {
@@ -24,9 +25,12 @@ final readonly class VisitorIdentity
 
     public const string VIEWER = 'viewer';
 
+    public const string FINGERPRINT = 'fingerprint';
+
     public function __construct(
         private Config $config,
         private Encrypter $encrypter,
+        private Fingerprint $fingerprint,
     ) {}
 
     /**
@@ -35,11 +39,15 @@ final readonly class VisitorIdentity
      */
     public function of(Visitor $visitor, ?Model $viewer): string
     {
-        if ($viewer instanceof Model && $this->config->visitorIdentity() === self::VIEWER) {
+        $identity = $this->config->visitorIdentity();
+
+        if ($viewer instanceof Model && $identity !== self::COOKIE) {
             return $this->ofViewer($viewer);
         }
 
-        return $visitor->id();
+        // Only the cookie id is read from the visitor here, so a fingerprint
+        // never queues the cookie.
+        return $identity === self::FINGERPRINT ? $this->fingerprint->of($visitor) : $visitor->id();
     }
 
     /**
