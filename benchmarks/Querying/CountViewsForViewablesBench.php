@@ -26,16 +26,22 @@ final class CountViewsForViewablesBench extends BenchCase
 {
     private const int PAGE = 20;
 
+    private const int LIST = 1_000;
+
     /** @var Collection<int, Article> */
     private Collection $hotPage;
 
     /** @var Collection<int, Article> */
     private Collection $coldPage;
 
+    /** @var Collection<int, Article> */
+    private Collection $list;
+
     public function loadPages(): void
     {
         $this->hotPage = Article::query()->orderBy('id')->limit(self::PAGE)->get();
         $this->coldPage = Article::query()->orderByDesc('id')->limit(self::PAGE)->get()->reverse()->values();
+        $this->list = Article::query()->orderBy('id')->limit(self::LIST)->get();
     }
 
     /**
@@ -45,6 +51,16 @@ final class CountViewsForViewablesBench extends BenchCase
     {
         yield 'hot page' => ['page' => 'hot'];
         yield 'cold page' => ['page' => 'cold'];
+    }
+
+    /**
+     * @return Generator<string, array{size: int}>
+     */
+    public function provideSizes(): Generator
+    {
+        yield '100 articles' => ['size' => 100];
+        yield '250 articles' => ['size' => 250];
+        yield '1,000 articles' => ['size' => 1_000];
     }
 
     /**
@@ -74,6 +90,28 @@ final class CountViewsForViewablesBench extends BenchCase
         $period = $this->period($params);
 
         foreach ($this->page($params) as $article) {
+            views($article)->period($period)->count();
+        }
+    }
+
+    /**
+     * @param  array{size: int, days: int|null}  $params
+     */
+    #[ParamProviders(['provideSizes', 'providePeriods'])]
+    public function benchCountsManyKeys(array $params): void
+    {
+        $this->views()->forViewables($this->list->take($params['size']))->period($this->period($params))->counts();
+    }
+
+    /**
+     * @param  array{size: int, days: int|null}  $params
+     */
+    #[ParamProviders(['provideSizes', 'providePeriods'])]
+    public function benchCountLoopManyKeys(array $params): void
+    {
+        $period = $this->period($params);
+
+        foreach ($this->list->take($params['size']) as $article) {
             views($article)->period($period)->count();
         }
     }
