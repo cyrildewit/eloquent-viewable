@@ -253,6 +253,11 @@ return [
          *   viewer   an HMAC of the signed-in model's type and key with
          *            `app.key`, so a visitor is an account on every device and
          *            on an API without a cookie; guests get the cookie id
+         *   fingerprint
+         *            a hash of the truncated IP address and the user agent
+         *            under a random salt that is replaced at midnight, so no
+         *            cookie is set and a guest is a new visitor every day;
+         *            signed-in models get the `viewer` id
          *
          * The signed-in model comes from `recording.viewer` or `viewedBy()`.
          */
@@ -269,6 +274,23 @@ return [
              * How long the cookie lives, in minutes. Five years by default.
              */
             'lifetime' => 2_628_000,
+
+        ],
+
+        'fingerprint' => [
+
+            /*
+             * The cache store the daily salt is kept in. Every server that
+             * records views must share it, or each hashes under its own salt
+             * and one visitor counts once per server. When `null`, the
+             * application's default cache store is used.
+             */
+            'store' => null,
+
+            /*
+             * The cache key prefix the daily salt is kept under.
+             */
+            'key' => 'cyrildewit.eloquent-viewable.fingerprint',
 
         ],
 

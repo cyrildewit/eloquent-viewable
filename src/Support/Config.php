@@ -190,7 +190,7 @@ final readonly class Config
     }
 
     /**
-     * @return 'cookie'|'viewer'
+     * @return 'cookie'|'viewer'|'fingerprint'
      *
      * @throws InvalidConfiguration
      */
@@ -198,11 +198,23 @@ final readonly class Config
     {
         $value = $this->get('visitor.identity', 'cookie');
 
-        if ($value !== 'cookie' && $value !== 'viewer') {
-            throw InvalidConfiguration::mustBeOneOf('visitor.identity', ['cookie', 'viewer'], $value);
+        if (! in_array($value, ['cookie', 'viewer', 'fingerprint'], true)) {
+            throw InvalidConfiguration::mustBeOneOf('visitor.identity', ['cookie', 'viewer', 'fingerprint'], $value);
         }
 
         return $value;
+    }
+
+    /** @throws InvalidConfiguration */
+    public function fingerprintKey(): string
+    {
+        return $this->nonEmptyString('visitor.fingerprint.key');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function fingerprintCacheStore(): ?string
+    {
+        return $this->string('visitor.fingerprint.store');
     }
 
     /** @throws InvalidConfiguration */

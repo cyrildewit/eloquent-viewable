@@ -18,9 +18,11 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\Fingerprint;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\Encrypter;
@@ -46,7 +48,7 @@ function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array
         $bus,
         $events ?? silentEvents(),
         $action,
-        new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC')),
+        new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC'), new Fingerprint($config, Mockery::mock(CacheFactory::class))),
     );
 }
 

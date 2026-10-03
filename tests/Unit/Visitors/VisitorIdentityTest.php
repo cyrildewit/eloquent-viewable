@@ -8,18 +8,37 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\Fingerprint;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Encryption\Encrypter;
 
 const IDENTITY_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 function identity(string $identity = 'cookie', string $appKey = IDENTITY_KEY): VisitorIdentity
 {
-    return new VisitorIdentity(
-        new Config(new Repository(['eloquent-viewable' => ['visitor' => ['identity' => $identity]]])),
-        new Encrypter($appKey, 'AES-256-CBC'),
-    );
+    $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => [
+        'identity' => $identity,
+        'fingerprint' => ['store' => null, 'key' => 'salt'],
+    ]]]));
+
+    $cache = Mockery::mock(CacheFactory::class);
+    $cache->allows('store')->andReturn(new CacheRepository(new ArrayStore));
+
+    return new VisitorIdentity($config, new Encrypter($appKey, 'AES-256-CBC'), new Fingerprint($config, $cache));
+}
+
+function fingerprintedVisitor(): Visitor
+{
+    $visitor = Mockery::mock(Visitor::class);
+    $visitor->shouldNotReceive('id');
+    $visitor->allows('ip')->andReturn('192.0.2.10');
+    $visitor->allows('userAgent')->andReturn('Mozilla/5.0');
+
+    return $visitor;
 }
 
 function cookieVisitor(): Visitor
@@ -49,6 +68,19 @@ it('falls back to the cookie id for a guest', function (): void {
     expect(identity('viewer')->of(cookieVisitor(), null))->toBe('cookie-id');
 });
 
+it('fingerprints a guest without reading the cookie id', function (): void {
+    $identity = identity('fingerprint');
+
+    expect($identity->of(fingerprintedVisitor(), null))
+        ->toHaveLength(64)
+        ->toBe($identity->of(fingerprintedVisitor(), null));
+});
+
+it('derives the id from the viewer instead of the fingerprint', function (): void {
+    expect(identity('fingerprint')->of(fingerprintedVisitor(), new Post(['id' => 7])))
+        ->toBe(hash_hmac('sha256', Post::class.'|7', IDENTITY_KEY));
+});
+
 it('tells viewers apart by type and key and is stable for the same one', function (): void {
     $identity = identity('viewer');
 
@@ -68,7 +100,10 @@ it('refuses a viewer without a usable key', function (): void {
         ->toThrow(InvalidViewer::class, 'The key of the viewer ['.Post::class.'] must be an integer or a string, null given.');
 });
 
-it('refuses an unknown identity', function (): void {
-    expect(fn (): string => identity('session')->of(cookieVisitor(), new Post(['id' => 7])))
-        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, `"session"` given.');
-});
+it('refuses an unknown identity', function (?Post $viewer): void {
+    expect(fn (): string => identity('session')->of(cookieVisitor(), $viewer))
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, `fingerprint`, `"session"` given.');
+})->with([
+    'viewer' => [new Post(['id' => 7])],
+    'guest' => [null],
+]);

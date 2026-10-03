@@ -11,8 +11,10 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\Fingerprint;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Encryption\Encrypter;
 
 const COOLDOWN_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -29,7 +31,7 @@ function cooldownGuard(CooldownStore $cooldowns, string $identity = 'cookie'): E
 {
     $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => ['identity' => $identity]]]));
 
-    return new EnforceCooldown($cooldowns, new VisitorIdentity($config, new Encrypter(COOLDOWN_KEY, 'AES-256-CBC')));
+    return new EnforceCooldown($cooldowns, new VisitorIdentity($config, new Encrypter(COOLDOWN_KEY, 'AES-256-CBC'), new Fingerprint($config, Mockery::mock(CacheFactory::class))));
 }
 
 it('allows an attempt without a cooldown and leaves the store alone', function (): void {
