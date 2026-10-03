@@ -10,12 +10,12 @@ class ShowArticle
      * A reader who refreshes the page or comes back within the cooldown is
      * counted once, so a single visitor cannot push an article up the list.
      */
-    private const int COOLDOWN_MINUTES = 30;
+    private const int CooldownMinutes = 30;
 
     public function __invoke(Article $article): Article
     {
         views($article)
-            ->cooldown(self::COOLDOWN_MINUTES)
+            ->cooldown(self::CooldownMinutes)
             ->record();
 
         return $article;

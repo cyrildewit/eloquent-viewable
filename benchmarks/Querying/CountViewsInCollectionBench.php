@@ -25,7 +25,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class CountViewsInCollectionBench extends BenchCase
 {
-    private const string COLLECTION = 'newsletter';
+    private const string Collection = 'newsletter';
 
     /**
      * @param  array{target: string, days: int|null}  $params
@@ -33,7 +33,7 @@ final class CountViewsInCollectionBench extends BenchCase
     #[ParamProviders(['provideTargets', 'providePeriods'])]
     public function benchCountInCollection(array $params): void
     {
-        views($this->target($params))->period($this->period($params))->collection(self::COLLECTION)->count();
+        views($this->target($params))->period($this->period($params))->collection(self::Collection)->count();
     }
 
     /**
@@ -42,6 +42,6 @@ final class CountViewsInCollectionBench extends BenchCase
     #[ParamProviders(['provideTargets', 'providePeriods'])]
     public function benchUniqueCountInCollection(array $params): void
     {
-        views($this->target($params))->period($this->period($params))->collection(self::COLLECTION)->unique()->count();
+        views($this->target($params))->period($this->period($params))->collection(self::Collection)->unique()->count();
     }
 }

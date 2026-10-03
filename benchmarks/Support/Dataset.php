@@ -19,21 +19,21 @@ use RuntimeException;
  */
 final readonly class Dataset
 {
-    public const string TABLE = 'benchmark_dataset';
+    public const string Table = 'benchmark_dataset';
 
     /**
      * Bump when the seeder changes what it generates. A dataset seeded by an
      * older seeder is then refused instead of silently compared against runs
      * on a newer one.
      */
-    public const int SCHEMA_VERSION = 2;
+    public const int SchemaVersion = 2;
 
     /**
      * Every view is recorded before this moment. The benchmarks build their
      * periods relative to it, so "the past 30 days" means the same rows on
      * every run no matter when it happens.
      */
-    public const string ANCHOR = '2026-01-01 00:00:00';
+    public const string Anchor = '2026-01-01 00:00:00';
 
     /**
      * @param  list<OptionalIndex>  $indexes
@@ -58,16 +58,16 @@ final readonly class Dataset
      */
     public static function load(ConnectionInterface $connection): self
     {
-        if (! $connection->getSchemaBuilder()->hasTable(self::TABLE)) {
+        if (! $connection->getSchemaBuilder()->hasTable(self::Table)) {
             throw new RuntimeException(
                 'No benchmark dataset found on the ['.$connection->getDriverName().'] connection. Seed one first with `make bench-seed`.'
             );
         }
 
         /** @var array<string, string> $attributes */
-        $attributes = $connection->table(self::TABLE)->pluck('value', 'key')->all();
+        $attributes = $connection->table(self::Table)->pluck('value', 'key')->all();
 
-        if ((int) ($attributes['schema_version'] ?? 0) !== self::SCHEMA_VERSION) {
+        if ((int) ($attributes['schema_version'] ?? 0) !== self::SchemaVersion) {
             throw new RuntimeException(
                 'The benchmark dataset was seeded by an older seeder. Seed it again with `make bench-seed`.'
             );
@@ -93,14 +93,14 @@ final readonly class Dataset
     {
         $schema = $connection->getSchemaBuilder();
 
-        if (! $schema->hasTable(self::TABLE)) {
-            $schema->create(self::TABLE, function (Blueprint $table): void {
+        if (! $schema->hasTable(self::Table)) {
+            $schema->create(self::Table, function (Blueprint $table): void {
                 $table->string('key')->primary();
                 $table->text('value');
             });
         }
 
-        $connection->table(self::TABLE)->delete();
+        $connection->table(self::Table)->delete();
 
         $rows = [];
 
@@ -108,7 +108,7 @@ final readonly class Dataset
             $rows[] = ['key' => $key, 'value' => $value];
         }
 
-        $connection->table(self::TABLE)->insert($rows);
+        $connection->table(self::Table)->insert($rows);
     }
 
     /**
@@ -134,7 +134,7 @@ final readonly class Dataset
 
     public static function anchor(): CarbonImmutable
     {
-        return CarbonImmutable::createFromFormat('Y-m-d H:i:s', self::ANCHOR, 'UTC');
+        return CarbonImmutable::createFromFormat('Y-m-d H:i:s', self::Anchor, 'UTC');
     }
 
     /**
@@ -192,10 +192,10 @@ final readonly class Dataset
     public function toArray(): array
     {
         return [
-            'schema_version' => self::SCHEMA_VERSION,
+            'schema_version' => self::SchemaVersion,
             'size' => $this->size->value,
             'seed' => $this->seed,
-            'anchor' => self::ANCHOR,
+            'anchor' => self::Anchor,
             'articles' => $this->articles,
             'videos' => $this->videos,
             'views' => $this->views,

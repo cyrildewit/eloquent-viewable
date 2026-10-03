@@ -33,23 +33,23 @@ use Random\Randomizer;
  */
 final class Seeder
 {
-    public const int SPAN_DAYS = 730;
+    public const int SpanDays = 730;
 
-    private const int CHUNK_ROWS = 1_000;
+    private const int ChunkRows = 1_000;
 
-    private const int DAYS_PER_TRANSACTION = 25;
+    private const int DaysPerTransaction = 25;
 
-    private const string LABEL_FORMAT = 'Y-m-d H:i:s';
+    private const string LabelFormat = 'Y-m-d H:i:s';
 
     /**
      * Relative traffic per hour of the day, midnight first.
      */
-    private const array HOURLY_WEIGHTS = [
+    private const array HourlyWeights = [
         0.30, 0.20, 0.15, 0.10, 0.10, 0.15, 0.30, 0.60, 0.90, 1.10, 1.20, 1.20,
         1.10, 1.10, 1.10, 1.10, 1.00, 1.00, 1.10, 1.20, 1.30, 1.20, 0.90, 0.50,
     ];
 
-    private const array COLLECTIONS = ['homepage', 'rss', 'newsletter', 'search'];
+    private const array Collections = ['homepage', 'rss', 'newsletter', 'search'];
 
     private Randomizer $random;
 
@@ -106,7 +106,7 @@ final class Seeder
     {
         $schema = $this->connection->getSchemaBuilder();
 
-        $schema->dropIfExists(Dataset::TABLE);
+        $schema->dropIfExists(Dataset::Table);
         $schema->dropIfExists($this->table);
         $schema->dropIfExists('articles');
         $schema->dropIfExists('videos');
@@ -137,10 +137,10 @@ final class Seeder
 
     private function insertNumbered(string $table, string $label, int $count): void
     {
-        for ($from = 1; $from <= $count; $from += self::CHUNK_ROWS) {
+        for ($from = 1; $from <= $count; $from += self::ChunkRows) {
             $rows = [];
 
-            for ($id = $from; $id < $from + self::CHUNK_ROWS && $id <= $count; $id++) {
+            for ($id = $from; $id < $from + self::ChunkRows && $id <= $count; $id++) {
                 $rows[] = ['id' => $id, 'title' => "{$label} #{$id}"];
             }
 
@@ -169,12 +169,12 @@ final class Seeder
         $nextReport = 0.1;
         $rows = [];
 
-        Output::line(sprintf('Inserting %s views over %d days...', number_format($total), self::SPAN_DAYS));
+        Output::line(sprintf('Inserting %s views over %d days...', number_format($total), self::SpanDays));
 
         $this->connection->beginTransaction();
 
         foreach ($dayCounts as $day => $count) {
-            $dayStart = $anchor - (self::SPAN_DAYS - $day) * 86_400;
+            $dayStart = $anchor - (self::SpanDays - $day) * 86_400;
 
             foreach ($this->secondsOfDay($count) as $seconds) {
                 $isVideo = $this->random->getInt(0, 9) === 0;
@@ -184,19 +184,19 @@ final class Seeder
                     'viewable_id' => $isVideo ? $this->random->getInt(1, $videoCount) : $this->drawArticle(),
                     'visitor' => $this->drawVisitor($visitorPool),
                     'collection' => $this->random->getInt(0, 4) === 0
-                        ? self::COLLECTIONS[$this->random->getInt(0, count(self::COLLECTIONS) - 1)]
+                        ? self::Collections[$this->random->getInt(0, count(self::Collections) - 1)]
                         : null,
-                    'viewed_at' => gmdate(self::LABEL_FORMAT, $dayStart + $seconds),
+                    'viewed_at' => gmdate(self::LabelFormat, $dayStart + $seconds),
                 ];
 
-                if (count($rows) === self::CHUNK_ROWS) {
+                if (count($rows) === self::ChunkRows) {
                     $this->connection->table($this->table)->insert($rows);
                     $inserted += count($rows);
                     $rows = [];
                 }
             }
 
-            if (($day + 1) % self::DAYS_PER_TRANSACTION === 0) {
+            if (($day + 1) % self::DaysPerTransaction === 0) {
                 $this->connection->commit();
                 $this->connection->beginTransaction();
             }
@@ -234,8 +234,8 @@ final class Seeder
         $anchor = $this->anchorTimestamp();
         $weights = [];
 
-        for ($day = 0; $day < self::SPAN_DAYS; $day++) {
-            $dayStart = $anchor - (self::SPAN_DAYS - $day) * 86_400;
+        for ($day = 0; $day < self::SpanDays; $day++) {
+            $dayStart = $anchor - (self::SpanDays - $day) * 86_400;
             $weekday = (int) gmdate('N', $dayStart);
 
             $weekend = match ($weekday) {
@@ -243,7 +243,7 @@ final class Seeder
                 7 => 0.70,
                 default => 1.0,
             };
-            $trend = 0.6 + 0.8 * $day / (self::SPAN_DAYS - 1);
+            $trend = 0.6 + 0.8 * $day / (self::SpanDays - 1);
             $jitter = 0.9 + 0.2 * $this->random->nextFloat();
 
             $weights[] = $weekend * $trend * $jitter;
@@ -254,7 +254,7 @@ final class Seeder
         $remainder = $total - array_sum($counts);
 
         for ($day = 0; $remainder > 0; $day++, $remainder--) {
-            $counts[$day % self::SPAN_DAYS]++;
+            $counts[$day % self::SpanDays]++;
         }
 
         return $counts;
@@ -334,10 +334,10 @@ final class Seeder
      */
     private function prepareHourDistribution(): void
     {
-        $sum = array_sum(self::HOURLY_WEIGHTS);
+        $sum = array_sum(self::HourlyWeights);
         $this->hourLookup = [];
 
-        foreach (self::HOURLY_WEIGHTS as $hour => $weight) {
+        foreach (self::HourlyWeights as $hour => $weight) {
             $slots = (int) round(1_000 * $weight / $sum);
 
             for ($i = 0; $i < $slots; $i++) {
@@ -445,7 +445,7 @@ final class Seeder
             coldArticleId: (int) $cold->viewable_id,
             coldArticleViews: (int) $cold->views,
             indexes: [],
-            seededAt: gmdate(self::LABEL_FORMAT),
+            seededAt: gmdate(self::LabelFormat),
         );
     }
 

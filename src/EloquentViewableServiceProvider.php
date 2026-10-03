@@ -45,7 +45,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->callAfterResolving('router', function (Router $router): void {
-            $router->aliasMiddleware(RecordViews::ALIAS, RecordViews::class);
+            $router->aliasMiddleware(RecordViews::Alias, RecordViews::class);
         });
 
         // Recording does not know about the cache, so the counts remembered of

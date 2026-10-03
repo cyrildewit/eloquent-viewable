@@ -26,7 +26,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class OrderByViewsBench extends BenchCase
 {
-    private const int PAGE_SIZE = 20;
+    private const int PageSize = 20;
 
     /**
      * @param  array{days: int|null}  $params
@@ -34,7 +34,7 @@ final class OrderByViewsBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchOrderByViews(array $params): void
     {
-        Article::query()->orderByViews('desc', $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->orderByViews('desc', $this->period($params))->limit(self::PageSize)->get();
     }
 
     /**
@@ -43,6 +43,6 @@ final class OrderByViewsBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchOrderByUniqueViews(array $params): void
     {
-        Article::query()->orderByUniqueViews('desc', $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->orderByUniqueViews('desc', $this->period($params))->limit(self::PageSize)->get();
     }
 }

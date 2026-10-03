@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class RecountProductViews
 {
-    private const int CHUNK_SIZE = 500;
+    private const int ChunkSize = 500;
 
     /**
      * Sets each counter back to the number of views in the views table, for
@@ -27,7 +27,7 @@ class RecountProductViews
             ->withCount(['views as recorded_views' => function (Builder $query): void {
                 $query->whereNull('collection');
             }])
-            ->chunkById(self::CHUNK_SIZE, function (Collection $products) use (&$corrected): void {
+            ->chunkById(self::ChunkSize, function (Collection $products) use (&$corrected): void {
                 /** @var Collection<int, Product> $products */
                 foreach ($products as $product) {
                     $recorded = (int) $product->recorded_views;

@@ -25,7 +25,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class WithViewsCountBench extends BenchCase
 {
-    private const int PAGE_SIZE = 20;
+    private const int PageSize = 20;
 
     /**
      * @param  array{days: int|null}  $params
@@ -33,7 +33,7 @@ final class WithViewsCountBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchWithViewsCount(array $params): void
     {
-        Article::query()->withViewsCount($this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->withViewsCount($this->period($params))->limit(self::PageSize)->get();
     }
 
     /**
@@ -42,6 +42,6 @@ final class WithViewsCountBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchWithUniqueViewsCount(array $params): void
     {
-        Article::query()->withViewsCount($this->period($params), unique: true)->limit(self::PAGE_SIZE)->get();
+        Article::query()->withViewsCount($this->period($params), unique: true)->limit(self::PageSize)->get();
     }
 }

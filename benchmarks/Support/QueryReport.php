@@ -18,7 +18,7 @@ use stdClass;
  */
 final class QueryReport
 {
-    public const int SCHEMA_VERSION = 1;
+    public const int SchemaVersion = 1;
 
     /**
      * @var list<array{class: string, subject: string, set: string, params: array<string, mixed>, queries: list<Query>}>
@@ -76,7 +76,7 @@ final class QueryReport
     public function toArray(): array
     {
         return [
-            'schema_version' => self::SCHEMA_VERSION,
+            'schema_version' => self::SchemaVersion,
             'driver' => $this->driver,
             'analyzed' => $this->analyzed,
             'group' => $this->group,

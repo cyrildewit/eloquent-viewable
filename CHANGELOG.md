@@ -60,6 +60,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - The config file is grouped by module: `cache` moved to `querying.cache`, `queue` to `recording.queue`, `ignored_ip_addresses` to `recording.ignored_ip_addresses` and `visitor_cookie_key` to `visitor.cookie.name`. Config values are validated when read and throw `InvalidConfiguration` when invalid
 - The crawler, Do Not Track, IP address and cooldown checks are guards in `recording.guards`. The defaults keep the v8 behaviour and also skip prefetched pages
 - Classes moved into module namespaces, and `CreateView`, `StoreView`, `ViewRecordException` and `PendingView` were renamed. The upgrade guide has the full table
+- `Visitor::DNT` is renamed to `Visitor::DoNotTrackHeader`
 - `Recording\Contracts\RecordsViews::handle()` receives a `Data\ViewRecord` and returns `void`
 - `Recording\Events\ViewRecorded` carries the `Data\ViewRecord` as `$record` instead of the model as `$view`, and no longer uses `SerializesModels`
 - Views are written through the query builder, so `View` model events no longer fire when a view is stored
