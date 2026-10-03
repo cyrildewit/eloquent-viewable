@@ -361,8 +361,16 @@ final class Seeder
     private function drawVisitor(int $pool): string
     {
         $fraction = $this->random->nextFloat();
-        $number = (int) floor($pool * $fraction * $fraction);
 
+        return self::visitor((int) floor($pool * $fraction * $fraction));
+    }
+
+    /**
+     * The id of the visitor with the given number. Number 0 is drawn most
+     * often, so it is the visitor with the most views in any dataset.
+     */
+    public static function visitor(int $number): string
+    {
         return substr(hash('sha512', "visitor:{$number}"), 0, 80);
     }
 
