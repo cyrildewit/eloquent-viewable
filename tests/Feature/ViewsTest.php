@@ -1629,6 +1629,37 @@ describe('remembering', function (): void {
     });
 });
 
+describe('remembering in redis', function (): void {
+    beforeEach(function (): void {
+        // A database of its own, so flushing it leaves the stream tests alone.
+        Config::set('database.redis.views-cache', [...Config::get('database.redis.default'), 'database' => 1]);
+        Config::set('cache.stores.views-redis', ['driver' => 'redis', 'connection' => 'views-cache']);
+        Config::set('eloquent-viewable.querying.cache.store', 'views-redis');
+
+        View::factory()->for($this->post, 'viewable')->count(3)->create();
+    });
+
+    afterEach(function (): void {
+        Cache::store('views-redis')->flush();
+    });
+
+    it('reads a remembered count back as an integer', function (): void {
+        expect(views($this->post)->remember(60)->count())->toBe(3);
+
+        View::factory()->for($this->post, 'viewable')->create();
+
+        expect(views($this->post)->remember(60)->count())->toBe(3);
+    });
+
+    it('reads the remembered counts of a set back', function (): void {
+        expect(viewsOf([$this->post])->remember(60)->counts()->all())->toBe([$this->post->getKey() => 3]);
+
+        View::factory()->for($this->post, 'viewable')->create();
+
+        expect(viewsOf([$this->post])->remember(60)->counts()->all())->toBe([$this->post->getKey() => 3]);
+    });
+});
+
 describe('visitor handling', function (): void {
     it('does not record views from a crawler user agent when the guard is listed', function (string $userAgent, bool $recorded): void {
         Config::set('eloquent-viewable.recording.guards', [IgnoreCrawlers::class]);
