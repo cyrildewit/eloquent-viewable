@@ -60,6 +60,11 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must be one of `".implode('`, `', $allowed).'`, '.self::describe($value).' given.');
     }
 
+    public static function invalidMiddlewareOption(string $option): self
+    {
+        return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");
+    }
+
     private static function describe(mixed $value): string
     {
         return is_scalar($value) ? '`'.json_encode($value).'`' : get_debug_type($value);

@@ -11,6 +11,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 ### Added
 
+- Added the `views` route middleware, `Http\Middleware\RecordViews`, which records a view of the model bound to a route once a `GET` request gets a successful response, with no change to the controller. By default it records the last parameter bound to a `Viewable`; route parameter names or model classes pick others. `collection`, `cooldown` and `queue` options apply, and `RecordViews::using()` builds the middleware string. A view it fails to store is reported instead of failing the response. A route that binds nothing to record throws `InvalidViewable`, an unknown option `InvalidConfiguration`
 - Added the `Recording\Guards\IgnorePrefetch` guard, listed in `recording.guards` by default, which drops pages the browser only prefetches or prerenders, marked by `Sec-Purpose`, `Purpose` or `X-Moz`
 - Added `Visitors\Contracts\Visitor::isPrefetch()`
 - Added `Views::forViewables(iterable $viewables)` and `Views::counts()`, which count the views of models you already have, such as a page of results, in one grouped query instead of one `count()` per model. The result is a collection keyed by model key with a 0 for a model without views. `period()`, `unique()`, `collection()`, `viewedBy()` and `remember()` apply, and a remembered count shares its cache entry with `count()`. Models of more than one type or without a key throw `InvalidViewable`. The fake supports it

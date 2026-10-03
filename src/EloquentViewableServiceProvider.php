@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
@@ -33,6 +34,7 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
@@ -40,6 +42,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        $this->callAfterResolving('router', function (Router $router): void {
+            $router->aliasMiddleware(RecordViews::ALIAS, RecordViews::class);
+        });
+
         if ($this->app->runningInConsole()) {
             $this->commands([FlushViewsCommand::class]);
 

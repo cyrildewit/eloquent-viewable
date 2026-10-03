@@ -48,4 +48,19 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
     {
         return new self(sprintf('The key of [%s] must be an integer, a string or null, %s given.', $class, get_debug_type($key)));
     }
+
+    public static function noneInRoute(string $uri): self
+    {
+        return new self(sprintf('The route [%s] binds no viewable model to record a view of.', $uri));
+    }
+
+    public static function notInRoute(string $selector, string $uri): self
+    {
+        return new self(sprintf('The route [%s] binds no viewable [%s] to record a view of.', $uri, $selector));
+    }
+
+    public static function routeParameterNotViewable(string $parameter, string $uri): self
+    {
+        return new self(sprintf('The parameter [%s] of the route [%s] must be bound to a model that implements %s.', $parameter, $uri, Viewable::class));
+    }
 }

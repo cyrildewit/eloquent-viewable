@@ -31,6 +31,7 @@
         <li><a href="#preparing-your-model">Preparing your model</a></li>
         <li><a href="#recording-views">Recording views</a>
           <ul>
+            <li><a href="#recording-from-a-route">Recording from a route</a></li>
             <li><a href="#finding-out-why-a-view-was-not-recorded">Finding out why a view was not recorded</a></li>
           </ul>
         </li>
@@ -225,6 +226,44 @@ check off. Or add a guard of your own, see [Adding a recording guard](#adding-a-
 > crawlers and will not trigger a recorded view.
 
 `record()` returns `true` when the view was stored or queued and `false` when a guard refused it.
+
+#### Recording from a route
+
+To record a view without touching the controller, add the `views` middleware to the route. It records the model bound
+to the route once the response is ready:
+
+```php
+Route::get('/posts/{post}', ShowPost::class)->middleware('views');
+```
+
+Only a successful response to a `GET` request records a view, so a 404, a redirect, an error or a form post records
+nothing. The view passes the same guards as `record()` in a controller. The middleware reads the bound models after the
+controller has run, so it works on either side of `SubstituteBindings`.
+
+Without arguments it records the last route parameter bound to a `Viewable` model. In `/users/{user}/posts/{post}`
+that is the post, the page's subject. Name a route parameter or a model class to pick another, or several to record
+each of them:
+
+```php
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+
+->middleware('views:user')                                    // the {user} parameter
+->middleware(RecordViews::using(Post::class))                 // every parameter bound to a Post
+->middleware(RecordViews::using(['user', 'post']))            // both
+->middleware(RecordViews::using('post', collection: 'amp', cooldown: 30, queue: true))
+```
+
+As with Laravel's `can` middleware, a value with a backslash is a class name and anything else a route parameter.
+`RecordViews::using()` builds the middleware string, `views:post,collection=amp,cooldown=30,queue=true`, which you can
+also write by hand. A route that binds nothing to record, or a parameter that is not a `Viewable`, throws
+`InvalidViewable` on the first request, so a typo shows up straight away.
+
+If storing the view fails, the middleware reports the `RecordingFailed` exception and still sends the page. For a
+condition, a `viewedBy()` or a `context()`, call `views()` in the controller instead.
+
+> [!TIP]
+> Inertia and Livewire reload a page with another `GET` to the same route, which the middleware counts again. A
+> `cooldown` keeps those reloads from adding views.
 
 #### Finding out why a view was not recorded
 
