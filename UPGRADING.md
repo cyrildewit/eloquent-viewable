@@ -237,7 +237,7 @@ Doubles are unaffected: `Views::shouldReceive()` and `Views::swap()` still take 
 
 ### Counting goes through a source
 
-`Views::count()`, `Views::countByInterval()` and the `withViewsCount()` and `orderByViews()` scopes all read through the `Querying\Contracts\ViewSource` bound in the container. If you replaced the `Views` class to change how counts are computed, implementing that contract is now the smaller change, and it reaches the scopes too. The `querying.source.driver` config key names the source; the package default is `database`, so nothing changes until you set it. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).
+`Views::count()`, `Views::countByInterval()` and the other counts read through the `Querying\Contracts\ViewSource` bound in the container, and the `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and `whereViewedBy()` scopes read through it when it also implements `Querying\Contracts\SubquerySource`, as the shipped `database` source does. If you replaced the `Views` class to change how counts are computed, implementing that contract is now the smaller change, and it reaches the scopes too. The `querying.source.driver` config key names the source; the package default is `database`, so nothing changes until you set it. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).
 
 The scopes used to call `withAggregate()` on the `views` relation. They now add a correlated subselect from the source. The results are the same, and the count column is still cast to an integer, but code that inspected the generated SQL will see a different shape.
 
@@ -406,15 +406,15 @@ The internal `CacheKey` class now builds cache keys as a readable prefix followe
 
 **No action is required.** This only affects view counts cached via `remember()`. Existing entries under the old key format are simply never read again. The first `count()` after upgrading recomputes the value from the `views` table and re-caches it under the new key. Nothing is lost, since the database remains the source of truth. Old entries expire on their own; run `php artisan cache:clear` (or clear the `eloquent-viewable` store) after deploying if you would rather remove them immediately.
 
-The cache key string is an internal implementation detail. If you constructed `CacheKey` directly (it is not part of the public API), note that it no longer exposes the `fromViewable()` factory. The constructor takes the viewable, the connection the views are read from, the cache-key prefix and the source driver, and `make()` takes a `ViewsQuery`:
+The cache key string is an internal implementation detail. If you constructed `CacheKey` directly (it is not part of the public API), note that it no longer exposes the `fromViewable()` factory. The constructor takes the morph class and key of the viewable, the cache-key prefix and the identity of the source, and `make()` takes a `ViewsQuery`:
 
 ```diff
 -CacheKey::fromViewable($viewable)->make($period, $unique, $collection);
 +new CacheKey(
-+    $viewable,
-+    app(View::class)->getConnection(),
++    $viewable->getMorphClass(),
++    $viewable->getKey(),
 +    config('eloquent-viewable.querying.cache.key'),
-+    config('eloquent-viewable.querying.source.driver'),
++    config('eloquent-viewable.querying.source.driver').':'.app(DatabaseSource::class)->cacheIdentity(),
 +)->make(new ViewsQuery($period, $collection, $unique));
 ```
 
