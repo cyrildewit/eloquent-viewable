@@ -45,7 +45,11 @@ final readonly class VisitorIdentity
             return $this->ofViewer($viewer);
         }
 
-        return $identity === self::Fingerprint ? $this->fingerprint->of($visitor) : $visitor->id();
+        if ($identity === self::Fingerprint) {
+            return $this->fingerprint->of($visitor);
+        }
+
+        return $visitor->id();
     }
 
     /**

@@ -238,6 +238,10 @@ final class ViewsFake implements ViewSource, ViewStore
     {
         $key = ViewableKey::of($viewable);
 
-        return $key === null ? $viewable->getMorphClass() : "{$viewable->getMorphClass()} {$key}";
+        if ($key === null) {
+            return $viewable->getMorphClass();
+        }
+
+        return "{$viewable->getMorphClass()} {$key}";
     }
 }

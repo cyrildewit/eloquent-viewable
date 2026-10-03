@@ -104,13 +104,23 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
     public function peak(): ?Bucket
     {
         return $this->intervals->reduce(
-            static fn (?Bucket $peak, Bucket $bucket): Bucket => ! $peak instanceof Bucket || $bucket->count > $peak->count ? $bucket : $peak,
+            static function (?Bucket $peak, Bucket $bucket): Bucket {
+                if (! $peak instanceof Bucket) {
+                    return $bucket;
+                }
+
+                return $bucket->count > $peak->count ? $bucket : $peak;
+            },
         );
     }
 
     public function average(): float
     {
-        return $this->intervals->isEmpty() ? 0.0 : $this->total() / $this->intervals->count();
+        if ($this->intervals->isEmpty()) {
+            return 0.0;
+        }
+
+        return $this->total() / $this->intervals->count();
     }
 
     /** @return array{granularity: string, total: int, labels: list<string>, values: list<int>} */

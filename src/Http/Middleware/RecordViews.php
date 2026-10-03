@@ -124,7 +124,11 @@ final readonly class RecordViews
     {
         $minutes = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-        return is_int($minutes) ? $minutes : throw InvalidConfiguration::invalidMiddlewareOption($argument);
+        if (! is_int($minutes)) {
+            throw InvalidConfiguration::invalidMiddlewareOption($argument);
+        }
+
+        return $minutes;
     }
 
     /** @return list<Viewable> */
@@ -133,7 +137,11 @@ final readonly class RecordViews
         $viewables = array_filter($route->parameters(), fn (mixed $value): bool => $value instanceof Viewable);
 
         if ($selectors === []) {
-            return $viewables === [] ? throw InvalidViewable::noneInRoute($route->uri()) : [array_last($viewables)];
+            if ($viewables === []) {
+                throw InvalidViewable::noneInRoute($route->uri());
+            }
+
+            return [array_last($viewables)];
         }
 
         $selected = [];

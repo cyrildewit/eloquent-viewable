@@ -58,7 +58,11 @@ final readonly class RelativePeriod
             $signature .= "~{$this->shift}";
         }
 
-        return $this->timezone instanceof Timezone ? "{$signature}@{$this->timezone->getName()}" : $signature;
+        if (! $this->timezone instanceof Timezone) {
+            return $signature;
+        }
+
+        return "{$signature}@{$this->timezone->getName()}";
     }
 
     /**

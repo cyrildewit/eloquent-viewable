@@ -271,7 +271,11 @@ final readonly class Period implements UrlRoutable
      */
     private static function relative(PeriodAnchor $anchor, PeriodInterval $interval, int $value, DateTimeZone|string|null $timezone): self
     {
-        return self::fromRelative(new RelativePeriod($anchor, $interval, $value, $timezone === null ? null : Timezone::from($timezone)));
+        $zone = $timezone === null
+            ? null
+            : Timezone::from($timezone);
+
+        return self::fromRelative(new RelativePeriod($anchor, $interval, $value, $zone));
     }
 
     private static function fromRelative(RelativePeriod $relative): self

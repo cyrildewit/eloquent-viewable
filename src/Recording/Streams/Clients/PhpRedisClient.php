@@ -63,13 +63,19 @@ final readonly class PhpRedisClient implements StreamClient
     {
         $response = $this->connection->command('xreadgroup', [$group, $consumer, [$stream => '>'], $count]);
 
-        return $this->entries(is_array($response) ? array_first($response) ?? [] : []);
+        if (! is_array($response)) {
+            return [];
+        }
+
+        return $this->entries(array_first($response) ?? []);
     }
 
     /** @return list<StreamEntry> */
     public function range(string $stream, ?string $after, int $count): array
     {
-        return $this->entries($this->connection->command('xrange', [$stream, $after === null ? '-' : "({$after}", '+', $count]));
+        $start = $after === null ? '-' : "({$after}";
+
+        return $this->entries($this->connection->command('xrange', [$stream, $start, '+', $count]));
     }
 
     /** @param  list<string>  $ids */
