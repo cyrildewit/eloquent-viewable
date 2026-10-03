@@ -61,9 +61,9 @@ final readonly class Fingerprint
 
         $salt = bin2hex(random_bytes(32));
 
-        // Another request may have written the salt since the read above;
-        // add() keeps the first one, so both hash under the same salt.
-        if ($cache->add($key, $salt, $now->copy()->startOfDay()->addDay())) {
+        $addedByThisRequest = $cache->add($key, $salt, $now->copy()->startOfDay()->addDay());
+
+        if ($addedByThisRequest) {
             return $salt;
         }
 

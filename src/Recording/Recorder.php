@@ -43,8 +43,6 @@ final readonly class Recorder
             throw RecordingFailed::cannotRecordViewForViewableType();
         }
 
-        // Resolved before the guards run, while the request is still there,
-        // so the cooldown and the record agree on who the visitor is.
         $viewer = $this->viewerOf($attempt);
 
         if ($viewer !== $attempt->viewer) {

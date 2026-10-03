@@ -51,7 +51,6 @@ final readonly class TimezoneConversion
         $instants = [];
 
         foreach ([$this->from, $this->to] as $zone) {
-            // The first entry describes the state at $begin, not a transition.
             foreach ($zone->getTransitions($begin, $until) as $transition) {
                 if ($transition['ts'] > $begin) {
                     $instants[$transition['ts']] = true;
