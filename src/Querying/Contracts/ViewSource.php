@@ -24,6 +24,14 @@ interface ViewSource
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array;
 
     /**
+     * Keyed by collection name, the default collection as an empty string.
+     * Only collections with views are present, in any order.
+     *
+     * @return array<string, int>
+     */
+    public function countByCollection(Viewable $viewable, ViewsQuery $query): array;
+
+    /**
      * Selects one integer, correlated on the viewable's qualified key.
      */
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder;

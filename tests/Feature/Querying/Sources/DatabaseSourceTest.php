@@ -233,6 +233,60 @@ it('returns the same labels on every driver for {granularity}', function (Granul
     'year' => [Granularity::Year, '2026-03-04 10:37:12', '2026-01-01 00:00:00'],
 ]);
 
+describe('count by collection', function (): void {
+    it('counts the views of a viewable per collection, the default one as an empty string', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->inCollection('feed')->create();
+
+        $counts = viewSource()->countByCollection($this->post, new ViewsQuery);
+
+        ksort($counts);
+
+        expect($counts)->toBe(['' => 2, 'feed' => 1, 'sidebar' => 3]);
+    });
+
+    it('counts the views of a viewable type per collection', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->inCollection('sidebar')->create();
+        View::factory()->for(Apartment::factory()->create(), 'viewable')->inCollection('sidebar')->create();
+
+        expect(viewSource()->countByCollection(new Post, new ViewsQuery))->toBe(['sidebar' => 2]);
+    });
+
+    it('returns no counts when nothing matches', function (): void {
+        expect(viewSource()->countByCollection($this->post, new ViewsQuery))->toBeEmpty();
+    });
+
+    it('counts unique visitors per collection', function (): void {
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->inCollection('sidebar')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_two')->inCollection('sidebar')->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->create();
+
+        $counts = viewSource()->countByCollection($this->post, new ViewsQuery(unique: true));
+
+        ksort($counts);
+
+        expect($counts)->toBe(['' => 1, 'sidebar' => 2]);
+    });
+
+    it('narrows to the period of the query', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->viewedAt(Carbon::parse('2026-08-31 23:59:59'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->viewedAt(Carbon::parse('2026-09-01 00:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->viewedAt(Carbon::parse('2026-09-06 00:00:00'))->create();
+
+        expect(viewSource()->countByCollection($this->post, new ViewsQuery(Period::create('2026-09-01', '2026-09-06'))))->toBe(['sidebar' => 1]);
+    });
+
+    it('narrows to the collection of the query', function (): void {
+        View::factory()->for($this->post, 'viewable')->inCollection('sidebar')->create();
+        View::factory()->for($this->post, 'viewable')->inCollection('feed')->create();
+
+        expect(viewSource()->countByCollection($this->post, new ViewsQuery(collection: 'sidebar')))->toBe(['sidebar' => 1]);
+    });
+});
+
 describe('grammar resolution', function (): void {
     it('wraps both columns through the grammar of the connection it queries', function (): void {
         $connection = viewConnection();

@@ -340,6 +340,11 @@ describe('view source', function (): void {
                 return [];
             }
 
+            public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+            {
+                return [];
+            }
+
             public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
             {
                 // The row's own key stands in for a count, so the ordering is observable.

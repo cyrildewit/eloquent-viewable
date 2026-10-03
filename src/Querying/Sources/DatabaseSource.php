@@ -72,6 +72,32 @@ final readonly class DatabaseSource implements ViewSource
         return $counts;
     }
 
+    /** @return array<string, int> */
+    public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+    {
+        $builder = $this->view->newQueryFor($viewable, $query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        $column = $grammar->wrap($this->view->qualifyColumn('collection'));
+        $aggregate = $this->aggregate($query, $grammar);
+
+        // The default collection is stored as null, which pluck keys as the
+        // empty string, as any PHP array does.
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $builder
+            ->selectRaw("{$column} as collection, {$aggregate} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+            ->groupBy('collection')
+            ->pluck('aggregate', 'collection');
+
+        $counts = [];
+
+        foreach ($rows as $name => $count) {
+            $counts[(string) $name] = (int) $count;
+        }
+
+        return $counts;
+    }
+
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase();
