@@ -7,6 +7,7 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
 use Illuminate\Contracts\Routing\UrlRoutable;
 
 it('can be constructed without arguments', function (): void {
@@ -336,4 +337,105 @@ describe('route binding', function (): void {
             ->and((new Period)->resolveRouteBinding(7))->toBeNull()
             ->and((new Period)->resolveChildRouteBinding('post', '7d', null))->toBeNull();
     });
+});
+
+describe('previous', function (): void {
+    beforeEach(function (): void {
+        Carbon::setTestNow('2026-09-10 12:34:56');
+    });
+
+    it('steps a {method} period back by its own unit', function (string $method, int $value, string $start, string $end): void {
+        $previous = Period::{$method}($value)->previous();
+
+        expect($previous->getStartDateTime()->format('Y-m-d H:i:s'))->toBe($start)
+            ->and($previous->getEndDateTime()->format('Y-m-d H:i:s'))->toBe($end)
+            ->and($previous->getEndDateTime())->toEqual(Period::{$method}($value)->getStartDateTime());
+    })->with([
+        ['pastDays', 7, '2026-08-27 00:00:00', '2026-09-03 00:00:00'],
+        ['pastWeeks', 2, '2026-08-13 00:00:00', '2026-08-27 00:00:00'],
+        ['pastMonths', 1, '2026-07-10 00:00:00', '2026-08-10 00:00:00'],
+        ['pastYears', 1, '2024-09-10 00:00:00', '2025-09-10 00:00:00'],
+        ['subSeconds', 90, '2026-09-10 12:31:56', '2026-09-10 12:33:26'],
+        ['subMinutes', 30, '2026-09-10 11:34:56', '2026-09-10 12:04:56'],
+        ['subHours', 12, '2026-09-09 12:34:56', '2026-09-10 00:34:56'],
+        ['subDays', 7, '2026-08-27 12:34:56', '2026-09-03 12:34:56'],
+        ['subWeeks', 1, '2026-08-27 12:34:56', '2026-09-03 12:34:56'],
+        ['subMonths', 1, '2026-07-10 12:34:56', '2026-08-10 12:34:56'],
+        ['subYears', 1, '2024-09-10 12:34:56', '2025-09-10 12:34:56'],
+    ]);
+
+    it('keeps stepping back from a previous period', function (): void {
+        $period = Period::pastDays(7)->previous()->previous();
+
+        expect($period->getStartDateTime()->format('Y-m-d'))->toBe('2026-08-20')
+            ->and($period->getEndDateTime()->format('Y-m-d'))->toBe('2026-08-27');
+    });
+
+    it('steps a relative period back on the clock it was built in', function (): void {
+        // 12:34 UTC on the 10th is 22:34 on the 10th in Sydney.
+        $previous = Period::pastDays(1, 'Australia/Sydney')->previous();
+
+        expect($previous->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-09-08 00:00:00', 'Australia/Sydney')->timestamp)
+            ->and($previous->getEndDateTime()->timestamp)->toBe(Carbon::parse('2026-09-09 00:00:00', 'Australia/Sydney')->timestamp);
+    });
+
+    it('keeps the shift when re-anchored in a timezone', function (): void {
+        $previous = Period::pastDays(1)->previous()->anchoredIn(new Timezone('Australia/Sydney'));
+
+        expect($previous->getStartDateTime()->timestamp)->toBe(Carbon::parse('2026-09-08 00:00:00', 'Australia/Sydney')->timestamp)
+            ->and($previous->cacheSignature())->toBe('past1days~1@Australia/Sydney');
+    });
+
+    it('gives a shifted relative period a stable cache signature', function (): void {
+        $signature = Period::pastDays(7)->previous()->cacheSignature();
+
+        Carbon::setTestNow('2026-09-10 18:00:00');
+
+        expect($signature)->toBe('past7days~1')
+            ->and(Period::pastDays(7)->previous()->cacheSignature())->toBe($signature)
+            ->and(Period::subHours(2)->previous()->previous()->cacheSignature())->toBe('sub2hours~2')
+            ->and(Period::pastDays(7, 'Australia/Sydney')->previous()->cacheSignature())->toBe('past7days~1@Australia/Sydney');
+    });
+
+    it('writes a shifted relative period as its bounds', function (): void {
+        expect(Period::pastDays(7)->previous()->getRouteKey())->toBe('2026-08-27..2026-09-03');
+    });
+
+    it('steps an absolute period back by its exact duration', function (): void {
+        $previous = Period::create('2026-01-01', '2026-02-01')->previous();
+
+        expect($previous->getStartDateTime()->format('Y-m-d H:i:s'))->toBe('2025-12-01 00:00:00')
+            ->and($previous->getEndDateTime()->format('Y-m-d H:i:s'))->toBe('2026-01-01 00:00:00')
+            ->and(Period::create('2026-02-01', '2026-03-01')->previous()->getRouteKey())->toBe('2026-01-04..2026-02-01');
+    });
+
+    it('keeps the microseconds of an absolute period', function (): void {
+        $previous = Period::create('2026-09-10 12:00:00.250000', '2026-09-10 12:00:01.000000')->previous();
+
+        expect($previous->getStartDateTime()->format('H:i:s.u'))->toBe('11:59:59.500000')
+            ->and($previous->getEndDateTime()->format('H:i:s.u'))->toBe('12:00:00.250000');
+    });
+
+    it('steps an empty period back onto itself', function (): void {
+        $previous = Period::create('2026-09-01', '2026-09-01')->previous();
+
+        expect($previous->getRouteKey())->toBe('2026-09-01..2026-09-01');
+    });
+
+    it('does not mutate the period it steps back from', function (): void {
+        $period = Period::create('2026-01-01', '2026-02-01');
+
+        $period->previous();
+
+        expect($period->getRouteKey())->toBe('2026-01-01..2026-02-01');
+    });
+
+    it('throws for a period without {case}', function (Period $period, string $key): void {
+        expect(fn (): Period => $period->previous())
+            ->toThrow(InvalidPeriod::class, "`{$key}` has no previous period.");
+    })->with([
+        'an end' => [Period::since('2026-01-01'), '2026-01-01..'],
+        'a start' => [Period::upto('2026-02-01'), '..2026-02-01'],
+        'any bound' => [new Period, '..'],
+    ]);
 });
