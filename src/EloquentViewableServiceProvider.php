@@ -12,12 +12,12 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
-use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
 use CyrildeWit\EloquentViewable\Recording\Actions\RecordView;
 use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
@@ -95,7 +95,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             return new $model;
         });
 
-        $this->app->when([Reader::class, CacheVersions::class])
+        $this->app->when([VersionedCache::class, CacheVersions::class])
             ->needs(CacheRepository::class)
             ->give(fn (): CacheRepository => $this->app->make(CacheFactory::class)->store(
                 $this->app->make(Config::class)->cacheStore()

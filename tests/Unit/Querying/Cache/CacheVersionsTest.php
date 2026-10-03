@@ -27,7 +27,7 @@ beforeEach(function (): void {
 
     // What the reader does: read the versions, start the missing ones, join them.
     $this->of = function (?Viewable $viewable): string {
-        $keys = $this->versions->keys($viewable);
+        $keys = $this->versions->keys($viewable?->getMorphClass(), $viewable?->getKey());
 
         return $this->versions->stamp($this->versions->resolve($keys, $this->cache->many($keys)), $keys);
     };
@@ -97,9 +97,9 @@ it('starts a fresh version when one was evicted', function (): void {
 });
 
 it('stamps a viewable alike from a read it shares with others', function (): void {
-    $keys = array_values(array_unique([...$this->versions->keys($this->post), ...$this->versions->keys($this->otherPost)]));
+    $keys = array_values(array_unique([...$this->versions->keys('posts', 1), ...$this->versions->keys('posts', 2)]));
     $versions = $this->versions->resolve($keys, $this->cache->many($keys));
 
-    expect($this->versions->stamp($versions, $this->versions->keys($this->post)))->toBe(($this->of)($this->post))
-        ->and($this->versions->stamp($versions, $this->versions->keys($this->otherPost)))->toBe(($this->of)($this->otherPost));
+    expect($this->versions->stamp($versions, $this->versions->keys('posts', 1)))->toBe(($this->of)($this->post))
+        ->and($this->versions->stamp($versions, $this->versions->keys('posts', 2)))->toBe(($this->of)($this->otherPost));
 });

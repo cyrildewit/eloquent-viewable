@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
@@ -20,9 +21,10 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Support\Collection;
+use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements SubquerySource, ViewSource
+final readonly class DatabaseSource implements IdentifiesSource, SubquerySource, ViewSource
 {
     private const int CHUNK = 100;
 
@@ -152,6 +154,18 @@ final readonly class DatabaseSource implements SubquerySource, ViewSource
         }
 
         return $builder->toBase();
+    }
+
+    /**
+     * Two databases behind one cache store keep their entries apart.
+     *
+     * @throws JsonException
+     */
+    public function cacheIdentity(): string
+    {
+        $connection = $this->view->getConnection();
+
+        return json_encode([$connection->getName(), $connection->getDatabaseName()], JSON_THROW_ON_ERROR);
     }
 
     /** @return list<array{type: string, id: int|string, count: int}> */
