@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -21,7 +22,7 @@ use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Support\Collection;
 use stdClass;
 
-final readonly class DatabaseSource implements ViewSource
+final readonly class DatabaseSource implements SubquerySource, ViewSource
 {
     private const int CHUNK = 100;
 
@@ -136,6 +137,21 @@ final readonly class DatabaseSource implements ViewSource
             ->where($this->view->qualifyColumn('viewable_type'), $viewable->getMorphClass())
             ->whereColumn($this->view->qualifyColumn('viewable_id'), $viewable->getQualifiedKeyName())
             ->selectRaw($this->aggregate($query, $builder->getGrammar())); // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+    }
+
+    public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
+    {
+        // The same SQL whereHas() builds on the views relation.
+        $builder = $this->view->newQuery()
+            ->whereColumn($viewable->getQualifiedKeyName(), $this->view->qualifyColumn('viewable_id'))
+            ->where($this->view->qualifyColumn('viewable_type'), $viewable->getMorphClass())
+            ->matching($query);
+
+        if ($visitor !== null) {
+            $builder->byVisitor($visitor);
+        }
+
+        return $builder->toBase();
     }
 
     /** @return list<array{type: string, id: int|string, count: int}> */

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Scopes;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidOperator;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +16,7 @@ final readonly class WhereViewsCount
     private const array OPERATORS = ['=', '!=', '<>', '<', '<=', '>', '>='];
 
     public function __construct(
-        private ViewSource $source,
+        private SubquerySource $source,
         private ViewsQuery $query,
         private string $operator,
         private int $count,

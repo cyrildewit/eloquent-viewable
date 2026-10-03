@@ -7,9 +7,13 @@ namespace CyrildeWit\EloquentViewable\Querying\Contracts;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use Illuminate\Database\Query\Builder;
 
 /**
+ * Where the numbers come from. Every method returns plain values, so a source
+ * can read from any backend. A source that can also be queried in SQL
+ * implements `SubquerySource` for the Eloquent scopes, and one with settings
+ * that change its counts implements `IdentifiesSource`.
+ *
  * A viewable without a key stands for every viewable of its type.
  */
 interface ViewSource
@@ -36,11 +40,6 @@ interface ViewSource
      * @return array<int|string, int>
      */
     public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array;
-
-    /**
-     * Selects one integer, correlated on the viewable's qualified key.
-     */
-    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder;
 
     /** @return list<array{type: string, id: int|string, count: int}> */
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array;

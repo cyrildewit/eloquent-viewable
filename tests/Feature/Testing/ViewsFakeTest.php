@@ -8,13 +8,13 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Facades\Views;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use CyrildeWit\EloquentViewable\Testing\Exceptions\UnsupportedInFake;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -342,9 +342,9 @@ describe('counting', function (): void {
 
     it('refuses the scopes', function (): void {
         expect(fn () => Post::withViewsCount()->get())
-            ->toThrow(UnsupportedInFake::class, 'withViewsCount(), orderByViews() and whereViewsCount() cannot read from it')
-            ->and(fn () => Post::whereViewsCount('>=', 1)->get())
-            ->toThrow(UnsupportedInFake::class);
+            ->toThrow(UnsupportedBySource::class, 'The view source ['.ViewsFake::class.'] cannot be queried in SQL')
+            ->and(fn () => Post::whereViewedByVisitor('visitor_one')->get())
+            ->toThrow(UnsupportedBySource::class);
     });
 });
 

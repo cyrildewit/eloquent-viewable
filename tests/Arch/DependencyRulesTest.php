@@ -50,7 +50,6 @@ const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Exceptions',
     'CyrildeWit\EloquentViewable\Recording\Exceptions',
     'CyrildeWit\EloquentViewable\Querying\Exceptions',
-    'CyrildeWit\EloquentViewable\Testing\Exceptions',
 ];
 
 arch('no debugging statements are left in the codebase')

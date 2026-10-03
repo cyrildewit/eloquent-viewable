@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Concerns;
 
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByViews;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewed;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewsCount;
@@ -64,7 +66,7 @@ trait InteractsWithViews
         bool $unique = false,
         string $as = 'views_count'
     ): Builder {
-        return $query->tap(new OrderByViews($this->viewSource(), new ViewsQuery($period, $collection, $unique), $direction, $as));
+        return $query->tap(new OrderByViews($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $direction, $as));
     }
 
     /**
@@ -90,7 +92,7 @@ trait InteractsWithViews
      */
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
-        return $query->tap(new WithViewsCount($this->viewSource(), new ViewsQuery($period, $collection, $unique), $as));
+        return $query->tap(new WithViewsCount($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $as));
     }
 
     /**
@@ -105,7 +107,7 @@ trait InteractsWithViews
         ?string $collection = null,
         bool $unique = false
     ): Builder {
-        return $query->tap(new WhereViewsCount($this->viewSource(), new ViewsQuery($period, $collection, $unique), $operator, $count));
+        return $query->tap(new WhereViewsCount($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $operator, $count));
     }
 
     /**
@@ -123,7 +125,7 @@ trait InteractsWithViews
      */
     public function scopeWhereViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
     {
-        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection, viewer: $viewer)));
+        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection, viewer: $viewer)));
     }
 
     /**
@@ -132,7 +134,7 @@ trait InteractsWithViews
      */
     public function scopeWhereNotViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
     {
-        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection, viewer: $viewer), not: true));
+        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection, viewer: $viewer), not: true));
     }
 
     /**
@@ -141,7 +143,7 @@ trait InteractsWithViews
      */
     public function scopeWhereViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
     {
-        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection), $visitor));
+        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection), $visitor));
     }
 
     /**
@@ -150,11 +152,14 @@ trait InteractsWithViews
      */
     public function scopeWhereNotViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
     {
-        return $query->tap(new WhereViewed(new ViewsQuery($period, $collection), $visitor, not: true));
+        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection), $visitor, not: true));
     }
 
-    protected function viewSource(): ViewSource
+    /** @throws UnsupportedBySource */
+    protected function subquerySource(): SubquerySource
     {
-        return Container::getInstance()->make(ViewSource::class);
+        $source = Container::getInstance()->make(ViewSource::class);
+
+        return $source instanceof SubquerySource ? $source : throw UnsupportedBySource::scopes($source);
     }
 }

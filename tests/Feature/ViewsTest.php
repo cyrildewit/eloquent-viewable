@@ -39,7 +39,6 @@ use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Container\Container;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -1057,11 +1056,6 @@ describe('counting by interval', function (): void {
                 return array_fill_keys($keys, 7);
             }
 
-            public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-            {
-                return DB::query()->selectRaw('0');
-            }
-
             public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
             {
                 return [['type' => Post::class, 'id' => Post::query()->min('id'), 'count' => 99]];
@@ -1366,11 +1360,6 @@ describe('counting by collection', function (): void {
             public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
             {
                 return [];
-            }
-
-            public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-            {
-                return DB::query()->selectRaw('0');
             }
 
             public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array

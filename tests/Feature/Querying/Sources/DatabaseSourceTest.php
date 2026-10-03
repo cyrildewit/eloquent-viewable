@@ -31,6 +31,11 @@ function viewSource(): ViewSource
     return Container::getInstance()->make(ViewSource::class);
 }
 
+function databaseSource(): DatabaseSource
+{
+    return Container::getInstance()->make(DatabaseSource::class);
+}
+
 function viewConnection(): Connection
 {
     return Container::getInstance()->make(View::class)->getConnection();
@@ -166,7 +171,7 @@ describe('count subquery', function (): void {
     {
         return Post::query()
             ->select('posts.*')
-            ->selectSub(viewSource()->countSubquery(new Post, $query), 'views_count')
+            ->selectSub(databaseSource()->countSubquery(new Post, $query), 'views_count')
             ->orderBy('id')
             ->pluck('views_count', 'id')
             ->map(fn (mixed $count): int => (int) $count)
@@ -202,11 +207,29 @@ describe('count subquery', function (): void {
     });
 
     it('selects a single aggregate column', function (): void {
-        expect(viewSource()->countSubquery(new Post, new ViewsQuery)->toSql())
+        expect(databaseSource()->countSubquery(new Post, new ViewsQuery)->toSql())
             ->toBe('select count(*) from "views" where "views"."viewable_type" = ? and "views"."viewable_id" = "posts"."id"')
-            ->and(viewSource()->countSubquery(new Post, new ViewsQuery(unique: true))->toSql())
+            ->and(databaseSource()->countSubquery(new Post, new ViewsQuery(unique: true))->toSql())
             ->toBe('select count(distinct "views"."visitor") from "views" where "views"."viewable_type" = ? and "views"."viewable_id" = "posts"."id"');
     })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
+});
+
+describe('views subquery', function (): void {
+    it('narrows to the visitor when one is given', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->create();
+        View::factory()->for($other, 'viewable')->fromVisitor('visitor_two')->create();
+
+        $viewed = fn (?string $visitor): array => Post::query()
+            ->whereExists(databaseSource()->viewsSubquery(new Post, new ViewsQuery, $visitor))
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        expect($viewed('visitor_one'))->toBe([$this->post->getKey()])
+            ->and($viewed(null))->toBe([$this->post->getKey(), $other->getKey()]);
+    });
 });
 
 describe('top', function (): void {
