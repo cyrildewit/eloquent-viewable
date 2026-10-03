@@ -10,7 +10,7 @@ class ShowProduct
      * A shopper who browses back and forth between products is counted once
      * per hour for each of them.
      */
-    private const int COOLDOWN_MINUTES = 60;
+    private const int CooldownMinutes = 60;
 
     public function __invoke(Product $product): Product
     {
@@ -18,7 +18,7 @@ class ShowProduct
         // Only the insert, and the counter update that follows it, move to
         // the queue.
         views($product)
-            ->cooldown(self::COOLDOWN_MINUTES)
+            ->cooldown(self::CooldownMinutes)
             ->queue()
             ->record();
 

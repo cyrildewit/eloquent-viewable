@@ -21,7 +21,7 @@ use DateTimeImmutable;
  */
 final readonly class TimezoneConversion
 {
-    private const string WALL_CLOCK = 'Y-m-d H:i:s';
+    private const string WallClock = 'Y-m-d H:i:s';
 
     public function __construct(
         public Timezone $from,
@@ -85,6 +85,6 @@ final readonly class TimezoneConversion
 
     private function storedWallClockAt(int $instant): string
     {
-        return new DateTimeImmutable("@{$instant}")->setTimezone($this->from)->format(self::WALL_CLOCK);
+        return new DateTimeImmutable("@{$instant}")->setTimezone($this->from)->format(self::WallClock);
     }
 }

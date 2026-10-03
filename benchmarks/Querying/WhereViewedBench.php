@@ -31,7 +31,7 @@ use RuntimeException;
 #[Iterations(5)]
 final class WhereViewedBench extends BenchCase
 {
-    private const int PAGE_SIZE = 20;
+    private const int PageSize = 20;
 
     /**
      * @return Generator<string, array{visitor: string}>
@@ -48,7 +48,7 @@ final class WhereViewedBench extends BenchCase
     #[ParamProviders(['provideVisitors', 'providePeriods'])]
     public function benchWhereViewedByVisitor(array $params): void
     {
-        Article::query()->whereViewedByVisitor($this->visitor($params), $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->whereViewedByVisitor($this->visitor($params), $this->period($params))->limit(self::PageSize)->get();
     }
 
     /**
@@ -57,7 +57,7 @@ final class WhereViewedBench extends BenchCase
     #[ParamProviders(['provideVisitors', 'providePeriods'])]
     public function benchWhereNotViewedByVisitor(array $params): void
     {
-        Article::query()->whereNotViewedByVisitor($this->visitor($params), $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->whereNotViewedByVisitor($this->visitor($params), $this->period($params))->limit(self::PageSize)->get();
     }
 
     /**

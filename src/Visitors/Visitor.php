@@ -15,17 +15,11 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class Visitor implements VisitorContract
 {
-    /**
-     * The name of the Do Not Track request header.
-     */
-    const string DNT = 'DNT';
+    public const string DoNotTrackHeader = 'DNT';
 
-    /**
-     * The name of the Global Privacy Control request header.
-     */
-    const string GPC = 'Sec-GPC';
+    public const string GlobalPrivacyControlHeader = 'Sec-GPC';
 
-    const array PREFETCH_HEADERS = ['Sec-Purpose', 'Purpose', 'X-Moz'];
+    public const array PrefetchHeaders = ['Sec-Purpose', 'Purpose', 'X-Moz'];
 
     public function __construct(
         protected Request $request,
@@ -86,17 +80,17 @@ class Visitor implements VisitorContract
 
     public function hasDoNotTrackHeader(): bool
     {
-        return (int) $this->request()->header(self::DNT) === 1;
+        return (int) $this->request()->header(self::DoNotTrackHeader) === 1;
     }
 
     public function hasGlobalPrivacyControl(): bool
     {
-        return (int) $this->request()->header(self::GPC) === 1;
+        return (int) $this->request()->header(self::GlobalPrivacyControlHeader) === 1;
     }
 
     public function isPrefetch(): bool
     {
-        foreach (self::PREFETCH_HEADERS as $header) {
+        foreach (self::PrefetchHeaders as $header) {
             $value = $this->request()->header($header);
 
             if (is_string($value) && str_contains(strtolower($value), 'prefetch')) {

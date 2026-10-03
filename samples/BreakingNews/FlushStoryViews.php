@@ -10,7 +10,7 @@ use Illuminate\Contracts\Cache\Repository;
 
 class FlushStoryViews
 {
-    public const string FLUSHED_AT = 'breaking-news.views.flushed-at';
+    public const string FlushedAt = 'breaking-news.views.flushed-at';
 
     public function __construct(
         private readonly Flusher $flusher,
@@ -28,7 +28,7 @@ class FlushStoryViews
     {
         $landed = $this->flusher->flush();
 
-        $this->cache->forever(self::FLUSHED_AT, CarbonImmutable::now()->toIso8601String());
+        $this->cache->forever(self::FlushedAt, CarbonImmutable::now()->toIso8601String());
 
         return $landed;
     }

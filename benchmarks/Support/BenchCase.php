@@ -65,7 +65,7 @@ abstract class BenchCase
 
     protected function connection(): ConnectionInterface
     {
-        return DB::connection(Application::CONNECTION);
+        return DB::connection(Application::Connection);
     }
 
     /**

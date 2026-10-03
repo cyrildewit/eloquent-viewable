@@ -24,7 +24,7 @@ use RuntimeException;
 #[Iterations(5)]
 final class TopViewedBench extends BenchCase
 {
-    private const int LIMIT = 10;
+    private const int Limit = 10;
 
     /**
      * @return Generator<string, array{scope: string}>
@@ -41,7 +41,7 @@ final class TopViewedBench extends BenchCase
     #[ParamProviders(['provideScopes', 'providePeriods'])]
     public function benchTop(array $params): void
     {
-        $this->ranker($params)->period($this->period($params))->top(self::LIMIT);
+        $this->ranker($params)->period($this->period($params))->top(self::Limit);
     }
 
     /**
@@ -50,7 +50,7 @@ final class TopViewedBench extends BenchCase
     #[ParamProviders(['provideScopes', 'providePeriods'])]
     public function benchUniqueTop(array $params): void
     {
-        $this->ranker($params)->period($this->period($params))->unique()->top(self::LIMIT);
+        $this->ranker($params)->period($this->period($params))->unique()->top(self::Limit);
     }
 
     /** @param  array{scope: string}  $params */

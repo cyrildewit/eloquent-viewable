@@ -20,9 +20,9 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class WhereViewsCountBench extends BenchCase
 {
-    private const int PAGE_SIZE = 20;
+    private const int PageSize = 20;
 
-    private const int THRESHOLD = 100;
+    private const int Threshold = 100;
 
     /**
      * @param  array{days: int|null}  $params
@@ -30,7 +30,7 @@ final class WhereViewsCountBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchWhereViewsCount(array $params): void
     {
-        Article::query()->whereViewsCount('>=', self::THRESHOLD, $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->whereViewsCount('>=', self::Threshold, $this->period($params))->limit(self::PageSize)->get();
     }
 
     /**
@@ -39,6 +39,6 @@ final class WhereViewsCountBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchWhereUniqueViewsCount(array $params): void
     {
-        Article::query()->whereUniqueViewsCount('>=', self::THRESHOLD, $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->whereUniqueViewsCount('>=', self::Threshold, $this->period($params))->limit(self::PageSize)->get();
     }
 }

@@ -26,7 +26,7 @@ use PhpBench\Attributes\Revs;
 #[Iterations(5)]
 final class ViewSeriesBench
 {
-    private const string ANCHOR = '2026-01-01 00:00:00';
+    private const string Anchor = '2026-01-01 00:00:00';
 
     /**
      * @return Generator<string, array{hours: int}>
@@ -44,7 +44,7 @@ final class ViewSeriesBench
     #[ParamProviders('provideSizes')]
     public function benchFill(array $params): void
     {
-        $end = new \DateTimeImmutable(self::ANCHOR, new \DateTimeZone('UTC'));
+        $end = new \DateTimeImmutable(self::Anchor, new \DateTimeZone('UTC'));
         $start = $end->modify("-{$params['hours']} hours");
 
         ViewSeries::fill(Period::create($start, $end), Granularity::Hour, []);

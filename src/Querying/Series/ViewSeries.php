@@ -28,7 +28,7 @@ use Traversable;
  */
 final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSerializable
 {
-    private const string LABEL_FORMAT = 'Y-m-d H:i:s';
+    private const string LabelFormat = 'Y-m-d H:i:s';
 
     /** @param  Collection<int, Bucket>  $intervals */
     private function __construct(
@@ -65,11 +65,11 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
         $intervals = new Collection;
 
         for ($cursor = $start; $cursor < $end; $cursor = $granularity->add($cursor, 1)) {
-            $label = $cursor->format(self::LABEL_FORMAT);
+            $label = $cursor->format(self::LabelFormat);
 
             $intervals->push(new Bucket(
                 start: self::toLocalClock($label, $timezone),
-                end: self::toLocalClock($granularity->add($cursor, 1)->format(self::LABEL_FORMAT), $timezone),
+                end: self::toLocalClock($granularity->add($cursor, 1)->format(self::LabelFormat), $timezone),
                 count: $counts[$label] ?? 0,
                 label: $cursor->format($granularity->labelFormat()),
             ));
@@ -143,7 +143,7 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
      */
     private static function toNaiveClock(CarbonInterface $dateTime): CarbonImmutable
     {
-        return CarbonImmutable::parse($dateTime->format(self::LABEL_FORMAT), 'UTC');
+        return CarbonImmutable::parse($dateTime->format(self::LabelFormat), 'UTC');
     }
 
     private static function toLocalClock(string $label, Timezone $timezone): CarbonImmutable

@@ -10,16 +10,16 @@ use Illuminate\Database\Eloquent\Collection;
 
 class TrendingArticles
 {
-    private const string CACHE_KEY = 'samples.trending-articles';
+    private const string CacheKey = 'samples.trending-articles';
 
     /**
      * How stale the ranking may be. `orderByViews()` counts every view in the
      * window on each call, which gets slow as the views table grows, and it
      * cannot use `remember()`. The ranking is cached here instead.
      */
-    private const int CACHE_SECONDS = 600;
+    private const int CacheSeconds = 600;
 
-    private const int WINDOW_DAYS = 7;
+    private const int WindowDays = 7;
 
     public function __construct(private readonly Repository $cache) {}
 
@@ -51,8 +51,8 @@ class TrendingArticles
     private function ranking(int $limit): array
     {
         /** @var array<int, int> */
-        return $this->cache->remember(self::CACHE_KEY.'.'.$limit, self::CACHE_SECONDS, fn (): array => Article::query()
-            ->orderByViews('desc', Period::pastDays(self::WINDOW_DAYS))
+        return $this->cache->remember(self::CacheKey.'.'.$limit, self::CacheSeconds, fn (): array => Article::query()
+            ->orderByViews('desc', Period::pastDays(self::WindowDays))
             ->orderByDesc('id')
             ->limit($limit)
             ->get()

@@ -34,7 +34,7 @@ if (! isset($options['set']) || ! is_string($options['set'])) {
 $wanted = OptionalIndex::fromList($options['set']);
 
 $app = Application::boot();
-$connection = DB::connection(Application::CONNECTION);
+$connection = DB::connection(Application::Connection);
 $table = $app->make(Config::class)->viewTable() ?? 'views';
 
 $dataset = Dataset::load($connection);

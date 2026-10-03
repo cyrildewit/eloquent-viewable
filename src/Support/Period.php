@@ -26,9 +26,9 @@ use Illuminate\Contracts\Routing\UrlRoutable;
  */
 final readonly class Period implements UrlRoutable
 {
-    private const string RANGE_SEPARATOR = '..';
+    private const string RangeSeparator = '..';
 
-    private const string BOUND_PATTERN = '/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/';
+    private const string BoundPattern = '/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/';
 
     private ?CarbonInterface $startDateTime;
 
@@ -66,14 +66,14 @@ final readonly class Period implements UrlRoutable
             return self::relative($interval->anchor(), $interval, (int) $matches[1], $timezone);
         }
 
-        $bounds = explode(self::RANGE_SEPARATOR, $period);
+        $bounds = explode(self::RangeSeparator, $period);
 
         if (count($bounds) !== 2 || $bounds === ['', '']) {
             throw InvalidPeriod::unparsable($period);
         }
 
         foreach ($bounds as $bound) {
-            if ($bound !== '' && preg_match(self::BOUND_PATTERN, $bound) !== 1) {
+            if ($bound !== '' && preg_match(self::BoundPattern, $bound) !== 1) {
                 throw InvalidPeriod::unparsable($period);
             }
         }
@@ -197,7 +197,7 @@ final readonly class Period implements UrlRoutable
             return $shorthand;
         }
 
-        return $this->formatBound($this->startDateTime).self::RANGE_SEPARATOR.$this->formatBound($this->endDateTime);
+        return $this->formatBound($this->startDateTime).self::RangeSeparator.$this->formatBound($this->endDateTime);
     }
 
     /**

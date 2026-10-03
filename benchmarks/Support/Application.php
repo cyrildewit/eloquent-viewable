@@ -19,9 +19,9 @@ use Orchestra\Testbench\Foundation\Application as TestbenchApplication;
  */
 final class Application
 {
-    public const string CONNECTION = 'benchmark';
+    public const string Connection = 'benchmark';
 
-    public const string REDIS_CACHE_STORE = 'bench-redis';
+    public const string RedisCacheStore = 'bench-redis';
 
     private static ?LaravelApplication $app = null;
 
@@ -46,8 +46,8 @@ final class Application
         // The visitor identity takes its HMAC key from the encrypter, which
         // refuses to boot without one. Fixed, so derived ids are stable.
         $config->set('app.key', 'base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=');
-        $config->set('database.default', self::CONNECTION);
-        $config->set('database.connections.'.self::CONNECTION, self::connection());
+        $config->set('database.default', self::Connection);
+        $config->set('database.connections.'.self::Connection, self::connection());
         $config->set('cache.default', 'array');
         $config->set('session.driver', 'array');
         $config->set('queue.default', 'sync');
@@ -68,7 +68,7 @@ final class Application
             'port' => (int) Env::get('REDIS_PORT', 6379),
             'database' => 1,
         ]);
-        $config->set('cache.stores.'.self::REDIS_CACHE_STORE, ['driver' => 'redis', 'connection' => 'bench-cache']);
+        $config->set('cache.stores.'.self::RedisCacheStore, ['driver' => 'redis', 'connection' => 'bench-cache']);
 
         date_default_timezone_set('UTC');
 

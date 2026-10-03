@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 final readonly class RecordViews
 {
-    public const string ALIAS = 'views';
+    public const string Alias = 'views';
 
     public function __construct(
         private Container $container,
@@ -47,7 +47,7 @@ final readonly class RecordViews
             $arguments[] = 'queue='.($queue ? 'true' : 'false');
         }
 
-        return $arguments === [] ? self::ALIAS : self::ALIAS.':'.implode(',', $arguments);
+        return $arguments === [] ? self::Alias : self::Alias.':'.implode(',', $arguments);
     }
 
     /**

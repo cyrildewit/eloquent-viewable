@@ -26,7 +26,7 @@ use stdClass;
 
 final readonly class DatabaseSource implements IdentifiesSource, SubquerySource, ViewSource
 {
-    private const int CHUNK = 100;
+    private const int Chunk = 100;
 
     public function __construct(
         private View $view,
@@ -112,7 +112,7 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
     {
         $counts = [];
 
-        foreach (array_chunk($keys, self::CHUNK) as $chunk) {
+        foreach (array_chunk($keys, self::Chunk) as $chunk) {
             $branches = array_map(fn (int|string $key): Builder => $this->countOne($viewable, $key, $query), $chunk);
             $statement = array_shift($branches);
 

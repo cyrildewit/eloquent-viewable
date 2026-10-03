@@ -42,7 +42,7 @@ $output = is_string($options['output'] ?? null) ? $options['output'] : null;
 
 Application::boot();
 
-$connection = DB::connection(Application::CONNECTION);
+$connection = DB::connection(Application::Connection);
 
 if (! $connection instanceof Connection) {
     throw new RuntimeException('The benchmark connection cannot pretend to run queries.');

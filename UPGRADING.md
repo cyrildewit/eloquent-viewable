@@ -272,6 +272,8 @@ A subclass of the shipped `Visitor` that overrides its constructor drops the `Cr
 `Request`, `Support\Config`, `Illuminate\Contracts\Cookie\QueueingFactory` and `Illuminate\Contracts\Auth\Factory`, in
 that order.
 
+The `Visitor::DNT` constant is now `Visitor::DoNotTrackHeader`.
+
 #### Custom `CrawlerDetector`
 
 The detector now receives the user agent instead of reading the request:

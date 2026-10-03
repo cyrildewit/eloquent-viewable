@@ -74,7 +74,7 @@ of `make test` or `make ready` and never runs in CI. `benchmarks/README.md` expl
 how to compare a branch against `main`. Run it only through the `make bench-*` targets: they turn Xdebug off and
 point `DB_*` at the `bench-*` services, and a benchmark refuses to run with Xdebug active. Benchmarks that touch
 the database extend `Support\BenchCase`; the seeder, the dataset description and the application boot live in
-`benchmarks/Support`. A change to what the seeder generates needs a bump of `Dataset::SCHEMA_VERSION`, so stale
+`benchmarks/Support`. A change to what the seeder generates needs a bump of `Dataset::SchemaVersion`, so stale
 datasets are refused instead of compared against.
 
 The [results repository](https://github.com/cyrildewit/eloquent-viewable-benchmarks) runs releases through the

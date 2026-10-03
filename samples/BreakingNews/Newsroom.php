@@ -24,7 +24,7 @@ class Newsroom
             $views[$story->headline] = views($story)->period(Period::since(CarbonImmutable::today()))->count();
         }
 
-        $flushedAt = $this->cache->get(FlushStoryViews::FLUSHED_AT);
+        $flushedAt = $this->cache->get(FlushStoryViews::FlushedAt);
 
         return new NewsroomReport(
             views: $views,

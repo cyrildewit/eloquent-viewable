@@ -35,14 +35,14 @@ final readonly class Variants
     /**
      * The autoload rule for the directory, from composer.json.
      */
-    private const string NAMESPACE = 'CyrildeWit\\EloquentViewable\\Benchmarks\\';
+    private const string Namespace = 'CyrildeWit\\EloquentViewable\\Benchmarks\\';
 
     /**
      * phpbench's `runner.file_pattern` and `runner.subject_pattern`.
      */
-    private const string FILE_PATTERN = '/Bench\.php$/';
+    private const string FilePattern = '/Bench\.php$/';
 
-    private const string SUBJECT_PATTERN = '/^bench/';
+    private const string SubjectPattern = '/^bench/';
 
     /**
      * @param  list<Benchmark>  $benchmarks
@@ -105,7 +105,7 @@ final readonly class Variants
 
         /** @var SplFileInfo $file */
         foreach ($iterator as $file) {
-            if ($file->isFile() && preg_match(self::FILE_PATTERN, $file->getFilename()) === 1) {
+            if ($file->isFile() && preg_match(self::FilePattern, $file->getFilename()) === 1) {
                 $files[] = $file->getPathname();
             }
         }
@@ -121,7 +121,7 @@ final readonly class Variants
     private static function classFor(string $directory, string $file): string
     {
         $relative = substr($file, strlen(rtrim($directory, '/')) + 1, -strlen('.php'));
-        $class = self::NAMESPACE.str_replace('/', '\\', $relative);
+        $class = self::Namespace.str_replace('/', '\\', $relative);
 
         if (! class_exists($class)) {
             throw new RuntimeException("The file {$file} does not define the class {$class} its path promises.");
@@ -139,7 +139,7 @@ final readonly class Variants
         $variants = [];
 
         foreach ($class->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            if ($method->isStatic() || preg_match(self::SUBJECT_PATTERN, $method->getName()) !== 1) {
+            if ($method->isStatic() || preg_match(self::SubjectPattern, $method->getName()) !== 1) {
                 continue;
             }
 
