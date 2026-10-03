@@ -43,6 +43,11 @@ it('accepts a custom driver', function (): void {
             return [];
         }
 
+        public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+        {
+            return [];
+        }
+
         public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
         {
             return DB::query()->selectRaw('7');

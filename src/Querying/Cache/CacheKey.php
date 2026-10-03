@@ -32,9 +32,13 @@ final readonly class CacheKey
         private string $source,
     ) {}
 
-    public function make(ViewsQuery $query, ?Granularity $granularity = null): string
+    /**
+     * The granularity identifies a count per interval and the grouping a
+     * count per collection, so neither shares an entry with the plain total.
+     */
+    public function make(ViewsQuery $query, ?Granularity $granularity = null, ?string $grouping = null): string
     {
-        return $this->head().':'.$this->digest($query, $granularity);
+        return $this->head().':'.$this->digest($query, $granularity, $grouping);
     }
 
     private function head(): string
@@ -48,7 +52,7 @@ final readonly class CacheKey
         return "{$this->prefix}:{$this->viewable->getMorphClass()}:{$key}";
     }
 
-    private function digest(ViewsQuery $query, ?Granularity $granularity): string
+    private function digest(ViewsQuery $query, ?Granularity $granularity, ?string $grouping): string
     {
         $connection = $this->viewable->getConnection();
 
@@ -65,6 +69,7 @@ final readonly class CacheKey
             $query->viewer?->getMorphClass(),
             $query->viewer?->getKey(),
             $granularity?->value,
+            $grouping,
         ]));
     }
 }

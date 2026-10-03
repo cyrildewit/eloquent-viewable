@@ -83,6 +83,18 @@ final class ViewsFake implements ViewSource, ViewStore
         return $counts;
     }
 
+    /** @return array<string, int> */
+    public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+    {
+        $counts = $this->matching($viewable, $query)
+            ->groupBy(fn (ViewRecord $record): string => $record->collection ?? '')
+            ->map(fn (Collection $collection): int => $this->aggregate($collection, $query))
+            ->all();
+
+        /** @var array<string, int> $counts */
+        return $counts;
+    }
+
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
     {
         throw UnsupportedInFake::scopes();

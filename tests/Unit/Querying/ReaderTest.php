@@ -229,3 +229,68 @@ describe('count by interval', function (): void {
             ->and($again->intervals->map(fn (Bucket $bucket): int => $bucket->count)->all())->toBe([2, 0]);
     });
 });
+
+describe('countByCollection', function (): void {
+    it('reads through the source', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByCollection')->with($this->viewable, $this->query)->andReturn(['sidebar' => 3]);
+
+        expect(reader($source)->countByCollection($this->viewable, $this->query))->toBe(['sidebar' => 3]);
+    });
+
+    it('orders the most viewed collection first and ties by name', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByCollection')->andReturn(['feed' => 88, 'sidebar' => 340, 'b' => 2, '' => 1200, 'a' => 2]);
+
+        expect(reader($source)->countByCollection($this->viewable, $this->query))
+            ->toBe(['' => 1200, 'sidebar' => 340, 'feed' => 88, 'a' => 2, 'b' => 2]);
+    });
+
+    it('orders a numeric collection name as a string', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByCollection')->andReturn(['2024' => 1, 'archive' => 1, '10' => 1]);
+
+        expect(reader($source)->countByCollection($this->viewable, $this->query))
+            ->toBe(['10' => 1, '2024' => 1, 'archive' => 1]);
+    });
+
+    it('does not touch the cache without a lifetime', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByCollection')->twice()->andReturn(['sidebar' => 1]);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+
+        $reader->countByCollection($this->viewable, $this->query);
+        $reader->countByCollection($this->viewable, $this->query);
+
+        expect($cache->getStore()->all())->toBe([]);
+    });
+
+    it('remembers the counts until the lifetime', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countByCollection')->once()->andReturn(['sidebar' => 1]);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        $reader->countByCollection($this->viewable, $this->query, $until);
+        $again = $reader->countByCollection($this->viewable, $this->query, $until);
+
+        expect(array_values($cache->getStore()->all()))->toHaveCount(1)
+            ->and($again)->toBe(['sidebar' => 1]);
+    });
+
+    it('does not share a cache entry with the plain count', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->once()->andReturn(7);
+        $source->expects('countByCollection')->once()->andReturn(['sidebar' => 7]);
+
+        $reader = reader($source, new CacheRepository(new ArrayStore));
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->count($this->viewable, $this->query, $until))->toBe(7)
+            ->and($reader->countByCollection($this->viewable, $this->query, $until))->toBe(['sidebar' => 7]);
+    });
+});

@@ -85,6 +85,12 @@ class Views
         return $this->reader->countByInterval($this->viewable(), $this->query(), $granularity, $this->cacheLifetime);
     }
 
+    /** @return array<string, int> */
+    public function countByCollection(): array
+    {
+        return $this->reader->countByCollection($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
     /** @throws RecordingFailed */
     public function record(): bool
     {
