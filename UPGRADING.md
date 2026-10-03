@@ -335,7 +335,7 @@ The config values are now validated when they are read. A key that names a table
 
 ### `CacheKey` moved and `make()` takes a `ViewsQuery`
 
-`CyrildeWit\EloquentViewable\CacheKey` is now `CyrildeWit\EloquentViewable\Querying\Cache\CacheKey`. Update the import if you build cache keys yourself. `CacheKey::make(?Period $period, bool $unique, ?string $collection)` is now `CacheKey::make(ViewsQuery $query, ?Granularity $granularity = null)`. The digest also changed, so counts cached by an earlier version are recalculated once after upgrading. No action is needed for that.
+`CyrildeWit\EloquentViewable\CacheKey` is now `CyrildeWit\EloquentViewable\Querying\Cache\CacheKey`. Update the import if you build cache keys yourself. `CacheKey::make(?Period $period, bool $unique, ?string $collection)` is now `CacheKey::make(ViewsQuery $query, ?Granularity $granularity = null, ?string $grouping = null, ?int $limit = null)`. The digest also changed, so counts cached by an earlier version are recalculated once after upgrading. No action is needed for that.
 
 ### Classes moved into module namespaces
 
@@ -406,12 +406,19 @@ The internal `CacheKey` class now builds cache keys as a readable prefix followe
 
 **No action is required.** This only affects view counts cached via `remember()`. Existing entries under the old key format are simply never read again. The first `count()` after upgrading recomputes the value from the `views` table and re-caches it under the new key. Nothing is lost, since the database remains the source of truth. Old entries expire on their own; run `php artisan cache:clear` (or clear the `eloquent-viewable` store) after deploying if you would rather remove them immediately.
 
-The cache key string is an internal implementation detail. If you constructed `CacheKey` directly (it is not part of the public API), note that it now requires the cache-key prefix as a second constructor argument and no longer exposes the `fromViewable()` factory:
+The cache key string is an internal implementation detail. If you constructed `CacheKey` directly (it is not part of the public API), note that it no longer exposes the `fromViewable()` factory. The constructor takes the viewable, the connection the views are read from, the cache-key prefix and the source driver, and `make()` takes a `ViewsQuery`:
 
 ```diff
 -CacheKey::fromViewable($viewable)->make($period, $unique, $collection);
-+(new CacheKey($viewable, config('eloquent-viewable.cache.key')))->make($period, $unique, $collection);
++new CacheKey(
++    $viewable,
++    app(View::class)->getConnection(),
++    config('eloquent-viewable.querying.cache.key'),
++    config('eloquent-viewable.querying.source.driver'),
++)->make(new ViewsQuery($period, $collection, $unique));
 ```
+
+The entry under that key no longer holds the bare count. It holds the count together with the versions `forgetCache()` and `flushCache()` replace, so read counts through `views()` rather than from the cache store.
 
 The following getters were removed from `CyrildeWit\EloquentViewable\Support\Period`:
 
