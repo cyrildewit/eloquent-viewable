@@ -6,14 +6,20 @@ composer.lock
 .phpunit.cache
 .phpunit.result.cache
 /build
+/.phpbench
 
 # PHPStan
 /phpstan.neon
+
+# Docker Compose reads this for variable interpolation, so a stray one silently
+# repoints `make test` at another driver. Keep it out of the repository.
+/.env
 
 # Editors
 /.idea
 
 # Claude Code
+/.claude/docs
 /.claude/worktrees
 /.claude/settings.local.json
 /.claude/*.local.json

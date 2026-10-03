@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Contracts;
 
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-/**
- * @mixin Model
- */
+/** @mixin Model */
 interface Viewable
 {
     /**
      * Get the views the model has.
      *
-     * @return MorphMany<Model, Model>
+     * @return MorphMany<View, $this&Model>
      */
     public function views(): MorphMany;
 
     /**
      * Scope a query to order records by views count.
      *
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @param  Builder<static&Model>  $query
+     * @param  'asc'|'desc'  $direction
+     * @return Builder<static&Model>
      */
     public function scopeOrderByViews(
         Builder $query,
@@ -39,8 +39,9 @@ interface Viewable
     /**
      * Scope a query to order records by unique views count.
      *
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @param  Builder<static&Model>  $query
+     * @param  'asc'|'desc'  $direction
+     * @return Builder<static&Model>
      */
     public function scopeOrderByUniqueViews(
         Builder $query,
@@ -49,4 +50,7 @@ interface Viewable
         ?string $collection = null,
         string $as = 'unique_views_count'
     ): Builder;
+
+    /** Soft deletes keep the views regardless. */
+    public function shouldRemoveViewsOnDelete(): bool;
 }

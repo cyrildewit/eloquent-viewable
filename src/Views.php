@@ -6,135 +6,176 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
-use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use CyrildeWit\EloquentViewable\Exceptions\ViewRecordException;
-use CyrildeWit\EloquentViewable\Jobs\StoreView;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
+use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Recording\Actions\DestroyViews;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
+use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Recording\Recorder;
+use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Support\ViewableSet;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
-use Illuminate\Container\Container;
-use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
-use Illuminate\Database\Eloquent\Builder;
+use DateTimeZone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
 
-class Views implements ViewsContract
+class Views
 {
     use Macroable;
 
-    protected Viewable $viewable;
+    protected ?Viewable $viewable = null;
+
+    protected ?ViewableSet $viewables = null;
 
     protected ?Period $period = null;
 
     protected bool $unique = false;
 
-    protected ?DateTimeInterface $cooldown = null;
+    protected ?CarbonInterface $cooldown = null;
 
     protected ?string $collection = null;
 
     protected ?bool $queue = null;
 
-    protected ?DateTimeInterface $cacheLifetime = null;
+    protected ?CarbonInterface $cacheLifetime = null;
 
-    public function __construct(protected ConfigRepository $config, protected CacheRepository $cache, protected CooldownManager $cooldownManager, protected VisitorContract $visitor, protected Dispatcher $dispatcher, protected CreateViewContract $createView) {}
+    protected ?Timezone $timezone = null;
+
+    protected ?Model $viewer = null;
+
+    /** @var array<string, mixed>|null */
+    protected ?array $context = null;
+
+    public function __construct(
+        protected VisitorContract $visitor,
+        protected Recorder $recorder,
+        protected Reader $reader,
+        protected DestroyViews $destroyer,
+        protected CacheVersions $cacheVersions,
+    ) {}
 
     public function forViewable(Viewable $viewable): self
     {
         $this->viewable = $viewable;
+        $this->viewables = null;
+
+        return $this;
+    }
+
+    /**
+     * @param  iterable<Viewable>  $viewables
+     *
+     * @throws InvalidViewable
+     */
+    public function forViewables(iterable $viewables): self
+    {
+        $this->viewables = ViewableSet::of($viewables);
+        $this->viewable = null;
 
         return $this;
     }
 
     public function count(): int
     {
-        $cacheKey = $this->shouldCache()
-            ? $this->makeCacheKey($this->period, $this->unique, $this->collection)
-            : null;
-
-        if ($cacheKey !== null) {
-            $cachedViewsCount = $this->cache->get($cacheKey);
-
-            // Return cached views count if it exists
-            if ($cachedViewsCount !== null) {
-                return (int) $cachedViewsCount;
-            }
-        }
-
-        $viewsCount = $this->queryViewsCount();
-
-        if ($cacheKey !== null) {
-            $this->cache->put($cacheKey, $viewsCount, $this->cacheLifetime);
-        }
-
-        return $viewsCount;
+        return $this->reader->count($this->viewable(), $this->query(), $this->cacheLifetime);
     }
 
-    protected function queryViewsCount(): int
+    /** @throws InvalidPeriod */
+    public function compare(): ViewComparison
     {
-        $query = $this->resolveViewableQuery();
-
-        if ($this->period instanceof Period) {
-            $query->withinPeriod($this->period);
-        }
-
-        if ($this->collection !== null) {
-            $query->collection($this->collection);
-        }
-
-        return $this->unique ? $query->distinct()->count('visitor') : $query->count();
+        return $this->reader->compare($this->viewable(), $this->query(), $this->cacheLifetime);
     }
 
     /**
-     * @throws ViewRecordException
+     * @return Collection<int|string, int>
+     *
+     * @throws InvalidViewable
      */
+    public function counts(): Collection
+    {
+        $viewables = $this->viewables ?? throw InvalidViewable::missingSet();
+
+        return new Collection($this->reader->countMany($viewables, $this->query(), $this->cacheLifetime));
+    }
+
+    /** @throws InvalidInterval */
+    public function countByInterval(Granularity $granularity): ViewSeries
+    {
+        return $this->reader->countByInterval($this->viewable(), $this->query(), $granularity, $this->cacheLifetime);
+    }
+
+    /** @return array<string, int> */
+    public function countByCollection(): array
+    {
+        return $this->reader->countByCollection($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
+    /**
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    public function top(int $limit = 10): Ranking
+    {
+        return $this->reader->top($this->viewable, $this->query(), $limit, $this->cacheLifetime);
+    }
+
+    /** @throws RecordingFailed */
     public function record(): bool
     {
-        if ($this->viewable->getKey() === null) {
-            throw ViewRecordException::cannotRecordViewForViewableType();
-        }
+        return $this->attempt()->recorded;
+    }
 
-        if (! $this->shouldRecord()) {
-            return false;
-        }
-
-        $pending = $this->resolvePendingView();
-
-        if ($this->shouldQueue()) {
-            $this->dispatcher->dispatch(
-                new StoreView($pending)
-                    ->onConnection($this->config->get('eloquent-viewable.queue.connection'))
-                    ->onQueue($this->config->get('eloquent-viewable.queue.queue'))
-            );
-
-            return true;
-        }
-
-        $this->createView->handle($pending);
-
-        return true;
+    /** @throws RecordingFailed */
+    public function attempt(): RecordResult
+    {
+        return $this->recorder->record(new ViewAttempt(
+            viewable: $this->viewable(),
+            visitor: $this->visitor,
+            collection: $this->collection,
+            cooldown: $this->cooldown,
+            queue: $this->queue,
+            viewer: $this->viewer,
+            context: $this->context,
+        ));
     }
 
     public function destroy(): void
     {
-        $this->resolveViewableQuery()->delete();
+        $this->destroyer->handle($this->viewable());
+    }
+
+    /**
+     * Also forgets the remembered totals and rankings that include the
+     * viewable. A viewable without a key forgets its whole type.
+     */
+    public function forgetCache(): void
+    {
+        $this->cacheVersions->forgetCache($this->viewable());
+    }
+
+    public function flushCache(): void
+    {
+        $this->cacheVersions->flushCache();
     }
 
     public function cooldown(DateTimeInterface|int|null $cooldown): self
     {
-        if (is_int($cooldown)) {
-            $cooldown = Carbon::now()->addMinutes($cooldown);
-        }
-
-        if ($cooldown instanceof DateTimeInterface) {
-            $cooldown = Carbon::instance($cooldown);
-        }
-
-        $this->cooldown = $cooldown;
+        $this->cooldown = $cooldown === null ? null : $this->resolveLifetime($cooldown);
 
         return $this;
     }
@@ -146,9 +187,32 @@ class Views implements ViewsContract
         return $this;
     }
 
+    /** @throws InvalidTimezone */
+    public function timezone(DateTimeZone|string|null $timezone): self
+    {
+        $this->timezone = $timezone === null ? null : Timezone::from($timezone);
+
+        return $this;
+    }
+
     public function collection(?string $name): self
     {
         $this->collection = $name;
+
+        return $this;
+    }
+
+    public function viewedBy(?Model $viewer): self
+    {
+        $this->viewer = $viewer;
+
+        return $this;
+    }
+
+    /** @param  array<string, mixed>|null  $context */
+    public function context(?array $context): self
+    {
+        $this->context = $context;
 
         return $this;
     }
@@ -160,104 +224,44 @@ class Views implements ViewsContract
         return $this;
     }
 
-    public function unique(bool $state = true): ViewsContract
+    public function unique(bool $state = true): self
     {
         $this->unique = $state;
 
         return $this;
     }
 
-    public function remember(DateTimeInterface|int|null $lifetime = null): ViewsContract
+    public function remember(DateTimeInterface|int|null $lifetime = null): self
     {
-        if ($lifetime !== null) {
-            $lifetime = $this->resolveCacheLifetime($lifetime);
-        }
-
-        $this->cacheLifetime = $lifetime;
+        $this->cacheLifetime = $lifetime === null ? null : $this->resolveLifetime($lifetime);
 
         return $this;
     }
 
-    public function useVisitor(VisitorContract $visitor): ViewsContract
+    public function useVisitor(VisitorContract $visitor): self
     {
         $this->visitor = $visitor;
 
         return $this;
     }
 
-    protected function shouldRecord(): bool
+    /** @throws InvalidViewable */
+    protected function viewable(): Viewable
     {
-        // If ignore bots is true and the current visitor is a bot, return false
-        if ($this->config->get('eloquent-viewable.ignore_bots') && $this->visitor->isCrawler()) {
-            return false;
-        }
-
-        // If we honor the DNT header and the current request contains the
-        // DNT header, return false
-        if ($this->config->get('eloquent-viewable.honor_dnt', false) && $this->visitor->hasDoNotTrackHeader()) {
-            return false;
-        }
-
-        if (collect((array) $this->config->get('eloquent-viewable.ignored_ip_addresses'))->contains($this->visitor->ip())) {
-            return false;
-        }
-
-        return ! $this->cooldown instanceof DateTimeInterface || $this->cooldownManager->push($this->viewable, $this->cooldown, $this->collection);
+        return $this->viewable ?? throw InvalidViewable::missing();
     }
 
-    protected function resolvePendingView(): PendingView
+    protected function query(): ViewsQuery
     {
-        return new PendingView(
-            viewableId: $this->viewable->getKey(),
-            viewableType: $this->viewable->getMorphClass(),
-            visitor: $this->visitor->id(),
-            collection: $this->collection,
-            viewedAt: Carbon::now(),
-        );
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer);
     }
 
-    protected function shouldQueue(): bool
-    {
-        return $this->queue ?? (bool) $this->config->get('eloquent-viewable.queue.enabled', false);
-    }
-
-    protected function shouldCache(): bool
-    {
-        return $this->cacheLifetime instanceof DateTimeInterface;
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    protected function resolveViewableQuery(): Builder
-    {
-        // If null, we take for granted that we need to count the viewable type
-        if ($this->viewable->getKey() === null) {
-            $viewableType = $this->viewable->getMorphClass();
-
-            return Container::getInstance()
-                ->make(ViewContract::class)
-                ->where('viewable_type', $viewableType);
-        }
-
-        return $this->viewable->views()->getQuery();
-    }
-
-    protected function makeCacheKey(?Period $period = null, bool $unique = false, ?string $collection = null): string
-    {
-        return new CacheKey(
-            $this->viewable,
-            (string) $this->config->get('eloquent-viewable.cache.key'),
-        )->make($period, $unique, $collection);
-    }
-
-    protected function resolveCacheLifetime(DateTimeInterface|int $lifetime): CarbonInterface
+    protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface
     {
         if (is_int($lifetime)) {
             return Carbon::now()->addMinutes($lifetime);
         }
 
         return Carbon::instance($lifetime);
-
     }
 }

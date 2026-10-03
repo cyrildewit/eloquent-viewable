@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Support;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use DateTimeZone;
 
 enum PeriodAnchor: string
 {
@@ -13,11 +14,11 @@ enum PeriodAnchor: string
 
     case Sub = 'sub';
 
-    public function dateTime(): CarbonInterface
+    public function dateTime(?DateTimeZone $timezone = null): CarbonInterface
     {
         return match ($this) {
-            self::Past => Carbon::today(),
-            self::Sub => Carbon::now(),
+            self::Past => Carbon::today($timezone),
+            self::Sub => Carbon::now($timezone),
         };
     }
 }
