@@ -13,6 +13,9 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
 {
     public static function scopes(ViewSource $source): self
     {
-        return new self('The view source ['.$source::class.'] cannot be queried in SQL, so the withViewsCount(), orderByViews(), whereViewsCount() and whereViewedBy() scopes cannot read from it. Implement `'.SubquerySource::class.'` on it, or count through views() instead.');
+        $class = $source::class;
+        $contract = SubquerySource::class;
+
+        return new self("The view source [{$class}] cannot be queried in SQL, so the withViewsCount(), orderByViews(), whereViewsCount() and whereViewedBy() scopes cannot read from it. Implement `{$contract}` on it, or count through views() instead.");
     }
 }

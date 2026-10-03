@@ -341,8 +341,10 @@ describe('counting', function (): void {
     });
 
     it('refuses the scopes', function (): void {
+        $fake = ViewsFake::class;
+
         expect(fn () => Post::withViewsCount()->get())
-            ->toThrow(UnsupportedBySource::class, 'The view source ['.ViewsFake::class.'] cannot be queried in SQL')
+            ->toThrow(UnsupportedBySource::class, "The view source [{$fake}] cannot be queried in SQL")
             ->and(fn () => Post::whereViewedByVisitor('visitor_one')->get())
             ->toThrow(UnsupportedBySource::class);
     });
