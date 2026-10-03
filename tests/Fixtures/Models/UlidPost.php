@@ -18,7 +18,8 @@ use Illuminate\Support\Carbon;
  */
 class UlidPost extends Model implements Viewable
 {
-    use HasUlids, InteractsWithViews;
+    use HasUlids;
+    use InteractsWithViews;
 
     #[\Override]
     protected $table = 'ulid_posts';

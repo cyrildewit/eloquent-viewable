@@ -21,7 +21,9 @@ use Illuminate\Support\Carbon;
 class Apartment extends Model implements Viewable
 {
     /** @use HasFactory<ApartmentFactory> */
-    use HasFactory, InteractsWithViews;
+    use HasFactory;
+
+    use InteractsWithViews;
 
     #[\Override]
     protected $guarded = [];
