@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Scopes;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * An existence check on the views relation rather than a count, so it reads
- * the views table directly instead of going through a ViewSource.
+ * An existence check rather than a count, read from the same source as the
+ * counting scopes so the two agree.
  */
 final readonly class WhereViewed
 {
     public function __construct(
+        private SubquerySource $source,
         private ViewsQuery $query,
         private ?string $visitor = null,
         private bool $not = false,
@@ -29,19 +30,12 @@ final readonly class WhereViewed
      */
     public function __invoke(Builder $builder): void
     {
-        $constraint = function (Builder $views): void {
-            /** @var Builder<View> $views */
-            $views->matching($this->query);
-
-            if ($this->visitor !== null) {
-                $views->byVisitor($this->visitor);
-            }
-        };
+        $views = $this->source->viewsSubquery($builder->getModel(), $this->query, $this->visitor);
 
         if ($this->not) {
-            $builder->whereDoesntHave('views', $constraint);
+            $builder->whereNotExists($views);
         } else {
-            $builder->whereHas('views', $constraint);
+            $builder->whereExists($views);
         }
     }
 }
