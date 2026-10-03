@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
 use CyrildeWit\EloquentViewable\Support\Config as PackageConfig;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\NotAGuard;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\RefuseAll;
@@ -35,10 +36,11 @@ function alwaysCrawler(): CrawlerDetector
     };
 }
 
-it('ships with the crawler, IP address and cooldown guards listed', function (): void {
+it('ships with the crawler, IP address, prefetch and cooldown guards listed', function (): void {
     expect($this->app->make(PackageConfig::class)->guards())->toBe([
         IgnoreCrawlers::class,
         IgnoreIpAddresses::class,
+        IgnorePrefetch::class,
         EnforceCooldown::class,
     ]);
 });
@@ -121,6 +123,13 @@ it('honours Global Privacy Control once IgnoreGlobalPrivacyControl is listed', f
 
     expect(views($this->post)->record())->toBeFalse()
         ->and(View::count())->toBe(1);
+});
+
+it('drops a page the browser only prefetches', function (): void {
+    $this->app['request']->headers->set('Sec-Purpose', 'prefetch');
+
+    expect(views($this->post)->record())->toBeFalse()
+        ->and(View::count())->toBe(0);
 });
 
 it('rejects a guard class that does not implement the contract', function (): void {

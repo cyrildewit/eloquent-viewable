@@ -34,6 +34,7 @@ function visitor(string $id): Visitor
     $visitor->allows('ip')->andReturn('127.0.0.1');
     $visitor->allows('userAgent')->andReturn(null);
     $visitor->allows('hasDoNotTrackHeader')->andReturn(false);
+    $visitor->allows('isPrefetch')->andReturn(false);
 
     return $visitor;
 }

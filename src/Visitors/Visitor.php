@@ -25,6 +25,12 @@ class Visitor implements VisitorContract
      */
     const string GPC = 'Sec-GPC';
 
+    /**
+     * The request headers a browser marks a prefetch with: `Sec-Purpose` in
+     * current browsers, `Purpose` and `X-Moz` in older ones.
+     */
+    const array PREFETCH_HEADERS = ['Sec-Purpose', 'Purpose', 'X-Moz'];
+
     public function __construct(
         protected Request $request,
         protected Config $config,
@@ -90,6 +96,19 @@ class Visitor implements VisitorContract
     public function hasGlobalPrivacyControl(): bool
     {
         return (int) $this->request()->header(self::GPC) === 1;
+    }
+
+    public function isPrefetch(): bool
+    {
+        foreach (self::PREFETCH_HEADERS as $header) {
+            $value = $this->request()->header($header);
+
+            if (is_string($value) && str_contains(strtolower($value), 'prefetch')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

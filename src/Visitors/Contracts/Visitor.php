@@ -33,4 +33,10 @@ interface Visitor
      * signal.
      */
     public function hasGlobalPrivacyControl(): bool;
+
+    /**
+     * Whether the browser loads the page ahead of a visit that may never
+     * come, a prefetch or a prerender.
+     */
+    public function isPrefetch(): bool;
 }

@@ -14,6 +14,7 @@ function cacheCooldownVisitor(string $id): Visitor
     $visitor->allows('id')->andReturn($id);
     $visitor->allows('ip')->andReturn('10.0.0.1');
     $visitor->allows('userAgent')->andReturn(null);
+    $visitor->allows('isPrefetch')->andReturn(false);
 
     return $visitor;
 }

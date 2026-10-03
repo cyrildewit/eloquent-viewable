@@ -214,8 +214,9 @@ public function show(Post $post)
 This ensures that views are only recorded when the page is actually rendered for a user.
 
 Every call to `record()` passes a list of guards before anything is written. The list lives under `recording.guards`
-in the config file and is the only switch: a guard runs when it is listed and not otherwise. Out of the box bot traffic
-and the addresses in `recording.ignored_ip_addresses` are dropped and cooldowns are enforced. Publish the config and
+in the config file and is the only switch: a guard runs when it is listed and not otherwise. Out of the box bot traffic,
+the addresses in `recording.ignored_ip_addresses` and pages the browser only prefetches are dropped and cooldowns are
+enforced. Publish the config and
 uncomment `IgnoreDoNotTrack` or `IgnoreGlobalPrivacyControl` to honour those headers, or remove a guard to turn its
 check off. Or add a guard of your own, see [Adding a recording guard](#adding-a-recording-guard).
 
@@ -1304,7 +1305,7 @@ If you want to extend or replace one of the core classes with your own implement
 - `CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore`
 - `CyrildeWit\EloquentViewable\Recording\Stores\NullStore`
 - `CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers`, `IgnoreDoNotTrack`, `IgnoreGlobalPrivacyControl`,
-  `IgnoreIpAddresses` and `EnforceCooldown`
+  `IgnoreIpAddresses`, `IgnorePrefetch` and `EnforceCooldown`
 - `CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource`
 
 > [!NOTE]
@@ -1518,8 +1519,8 @@ $this->app->bind(
 
 A guard decides whether a call to `record()` becomes a view. The `recording.guards` config key lists them in order,
 and the first one that refuses drops the view. The list is the only switch: a guard runs when it is listed and not
-otherwise. The package ships five. `IgnoreCrawlers`, `IgnoreIpAddresses` and `EnforceCooldown` are listed out of the
-box; `cooldown()` does nothing without the last. The two privacy guards are commented out in the published config,
+otherwise. The package ships six. `IgnoreCrawlers`, `IgnoreIpAddresses`, `IgnorePrefetch` and `EnforceCooldown` are
+listed out of the box; `cooldown()` does nothing without the last. The two privacy guards are commented out in the published config,
 ready to switch on:
 
 | Guard                        | Refuses                                         | Reads                            |
@@ -1527,6 +1528,7 @@ ready to switch on:
 | `EnforceCooldown`            | a second view inside the cooldown asked for     | the `cooldown.store`             |
 | `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | the visitor's user agent         |
 | `IgnoreIpAddresses`          | listed IP addresses                             | `recording.ignored_ip_addresses` |
+| `IgnorePrefetch`             | pages the browser prefetches or prerenders      | the visitor                      |
 | `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | the visitor                      |
 | `IgnoreGlobalPrivacyControl` | visitors sending `Sec-GPC: 1`                   | the visitor                      |
 

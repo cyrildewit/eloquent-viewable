@@ -47,4 +47,9 @@ final readonly class BenchmarkVisitor implements Visitor
     {
         return false;
     }
+
+    public function isPrefetch(): bool
+    {
+        return false;
+    }
 }
