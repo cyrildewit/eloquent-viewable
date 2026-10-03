@@ -10,7 +10,7 @@ use Closure;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
- * Remembers values stamped with the versions they depend on, so bumping a
+ * This cache remembers values stamped with the versions they depend on, so bumping a
  * version through `CacheVersions` forgets every entry stamped with it without
  * knowing their keys. An entry and its versions are read in one round trip.
  *
@@ -51,10 +51,10 @@ final readonly class VersionedCache
     }
 
     /**
-     * Many entries of one type in one read, and the values the cache lacks
-     * resolved together and written in one more. The keys map the key of each
-     * viewable to its cache key, and the resolver receives the viewable keys
-     * the cache lacks and returns a value for each.
+     * It reads many entries of one type in one round trip, then resolves the
+     * values the cache lacks together and writes them in one more. The keys
+     * map the key of each viewable to its cache key, and the resolver receives
+     * the viewable keys the cache lacks and returns a value for each.
      *
      * @template TValue
      *
