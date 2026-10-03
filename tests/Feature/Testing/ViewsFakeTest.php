@@ -181,6 +181,21 @@ describe('counting', function (): void {
             ->toBe(['current' => 2, 'previous' => 1, 'delta' => 1, 'percent' => 100.0]);
     });
 
+    it('counts a set of viewables', function (): void {
+        $other = Post::factory()->create();
+        $unviewed = Post::factory()->create();
+
+        views($this->post)->useVisitor(visitor('one'))->record();
+        views($this->post)->useVisitor(visitor('one'))->collection('custom')->record();
+        views($other)->useVisitor(visitor('two'))->record();
+
+        $views = fn (): CyrildeWit\EloquentViewable\Views => Views::getFacadeRoot()->forViewables([$unviewed, $this->post, $other]);
+
+        expect($views()->counts()->all())->toBe([$unviewed->getKey() => 0, $this->post->getKey() => 2, $other->getKey() => 1])
+            ->and($views()->unique()->counts()->all())->toBe([$unviewed->getKey() => 0, $this->post->getKey() => 1, $other->getKey() => 1])
+            ->and($views()->collection('custom')->counts()->all())->toBe([$unviewed->getKey() => 0, $this->post->getKey() => 1, $other->getKey() => 0]);
+    });
+
     it('counts by interval', function (): void {
         Carbon::setTestNow('2026-09-01 10:00:00');
         views($this->post)->useVisitor(visitor('one'))->record();

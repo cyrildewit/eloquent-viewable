@@ -37,6 +37,7 @@ use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Container\Container;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -740,6 +741,102 @@ describe('comparing', function (): void {
     });
 });
 
+describe('counting a set', function (): void {
+    beforeEach(function (): void {
+        $this->other = Post::factory()->create();
+        $this->unviewed = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_one')->count(2)->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('visitor_two')->inCollection('custom')->create();
+        View::factory()->for($this->other, 'viewable')->fromVisitor('visitor_one')->create();
+    });
+
+    function viewsOf(iterable $viewables): Views
+    {
+        return Container::getInstance()->make(Views::class)->forViewables($viewables);
+    }
+
+    it('counts every viewable in one query, in the order given', function (): void {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $counts = viewsOf([$this->unviewed, $this->post, $this->other])->counts();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        expect($counts->all())->toBe([
+            $this->unviewed->getKey() => 0,
+            $this->post->getKey() => 3,
+            $this->other->getKey() => 1,
+        ])->and($queries)->toBe(1);
+    });
+
+    it('applies the period, collection and unique views', function (): void {
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::now()->subYear())->create();
+
+        expect(viewsOf([$this->post, $this->other])->period(Period::pastDays(7))->counts()->all())
+            ->toBe([$this->post->getKey() => 3, $this->other->getKey() => 1])
+            ->and(viewsOf([$this->post, $this->other])->collection('custom')->counts()->all())
+            ->toBe([$this->post->getKey() => 1, $this->other->getKey() => 0])
+            ->and(viewsOf([$this->post, $this->other])->unique()->counts()->all())
+            ->toBe([$this->post->getKey() => 3, $this->other->getKey() => 1]);
+    });
+
+    it('counts a page of models', function (): void {
+        $page = Post::query()->whereKey([$this->post->getKey(), $this->other->getKey()])->orderBy('id')->paginate(2);
+
+        expect(viewsOf($page)->counts()->all())->toBe([$this->post->getKey() => 3, $this->other->getKey() => 1]);
+    });
+
+    it('counts a viewable given twice once', function (): void {
+        expect(viewsOf([$this->post, Post::query()->find($this->post->getKey())])->counts()->all())->toBe([$this->post->getKey() => 3]);
+    });
+
+    it('returns nothing for no viewables without a query', function (): void {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $counts = viewsOf([])->counts();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        expect($counts->all())->toBeEmpty()
+            ->and($queries)->toBe(0);
+    });
+
+    it('shares the remembered count with count()', function (): void {
+        expect(views($this->post)->remember(60)->count())->toBe(3);
+
+        View::factory()->for($this->post, 'viewable')->create();
+        View::factory()->for($this->other, 'viewable')->create();
+
+        expect(viewsOf([$this->post, $this->other])->remember(60)->counts()->all())
+            ->toBe([$this->post->getKey() => 3, $this->other->getKey() => 2])
+            ->and(views($this->other)->remember(60)->count())->toBe(2)
+            ->and(viewsOf([$this->post, $this->other])->counts()->all())
+            ->toBe([$this->post->getKey() => 4, $this->other->getKey() => 2]);
+    });
+
+    it('needs the viewables first', function (): void {
+        expect(fn (): mixed => $this->app->make(Views::class)->counts())
+            ->toThrow(InvalidViewable::class, 'No viewables were given. Call forViewables() before counting them.')
+            ->and(fn (): mixed => viewsOf([$this->post])->forViewable($this->post)->counts())
+            ->toThrow(InvalidViewable::class, 'No viewables were given.')
+            ->and(fn (): mixed => views($this->post)->forViewables([$this->post])->count())
+            ->toThrow(InvalidViewable::class, 'No viewable was given.');
+    });
+
+    it('refuses viewables of more than one type', function (): void {
+        expect(fn (): Views => viewsOf([$this->post, Apartment::factory()->create()]))
+            ->toThrow(InvalidViewable::class, 'Every viewable in a set must be of one type');
+    });
+
+    it('refuses a viewable that was not saved', function (): void {
+        expect(fn (): Views => viewsOf([$this->post, new Post]))
+            ->toThrow(InvalidViewable::class, 'Every viewable in a set needs a key, an unsaved ['.Post::class.'] was given.');
+    });
+});
+
 describe('counting by interval', function (): void {
     function counts(ViewSeries $series): array
     {
@@ -953,6 +1050,11 @@ describe('counting by interval', function (): void {
                 return ['sidebar' => 42];
             }
 
+            public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+            {
+                return array_fill_keys($keys, 7);
+            }
+
             public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
             {
                 return DB::query()->selectRaw('0');
@@ -968,7 +1070,8 @@ describe('counting by interval', function (): void {
 
         expect(views($this->post)->count())->toBe(7)
             ->and(counts($series))->toBe([42, 0])
-            ->and(ViewsFacade::top()->entries->first()->count)->toBe(99);
+            ->and(ViewsFacade::top()->entries->first()->count)->toBe(99)
+            ->and($this->app->make(Views::class)->forViewables([$this->post])->counts()->all())->toBe([$this->post->getKey() => 7]);
     });
 
     describe('in a non-UTC application timezone', function (): void {
@@ -1256,6 +1359,11 @@ describe('counting by collection', function (): void {
             public function countByCollection(Viewable $viewable, ViewsQuery $query): array
             {
                 return ['feed' => 1, 'sidebar' => 42];
+            }
+
+            public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+            {
+                return [];
             }
 
             public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
