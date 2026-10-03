@@ -35,11 +35,14 @@ abstract class TestCase extends OrchestraTestCase
         $app['config']->set('database.default', Env::get('DB_CONNECTION', 'testing'));
 
         // The Redis store's tests run against a real Redis, the `redis`
-        // service in Docker Compose and on CI, and against both clients.
+        // service in Docker Compose and on CI, and against both clients. Every
+        // parallel worker gets a pair of databases of its own, this one and
+        // the next for the cache, so workers never share a stream or flush
+        // each other's keys. A serial run has no token and uses 0 and 1.
         $app['config']->set('database.redis.default', [
             'host' => Env::get('REDIS_HOST', '127.0.0.1'),
             'port' => Env::get('REDIS_PORT', 6379),
-            'database' => 0,
+            'database' => 2 * (int) Env::get('TEST_TOKEN', 0),
         ]);
     }
 

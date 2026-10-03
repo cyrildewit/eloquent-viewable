@@ -63,6 +63,9 @@ services:
   # service is up in well under a second.
   redis:
     image: redis:7-alpine
+    # Two databases per parallel worker, see tests/Feature/TestCase.php. The
+    # default of 16 runs out past seven workers.
+    command: redis-server --databases 128
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
