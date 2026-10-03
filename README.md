@@ -59,6 +59,7 @@
         </li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
         <li><a href="#get-view-count-of-viewable-type">Get view count of viewable type</a></li>
+        <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
         <li><a href="#storing-context-with-a-view">Storing context with a view</a></li>
@@ -770,6 +771,33 @@ views(Post::class)->count();
 views('App\Post')->count();
 ```
 
+### Get view counts of models you already have
+
+`withViewsCount()` adds the count to models you are about to fetch. For models you already have, such as a page of
+results or the hits of a search, `forViewables()` counts them all in one query instead of one `count()` per model:
+
+```php
+use CyrildeWit\EloquentViewable\Facades\Views;
+
+$posts = Post::query()->latest()->paginate(20);
+
+$counts = Views::forViewables($posts)->period(Period::pastDays(7))->counts();
+
+$counts[$post->getKey()]; // 0 for a post without views
+```
+
+`counts()` returns a collection keyed by model key, in the order the models were given, with every model in it. It
+takes any iterable of saved models of one type: a collection, a paginator or an array. A model given twice is counted
+once. `period()`, `unique()`, `collection()`, `viewedBy()` and `remember()` apply as they do to `count()`. With
+`remember()`, each model is cached under the same entry `views($post)->remember()->count()` uses, so only the models
+missing from the cache are counted.
+
+Models of more than one type, or a model that was not saved, throw `InvalidViewable`: their keys would collide in
+the result, and a model without a key stands for its whole type. An empty set returns an empty collection without a
+query. The query joins one `count()` per model with `UNION ALL`, a hundred models per query, so each model is the
+same index lookup `count()` does and only the round trips go away. A single `IN` list grouped by `viewable_id` reads
+the same rows, but once the models hold a large share of the views MySQL scans the whole index for it instead.
+
 ### View collections
 
 If you have different types of views for the same viewable type, you may want to store them in their own collection.
@@ -1067,9 +1095,9 @@ it('records a view of the post', function (): void {
 
 The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
 in the fake either. `count()`,
-`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()`, `countByCollection()` and `top()` read from
-the fake; `top()` ranks the recorded views and then loads the models from the database, so those have to exist. The
-`withViewsCount()` and
+`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()`, `countByCollection()`, `counts()` and
+`top()` read from the fake; `top()` ranks the recorded views and then loads the models from the database, so those
+have to exist. The `withViewsCount()` and
 `orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
 
 The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
@@ -1521,8 +1549,8 @@ A guard that keeps state about the views it lets through, as the cooldown does, 
 ### Customizing how views are counted
 
 Every number the package reports comes from one `Querying\Contracts\ViewSource`: `count()`, `countByInterval()`,
-`top()`, and the `withViewsCount()` and `orderByViews()` scopes. The `querying.source.driver` config key names it,
-and the shipped `database` driver reads the views table.
+`countByCollection()`, `counts()`, `top()`, and the `withViewsCount()` and `orderByViews()` scopes. The
+`querying.source.driver` config key names it, and the shipped `database` driver reads the views table.
 
 ```php
 'querying' => [
@@ -1549,14 +1577,16 @@ $this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app
 ));
 ```
 
-The contract has five methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
+The contract has six methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
 bucket start formatted as `Y-m-d H:i:s`; buckets without views are left out, and the package fills them in.
 `countByCollection()` returns counts keyed by collection name, the default collection as the empty string, in any
-order; the package sorts them. `countSubquery()` returns a query selecting one integer, the count for the row of an
-outer query over the viewable's table, which the scopes add as a subselect. It has to correlate on the viewable's
-qualified key. `top()` returns the most viewed viewables as rows of `type`, the morph class, `id`, the key as stored,
-and `count`, best first and at most `$limit` of them; the package loads the models. A viewable without a key stands
-for every viewable of its type, and `top()` receives `null` to rank across every type.
+order; the package sorts them. `countMany()` receives one viewable of the type and the keys to count, sorted and
+without duplicates, and returns sparse counts keyed by those keys; the package fills in the zeros.
+`countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
+table, which the scopes add as a subselect. It has to correlate on the viewable's qualified key. `top()` returns the
+most viewed viewables as rows of `type`, the morph class, `id`, the key as stored, and `count`, best first and at most
+`$limit` of them; the package loads the models. A viewable without a key stands for every viewable of its type, and
+`top()` receives `null` to rank across every type.
 
 ```php
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
@@ -1580,6 +1610,11 @@ final class AggregateSource implements ViewSource
     public function countByCollection(Viewable $viewable, ViewsQuery $query): array
     {
         // return ['' => 14, 'sidebar' => 2];
+    }
+
+    public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+    {
+        // return [1 => 14, 3 => 2];
     }
 
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
