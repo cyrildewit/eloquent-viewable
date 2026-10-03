@@ -24,6 +24,7 @@ use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews as RecordsViewsContract;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -46,6 +47,13 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->callAfterResolving('router', function (Router $router): void {
             $router->aliasMiddleware(RecordViews::ALIAS, RecordViews::class);
         });
+
+        // Recording does not know about the cache, so the counts remembered of
+        // destroyed views are forgotten here, where both sides meet.
+        $this->app->make(EventDispatcher::class)->listen(
+            ViewsDestroyed::class,
+            fn (ViewsDestroyed $event) => $this->app->make(CacheVersions::class)->forgetCache($event->viewable),
+        );
 
         if ($this->app->runningInConsole()) {
             $this->commands([FlushViewsCommand::class]);
