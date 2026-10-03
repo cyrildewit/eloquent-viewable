@@ -12,6 +12,8 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
@@ -89,6 +91,15 @@ class Views
     public function countByCollection(): array
     {
         return $this->reader->countByCollection($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
+    /**
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    public function top(int $limit = 10): Ranking
+    {
+        return $this->reader->top($this->viewable, $this->query(), $limit, $this->cacheLifetime);
     }
 
     /** @throws RecordingFailed */
