@@ -145,6 +145,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | `read`  | `CountViewsByCollectionBench` | `countByCollection()`, plain and unique, for the same targets and periods as `CountViewsBench`, so the two show what the grouping adds |
 | `read`  | `CountViewsByIntervalBench` | `countByInterval()`, plain and unique, from a week of hours to two years of months                                                    |
 | `read`  | `OrderByViewsBench`         | `orderByViews()` and `orderByUniqueViews()`, first page of twenty, over the same periods                                              |
+| `read`  | `TopViewedBench`            | `Views::top()`, plain and unique, the ten most viewed across every type and within articles, over the same periods                   |
 | `write` | `RecordViewBench`           | `record()` into the full table, direct and through the sync queue                                                                     |
 | `write` | `BufferViewsBench`          | `record()` through the `redis` store, one `XADD`, and `flush()` landing a hundred, a thousand and ten thousand buffered views         |
 | `write` | `DestroyViewsBench`         | `destroy()` of a hundred, a thousand and ten thousand views                                                                           |
