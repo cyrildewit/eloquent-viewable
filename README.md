@@ -57,6 +57,7 @@
               the specified collection</a></li>
           </ul>
         </li>
+        <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
         <li><a href="#get-view-count-of-viewable-type">Get view count of viewable type</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
@@ -122,7 +123,7 @@ views($post)->record();
 - Track **total** and **unique** views for any Eloquent model
 - Query views by custom date ranges or time periods
 - Prevent duplicate views with a configurable **cooldown system**
-- Order models by views and unique visitors
+- Order models by views and unique visitors, and rank the most viewed content across every model
 - Optimize performance with **built-in caching**
 - Ignore views from **crawlers, blocked IPs, and visitors who opt out** with Do Not Track or Global Privacy Control
 
@@ -702,6 +703,56 @@ Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // ascending
 Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // descending
 ```
 
+### Most viewed across the app
+
+`orderByViews()` ranks the rows of one model. `Views::top()` answers what the most viewed content in the whole
+application is, across every viewable type, in one grouped query over the views table followed by one query per type
+to load the models, the way a `morphTo` relation does.
+
+```php
+use CyrildeWit\EloquentViewable\Facades\Views;
+
+$ranking = Views::top();                                      // the ten most viewed, of any type
+$ranking = Views::period(Period::pastDays(7))->top(5);        // the five most viewed this week
+
+foreach ($ranking as $entry) {
+    $entry->rank;      // 1, 2, 3, ...
+    $entry->count;     // the number of views
+    $entry->viewable;  // a Post, a Video, ... whichever model it is
+}
+```
+
+A viewable without a key stands for every viewable of its type, as it does for `count()`, so the same call ranks
+within one model:
+
+```php
+views(Post::class)->top(10);
+Views::forViewable(new Post)->period(Period::pastDays(7))->top(10);
+```
+
+Every option a count takes applies: `period()`, `collection()`, `unique()`, `viewedBy()`, `timezone()` to anchor a
+relative period on another clock, and `remember()` to cache. The cache keeps the ranked keys and counts; the models
+are loaded afresh on every call, so a cached ranking never shows stale attributes.
+
+```php
+Views::collection('sidebar')->unique()->remember(60)->top(5);
+```
+
+The result is a `Querying\Ranking\Ranking` of `Entry` objects, best first. Ties are broken by type and key, so the
+order is stable. `viewables()` gives the models as an Eloquent collection in rank order, `count()` and `isEmpty()`
+describe the ranking, and it serializes to JSON as a list of `rank`, `count` and `viewable`, the model through its
+own `toArray()` so hidden attributes stay hidden.
+
+```php
+return Views::period(Period::pastDays(30))->top();   // [{"rank": 1, "count": 1403, "viewable": {...}}, ...]
+```
+
+A viewable whose model can no longer be loaded is left out and the ranks are renumbered: a model that was deleted
+with its views kept through `shouldRemoveViewsOnDelete()`, a soft-deleted model hidden by its global scope, or a
+`viewable_type` that no longer maps to a class. A ranking can therefore hold fewer entries than the limit.
+`views($post)->top()` with a saved model throws `InvalidViewable`, because one viewable has nothing to rank, and a
+limit below one throws `Querying\Exceptions\InvalidLimit`.
+
 ### Get view count of viewable type
 
 If you want to know how many views a specific viewable type has, you need to pass an empty Eloquent model to the
@@ -965,6 +1016,7 @@ views($post)->period(Period::upto('2018-11-10'))->unique()->remember()->count();
 views($post)->period(Period::pastMonths(2))->remember()->count();
 views($post)->period(Period::subHours(6))->remember()->count();
 views($post)->period(Period::pastDays(30))->remember()->countByInterval(Granularity::Day);
+Views::period(Period::pastDays(7))->remember()->top(10);
 ```
 
 ```php
@@ -1015,7 +1067,9 @@ it('records a view of the post', function (): void {
 
 The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
 in the fake either. `count()`,
-`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()` and `countByCollection()` read from the fake. The `withViewsCount()` and
+`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()`, `countByCollection()` and `top()` read from
+the fake; `top()` ranks the recorded views and then loads the models from the database, so those have to exist. The
+`withViewsCount()` and
 `orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
 
 The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
@@ -1467,8 +1521,8 @@ A guard that keeps state about the views it lets through, as the cooldown does, 
 ### Customizing how views are counted
 
 Every number the package reports comes from one `Querying\Contracts\ViewSource`: `count()`, `countByInterval()`,
-and the `withViewsCount()` and `orderByViews()` scopes. The `querying.source.driver` config key names it, and the
-shipped `database` driver reads the views table.
+`top()`, and the `withViewsCount()` and `orderByViews()` scopes. The `querying.source.driver` config key names it,
+and the shipped `database` driver reads the views table.
 
 ```php
 'querying' => [
@@ -1495,12 +1549,14 @@ $this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app
 ));
 ```
 
-The contract has four methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
+The contract has five methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
 bucket start formatted as `Y-m-d H:i:s`; buckets without views are left out, and the package fills them in.
 `countByCollection()` returns counts keyed by collection name, the default collection as the empty string, in any
-order; the package sorts them. `countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
-table, which the scopes add as a subselect. It has to correlate on the viewable's qualified key. A viewable without a
-key stands for every viewable of its type.
+order; the package sorts them. `countSubquery()` returns a query selecting one integer, the count for the row of an
+outer query over the viewable's table, which the scopes add as a subselect. It has to correlate on the viewable's
+qualified key. `top()` returns the most viewed viewables as rows of `type`, the morph class, `id`, the key as stored,
+and `count`, best first and at most `$limit` of them; the package loads the models. A viewable without a key stands
+for every viewable of its type, and `top()` receives `null` to rank across every type.
 
 ```php
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
@@ -1532,6 +1588,11 @@ final class AggregateSource implements ViewSource
         //     ->whereColumn('view_aggregates.viewable_id', $viewable->getQualifiedKeyName())
         //     ->where('view_aggregates.viewable_type', $viewable->getMorphClass())
         //     ->selectRaw('coalesce(sum(views), 0)');
+    }
+
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+    {
+        // return [['type' => 'App\Models\Post', 'id' => 7, 'count' => 1403], ...];
     }
 }
 ```

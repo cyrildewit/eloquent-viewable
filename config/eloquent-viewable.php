@@ -192,9 +192,9 @@ return [
     'querying' => [
 
         /*
-         * Where counts come from. `count()`, `countByInterval()` and the
-         * `withViewsCount()` and `orderByViews()` scopes all read through
-         * this source. The `database` driver reads the views table. Register
+         * Where counts come from. `count()`, `countByInterval()`, `top()`
+         * and the `withViewsCount()` and `orderByViews()` scopes all read
+         * through this source. The `database` driver reads the views table. Register
          * your own driver with `SourceManager::extend()`, for example to read
          * a rollup table instead.
          */
