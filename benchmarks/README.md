@@ -139,18 +139,19 @@ make bench-describe DRIVER=mysql ARGS="--output=build/dataset.json"
 Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"` runs one group,
 `ARGS="--filter=benchOrderBy"` a few subjects.
 
-| Group   | Benchmark                   | Measures                                                                                                                              |
-|---------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `read`  | `CountViewsBench`           | `count()` and `unique()->count()`, for the hot article, the cold article and the whole type, over all time, a year, 30 days and a day |
-| `read`  | `CountViewsByCollectionBench` | `countByCollection()`, plain and unique, for the same targets and periods as `CountViewsBench`, so the two show what the grouping adds |
-| `read`  | `CountViewsByIntervalBench` | `countByInterval()`, plain and unique, from a week of hours to two years of months                                                    |
-| `read`  | `OrderByViewsBench`         | `orderByViews()` and `orderByUniqueViews()`, first page of twenty, over the same periods                                              |
-| `read`  | `TopViewedBench`            | `Views::top()`, plain and unique, the ten most viewed across every type and within articles, over the same periods                   |
-| `write` | `RecordViewBench`           | `record()` into the full table, direct and through the sync queue                                                                     |
-| `write` | `BufferViewsBench`          | `record()` through the `redis` store, one `XADD`, and `flush()` landing a hundred, a thousand and ten thousand buffered views         |
-| `write` | `DestroyViewsBench`         | `destroy()` of a hundred, a thousand and ten thousand views                                                                           |
-| `php`   | `ViewSeriesBench`           | `ViewSeries::fill()`, the PHP side of `countByInterval()`, up to a year of hourly buckets                                             |
-| `php`   | `CooldownManagerBench`      | `CooldownStore::put()` on the session store, with up to ten thousand cooldowns in the session                                         |
+| Group   | Benchmark                     | Measures                                                                                                                                                                           |
+|---------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `read`  | `CountViewsBench`             | `count()` and `unique()->count()`, for the hot article, the cold article and the whole type, over all time, a year, 30 days and a day                                              |
+| `read`  | `CountViewsByCollectionBench` | `countByCollection()`, plain and unique, for the same targets and periods as `CountViewsBench`, so the two show what the grouping adds                                             |
+| `read`  | `CountViewsByIntervalBench`   | `countByInterval()`, plain and unique, from a week of hours to two years of months                                                                                                 |
+| `read`  | `CountViewsForViewablesBench` | `forViewables()->counts()` and its `unique()` form over the twenty hottest and the twenty coldest articles, against the loop of `count()` calls it replaces, over the same periods |
+| `read`  | `OrderByViewsBench`           | `orderByViews()` and `orderByUniqueViews()`, first page of twenty, over the same periods                                                                                           |
+| `read`  | `TopViewedBench`              | `Views::top()`, plain and unique, the ten most viewed across every type and within articles, over the same periods                                                                 |
+| `write` | `RecordViewBench`             | `record()` into the full table, direct and through the sync queue                                                                                                                  |
+| `write` | `BufferViewsBench`            | `record()` through the `redis` store, one `XADD`, and `flush()` landing a hundred, a thousand and ten thousand buffered views                                                      |
+| `write` | `DestroyViewsBench`           | `destroy()` of a hundred, a thousand and ten thousand views                                                                                                                        |
+| `php`   | `ViewSeriesBench`             | `ViewSeries::fill()`, the PHP side of `countByInterval()`, up to a year of hourly buckets                                                                                          |
+| `php`   | `CooldownManagerBench`        | `CooldownStore::put()` on the session store, with up to ten thousand cooldowns in the session                                                                                      |
 
 ## Results over time
 

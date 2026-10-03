@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Php\ViewSeriesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
@@ -56,6 +57,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsBench::class,
         CountViewsByCollectionBench::class,
         CountViewsByIntervalBench::class,
+        CountViewsForViewablesBench::class,
         OrderByViewsBench::class,
         TopViewedBench::class,
         BufferViewsBench::class,
@@ -70,7 +72,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'OrderByViewsBench', 'TopViewedBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('missing'))->toBeEmpty();
@@ -79,6 +81,7 @@ it('filters the benchmarks on their group', function (): void {
 it('lists the before-methods of a class in order', function (): void {
     expect(benchmark(CountViewsBench::class)->beforeMethods)->toBe(['setUp'])
         ->and(benchmark(DestroyViewsBench::class)->beforeMethods)->toBe(['setUp', 'insertViewsToDestroy'])
+        ->and(benchmark(CountViewsForViewablesBench::class)->beforeMethods)->toBe(['setUp', 'loadPages'])
         ->and(benchmark(ViewSeriesBench::class)->beforeMethods)->toBeEmpty();
 });
 
@@ -109,6 +112,24 @@ it('names the parameter sets of the collection benchmarks as those of the plain 
     expect(setsOf(CountViewsByCollectionBench::class, 'benchCountByCollection'))->toBe($expected)
         ->and(setsOf(CountViewsByCollectionBench::class, 'benchUniqueCountByCollection'))->toBe($expected)
         ->and(benchmark(CountViewsByCollectionBench::class)->variants)->toHaveCount(24);
+});
+
+it('names the parameter sets of the page benchmarks', function (): void {
+    $expected = [
+        'hot page,all time',
+        'cold page,all time',
+        'hot page,past year',
+        'cold page,past year',
+        'hot page,past 30 days',
+        'cold page,past 30 days',
+        'hot page,past day',
+        'cold page,past day',
+    ];
+
+    expect(setsOf(CountViewsForViewablesBench::class, 'benchCounts'))->toBe($expected)
+        ->and(setsOf(CountViewsForViewablesBench::class, 'benchUniqueCounts'))->toBe($expected)
+        ->and(setsOf(CountViewsForViewablesBench::class, 'benchCountLoop'))->toBe($expected)
+        ->and(benchmark(CountViewsForViewablesBench::class)->variants)->toHaveCount(24);
 });
 
 it('names the parameter sets of the interval benchmarks', function (): void {
