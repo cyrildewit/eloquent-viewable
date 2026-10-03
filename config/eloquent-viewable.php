@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
 
 return [
 
@@ -102,13 +103,14 @@ return [
          * `Recording\Contracts\RecordingGuard`.
          *
          * Out of the box crawlers and `ignored_ip_addresses` are dropped, as
-         * in v8, and `EnforceCooldown` is listed because `cooldown()` does
+         * in v8, so are pages the browser only prefetches, and `EnforceCooldown` is listed because `cooldown()` does
          * nothing without it. Uncomment the privacy guards to honour those
          * headers, or remove a guard to turn its check off:
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
          *   IgnoreIpAddresses           drops views from `ignored_ip_addresses`
+         *   IgnorePrefetch              drops prefetched and prerendered pages
          *   IgnoreDoNotTrack            honours the `DNT: 1` header
          *   IgnoreGlobalPrivacyControl  honours the `Sec-GPC: 1` header
          *
@@ -118,6 +120,7 @@ return [
         'guards' => [
             IgnoreCrawlers::class,
             IgnoreIpAddresses::class,
+            IgnorePrefetch::class,
             EnforceCooldown::class,
             // IgnoreDoNotTrack::class,
             // IgnoreGlobalPrivacyControl::class,

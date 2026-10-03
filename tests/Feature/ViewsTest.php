@@ -63,6 +63,7 @@ function visitorWithId(string $id): VisitorContract
     $visitor->allows('userAgent')->andReturn(null);
     $visitor->allows('hasDoNotTrackHeader')->andReturn(false);
     $visitor->allows('hasGlobalPrivacyControl')->andReturn(false);
+    $visitor->allows('isPrefetch')->andReturn(false);
 
     return $visitor;
 }

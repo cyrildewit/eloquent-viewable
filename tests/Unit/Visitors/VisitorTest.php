@@ -192,3 +192,16 @@ it('queues the cookie with the configured name and lifetime', function (): void 
 
     new Visitor(visitorRequest(), $config, $this->cookies, $this->auth)->id();
 });
+
+it('can determine if the browser only prefetches the page', function (bool $expected, array $server): void {
+    $visitor = ($this->visitor)(visitorRequest(server: $server));
+
+    expect($visitor->isPrefetch())->toBe($expected);
+})->with([
+    'Sec-Purpose prefetch' => [true, ['HTTP_SEC_PURPOSE' => 'prefetch']],
+    'Sec-Purpose prerender' => [true, ['HTTP_SEC_PURPOSE' => 'prefetch;prerender']],
+    'Purpose prefetch' => [true, ['HTTP_PURPOSE' => 'Prefetch']],
+    'X-Moz prefetch' => [true, ['HTTP_X_MOZ' => 'prefetch']],
+    'another purpose' => [false, ['HTTP_SEC_PURPOSE' => 'navigate']],
+    'header absent' => [false, []],
+]);
