@@ -11,6 +11,6 @@ final class UnsupportedInFake extends LogicException implements EloquentViewable
 {
     public static function scopes(): self
     {
-        return new self('The views fake keeps records in memory, so withViewsCount() and orderByViews() cannot read from it. Use the database for those queries.');
+        return new self('The views fake keeps records in memory, so withViewsCount(), orderByViews() and whereViewsCount() cannot read from it. Use the database for those queries.');
     }
 }

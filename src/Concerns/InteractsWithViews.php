@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByViews;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewed;
+use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewsCount;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WithViewsCount;
 use CyrildeWit\EloquentViewable\Recording\Observers\ViewableObserver;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @method static Builder<static> orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
  * @method static Builder<static> orderByUniqueViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, string $as = 'unique_views_count')
  * @method static Builder<static> withViewsCount(?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
+ * @method static Builder<static> whereViewsCount(string $operator, int $count, ?Period $period = null, ?string $collection = null, bool $unique = false)
+ * @method static Builder<static> whereUniqueViewsCount(string $operator, int $count, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereNotViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
@@ -88,6 +91,30 @@ trait InteractsWithViews
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
         return $query->tap(new WithViewsCount($this->viewSource(), new ViewsQuery($period, $collection, $unique), $as));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereViewsCount(
+        Builder $query,
+        string $operator,
+        int $count,
+        ?Period $period = null,
+        ?string $collection = null,
+        bool $unique = false
+    ): Builder {
+        return $query->tap(new WhereViewsCount($this->viewSource(), new ViewsQuery($period, $collection, $unique), $operator, $count));
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWhereUniqueViewsCount(Builder $query, string $operator, int $count, ?Period $period = null, ?string $collection = null): Builder
+    {
+        return $query->whereViewsCount($operator, $count, $period, $collection, true);
     }
 
     /**
