@@ -22,7 +22,11 @@ final readonly class Fingerprint
     /** @throws InvalidConfiguration */
     public function of(Visitor $visitor): string
     {
-        return hash_hmac('sha256', $this->network($visitor->ip()).'|'.($visitor->userAgent() ?? ''), $this->salt());
+        $network = $this->network($visitor->ip());
+
+        $userAgent = $visitor->userAgent() ?? '';
+
+        return hash_hmac('sha256', "{$network}|{$userAgent}", $this->salt());
     }
 
     private function network(?string $ip): string
@@ -46,7 +50,7 @@ final readonly class Fingerprint
     private function salt(): string
     {
         $now = Carbon::now();
-        $key = $this->config->fingerprintKey().':'.$now->toDateString();
+        $key = "{$this->config->fingerprintKey()}:{$now->toDateString()}";
         $cache = $this->cache->store($this->config->fingerprintCacheStore());
 
         $salt = $cache->get($key);

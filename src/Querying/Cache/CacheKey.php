@@ -46,7 +46,7 @@ final readonly class CacheKey
      */
     public function make(ViewsQuery $query, ?Granularity $granularity = null, ?string $grouping = null, ?int $limit = null): string
     {
-        return $this->head().':'.$this->digest($query, $granularity, $grouping, $limit);
+        return "{$this->head()}:{$this->digest($query, $granularity, $grouping, $limit)}";
     }
 
     private function head(): string

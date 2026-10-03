@@ -83,7 +83,7 @@ final readonly class PredisClient implements StreamClient
     /** @return list<StreamEntry> */
     public function range(string $stream, ?string $after, int $count): array
     {
-        return $this->fromMap($this->connection->command('xrange', [$stream, $after === null ? '-' : '('.$after, '+', $count]));
+        return $this->fromMap($this->connection->command('xrange', [$stream, $after === null ? '-' : "({$after}", '+', $count]));
     }
 
     /** @param  list<string>  $ids */

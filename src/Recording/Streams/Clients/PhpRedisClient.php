@@ -69,7 +69,7 @@ final readonly class PhpRedisClient implements StreamClient
     /** @return list<StreamEntry> */
     public function range(string $stream, ?string $after, int $count): array
     {
-        return $this->entries($this->connection->command('xrange', [$stream, $after === null ? '-' : '('.$after, '+', $count]));
+        return $this->entries($this->connection->command('xrange', [$stream, $after === null ? '-' : "({$after}", '+', $count]));
     }
 
     /** @param  list<string>  $ids */

@@ -58,6 +58,8 @@ final readonly class VisitorIdentity
      */
     public function ofViewer(Model $viewer): string
     {
-        return hash_hmac('sha256', $viewer->getMorphClass().'|'.ViewerKey::of($viewer), $this->encrypter->getKey());
+        $key = ViewerKey::of($viewer);
+
+        return hash_hmac('sha256', "{$viewer->getMorphClass()}|{$key}", $this->encrypter->getKey());
     }
 }

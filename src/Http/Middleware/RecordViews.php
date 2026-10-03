@@ -36,18 +36,28 @@ final readonly class RecordViews
         $arguments = (array) $models;
 
         if ($collection !== null) {
-            $arguments[] = 'collection='.$collection;
+            $arguments[] = "collection={$collection}";
         }
 
         if ($cooldown !== null) {
-            $arguments[] = 'cooldown='.$cooldown;
+            $arguments[] = "cooldown={$cooldown}";
         }
 
         if ($queue !== null) {
-            $arguments[] = 'queue='.($queue ? 'true' : 'false');
+            $value = $queue ? 'true' : 'false';
+
+            $arguments[] = "queue={$value}";
         }
 
-        return $arguments === [] ? self::Alias : self::Alias.':'.implode(',', $arguments);
+        if ($arguments === []) {
+            return self::Alias;
+        }
+
+        $alias = self::Alias;
+
+        $options = implode(',', $arguments);
+
+        return "{$alias}:{$options}";
     }
 
     /**

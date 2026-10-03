@@ -35,7 +35,9 @@ final class FlushViewsCommand extends Command
             return self::FAILURE;
         }
 
-        $this->components->info("Flushed {$landed} ".Str::plural('view', $landed).'.');
+        $views = Str::plural('view', $landed);
+
+        $this->components->info("Flushed {$landed} {$views}.");
 
         return self::SUCCESS;
     }
