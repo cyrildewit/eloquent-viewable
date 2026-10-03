@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewsCountBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\DestroyViewsBench;
@@ -63,6 +64,7 @@ it('finds every benchmark class in path order', function (): void {
         OrderByViewsBench::class,
         RememberedCountsBench::class,
         TopViewedBench::class,
+        WhereViewedBench::class,
         WhereViewsCountBench::class,
         BufferViewsBench::class,
         DestroyViewsBench::class,
@@ -76,7 +78,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewsCountBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
@@ -189,6 +191,22 @@ it('names the parameter sets of the ranking benchmark', function (): void {
 
     expect(setsOf(TopViewedBench::class, 'benchTop'))->toBe($expected)
         ->and(setsOf(TopViewedBench::class, 'benchUniqueTop'))->toBe($expected);
+});
+
+it('names the parameter sets of the visitor filter benchmarks', function (): void {
+    $expected = [
+        'returning visitor,all time',
+        'new visitor,all time',
+        'returning visitor,past year',
+        'new visitor,past year',
+        'returning visitor,past 30 days',
+        'new visitor,past 30 days',
+        'returning visitor,past day',
+        'new visitor,past day',
+    ];
+
+    expect(setsOf(WhereViewedBench::class, 'benchWhereViewedByVisitor'))->toBe($expected)
+        ->and(setsOf(WhereViewedBench::class, 'benchWhereNotViewedByVisitor'))->toBe($expected);
 });
 
 it('names the parameter sets of the remembered count benchmarks', function (): void {
