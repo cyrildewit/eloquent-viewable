@@ -22,11 +22,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $id
  * @property string $viewable_type
  * @property int|string $viewable_id
- * @property string|null $viewer_type
+ * @property ?string $viewer_type
  * @property int|string|null $viewer_id
- * @property string|null $visitor
- * @property string|null $collection
- * @property array<string, mixed>|null $context
+ * @property ?string $visitor
+ * @property ?string $collection
+ * @property ?array<string, mixed> $context
  * @property string $viewed_at
  */
 class View extends Model
