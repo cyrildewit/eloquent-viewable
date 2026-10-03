@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\WhereViewsCountBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
@@ -60,6 +61,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsByIntervalBench::class,
         CountViewsForViewablesBench::class,
         OrderByViewsBench::class,
+        RememberedCountsBench::class,
         TopViewedBench::class,
         WhereViewsCountBench::class,
         BufferViewsBench::class,
@@ -77,6 +79,7 @@ it('filters the benchmarks on their group', function (): void {
     expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
+        ->and($names('cache'))->toBe(['RememberedCountsBench'])
         ->and($names('missing'))->toBeEmpty();
 });
 
@@ -186,6 +189,20 @@ it('names the parameter sets of the ranking benchmark', function (): void {
 
     expect(setsOf(TopViewedBench::class, 'benchTop'))->toBe($expected)
         ->and(setsOf(TopViewedBench::class, 'benchUniqueTop'))->toBe($expected);
+});
+
+it('names the parameter sets of the remembered count benchmarks', function (): void {
+    $stores = ['array store', 'redis store'];
+
+    expect(setsOf(RememberedCountsBench::class, 'benchRememberedCount'))->toBe([
+        'hot article,array store',
+        'cold article,array store',
+        'all articles,array store',
+        'hot article,redis store',
+        'cold article,redis store',
+        'all articles,redis store',
+    ])
+        ->and(setsOf(RememberedCountsBench::class, 'benchRememberedCounts'))->toBe($stores);
 });
 
 it('names the parameter sets of one provider after its keys', function (): void {

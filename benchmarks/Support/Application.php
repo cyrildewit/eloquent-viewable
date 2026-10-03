@@ -21,6 +21,11 @@ final class Application
 {
     public const string CONNECTION = 'benchmark';
 
+    /**
+     * The cache store on Redis the remembered count benchmarks read from.
+     */
+    public const string REDIS_CACHE_STORE = 'bench-redis';
+
     private static ?LaravelApplication $app = null;
 
     public static function boot(): LaravelApplication
@@ -58,6 +63,15 @@ final class Application
             'port' => (int) Env::get('REDIS_PORT', 6379),
             'database' => 0,
         ]);
+
+        // Its own database, so flushing the store after a run leaves the
+        // buffered views and the test suite's keys in database 0 alone.
+        $config->set('database.redis.bench-cache', [
+            'host' => (string) Env::get('REDIS_HOST', '127.0.0.1'),
+            'port' => (int) Env::get('REDIS_PORT', 6379),
+            'database' => 1,
+        ]);
+        $config->set('cache.stores.'.self::REDIS_CACHE_STORE, ['driver' => 'redis', 'connection' => 'bench-cache']);
 
         date_default_timezone_set('UTC');
 
