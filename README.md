@@ -702,7 +702,7 @@ every supported database. The optional indexes below were measured with it.
 
 The migration indexes `(viewable_type, viewable_id)` and `(viewable_type, viewable_id, viewed_at)`, so period counts and
 series only read the rows inside the period. If you installed before the second index existed, the
-[upgrade guide](UPGRADING.md#add-an-index-on-viewable_type-viewable_id-and-viewed_at) has a migration for it.
+[upgrade guide](UPGRADING.md#4-add-the-new-columns-and-index) has a migration for it.
 
 Two optional indexes, added in a migration of your own:
 
