@@ -141,8 +141,8 @@ final readonly class Reader
     }
 
     /**
-     * The source itself, or the source behind the cache until the moment
-     * the call asked to remember the result.
+     * This is the source itself when the call does not ask to remember the
+     * result, and the source behind the cache until that moment when it does.
      */
     private function source(?CarbonInterface $rememberUntil): ViewSource
     {
@@ -154,7 +154,8 @@ final readonly class Reader
     }
 
     /**
-     * The driver name, and what the source says about itself when it can.
+     * The identity is the driver name, followed by what the source reports
+     * about itself when it implements `IdentifiesSource`.
      */
     private function identity(): string
     {
