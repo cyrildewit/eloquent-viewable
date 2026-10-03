@@ -97,7 +97,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 
 - The package requires the `illuminate/bus`, `illuminate/container`, `illuminate/queue` and `illuminate/routing` components it uses, and no longer uses anything from `Illuminate\Foundation`
 - `Recording\Jobs\RecordViewJob` and `Recording\Jobs\FlushBufferedViewsJob` no longer use the `Dispatchable` trait, so they have no static `dispatch()` methods. Dispatch them with `dispatch(new FlushBufferedViewsJob)`, `Bus::dispatch()` or `Schedule::job()`
-- The `create_views_table` migration stub now also creates a composite `(viewable_type, viewable_id, viewed_at)` index named `views_viewable_viewed_at_index`; existing installations add it with the migration in the upgrade guide
+- The `create_views_table` migration stub now also creates a composite `(viewable_type, viewable_id, viewed_at)` index named after the configured table, `views_viewable_viewed_at_index` for the default one; existing installations add it with the migration in the upgrade guide
 - `Visitors\Visitor` now takes the auth factory as a fourth constructor argument, to read the signed-in model for `viewer()`
 - `Recording\Recorder` resolves the viewer before the guards run and hands them the attempt with `viewer` set, and takes `Visitors\VisitorIdentity` as a sixth constructor argument. `Recording\Guards\EnforceCooldown` takes it as a second argument and keys the cooldown on the resolved visitor id
 - `Views::fake()` honours `viewedBy()` when counting and keeps the viewer and the context on the recorded `ViewRecord`
