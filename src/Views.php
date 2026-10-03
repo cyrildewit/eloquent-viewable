@@ -154,22 +154,20 @@ class Views
         ));
     }
 
-    /** Deletes the views and forgets the counts remembered of them. */
     public function destroy(): void
     {
         $this->destroyer->handle($this->viewable());
     }
 
     /**
-     * Forgets every count remembered of the viewable, of its type as a whole
-     * and of rankings. A viewable without a key forgets its whole type.
+     * Also forgets the remembered totals and rankings that include the
+     * viewable. A viewable without a key forgets its whole type.
      */
     public function forgetCache(): void
     {
         $this->cacheVersions->forgetCache($this->viewable());
     }
 
-    /** Forgets every remembered count. */
     public function flushCache(): void
     {
         $this->cacheVersions->flushCache();
