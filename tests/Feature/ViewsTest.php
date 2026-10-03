@@ -1632,8 +1632,9 @@ describe('remembering', function (): void {
 
 describe('remembering in redis', function (): void {
     beforeEach(function (): void {
-        // A database of its own, so flushing it leaves the stream tests alone.
-        Config::set('database.redis.views-cache', [...Config::get('database.redis.default'), 'database' => 1]);
+        // The database after the stream's, so flushing it leaves the stream tests alone.
+        $default = Config::get('database.redis.default');
+        Config::set('database.redis.views-cache', [...$default, 'database' => $default['database'] + 1]);
         Config::set('cache.stores.views-redis', ['driver' => 'redis', 'connection' => 'views-cache']);
         Config::set('eloquent-viewable.querying.cache.store', 'views-redis');
 
