@@ -43,6 +43,7 @@
             </li>
             <li><a href="#compare-with-the-previous-period">Compare with the previous period</a></li>
             <li><a href="#get-view-counts-grouped-by-interval">Get view counts grouped by interval</a></li>
+            <li><a href="#get-view-counts-per-collection">Get view counts per collection</a></li>
             <li><a href="#get-unique-view-count">Get unique view count</a></li>
           </ul>
         </li>
@@ -630,6 +631,25 @@ other driver throws `UnsupportedDriver` until you
 A call that would produce more than `querying.max_intervals` buckets (10,000 by default, configurable) throws
 `InvalidInterval` before the database is queried.
 
+#### Get view counts per collection
+
+`collection()` narrows a count to one collection. `countByCollection()` returns the count of every collection at once,
+keyed by name, with the most viewed first and ties in name order. Views recorded without a collection are keyed by
+the empty string. Only collections with views are present, so a viewable without views gives an empty array.
+
+```php
+views($post)->countByCollection();
+// ['' => 1200, 'sidebar' => 340, 'feed' => 88]
+```
+
+`unique()`, `period()`, `viewedBy()` and `remember()` work as they do for `count()`, and `collection()` narrows the
+result to that one entry:
+
+```php
+views($post)->period(Period::pastDays(30))->unique()->countByCollection();
+views(Post::class)->countByCollection();
+```
+
 #### Get unique view count
 
 If you only want to retrieve the unique view count, you can simply add the `unique` method to the chain.
@@ -716,6 +736,8 @@ views($post)
     ->collection('customCollection')
     ->count();
 ```
+
+To see every collection at once, use [`countByCollection()`](#get-view-counts-per-collection).
 
 ### Who viewed what
 
@@ -993,7 +1015,7 @@ it('records a view of the post', function (): void {
 
 The guards you list still run, so with `IgnoreCrawlers` listed a request the crawler detector flags is not recorded
 in the fake either. `count()`,
-`unique()`, `period()`, `collection()`, `viewedBy()` and `countByInterval()` read from the fake. The `withViewsCount()` and
+`unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()` and `countByCollection()` read from the fake. The `withViewsCount()` and
 `orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
 
 The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
@@ -1473,9 +1495,10 @@ $this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app
 ));
 ```
 
-The contract has three methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
+The contract has four methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
 bucket start formatted as `Y-m-d H:i:s`; buckets without views are left out, and the package fills them in.
-`countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
+`countByCollection()` returns counts keyed by collection name, the default collection as the empty string, in any
+order; the package sorts them. `countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
 table, which the scopes add as a subselect. It has to correlate on the viewable's qualified key. A viewable without a
 key stands for every viewable of its type.
 
@@ -1496,6 +1519,11 @@ final class AggregateSource implements ViewSource
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
         // return ['2026-09-01 00:00:00' => 14, '2026-09-03 00:00:00' => 2];
+    }
+
+    public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+    {
+        // return ['' => 14, 'sidebar' => 2];
     }
 
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
