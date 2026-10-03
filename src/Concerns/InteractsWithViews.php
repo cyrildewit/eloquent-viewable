@@ -160,6 +160,10 @@ trait InteractsWithViews
     {
         $source = Container::getInstance()->make(ViewSource::class);
 
-        return $source instanceof SubquerySource ? $source : throw UnsupportedBySource::scopes($source);
+        if (! $source instanceof SubquerySource) {
+            throw UnsupportedBySource::scopes($source);
+        }
+
+        return $source;
     }
 }

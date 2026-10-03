@@ -52,12 +52,14 @@ final readonly class VersionedCache
 
     /**
      * Many entries of one type in one read, and the values the cache lacks
-     * resolved together and written in one more.
+     * resolved together and written in one more. The keys map the key of each
+     * viewable to its cache key, and the resolver receives the viewable keys
+     * the cache lacks and returns a value for each.
      *
      * @template TValue
      *
-     * @param  array<int|string, string>  $keys  cache keys by the key of the viewable they count
-     * @param  Closure(non-empty-list<int|string>): array<int|string, TValue>  $resolve  given the viewable keys the cache lacks, a value for each
+     * @param  array<int|string, string>  $keys
+     * @param  Closure(non-empty-list<int|string>): array<int|string, TValue>  $resolve
      * @return array<int|string, TValue>
      */
     public function rememberMany(string $type, array $keys, CarbonInterface $until, Closure $resolve): array
@@ -78,13 +80,15 @@ final readonly class VersionedCache
             $version = $this->versions->stamp($versions, $dependsOn);
             $cached = $read[$key] ?? null;
 
-            if ($this->isCurrent($cached, $version)) {
-                /** @var TValue $value */
-                $value = $cached['value'];
-                $values[$id] = $value;
-            } else {
+            if (! $this->isCurrent($cached, $version)) {
                 $pending[$id] = ['key' => $key, 'version' => $version];
+
+                continue;
             }
+
+            /** @var TValue $value */
+            $value = $cached['value'];
+            $values[$id] = $value;
         }
 
         if ($pending === []) {
