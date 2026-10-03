@@ -13,6 +13,9 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Entry;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
@@ -27,6 +30,7 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsPost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Views;
@@ -953,12 +957,18 @@ describe('counting by interval', function (): void {
             {
                 return DB::query()->selectRaw('0');
             }
+
+            public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+            {
+                return [['type' => Post::class, 'id' => Post::query()->min('id'), 'count' => 99]];
+            }
         });
 
         $series = views($this->post)->period(Period::create('2026-09-01', '2026-09-03'))->countByInterval(Granularity::Day);
 
         expect(views($this->post)->count())->toBe(7)
-            ->and(counts($series))->toBe([42, 0]);
+            ->and(counts($series))->toBe([42, 0])
+            ->and(ViewsFacade::top()->entries->first()->count)->toBe(99);
     });
 
     describe('in a non-UTC application timezone', function (): void {
@@ -1252,9 +1262,144 @@ describe('counting by collection', function (): void {
             {
                 return DB::query()->selectRaw('0');
             }
+
+            public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+            {
+                return [];
+            }
         });
 
         expect(views($this->post)->countByCollection())->toBe(['sidebar' => 42, 'feed' => 1]);
+    });
+});
+
+describe('ranking', function (): void {
+    /** @return list<array{string, mixed, int, int}> */
+    function rankingOf(Ranking $ranking): array
+    {
+        return $ranking->entries->map(fn (Entry $entry): array => [$entry->viewable::class, $entry->viewable->getKey(), $entry->count, $entry->rank])->all();
+    }
+
+    it('ranks the most viewed content of every type', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for($apartment, 'viewable')->count(3)->create();
+        View::factory()->for($other, 'viewable')->create();
+
+        $ranking = ViewsFacade::top();
+
+        expect(rankingOf($ranking))->toBe([
+            [Apartment::class, $apartment->getKey(), 3, 1],
+            [Post::class, $this->post->getKey(), 2, 2],
+            [Post::class, $other->getKey(), 1, 3],
+        ])
+            ->and($ranking->viewables()->first()->is($apartment))->toBeTrue()
+            ->and($ranking)->toHaveCount(3);
+    });
+
+    it('ranks within a type for a viewable without a key', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->create();
+        View::factory()->for($other, 'viewable')->count(2)->create();
+        View::factory()->for(Apartment::factory()->create(), 'viewable')->count(3)->create();
+
+        expect(views(Post::class)->top()->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()])
+            ->and(ViewsFacade::forViewable(new Post)->top()->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()]);
+    });
+
+    it('refuses to rank a single viewable', function (): void {
+        expect(fn (): Ranking => views($this->post)->top())
+            ->toThrow(InvalidViewable::class, 'top() ranks every viewable of a type or every type. ['.Post::class.'] with key '.$this->post->getKey().' was given; pass a model without a key, or none at all.');
+    });
+
+    it('refuses a limit below one', function (): void {
+        expect(fn (): Ranking => ViewsFacade::top(0))
+            ->toThrow(InvalidLimit::class, 'top() needs a limit of at least one, 0 given.');
+    });
+
+    it('stops at the limit', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+        View::factory()->for(Post::factory()->create(), 'viewable')->create();
+
+        expect(ViewsFacade::top(1)->viewables()->modelKeys())->toBe([$this->post->getKey()]);
+    });
+
+    it('applies the period, collection, viewer and uniqueness', function (): void {
+        $other = Post::factory()->create();
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->inCollection('custom')->fromVisitor('one')->viewedAt(Carbon::parse('2026-01-10'))->count(3)->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('one')->viewedAt(Carbon::parse('2026-02-10'))->create();
+        View::factory()->for($other, 'viewable')->inCollection('custom')->fromVisitor('one')->viewedAt(Carbon::parse('2026-02-10'))->by($user)->create();
+        View::factory()->for($other, 'viewable')->inCollection('custom')->fromVisitor('two')->viewedAt(Carbon::parse('2026-02-10'))->by($user)->create();
+
+        expect(ViewsFacade::period(Period::since('2026-02-01'))->top()->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()])
+            ->and(ViewsFacade::collection('custom')->top()->viewables()->modelKeys())->toBe([$this->post->getKey(), $other->getKey()])
+            ->and(ViewsFacade::viewedBy($user)->top()->viewables()->modelKeys())->toBe([$other->getKey()])
+            ->and(ViewsFacade::unique()->top()->entries->map(fn (Entry $entry): int => $entry->count)->all())->toBe([2, 1])
+            ->and(ViewsFacade::top()->entries->map(fn (Entry $entry): int => $entry->count)->all())->toBe([4, 2]);
+    });
+
+    it('anchors a relative period on the clock of the timezone', function (): void {
+        Carbon::setTestNow('2026-09-10 12:00:00');
+        $other = Post::factory()->create();
+
+        // pastDays(1) starts at yesterday's midnight: 2026-09-09 00:00 UTC, or
+        // 2026-09-08 14:00 UTC when anchored on Sydney's clock, which is the
+        // only one of the two that reaches back to 20:00 on the 8th.
+        View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-09-08 20:00:00'))->create();
+        View::factory()->for($other, 'viewable')->viewedAt(Carbon::parse('2026-09-10 01:00:00'))->count(2)->create();
+
+        expect(ViewsFacade::period(Period::pastDays(1))->top()->viewables()->modelKeys())->toBe([$other->getKey()])
+            ->and(ViewsFacade::period(Period::pastDays(1))->timezone('Australia/Sydney')->top()->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()]);
+    });
+
+    it('leaves out a viewable whose model is gone', function (): void {
+        $gone = KeepsViewsPost::create(['title' => 'Title', 'body' => 'Body']);
+        View::factory()->for($gone, 'viewable')->count(5)->create();
+        View::factory()->for($this->post, 'viewable')->create();
+        $gone->delete();
+
+        expect(rankingOf(ViewsFacade::top()))->toBe([[Post::class, $this->post->getKey(), 1, 1]]);
+    });
+
+    it('is empty when nothing was viewed', function (): void {
+        expect(ViewsFacade::top()->isEmpty())->toBeTrue()
+            ->and(ViewsFacade::top()->toArray())->toBe([]);
+    });
+
+    it('serializes to JSON', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        expect(ViewsFacade::top()->jsonSerialize())->toBe([
+            ['rank' => 1, 'count' => 2, 'viewable' => $this->post->fresh()->toArray()],
+        ]);
+    });
+
+    it('can remember the ranking', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        expect(ViewsFacade::remember(60)->top()->viewables()->modelKeys())->toBe([$this->post->getKey()]);
+
+        $other = Post::factory()->create();
+        View::factory()->for($other, 'viewable')->count(5)->create();
+
+        expect(ViewsFacade::remember(60)->top()->viewables()->modelKeys())->toBe([$this->post->getKey()])
+            ->and(ViewsFacade::top()->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()])
+            ->and(ViewsFacade::remember(60)->top(5)->viewables()->modelKeys())->toBe([$other->getKey(), $this->post->getKey()]);
+    });
+
+    it('loads the models afresh when the ranking is remembered', function (): void {
+        View::factory()->for($this->post, 'viewable')->count(2)->create();
+
+        expect(ViewsFacade::remember(60)->top()->viewables()->first()->title)->toBe($this->post->title);
+
+        $this->post->update(['title' => 'Renamed']);
+
+        expect(ViewsFacade::remember(60)->top()->viewables()->first()->title)->toBe('Renamed');
     });
 });
 
