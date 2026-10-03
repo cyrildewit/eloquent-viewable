@@ -70,9 +70,6 @@ function readerConfig(int $maxIntervals = 10_000): Config
     return new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views'], 'source' => ['driver' => 'database'], 'max_intervals' => $maxIntervals]]]));
 }
 
-/**
- * An array store that counts the round trips a repository makes to it.
- */
 function countingStore(): ArrayStore
 {
     return new class extends ArrayStore
@@ -108,11 +105,7 @@ function countingStore(): ArrayStore
     };
 }
 
-/**
- * The remembered values in the store, without the versions they carry.
- *
- * @return list<array{value: mixed, expiresAt: float|int}>
- */
+/** @return list<array{value: mixed, expiresAt: float|int}> */
 function cachedEntries(CacheRepository $cache): array
 {
     /** @var ArrayStore $store */

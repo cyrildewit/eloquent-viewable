@@ -21,9 +21,6 @@ final class Application
 {
     public const string CONNECTION = 'benchmark';
 
-    /**
-     * The cache store on Redis the remembered count benchmarks read from.
-     */
     public const string REDIS_CACHE_STORE = 'bench-redis';
 
     private static ?LaravelApplication $app = null;

@@ -40,8 +40,7 @@ final readonly class Reader
         private View $view,
         private ViewableLoader $loader,
     ) {
-        // Built here rather than injected, so the versions are always read
-        // from the store the entries live in, and no lookup slows a read.
+        // Built here so the versions always live in the entries' store.
         $this->versions = new CacheVersions($cache, $config);
     }
 
@@ -186,12 +185,7 @@ final readonly class Reader
         return new CacheKey($viewable, $this->view->getConnection(), $this->config->cacheKey(), $this->config->sourceDriver());
     }
 
-    /**
-     * The entry of every viewable in the set and the version it must carry,
-     * read in one round trip with the versions themselves.
-     *
-     * @return array<int|string, array{key: string, version: string, cached: mixed}>
-     */
+    /** @return array<int|string, array{key: string, version: string, cached: mixed}> */
     private function entries(ViewableSet $viewables, ViewsQuery $query): array
     {
         $cacheKeys = [];
@@ -255,11 +249,6 @@ final readonly class Reader
     }
 
     /**
-     * An entry is kept with the version it was counted under, and only
-     * served while that is still the current one. The entry and the versions
-     * are read in one round trip, and a recount overwrites a stale entry
-     * rather than leaving it behind.
-     *
      * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>
      *
      * @param  Closure(): string  $key

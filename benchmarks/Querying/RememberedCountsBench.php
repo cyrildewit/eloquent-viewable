@@ -20,13 +20,6 @@ use PhpBench\Attributes\ParamProviders;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
-/**
- * Counts read back with `remember()`, and forgetting them. Every entry is
- * written outside the timed region, so the reads measure a cache hit and
- * never the views table: the entry and the versions it carries in one round
- * trip, for a set of twenty as for one. The `array` store shows the PHP
- * side, the `redis` store what the round trip adds.
- */
 #[Groups(['cache'])]
 #[BeforeMethods(['setUp', 'rememberCounts'])]
 #[AfterMethods('flushCacheStore')]
@@ -40,18 +33,14 @@ final class RememberedCountsBench extends BenchCase
     /** @var Collection<int, Article> */
     private Collection $page;
 
-    /**
-     * @return Generator<string, array{store: string}>
-     */
+    /** @return Generator<string, array{store: string}> */
     public function provideStores(): Generator
     {
         yield 'array store' => ['store' => 'array'];
         yield 'redis store' => ['store' => Application::REDIS_CACHE_STORE];
     }
 
-    /**
-     * @param  array{store: string}  $params
-     */
+    /** @param  array{store: string}  $params */
     public function rememberCounts(array $params): void
     {
         config()->set('eloquent-viewable.querying.cache.store', $params['store']);
@@ -65,44 +54,34 @@ final class RememberedCountsBench extends BenchCase
         $this->views()->forViewables($this->page)->remember(60)->counts();
     }
 
-    /**
-     * @param  array{store: string}  $params
-     */
+    /** @param  array{store: string}  $params */
     public function flushCacheStore(array $params): void
     {
         Cache::store($params['store'])->flush();
     }
 
-    /**
-     * @param  array{target: string, store: string}  $params
-     */
+    /** @param  array{target: string, store: string}  $params */
     #[ParamProviders(['provideTargets', 'provideStores'])]
     public function benchRememberedCount(array $params): void
     {
         views($this->target($params))->remember(60)->count();
     }
 
-    /**
-     * @param  array{store: string}  $params
-     */
+    /** @param  array{store: string}  $params */
     #[ParamProviders('provideStores')]
     public function benchRememberedCounts(array $params): void
     {
         $this->views()->forViewables($this->page)->remember(60)->counts();
     }
 
-    /**
-     * @param  array{store: string}  $params
-     */
+    /** @param  array{store: string}  $params */
     #[ParamProviders('provideStores')]
     public function benchForgetCache(array $params): void
     {
         views($this->target(['target' => 'hot']))->forgetCache();
     }
 
-    /**
-     * @param  array{store: string}  $params
-     */
+    /** @param  array{store: string}  $params */
     #[ParamProviders('provideStores')]
     public function benchFlushCache(array $params): void
     {
