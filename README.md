@@ -704,6 +704,34 @@ Post::orderByUniqueViews('asc', null, 'custom-collection')->get();  // ascending
 Post::orderByUniqueViews('desc', null, 'custom-collection')->get(); // descending
 ```
 
+### Filtering models by view count
+
+`whereViewsCount` keeps the models whose view count compares to a number. It takes the same period, collection and
+unique arguments as `orderByViews`, and `whereUniqueViewsCount` is the unique shorthand.
+
+```php
+Post::whereViewsCount('>=', 1000)->get();
+Post::whereViewsCount('>=', 100, Period::pastDays(7))->get();
+Post::whereViewsCount('>=', 10, null, 'custom-collection')->get();
+Post::whereUniqueViewsCount('>=', 50, Period::pastDays(30))->get();
+```
+
+A model without views counts as zero, so `whereViewsCount('<', 10)` includes it. The operator is one of `=`, `!=`,
+`<>`, `<`, `<=`, `>` or `>=`; anything else throws `Querying\Exceptions\InvalidOperator`. It combines with the other scopes, and
+`orWhere()` takes it in a closure:
+
+```php
+Post::whereViewsCount('>=', 100)->orderByViews()->get(); // filtered, sorted, with views_count
+
+Post::where('featured', true)
+    ->orWhere(fn ($query) => $query->whereViewsCount('>=', 1000))
+    ->get();
+```
+
+The count is a correlated subquery, which the database runs for every row it considers. Narrow the query with other
+conditions where you can. When you only need to know whether a model has views at all, Laravel's
+`Post::has('views')` is cheaper, because it stops at the first view instead of counting them all.
+
 ### Most viewed across the app
 
 `orderByViews()` ranks the rows of one model. `Views::top()` answers what the most viewed content in the whole
