@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Recording\Observers;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
-use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Actions\DestroyViews;
 
 final readonly class ViewableObserver
 {
-    public function __construct(private ViewStore $store) {}
+    public function __construct(private DestroyViews $destroy) {}
 
     public function deleted(Viewable $viewable): void
     {
@@ -18,7 +18,7 @@ final readonly class ViewableObserver
         }
 
         if ($viewable->shouldRemoveViewsOnDelete()) {
-            $this->store->forget($viewable);
+            $this->destroy->handle($viewable);
         }
     }
 

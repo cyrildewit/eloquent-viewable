@@ -17,7 +17,7 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
-use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Actions\DestroyViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
@@ -65,7 +65,7 @@ class Views
         protected VisitorContract $visitor,
         protected Recorder $recorder,
         protected Reader $reader,
-        protected ViewStore $store,
+        protected DestroyViews $destroyer,
         protected CacheVersions $cacheVersions,
     ) {}
 
@@ -154,9 +154,10 @@ class Views
         ));
     }
 
+    /** Deletes the views and forgets the counts remembered of them. */
     public function destroy(): void
     {
-        $this->store->forget($this->viewable());
+        $this->destroyer->handle($this->viewable());
     }
 
     /**
