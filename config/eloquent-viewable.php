@@ -196,10 +196,10 @@ return [
 
         /*
          * Where counts come from. `count()`, `countByInterval()`, `top()`
-         * and the `withViewsCount()` and `orderByViews()` scopes all read
-         * through this source. The `database` driver reads the views table. Register
-         * your own driver with `SourceManager::extend()`, for example to read
-         * a rollup table instead.
+         * and the other counts all read through this source, and so do the
+         * scopes when the source can be queried in SQL. The `database`
+         * driver reads the views table. Register your own driver with
+         * `SourceManager::extend()`, for example to read a rollup table.
          */
         'source' => [
 

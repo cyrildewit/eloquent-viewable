@@ -1256,8 +1256,8 @@ The guards you list still run, so with `IgnoreCrawlers` listed a request the cra
 in the fake either. `count()`,
 `unique()`, `period()`, `collection()`, `viewedBy()`, `countByInterval()`, `countByCollection()`, `counts()` and
 `top()` read from the fake; `top()` ranks the recorded views and then loads the models from the database, so those
-have to exist. The `withViewsCount()` and
-`orderByViews()` scopes need SQL and throw `UnsupportedInFake`; test those against the database.
+have to exist. The scopes, `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and the `whereViewedBy()`
+family, need SQL and throw `Querying\Exceptions\UnsupportedBySource`; test those against the database.
 
 The fake is backed by `Recording\Stores\ArrayStore`, which is also available as the `array` store driver for a
 process that should keep views in memory without the assertions.
@@ -1717,8 +1717,10 @@ A guard that keeps state about the views it lets through, as the cooldown does, 
 ### Customizing how views are counted
 
 Every number the package reports comes from one `Querying\Contracts\ViewSource`: `count()`, `countByInterval()`,
-`countByCollection()`, `counts()`, `top()`, and the `withViewsCount()` and `orderByViews()` scopes. The
-`querying.source.driver` config key names it, and the shipped `database` driver reads the views table.
+`countByCollection()`, `counts()` and `top()`. The scopes, `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and
+the `whereViewedBy()` family, read from the same source when it also implements `Querying\Contracts\SubquerySource`.
+The `querying.source.driver` config key names it, and the shipped `database` driver reads the views table and
+implements both.
 
 ```php
 'querying' => [
@@ -1731,10 +1733,6 @@ Every number the package reports comes from one `Querying\Contracts\ViewSource`:
 To read from somewhere else, for example a rollup table, implement the contract and register a driver with the
 `SourceManager` in the `register` method of a service provider.
 
-The driver name is part of the `remember()` cache key, so switching `querying.source.driver` starts fresh cache
-entries instead of serving counts the old source produced. A custom source with settings of its own, such as the name
-of the rollup table, is identified by its driver name only; change `querying.cache.key` when those settings change.
-
 ```php
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
@@ -1745,23 +1743,20 @@ $this->app->make(SourceManager::class)->extend('aggregate', fn (Application $app
 ));
 ```
 
-The contract has six methods. `count()` returns a total. `countByInterval()` returns sparse counts keyed by the
-bucket start formatted as `Y-m-d H:i:s`; buckets without views are left out, and the package fills them in.
-`countByCollection()` returns counts keyed by collection name, the default collection as the empty string, in any
-order; the package sorts them. `countMany()` receives one viewable of the type and the keys to count, sorted and
-without duplicates, and returns sparse counts keyed by those keys; the package fills in the zeros.
-`countSubquery()` returns a query selecting one integer, the count for the row of an outer query over the viewable's
-table, which the scopes add as a subselect. It has to correlate on the viewable's qualified key. `top()` returns the
-most viewed viewables as rows of `type`, the morph class, `id`, the key as stored, and `count`, best first and at most
-`$limit` of them; the package loads the models. A viewable without a key stands for every viewable of its type, and
-`top()` receives `null` to rank across every type.
+`ViewSource` has five methods, and each returns plain values, so a source can read from any backend. `count()` returns
+a total. `countByInterval()` returns sparse counts keyed by the bucket start formatted as `Y-m-d H:i:s`; buckets
+without views are left out, and the package fills them in. `countByCollection()` returns counts keyed by collection
+name, the default collection as the empty string, in any order; the package sorts them. `countMany()` receives one
+viewable of the type and the keys to count, sorted and without duplicates, and returns sparse counts keyed by those
+keys; the package fills in the zeros. `top()` returns the most viewed viewables as rows of `type`, the morph class,
+`id`, the key as stored, and `count`, best first and at most `$limit` of them; the package loads the models. A viewable
+without a key stands for every viewable of its type, and `top()` receives `null` to rank across every type.
 
 ```php
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use Illuminate\Database\Query\Builder;
 
 final class AggregateSource implements ViewSource
 {
@@ -1785,18 +1780,63 @@ final class AggregateSource implements ViewSource
         // return [1 => 14, 3 => 2];
     }
 
-    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
-    {
-        // return DB::table('view_aggregates')
-        //     ->whereColumn('view_aggregates.viewable_id', $viewable->getQualifiedKeyName())
-        //     ->where('view_aggregates.viewable_type', $viewable->getMorphClass())
-        //     ->selectRaw('coalesce(sum(views), 0)');
-    }
-
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
     {
         // return [['type' => 'App\Models\Post', 'id' => 7, 'count' => 1403], ...];
     }
+}
+```
+
+The scopes add SQL to a query over the viewable's table, so they need a source in the same database. A source that is
+not throws `Querying\Exceptions\UnsupportedBySource` from a scope; count through `views()` instead. One that is
+implements `SubquerySource` as well. `countSubquery()` returns a query selecting one integer, the count for the row of
+the outer query, and `viewsSubquery()` the views of that row, narrowed to a visitor when one is given, for the existence
+checks of `whereViewedBy()`. Both correlate on the viewable's qualified key. A rollup without a row per view can take
+`viewsSubquery()` from the shipped `DatabaseSource`, so the existence checks keep reading the views table.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
+
+final class AggregateSource implements SubquerySource, ViewSource
+{
+    public function __construct(private DatabaseSource $views) {}
+
+    // ...
+
+    public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
+    {
+        return DB::table('view_aggregates')
+            ->whereColumn('view_aggregates.viewable_id', $viewable->getQualifiedKeyName())
+            ->where('view_aggregates.viewable_type', $viewable->getMorphClass())
+            ->selectRaw('coalesce(sum(views), 0)');
+    }
+
+    public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
+    {
+        return $this->views->viewsSubquery($viewable, $query, $visitor);
+    }
+}
+```
+
+`remember()` keeps the entries of two sources apart by the driver name. A source whose counts depend on settings of
+its own, such as the name of the rollup table, also implements `Querying\Contracts\IdentifiesSource` and returns
+those settings from `cacheIdentity()`, so changing them starts fresh entries instead of serving counts the old settings
+produced. The `database` driver returns its connection and database name.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
+
+final class AggregateSource implements IdentifiesSource, SubquerySource, ViewSource
+{
+    public function cacheIdentity(): string
+    {
+        return $this->table;
+    }
+
+    // ...
 }
 ```
 
