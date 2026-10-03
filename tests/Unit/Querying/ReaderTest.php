@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Reader;
@@ -95,6 +97,56 @@ describe('count', function (): void {
         expect($reader->count($this->viewable, $this->query, $until))->toBe(3)
             ->and($reader->count($this->viewable, new ViewsQuery, $until))->toBe(5)
             ->and($reader->count($this->viewable, $this->query, $until))->toBe(3);
+    });
+});
+
+describe('compare', function (): void {
+    it('counts the period and the one before it through the source', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')
+            ->with($this->viewable, Mockery::on(fn (ViewsQuery $query): bool => $query->period->getRouteKey() === '2026-09-01..2026-09-03'))
+            ->andReturn(340);
+        $source->expects('count')
+            ->with($this->viewable, Mockery::on(fn (ViewsQuery $query): bool => $query->period->getRouteKey() === '2026-08-30..2026-09-01'
+                && $query->collection === 'custom'
+                && $query->unique))
+            ->andReturn(290);
+
+        $comparison = reader($source)->compare($this->viewable, $this->query);
+
+        expect($comparison->toArray())->toBe(['current' => 340, 'previous' => 290, 'delta' => 50, 'percent' => 17.2])
+            ->and($comparison->currentPeriod)->toBe($this->query->period)
+            ->and($comparison->previousPeriod->getRouteKey())->toBe('2026-08-30..2026-09-01');
+    });
+
+    it('remembers both counts, each under its own key', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->twice()->andReturn(3, 2);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
+            ->and($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
+            ->and($cache->getStore()->all())->toHaveCount(2)
+            ->and($reader->count($this->viewable, $this->query->withPeriod($this->query->period->previous()), $until))->toBe(2);
+    });
+
+    it('requires a period', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->shouldNotReceive('count');
+
+        expect(fn (): ViewComparison => reader($source)->compare($this->viewable, new ViewsQuery))
+            ->toThrow(InvalidPeriod::class, 'Comparing needs a period.');
+    });
+
+    it('requires a period with a width', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->shouldNotReceive('count');
+
+        expect(fn (): ViewComparison => reader($source)->compare($this->viewable, new ViewsQuery(Period::since('2026-09-01'))))
+            ->toThrow(InvalidPeriod::class, '`2026-09-01..` has no previous period.');
     });
 });
 

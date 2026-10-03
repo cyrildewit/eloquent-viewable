@@ -24,4 +24,9 @@ final class InvalidPeriod extends Exception implements EloquentViewableException
     {
         return new self("`{$period->getRouteKey()}` has no previous period. Only a period with both a start and an end, or a relative one such as `Period::pastDays(7)`, has a width to step back by.");
     }
+
+    public static function comparedWithoutPeriod(): self
+    {
+        return new self('Comparing needs a period. Call `period()` first, with a relative period such as `Period::pastDays(7)` or one with both a start and an end.');
+    }
 }
