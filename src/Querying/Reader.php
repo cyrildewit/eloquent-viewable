@@ -189,8 +189,8 @@ final readonly class Reader
         $counts = [];
 
         foreach ($this->cache->getMultiple(array_keys($keys)) as $cacheKey => $count) {
-            if (is_int($count) && isset($keys[$cacheKey])) {
-                $counts[$keys[$cacheKey]] = $count;
+            if (is_numeric($count) && isset($keys[$cacheKey])) {
+                $counts[$keys[$cacheKey]] = (int) $count;
             }
         }
 
@@ -239,10 +239,14 @@ final readonly class Reader
         }
 
         $cacheKey = $key();
-
-        /** @var TValue|null $cached */
         $cached = $this->cache->get($cacheKey);
 
+        // Redis keeps a number as it is and hands it back as a string.
+        if (is_numeric($cached)) {
+            $cached = (int) $cached;
+        }
+
+        /** @var TValue|null $cached */
         if ($cached !== null) {
             return $cached;
         }
