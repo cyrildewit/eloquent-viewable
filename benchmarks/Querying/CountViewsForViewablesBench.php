@@ -17,12 +17,6 @@ use PhpBench\Attributes\ParamProviders;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
-/**
- * `Views::forViewables($page)->counts()`: one grouped query over a page of
- * twenty articles, against the loop of `count()` calls it replaces. Article
- * ids follow the power law of the seeder, so the first twenty are the
- * hottest and the last twenty the coldest.
- */
 #[Groups(['read'])]
 #[BeforeMethods(['setUp', 'loadPages'])]
 #[Warmup(1)]
@@ -72,8 +66,6 @@ final class CountViewsForViewablesBench extends BenchCase
     }
 
     /**
-     * The baseline: what counting a page took before `counts()`.
-     *
      * @param  array{page: string, days: int|null}  $params
      */
     #[ParamProviders(['providePages', 'providePeriods'])]

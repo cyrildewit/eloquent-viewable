@@ -66,13 +66,7 @@ final readonly class Reader
         );
     }
 
-    /**
-     * Every viewable of the set, in the order given, keyed by its key. A
-     * remembered count shares its entry with `count()` for that viewable, so
-     * only the viewables missing from the cache reach the source.
-     *
-     * @return array<int|string, int>
-     */
+    /** @return array<int|string, int> */
     public function countMany(ViewableSet $viewables, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
     {
         $type = $viewables->type();
@@ -182,8 +176,6 @@ final readonly class Reader
     }
 
     /**
-     * The counts the cache holds, keyed by viewable key.
-     *
      * @param  array<int|string, string>  $cacheKeys
      * @return array<int|string, int>
      */
@@ -224,11 +216,7 @@ final readonly class Reader
         $this->cache->setMultiple($values, Carbon::now()->diff($until));
     }
 
-    /**
-     * The entry `count()` uses for each viewable, keyed by viewable key.
-     *
-     * @return array<int|string, string>
-     */
+    /** @return array<int|string, string> */
     private function cacheKeys(ViewableSet $viewables, ViewsQuery $query): array
     {
         return array_map(
