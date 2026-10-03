@@ -92,6 +92,7 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for detailed m
 - Added the `recording.store.driver` config option and `Recording\Stores\StoreManager`, which builds the store it names. The `database` and `null` drivers ship; add one with `StoreManager::extend()`. An unregistered name throws `InvalidConfiguration`
 - Added `Recording\Stores\NullStore`, a store that discards every view
 - Added `ViewRecord::toPayload()` and `ViewRecord::fromPayload()` for stores that keep records as flat scalars
+- Added tests that run the `create_views_table` stub under `Schema::morphUsingUuids()` and `Schema::morphUsingUlids()` and record, count, rank and filter models keyed by UUID and ULID on every supported database, and documented using such models in the installation section
 
 ### Changed
 
