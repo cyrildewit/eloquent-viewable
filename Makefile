@@ -21,10 +21,10 @@ rector: ## Run Rector
 	docker compose run --rm composer rector
 
 ready: ## Fix with Rector and the linter, then run the static analysis and the tests
-	docker compose run --rm composer ready
+	XDEBUG_MODE=off docker compose run --rm composer ready
 
-test: ## Run the tests (SQLite in memory)
-	docker compose run --rm composer test
+test: ## Run the tests in parallel (SQLite in memory)
+	XDEBUG_MODE=off docker compose run --rm composer test
 
 test-arch: ## Run the architecture tests
 	docker compose run --rm composer test:arch
@@ -62,18 +62,22 @@ test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate
 # real driver, the way the CI matrix does. Each one starts its service and waits
 # for the healthcheck first. Ports are the ones inside the compose network, so
 # MariaDB is on 3306 here even though CI maps it to 3307 on the host.
+#
+# They run serially. The parallel workers of `make test` each get their own
+# in-memory SQLite database, but against a server they would share one and
+# drop each other's tables on every refresh.
 
 test-mysql: ## Run the tests against MySQL
 	docker compose up -d --wait mysql
-	DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test
+	DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test:serial
 
 test-mariadb: ## Run the tests against MariaDB
 	docker compose up -d --wait mariadb
-	DB_CONNECTION=mariadb DB_HOST=mariadb DB_PORT=3306 docker compose run --rm composer test
+	DB_CONNECTION=mariadb DB_HOST=mariadb DB_PORT=3306 docker compose run --rm composer test:serial
 
 test-pgsql: ## Run the tests against PostgreSQL
 	docker compose up -d --wait postgres
-	DB_CONNECTION=pgsql DB_HOST=postgres DB_PORT=5432 docker compose run --rm composer test
+	DB_CONNECTION=pgsql DB_HOST=postgres DB_PORT=5432 docker compose run --rm composer test:serial
 
 test-drivers: test test-mysql test-mariadb test-pgsql ## Run the tests against every supported driver
 
