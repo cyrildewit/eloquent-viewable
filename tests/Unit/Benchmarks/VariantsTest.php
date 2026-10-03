@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\BufferViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\DestroyViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Recording\RecordViewBench;
@@ -56,6 +57,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsByCollectionBench::class,
         CountViewsByIntervalBench::class,
         OrderByViewsBench::class,
+        TopViewedBench::class,
         BufferViewsBench::class,
         DestroyViewsBench::class,
         RecordViewBench::class,
@@ -68,7 +70,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'OrderByViewsBench'])
+    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'OrderByViewsBench', 'TopViewedBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('missing'))->toBeEmpty();
@@ -125,6 +127,22 @@ it('names the parameter sets of the interval benchmarks', function (): void {
 
     expect(setsOf(CountViewsByIntervalBench::class, 'benchCountByInterval'))->toBe($expected)
         ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected);
+});
+
+it('names the parameter sets of the ranking benchmark', function (): void {
+    $expected = [
+        'every type,all time',
+        'articles,all time',
+        'every type,past year',
+        'articles,past year',
+        'every type,past 30 days',
+        'articles,past 30 days',
+        'every type,past day',
+        'articles,past day',
+    ];
+
+    expect(setsOf(TopViewedBench::class, 'benchTop'))->toBe($expected)
+        ->and(setsOf(TopViewedBench::class, 'benchUniqueTop'))->toBe($expected);
 });
 
 it('names the parameter sets of one provider after its keys', function (): void {
