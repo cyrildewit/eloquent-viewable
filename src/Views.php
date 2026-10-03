@@ -24,11 +24,13 @@ use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Support\ViewableSet;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
 use DateTimeZone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
 
 class Views
@@ -36,6 +38,8 @@ class Views
     use Macroable;
 
     protected ?Viewable $viewable = null;
+
+    protected ?ViewableSet $viewables = null;
 
     protected ?Period $period = null;
 
@@ -66,6 +70,23 @@ class Views
     public function forViewable(Viewable $viewable): self
     {
         $this->viewable = $viewable;
+        $this->viewables = null;
+
+        return $this;
+    }
+
+    /**
+     * Saved viewables of one type, such as a page of results, to count in
+     * one query with `counts()`.
+     *
+     * @param  iterable<Viewable>  $viewables
+     *
+     * @throws InvalidViewable
+     */
+    public function forViewables(iterable $viewables): self
+    {
+        $this->viewables = ViewableSet::of($viewables);
+        $this->viewable = null;
 
         return $this;
     }
@@ -79,6 +100,21 @@ class Views
     public function compare(): ViewComparison
     {
         return $this->reader->compare($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
+    /**
+     * The views of every viewable given to `forViewables()`, keyed by its
+     * key in the order given, with 0 for one that has none.
+     *
+     * @return Collection<int|string, int>
+     *
+     * @throws InvalidViewable
+     */
+    public function counts(): Collection
+    {
+        $viewables = $this->viewables ?? throw InvalidViewable::missingSet();
+
+        return new Collection($this->reader->countMany($viewables, $this->query(), $this->cacheLifetime));
     }
 
     /** @throws InvalidInterval */

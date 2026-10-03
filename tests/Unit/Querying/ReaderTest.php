@@ -20,13 +20,14 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Support\ViewableSet;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Config\Repository;
 use Illuminate\Database\Connection;
 
-function readerViewable(?int $key = 7): Viewable
+function readerViewable(int|string|null $key = 7): Viewable
 {
     $viewable = Mockery::mock(Viewable::class);
     $viewable->allows('getKey')->andReturn($key);
@@ -310,6 +311,89 @@ describe('countByCollection', function (): void {
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(7)
             ->and($reader->countByCollection($this->viewable, $this->query, $until))->toBe(['sidebar' => 7]);
+    });
+});
+
+describe('count many', function (): void {
+    beforeEach(function (): void {
+        $this->eight = readerViewable(8);
+        $this->nine = readerViewable(9);
+        $this->set = ViewableSet::of([$this->nine, $this->viewable, $this->eight]);
+    });
+
+    it('reads every key through the source at once, sorted', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->with($this->nine, [7, 8, 9], $this->query)->andReturn([9 => 4, 7 => 2]);
+
+        expect(reader($source)->countMany($this->set, $this->query))->toBe([9 => 4, 7 => 2, 8 => 0]);
+    });
+
+    it('does not reach the source for an empty set', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->never();
+
+        expect(reader($source)->countMany(ViewableSet::of([]), $this->query, Carbon::now()->addMinutes(10)))->toBeEmpty();
+    });
+
+    it('does not touch the cache without a lifetime', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->twice()->andReturn([7 => 1], [7 => 2]);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+
+        expect($reader->countMany($this->set, $this->query)[7])->toBe(1)
+            ->and($reader->countMany($this->set, $this->query)[7])->toBe(2)
+            ->and($cache->getStore()->all())->toBe([]);
+    });
+
+    it('remembers a count per viewable, zeros included', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->once()->andReturn([7 => 2]);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
+            ->and($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
+            ->and($cache->getStore()->all())->toHaveCount(3);
+    });
+
+    it('shares the entry count() remembers and only reads the rest', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('count')->once()->andReturn(5);
+        $source->expects('countMany')->with($this->nine, [8, 9], $this->query)->once()->andReturn([8 => 1]);
+
+        $reader = reader($source);
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->count($this->viewable, $this->query, $until))->toBe(5)
+            ->and($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 5, 8 => 1])
+            ->and($reader->count($this->eight, $this->query, $until))->toBe(1);
+    });
+
+    it('expires the counts with the lifetime', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->twice()->andReturn([7 => 1], [7 => 2]);
+
+        $reader = reader($source);
+
+        expect($reader->countMany($this->set, $this->query, Carbon::now()->addMinutes(10))[7])->toBe(1);
+
+        Carbon::setTestNow(Carbon::now()->addMinutes(11));
+
+        expect($reader->countMany($this->set, $this->query, Carbon::now()->addMinutes(10))[7])->toBe(2);
+    });
+
+    it('caches nothing for a lifetime in the past', function (): void {
+        $source = Mockery::mock(ViewSource::class);
+        $source->expects('countMany')->once()->andReturn([7 => 1]);
+
+        $cache = new CacheRepository(new ArrayStore);
+
+        expect(reader($source, $cache)->countMany($this->set, $this->query, Carbon::now()->subMinute())[7])->toBe(1)
+            ->and($cache->getStore()->all())->toBe([]);
     });
 });
 

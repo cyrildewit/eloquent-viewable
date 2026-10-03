@@ -32,6 +32,15 @@ interface ViewSource
     public function countByCollection(Viewable $viewable, ViewsQuery $query): array;
 
     /**
+     * The views of each key of the viewable's type, in one pass where the
+     * source allows. Sparse: a key without views may be left out.
+     *
+     * @param  non-empty-list<int|string>  $keys
+     * @return array<int|string, int>
+     */
+    public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array;
+
+    /**
      * Selects one integer, correlated on the viewable's qualified key.
      */
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder;

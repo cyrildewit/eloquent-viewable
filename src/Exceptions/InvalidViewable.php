@@ -29,6 +29,21 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
         ));
     }
 
+    public static function missingSet(): self
+    {
+        return new self('No viewables were given. Call forViewables() before counting them.');
+    }
+
+    public static function missingKey(string $class): self
+    {
+        return new self(sprintf('Every viewable in a set needs a key, an unsaved [%s] was given.', $class));
+    }
+
+    public static function mixedTypes(string $expected, string $given): self
+    {
+        return new self(sprintf('Every viewable in a set must be of one type, [%s] and [%s] given.', $expected, $given));
+    }
+
     public static function unsupportedKey(string $class, mixed $key): self
     {
         return new self(sprintf('The key of [%s] must be an integer, a string or null, %s given.', $class, get_debug_type($key)));
