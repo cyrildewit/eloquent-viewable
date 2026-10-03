@@ -37,6 +37,7 @@
         </li>
         <li><a href="#queueing-view-recording">Queueing view recording</a></li>
         <li><a href="#setting-a-cooldown">Setting a cooldown</a></li>
+        <li><a href="#recording-without-a-cookie">Recording without a cookie</a></li>
         <li><a href="#retrieving-view-counts">Retrieving view counts</a>
           <ul>
             <li><a href="#get-total-view-count">Get total view count</a></li>
@@ -125,6 +126,7 @@ views($post)->record();
 - Track **total** and **unique** views for any Eloquent model
 - Query views by custom date ranges or time periods
 - Prevent duplicate views with a configurable **cooldown system**
+- Count unique visitors **without a cookie**, with a daily rotating fingerprint
 - Order models by views and unique visitors, and rank the most viewed content across every model
 - Optimize performance with **built-in caching**
 - Ignore views from **crawlers, blocked IPs, and visitors who opt out** with Do Not Track or Global Privacy Control
@@ -383,9 +385,9 @@ The `cooldown.store` config key names the store. Two drivers ship:
 
 - `session` keeps cooldowns in the visitor's session, as in v8. This is the default. On routes without a session, such
   as stateless API routes, cooldowns do nothing.
-- `cache` keeps cooldowns in a cache store, keyed by the visitor's id, so they also work without a session. The id comes
-  from the visitor cookie, so a client that does not send the cookie back gets a new id, and a new cooldown, on every
-  request.
+- `cache` keeps cooldowns in a cache store, keyed by the visitor's id, so they also work without a session. With the
+  default identity the id comes from the visitor cookie, so a client that does not send the cookie back gets a new id,
+  and a new cooldown, on every request.
 
 ```php
 'cooldown' => [
@@ -412,6 +414,50 @@ $this->app->make(CooldownManager::class)->extend('dynamodb', fn (Application $ap
 
 A store receives a string key and, for `put()`, the time the cooldown ends. `has()` returns whether a cooldown is still
 running under that key.
+
+### Recording without a cookie
+
+By default every guest who views a model gets a cookie with a random id, which `unique()` counts and a cooldown is
+keyed on. Set `visitor.identity` to `fingerprint` to identify guests without one:
+
+```php
+// config/eloquent-viewable.php
+'visitor' => [
+    'identity' => 'fingerprint',
+    'fingerprint' => [
+        'store' => 'redis', // null uses the default cache store
+        'key' => 'cyrildewit.eloquent-viewable.fingerprint',
+    ],
+],
+```
+
+The `visitor` column then holds an HMAC of the visitor's IP address and user agent, keyed with a random salt. The IP
+address is truncated before it is hashed, to its /24 network for IPv4 and its /48 for IPv6. The salt is generated
+on the first view of the day, kept in the cache store named by `visitor.fingerprint.store` and expires at midnight in
+the application's timezone. A visitor's hash is the same all day and different the next, and once the salt is gone
+there is no way, with or without `app.key`, to work out which network and browser a stored hash came from. The package
+sets no cookie, and neither the IP address nor the user agent ends up in the `views` table.
+
+Signed-in models are not fingerprinted. When one is known through `recording.viewer` or `viewedBy()`, the visitor id
+is derived from it as with the [`viewer` identity](#counting-one-account-as-one-visitor).
+
+What changes compared to the cookie:
+
+- **`unique()` counts visitors per day.** The same guest on Monday and Tuesday is two unique visitors, so the unique
+  count of a week adds up the daily uniques. Within a single day it means what it did before.
+- **A cooldown ends at midnight at the latest**, when the visitor's id changes, however long it was set for.
+- **Visitors who share a network and a browser are one visitor.** An office, a campus or a mobile carrier puts many
+  people behind one /24, and current browsers send nearly identical user agents, so unique counts come out lower than
+  with the cookie. Total counts are unaffected.
+- **The IP address has to be the visitor's.** Behind a load balancer or a CDN, configure Laravel's trusted proxies,
+  or every visitor hashes the same address and unique counts collapse.
+- **The salt store has to be shared.** Every server that records views must read the same cache store, or each hashes
+  under its own salt and one visitor counts once per server. The `array` store is per process and does not work.
+- **The `session` cooldown store still uses the session cookie.** Use the [`cache` store](#where-cooldowns-are-kept)
+  to keep cooldowns without one.
+
+Not setting a cookie does not settle whether you need consent, which depends on your jurisdiction and on what else your
+application does. The package can only tell you what it stores.
 
 ### Retrieving view counts
 
@@ -1390,7 +1436,8 @@ If you want to extend or replace one of the core classes with your own implement
 The `Visitor` class reports what the request says about the current visitor. The guards turn those facts into a
 decision, so a visitor never judges anything itself. It provides:
 
-- a unique identifier (stored in a cookie named by `visitor.cookie.name`, for `visitor.cookie.lifetime` minutes)
+- a unique identifier (stored in a cookie named by `visitor.cookie.name`, for `visitor.cookie.lifetime` minutes). The
+  `fingerprint` identity never asks for it, so no cookie is set
 - the signed-in model, read from the guard named by `recording.viewer.guard`, or `null` for a guest. A custom
   visitor that cannot know, say on an API without a session, returns `null` and records guest views unless
   `viewedBy()` names a viewer
