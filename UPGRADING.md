@@ -9,137 +9,145 @@ The version upgrade guides for versions below `v7.0.3` are still accessible in t
 
 ## Upgrading from v8.0.0 to v9.0.0
 
-### Periods are half-open
+The requirements are unchanged: PHP 8.5 and Laravel 13. Most applications only need the five steps below. The sections
+after them cover behaviour changes to be aware of and what to change if you extended the package.
 
-`Period` now includes its start and excludes its end. A view recorded exactly at the end bound no longer counts, so `Period::create('2018-01-01', '2018-02-01')` covers all of January and nothing of February, and `Period::upto($date)` means before `$date`. Counts whose period end lands exactly on a stored `viewed_at` drop by one.
+### What's new in 9.0
 
-This aligns `Period` with the buckets returned by the new `countByInterval()`, so drilling from a bucket into `count()` gives the same number.
+- **Record from a route** with the `views` middleware, without touching the controller.
+- **Dashboards out of the box:** counts per hour, day, week, month or year with `countByInterval()`, a comparison with
+  the previous period with `compare()`, and periods read from a URL with `Period::parse()`.
+- **Rankings** of the most viewed content across every model with `Views::top()`, and `whereViewsCount()` to filter by
+  views.
+- **Who viewed what:** link views to the signed-in user and ask what they have or have not seen.
+- **Scale when you need to:** buffer views in Redis and land them in batches, count a page of models in one query, and
+  forget cached counts on demand.
+- **Privacy:** count unique visitors without a cookie, honour Global Privacy Control and skip prefetched pages.
+- **Testing:** `Views::fake()` with assertions, and a factory for the `View` model.
+- **Extension points:** your own recording guards, stores, count sources and cooldown stores.
 
-### Period bounds are converted to the application timezone
+See the [README](README.md) for each of them.
 
-`viewed_at` is stored as the wall clock of `app.timezone`. `Period` now converts the bounds it is given to that zone, so a bound built in another timezone matches the stored values instead of being compared as-is. `getStartDateTime()` and `getEndDateTime()` return the converted instances. String bounds are unaffected, since they were already parsed in the application timezone.
+### 1. Update the package
 
-### Add an index on `viewable_type`, `viewable_id` and `viewed_at`
-
-The `create_views_table` stub now creates a composite index on those three columns. Period counts and `countByInterval()` read only the rows inside the period instead of every view of the model.
-
-Your published migration has already run, so republishing does nothing. Add the index in a migration of your own:
-
-```php
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Schema\Builder;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    protected Builder $schema;
-
-    protected string $table;
-
-    public function __construct()
-    {
-        $this->schema = Schema::connection(
-            config('eloquent-viewable.models.view.connection')
-        );
-
-        $this->table = config('eloquent-viewable.models.view.table_name');
-    }
-
-    public function up(): void
-    {
-        $this->schema->table($this->table, function (Blueprint $table) {
-            $table->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$this->table}_viewable_viewed_at_index");
-        });
-    }
-
-    public function down(): void
-    {
-        $this->schema->table($this->table, function (Blueprint $table) {
-            $table->dropIndex("{$this->table}_viewable_viewed_at_index");
-        });
-    }
-};
+```bash
+composer require cyrildewit/eloquent-viewable:^9
 ```
 
-On a large `views` table, building the index locks writes for the duration. MySQL 8 and MariaDB 10.5 do this online, and on Postgres you can swap the `up()` body for `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
+### 2. Update your imports
 
-### Add the `viewer` and `context` columns
+Most classes moved into a namespace per module. Search your code for `CyrildeWit\EloquentViewable\` and update each
+import:
 
-The `create_views_table` stub now creates two nullable columns for the model that was signed in when a view was recorded, `viewer_type` and `viewer_id` with an index, and a nullable `context` JSON column. Every store writes all three, so the columns have to exist even if you never record a viewer or a context. Your published migration has already run, so add them in a migration of your own:
+| v8 | v9 |
+| --- | --- |
+| `InteractsWithViews` | `Concerns\InteractsWithViews` |
+| `View` | `Models\View` |
+| `ViewsFacade` | `Facades\Views` |
+| `Visitor` | `Visitors\Visitor` |
+| `Contracts\Visitor` | `Visitors\Contracts\Visitor` |
+| `Contracts\CrawlerDetector` | `Crawlers\Contracts\CrawlerDetector` |
+| `CrawlerDetectAdapter` | `Crawlers\Detectors\CrawlerDetectAdapter` |
+| `CooldownManager` | `Cooldowns\CooldownManager` |
+| `CacheKey` | `Querying\Cache\CacheKey` |
+| `PendingView` | `Data\ViewRecord` |
+| `Events\ViewRecorded` | `Recording\Events\ViewRecorded` |
+| `ViewableObserver` | `Recording\Observers\ViewableObserver` |
+| `Actions\CreateView` | `Recording\Actions\RecordView` |
+| `Contracts\CreateView` | `Recording\Contracts\RecordsViews` |
+| `Jobs\StoreView` | `Recording\Jobs\RecordViewJob` |
+| `Exceptions\ViewRecordException` | `Recording\Exceptions\RecordingFailed` |
 
-```php
-<?php
+`Views`, `Contracts\Viewable`, `Support\Period` and `Exceptions\InvalidPeriod` did not move. `Contracts\View` and
+`Contracts\Views` are gone, see [Custom `View` model](#custom-view-model) and [Custom `Views` class](#custom-views-class).
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Schema\Builder;
-use Illuminate\Support\Facades\Schema;
+In your tests, `Bus::assertDispatched(StoreView::class)` becomes `Bus::assertDispatched(RecordViewJob::class)`.
 
-return new class extends Migration
-{
-    protected Builder $schema;
+### 3. Update your published config
 
-    protected string $table;
+The config is now grouped by module. The easiest route is to publish it again and copy your values over:
 
-    public function __construct()
-    {
-        $this->schema = Schema::connection(
-            config('eloquent-viewable.models.view.connection')
-        );
-
-        $this->table = config('eloquent-viewable.models.view.table_name');
-    }
-
-    public function up(): void
-    {
-        $this->schema->table($this->table, function (Blueprint $table) {
-            $table->nullableMorphs('viewer');
-            $table->json('context')->nullable();
-        });
-    }
-
-    public function down(): void
-    {
-        $this->schema->table($this->table, function (Blueprint $table) {
-            $table->dropMorphs('viewer');
-            $table->dropColumn('context');
-        });
-    }
-};
+```bash
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config" --force
 ```
 
-Recording the viewer stays off until you set `recording.viewer.enabled`, so nothing changes in what is stored until you opt in. See [Who viewed what](README.md#who-viewed-what).
+To move the keys by hand instead:
 
-### The visitor reports the signed-in model
+| v8 | v9 |
+| --- | --- |
+| `cache` | `querying.cache` |
+| `queue` | `recording.queue` |
+| `ignored_ip_addresses` | `recording.ignored_ip_addresses` |
+| `visitor_cookie_key` | `visitor.cookie.name` |
+| `ignore_bots => false` | remove `IgnoreCrawlers` from `recording.guards` |
+| `honor_dnt => true` | add `IgnoreDoNotTrack` to `recording.guards` |
+| `cooldown` | add `store` and `cache.store`, see below |
+| `models` | unchanged |
 
-`Visitors\Contracts\Visitor` gained `viewer(): ?Model`, the signed-in Eloquent model or `null` for a guest. A custom visitor has to implement it; returning `null` is correct wherever there is no session to read, and the view is then recorded as a guest view unless `viewedBy()` names a viewer. The shipped `Visitors\Visitor` reads the model from the guard named by `recording.viewer.guard` and takes `Illuminate\Contracts\Auth\Factory` as a fourth constructor argument. A subclass that overrides the constructor passes it on; a class resolved from the container needs no change.
-
-### The `View` and `Views` contracts are gone
-
-`CyrildeWit\EloquentViewable\Contracts\View` and `CyrildeWit\EloquentViewable\Contracts\Views` no longer exist. Type hints, `instanceof` checks and container bindings against them break.
-
-A custom view model now extends `Models\View` and is named in the config file:
+A key left in its v8 place is ignored and its default applies, so check `ignored_ip_addresses` and `queue` in
+particular. The `cooldown` block needs the new keys, otherwise every `views()` call throws `InvalidConfiguration`:
 
 ```php
-'models' => [
-    'view' => [
-        'class' => \App\Models\View::class,
+'cooldown' => [
+    'store' => 'session',
+    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
+    'cache' => [
+        'store' => null,
     ],
 ],
 ```
 
-Remove the `$this->app->bind(Contracts\View::class, ...)` call from your service provider. A model that implemented the contract without extending the shipped model has to extend it now. The package throws `InvalidConfiguration` for a class that does not.
+Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
+other than a string or `null` throws `InvalidConfiguration` naming the key.
 
-A `$table` or `$connection` property on the subclass now takes precedence over `models.view.table_name` and `models.view.connection`. Before, the config value always won, so a subclass that declared one of those properties was ignored. If you had both set to different values, the model's value applies after upgrading. The migration stub keeps reading the two config keys, so a table renamed through the model also needs `table_name` set, or the published migration edited.
+### 4. Add the new columns and index
 
-The `Views` builder can no longer be replaced through the container. If you bound your own class to `Contracts\Views`, move the behaviour into a macro on `Views`, or bind one of the contracts behind it: `Querying\Contracts\ViewSource`, `Recording\Contracts\RecordsViews` or `Recording\Contracts\ViewStore`, or add a `Recording\Contracts\RecordingGuard` to the `recording.guards` config list. Code that type-hinted `Contracts\Views` type-hints `Views` now; the `views()` helper and the facade return that class.
+The `views` table needs three new nullable columns, `viewer_type`, `viewer_id` and `context`, because every view
+writes them. A composite index on `viewable_type`, `viewable_id` and `viewed_at` lets period counts read only the rows
+inside the period. Your published migration has already run, so add them in a migration of your own:
 
-### Keep views on delete with `shouldRemoveViewsOnDelete()`
+```php
+<?php
 
-The `$removeViewsOnDelete` property is replaced by a method on the `Viewable` contract. The `InteractsWithViews` trait implements it and returns `true`, so override it to keep the views of a deleted model:
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        $table = config('eloquent-viewable.models.view.table_name');
+
+        Schema::connection(config('eloquent-viewable.models.view.connection'))
+            ->table($table, function (Blueprint $blueprint) use ($table) {
+                $blueprint->nullableMorphs('viewer'); // nullableUuidMorphs or nullableUlidMorphs to match your user model
+                $blueprint->json('context')->nullable();
+                $blueprint->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$table}_viewable_viewed_at_index");
+            });
+    }
+
+    public function down(): void
+    {
+        $table = config('eloquent-viewable.models.view.table_name');
+
+        Schema::connection(config('eloquent-viewable.models.view.connection'))
+            ->table($table, function (Blueprint $blueprint) use ($table) {
+                $blueprint->dropIndex("{$table}_viewable_viewed_at_index");
+                $blueprint->dropMorphs('viewer');
+                $blueprint->dropColumn('context');
+            });
+    }
+};
+```
+
+On a large table, building the index locks writes while it runs. MySQL 8 and MariaDB 10.5 build it online. On
+Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
+
+Nothing is recorded in the new columns until you opt in to [recording the viewer](README.md#who-viewed-what) or pass a
+[context](README.md#storing-context-with-a-view).
+
+### 5. Replace `$removeViewsOnDelete` with a method
 
 ```php
 // Before
@@ -152,220 +160,137 @@ public function shouldRemoveViewsOnDelete(): bool
 }
 ```
 
-The property is no longer read. A `protected` one, as the v8 README showed, was ignored already, so those models kept losing their views; they keep them after this change. A class that implements `Viewable` without the trait has to add the method.
+The property is no longer read. A model that implements `Viewable` without the `InteractsWithViews` trait has to add
+the method.
 
-### Recording returns nothing and the event carries a `ViewRecord`
+### Behaviour changes to check
 
-`Recording\Contracts\RecordsViews::handle()` and `Recording\Contracts\ViewStore::store()` return `void`. Both returned the stored `Models\View` before. A custom implementation of either drops its return value. Code that used the return value of `handle()` reads the `ViewRecord` it passed in instead; a store may buffer the write, so there is not always a row to query at that point.
+#### Periods are half-open
 
-`Recording\Events\ViewRecorded` carries a `Data\ViewRecord` as `$record` instead of a `Models\View` as `$view`. The record has the viewable type and key, the visitor, the collection and `viewed_at`. A listener that read `$event->view->viewable_id` reads `$event->record->viewableId` now. The event is dispatched once the store has accepted the record. With the database store the row exists at that moment; a store that buffers writes lands it later. A listener therefore reads what it needs from the record and does not query the views table for the row.
+A `Period` now includes its start and excludes its end, so `Period::create('2018-01-01', '2018-02-01')` is January and
+`Period::upto($date)` means before `$date`. A count whose period ends exactly on a stored `viewed_at` drops by one.
+Bounds built in another timezone are converted to `app.timezone` before they are compared, and `getStartDateTime()`
+and `getEndDateTime()` return the converted values.
 
-```php
-// before
-$event->view->viewable_id;
-$event->view->viewable;
+#### Prefetched pages are not counted
 
-// after
-$event->record->viewableId;
-$event->record->viewableType::find($event->record->viewableId);
-```
+The new `IgnorePrefetch` guard is on by default. Sites that use prefetching or speculation rules see lower counts,
+because pages the browser only fetched in advance no longer count.
 
-The event no longer uses `SerializesModels`, so queued listeners receive the record as it was dispatched.
+#### Every facade call starts a fresh builder
 
-The reason for both changes is that a store may buffer views and write them later. There is no row to return or serialize at the moment of recording.
-
-### Stores write without `View` model events
-
-`Recording\Stores\DatabaseStore` writes through the query builder instead of `Models\View::create()`, so the `creating` and `created` events of the view model are no longer fired when a view is stored. An observer or a listener registered on the view model for those events stops running. Move the logic to a listener on `Recording\Events\ViewRecorded`, which carries the same data as the row.
-
-A custom `Recording\Contracts\ViewStore` implements the new `storeMany(iterable $records)` method. It receives an iterable of `ViewRecord` objects and is expected to write them in as few operations as the store allows. Delegating `store()` to `storeMany([$record])` is enough when the store has no cheaper single write.
-
-### `PendingView` is `Data\ViewRecord`
-
-The value object handed to the record action moved and was renamed. Update the import in any custom `RecordsViews` or `ViewStore` implementation. The constructor and `toArray()` are unchanged.
-
-### Stores are selected through `recording.store.driver`
-
-The container binding for `Recording\Contracts\ViewStore` now resolves through `Recording\Stores\StoreManager`, which reads the new `recording.store.driver` config key. The published config does not have the key; the package default is `database`, so nothing changes until you set it. Add it to your published config if you want it visible:
-
-```php
-'recording' => [
-    'store' => [
-        'driver' => 'database',
-    ],
-],
-```
-
-A direct `$this->app->bind(ViewStore::class, ...)` keeps working and overrides the manager. To make a store selectable by name instead, register it with `StoreManager::extend()`. See the README under [Choosing where views are stored](README.md#choosing-where-views-are-stored).
-
-### Cooldowns are selected through `cooldown.store`
-
-`Cooldowns\CooldownManager` now builds the `Cooldowns\Contracts\CooldownStore` named by the new `cooldown.store` config key, and `EnforceCooldown` depends on that contract. The `session` driver is the default and behaves as in v8. The new `cache` driver keeps cooldowns in the cache store named by `cooldown.cache.store`, so they also work on routes without a session. See the README under [Setting a cooldown](README.md#setting-a-cooldown).
-
-A published v8 config has a `cooldown` block without the new keys, and Laravel does not merge nested defaults into it. Add them, otherwise every `views()` call throws `Exceptions\InvalidConfiguration` naming `cooldown.store`:
-
-```php
-'cooldown' => [
-    'store' => 'session',
-    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
-    'cache' => [
-        'store' => null,
-    ],
-],
-```
-
-`CooldownManager::push()` is gone. Code that called it uses the store instead, with a key from `Cooldowns\Cooldown::of($viewable, $visitorId, $collection)->key()`. The session store keeps cooldowns in a new format, so cooldowns running when you deploy end early, once.
-
-### Every facade call starts a fresh builder
-
-The `Views` facade used to hand back the same builder for the rest of the request, so the viewable, period, collection and every other option of one call leaked into the next: `Views::forViewable($post)->record()` followed by `Views::count()` counted the post. The facade now resolves a fresh builder on every static call, like the `views()` helper always did. Keep a chain on one line, or hold the builder in a variable:
+The `Views` facade used to reuse one builder for the whole request, so options leaked from one call into the next.
+Keep a chain on one line, or hold the builder in a variable:
 
 ```php
 // Before: counted $post through the leaked viewable. Now: throws InvalidViewable.
 Views::forViewable($post)->record();
 Views::count();
 
-// Either of these.
-Views::forViewable($post)->count();
-
+// After
 $views = Views::forViewable($post);
 $views->record();
 $views->count();
 ```
 
-Doubles are unaffected: `Views::shouldReceive()` and `Views::swap()` still take over every call.
+`Views::shouldReceive()` and `Views::swap()` work as before.
 
-### Counting goes through a source
+#### `View` model events no longer fire when a view is recorded
 
-`Views::count()`, `Views::countByInterval()` and the other counts read through the `Querying\Contracts\ViewSource` bound in the container, and the `withViewsCount()`, `orderByViews()`, `whereViewsCount()` and `whereViewedBy()` scopes read through it when it also implements `Querying\Contracts\SubquerySource`, as the shipped `database` source does. If you replaced the `Views` class to change how counts are computed, implementing that contract is now the smaller change, and it reaches the scopes too. The `querying.source.driver` config key names the source; the package default is `database`, so nothing changes until you set it. See the README under [Customizing how views are counted](README.md#customizing-how-views-are-counted).
+Views are written through the query builder, so `creating` and `created` observers on the `View` model stop running.
+Listen for `Recording\Events\ViewRecorded` instead, see [below](#viewrecorded-listeners).
 
-The scopes used to call `withAggregate()` on the `views` relation. They now add a correlated subselect from the source. The results are the same, and the count column is still cast to an integer, but code that inspected the generated SQL will see a different shape.
+#### Caches and cooldowns reset once
 
-### Recording passes a list of guards, and the list is the only switch
+Counts cached with `remember()` are recalculated once after upgrading, because the cache key changed. Cooldowns
+running at deploy time end early, once, because the session format changed.
 
-The crawler, Do Not Track, IP address and cooldown checks run as guard classes listed under the new `recording.guards` config key, in that order. A guard runs when it is listed and not otherwise, so the `ignore_bots` and `honor_dnt` keys are gone and which checks run is your choice. The new `IgnoreGlobalPrivacyControl` guard honours the `Sec-GPC: 1` header the same way `IgnoreDoNotTrack` honours `DNT: 1`. To add a check of your own, implement `Recording\Contracts\RecordingGuard` and list the class. See the README under [Adding a recording guard](README.md#adding-a-recording-guard).
+### If you extended the package
 
-The defaults match v8: `IgnoreCrawlers`, `IgnoreIpAddresses` and `EnforceCooldown` are listed, and the Do Not Track check is off. Map your old settings onto the list in your published config:
+#### `ViewRecorded` listeners
+
+The event carries a `Data\ViewRecord` as `$record` instead of the model as `$view`, and no longer uses
+`SerializesModels`:
 
 ```php
-'recording' => [
-    'guards' => [
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers::class,    // remove if you had ignore_bots => false
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses::class,
-        \CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack::class,  // add if you had honor_dnt => true
-        \CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown::class,
+// Before
+$event->view->viewable_id;
+
+// After
+$event->record->viewableId;
+$event->record->viewableType::find($event->record->viewableId);
+```
+
+With the [Redis buffer](README.md#buffering-views-in-redis) the row does not exist yet when the event fires, so read
+what you need from the record.
+
+#### Custom recording action
+
+Bind it to `Recording\Contracts\RecordsViews`. `handle()` receives a `ViewRecord` and returns `void`:
+
+```php
+// Before
+public function handle(PendingView $pending): View
+
+// After
+public function handle(ViewRecord $record): void
+```
+
+To only change where views are written, [register a store](README.md#choosing-where-views-are-stored) instead.
+
+#### Custom `View` model
+
+`Contracts\View` is gone. Extend `Models\View`, name the class in the config and remove the container binding:
+
+```php
+'models' => [
+    'view' => [
+        'class' => \App\Models\View::class,
     ],
 ],
 ```
 
-A published v8 config has no `recording.guards` key, so the package defaults apply until you add it.
+A `$table` or `$connection` property on your model now wins over `table_name` and `connection` in the config.
 
-When a guard refuses, the package now dispatches `Recording\Events\ViewSkipped` with the attempt and the guard. `record()` still returns `false` in that case; the event is additive.
+#### Custom `Views` class
 
-`Views` gained `attempt()`, which records like `record()` but returns a `Recording\Data\RecordResult` with `recorded`, `queued` and `skippedBy`, the guard that refused the view or `null`. `record()` keeps returning `bool`, so nothing changes for existing calls. Switch to `attempt()` where you need to know why a view was not recorded:
+`Contracts\Views` is gone and `Views` can no longer be replaced through the container. Type-hint `Views` instead, and
+move your changes into a macro, a [recording guard](README.md#adding-a-recording-guard), a
+[store](README.md#choosing-where-views-are-stored) or a [source](README.md#customizing-how-views-are-counted). A
+subclass that overrides the constructor needs the new arguments: the visitor, `Recording\Recorder`, `Querying\Reader`,
+`Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`.
+
+#### Custom `Visitor`
+
+The contract changed:
+
+- `isCrawler()` is gone. Add `userAgent(): ?string` and return `null` when there is none.
+- Add `viewer(): ?Model`, the signed-in model or `null`.
+- Add `hasGlobalPrivacyControl(): bool` and `isPrefetch(): bool`. Return `false` when the request has no such header.
+
+A subclass of the shipped `Visitor` that overrides its constructor drops the `CrawlerDetector` argument and passes
+`Request`, `Support\Config`, `Illuminate\Contracts\Cookie\QueueingFactory` and `Illuminate\Contracts\Auth\Factory`, in
+that order.
+
+#### Custom `CrawlerDetector`
+
+The detector now receives the user agent instead of reading the request:
 
 ```php
-use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
-
 // Before
-if (! views($post)->record()) {
-    // skipped, but by what?
-}
+public function isCrawler(): bool
 
 // After
-$result = views($post)->attempt();
-
-if ($result->wasSkippedBy(EnforceCooldown::class)) {
-    // ...
-}
+public function isCrawler(?string $userAgent): bool
 ```
 
-`Recording\Recorder::record()` returns that `RecordResult` instead of `bool`. Only code that calls the recorder directly rather than through `Views` is affected.
+#### `CacheKey` and `RecordViewJob`
 
-The `Views` constructor now takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`. The config, the cache, the cooldown manager, the bus dispatcher and the count actions are gone from it. Only a subclass that overrides the constructor is affected.
+`CacheKey::make(?Period $period, bool $unique, ?string $collection)` is now
+`CacheKey::make(ViewsQuery $query, ?Granularity $granularity = null, ?string $grouping = null, ?int $limit = null)`.
+The constructor takes the morph class and key of the viewable, the cache-key prefix and the identity of the source.
 
-### Prefetched pages are no longer counted
-
-The new `IgnorePrefetch` guard is listed in `recording.guards` by default. It drops a view when the browser only prefetches or prerenders the page, which it marks with a `Sec-Purpose`, `Purpose` or `X-Moz` header holding `prefetch`. Counts on sites that use prefetching or speculation rules go down by the pages nobody opened. A published config that lists its own guards keeps that list; add `\CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch::class` to it to drop prefetches too.
-
-`Visitors\Contracts\Visitor` gained `isPrefetch(): bool`. A custom visitor has to implement it; return `false` where the request carries no such header.
-
-### The visitor reports its user agent, the detector judges it
-
-`Visitors\Contracts\Visitor` lost `isCrawler()` and gained `userAgent(): ?string` and `hasGlobalPrivacyControl(): bool`. The visitor only reports what the request says; the `IgnoreCrawlers` guard hands the user agent to the bound `Crawlers\Contracts\CrawlerDetector`, whose `isCrawler()` now takes that string: `isCrawler(?string $userAgent): bool`. A `null` or empty user agent is never a crawler.
-
-A custom `Visitor` replaces `isCrawler()` with `userAgent()`, returning `null` when it has none, and adds `hasGlobalPrivacyControl()`. A class that extends the shipped `Visitor` and overrides the constructor drops the `CrawlerDetector` argument; the constructor is now `(Request $request, Support\Config $config, QueueingFactory $cookies)`. A custom `CrawlerDetector` adds the `?string $userAgent` parameter and judges that instead of reading the request. Tests that mocked `Visitor::isCrawler()` mock `userAgent()` or bind a detector.
-
-```php
-// before
-$this->app->bind(CrawlerDetector::class, fn () => new class implements CrawlerDetector {
-    public function isCrawler(): bool { return true; }
-});
-
-// after
-$this->app->bind(CrawlerDetector::class, fn () => new class implements CrawlerDetector {
-    public function isCrawler(?string $userAgent): bool { return true; }
-});
-```
-
-The shipped detector is now a stateless singleton. Before, it captured the headers of the first request it saw, which in a long-running worker such as Octane meant every later request was judged by that first user agent. The shipped `Visitor::userAgent()` joins the `User-Agent` header with the device headers a proxy adds, such as `X-Operamini-Phone-UA`, which is the same list the detector library read itself, so detection results are unchanged.
-
-### The config file is grouped by module
-
-Every top-level key except `models` and `cooldown` moved under a group named after the module that reads it. Publish the config again or move the keys in your published file using the table below. A v8 key left at the top level is ignored and the package default applies, so check `ignored_ip_addresses`, `honor_dnt` and `queue` in particular: left in the old place, they silently fall back to the defaults.
-
-| v8 | v9 |
-| --- | --- |
-| `store` | `recording.store` |
-| `guards` | `recording.guards` |
-| `ignored_ip_addresses` | `recording.ignored_ip_addresses` |
-| `queue` | `recording.queue` |
-| `source` | `querying.source` |
-| `cache` | `querying.cache` |
-| `max_intervals` | `querying.max_intervals` |
-| `visitor_cookie_key` | `visitor.cookie.name` |
-| `ignore_bots` | removed; `IgnoreCrawlers` is listed in `recording.guards` by default, remove it to record crawler views |
-| `honor_dnt` | removed; list `IgnoreDoNotTrack` in `recording.guards` |
-| `cooldown` | gained `cooldown.store` and `cooldown.cache.store`, see [above](#cooldowns-are-selected-through-cooldownstore) |
-| `models` | unchanged |
-
-The cookie lifetime, five years before and hard-coded, is now `visitor.cookie.lifetime` in minutes. `Support\Config::visitorCookieKey()` is now `visitorCookieName()`, and `ignoreBots()` and `honorDoNotTrack()` are gone; that class is internal, so only code that reached into it is affected.
-
-The config values are now validated when they are read. A key that names a table, connection, queue or cache store must be a string or `null`, and `recording.ignored_ip_addresses` must hold only strings. Anything else, such as a connection given as an enum, throws `Exceptions\InvalidConfiguration` naming the key.
-
-### `CacheKey` moved and `make()` takes a `ViewsQuery`
-
-`CyrildeWit\EloquentViewable\CacheKey` is now `CyrildeWit\EloquentViewable\Querying\Cache\CacheKey`. Update the import if you build cache keys yourself. `CacheKey::make(?Period $period, bool $unique, ?string $collection)` is now `CacheKey::make(ViewsQuery $query, ?Granularity $granularity = null, ?string $grouping = null, ?int $limit = null)`. The digest also changed, so counts cached by an earlier version are recalculated once after upgrading. No action is needed for that.
-
-### Classes moved into module namespaces
-
-Most classes now live in a namespace named after the module they belong to. The names you are most likely to have imported are the trait, the model and the facade. Search your code for `CyrildeWit\EloquentViewable\` and update each import from the table. Only the namespace changed unless the row says otherwise.
-
-| v8 | v9 |
-| --- | --- |
-| `InteractsWithViews` | `Concerns\InteractsWithViews` |
-| `View` | `Models\View` |
-| `ViewsFacade` | `Facades\Views` |
-| `Visitor` | `Visitors\Visitor` |
-| `Contracts\Visitor` | `Visitors\Contracts\Visitor` |
-| `Contracts\CrawlerDetector` | `Crawlers\Contracts\CrawlerDetector` |
-| `CrawlerDetectAdapter` | `Crawlers\Detectors\CrawlerDetectAdapter` |
-| `CooldownManager` | `Cooldowns\CooldownManager` |
-| `PendingView` | `Data\ViewRecord` (renamed) |
-| `Events\ViewRecorded` | `Recording\Events\ViewRecorded` |
-| `ViewableObserver` | `Recording\Observers\ViewableObserver` |
-| `Actions\CreateView` | `Recording\Actions\RecordView` (renamed) |
-| `Contracts\CreateView` | `Recording\Contracts\RecordsViews` (renamed) |
-| `Jobs\StoreView` | `Recording\Jobs\RecordViewJob` (renamed) |
-| `Exceptions\ViewRecordException` | `Recording\Exceptions\RecordingFailed` (renamed) |
-
-`Views`, `Contracts\Viewable`, everything under `Support\`, the root exceptions and the `Querying\` namespace did not move.
-
-If you bound your own implementation of the recording action, bind it to `Recording\Contracts\RecordsViews` now and drop the return value, see [above](#recording-returns-nothing-and-the-event-carries-a-viewrecord). A `catch (ViewRecordException $e)` becomes `catch (RecordingFailed $e)`, and `Bus::assertDispatched(StoreView::class)` in your tests becomes `Bus::assertDispatched(RecordViewJob::class)`.
-
-`Recording\Jobs\RecordViewJob` no longer uses the `Dispatchable` trait, so `RecordViewJob::dispatch()` is gone. The package never called it; if your code did, dispatch an instance with `dispatch(new RecordViewJob($record))` or `Bus::dispatch()` instead.
-
-The published migration file is unaffected. The stub now ships from `database/migrations/` inside the package, but `vendor:publish` writes it to the same place in your application.
+`RecordViewJob::dispatch()` is gone. Use `dispatch(new RecordViewJob($record))`.
 
 ## Upgrading from v7.0.3 to v8.0.0
 
