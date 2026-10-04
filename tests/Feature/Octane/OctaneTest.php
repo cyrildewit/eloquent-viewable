@@ -76,7 +76,9 @@ function octane(Application $app, array $requests): FakeClient
     return $client;
 }
 
-/** @param  array<string, string>  $headers */
+/**
+ * @param  array<string, string>  $headers
+ */
 function octaneRequest(string $uri, array $headers = []): Request
 {
     $request = Request::create($uri);
