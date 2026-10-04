@@ -134,11 +134,16 @@ class EloquentViewableServiceProvider extends ServiceProvider
     /**
      * A policy that contradicts itself fails at boot rather than in the first
      * scheduled run.
+     *
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests.
      */
     protected function validateRetentionPolicies(): void
     {
-        $this->app->make(RetentionPolicy::class);
-        $this->app->make(RollupPolicy::class);
+        $config = new Config($this->app->make('config'));
+
+        RetentionPolicy::fromConfig($config);
+        RollupPolicy::fromConfig($config);
     }
 
     #[\Override]
@@ -158,7 +163,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
     protected function registerCore(): void
     {
-        $this->app->singleton(Config::class);
+        // Scoped, so an Octane worker reads the config repository of the
+        // request it serves rather than the one it booted with.
+        $this->app->scoped(Config::class);
 
         $this->app->bind(View::class, function (Application $app): View {
             $model = $app->make(Config::class)->viewModel();
