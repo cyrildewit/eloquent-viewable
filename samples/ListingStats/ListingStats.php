@@ -17,45 +17,42 @@ class ListingStats
     private const int WindowDays = 30;
 
     /**
-     * How stale the current window may be. Its last bucket is today, which
-     * keeps changing while the listing is viewed.
+     * How stale the counts may be. The last bucket is today, which keeps
+     * changing while the listing is viewed.
      */
     private const int CacheMinutes = 10;
 
     public function for(Listing $listing): ListingReport
     {
-        // Both windows start at midnight. A period's cache key is built from
-        // its timestamps, so a start that moves with the clock would give
-        // every call a new key and nothing would ever be read from the cache.
+        // The window runs from midnight to midnight. A period's cache key is
+        // built from its timestamps, so a bound that moves with the clock
+        // would give every call a new key and nothing would ever be read
+        // from the cache. Both bounds are needed for `compare()`, which steps
+        // back by the width of the period.
         $today = Carbon::today();
-        $current = Period::since($today->copy()->subDays(self::WindowDays - 1));
-        $previous = Period::create(
-            $today->copy()->subDays(self::WindowDays * 2 - 1),
-            $today->copy()->subDays(self::WindowDays - 1),
-        );
+        $window = Period::create($today->copy()->subDays(self::WindowDays - 1), $today->copy()->addDay());
 
         return new ListingReport(
             views: views($listing)
-                ->period($current)
+                ->period($window)
                 ->remember(self::CacheMinutes)
                 ->countByInterval(Granularity::Day),
             visitorsPerDay: views($listing)
-                ->period($current)
+                ->period($window)
                 ->unique()
                 ->remember(self::CacheMinutes)
                 ->countByInterval(Granularity::Day),
             visitors: views($listing)
-                ->period($current)
+                ->period($window)
                 ->unique()
                 ->remember(self::CacheMinutes)
                 ->count(),
-            // Views are recorded at the current time, so a window that has
-            // ended cannot change. It is cached until its key goes out of use
-            // at midnight.
-            previousViews: views($listing)
-                ->period($previous)
-                ->remember(Carbon::tomorrow())
-                ->count(),
+            // The window against the 30 days before it, each count
+            // remembered under its own key.
+            trend: views($listing)
+                ->period($window)
+                ->remember(self::CacheMinutes)
+                ->compare(),
         );
     }
 }

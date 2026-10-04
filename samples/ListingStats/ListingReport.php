@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Samples\ListingStats;
 
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 
 final readonly class ListingReport
@@ -15,24 +16,12 @@ final readonly class ListingReport
         public ViewSeries $visitorsPerDay,
         /** Distinct visitors over the whole window, which is less than the sum of the days. */
         public int $visitors,
-        public int $previousViews,
+        /** The views of the window against the 30 days before it. */
+        public ViewComparison $trend,
     ) {}
 
     public function totalViews(): int
     {
         return $this->views->total();
-    }
-
-    /**
-     * The change in views against the previous window as a whole percentage,
-     * or null when the previous window has no views to compare with.
-     */
-    public function change(): ?int
-    {
-        if ($this->previousViews === 0) {
-            return null;
-        }
-
-        return (int) round(($this->totalViews() - $this->previousViews) / $this->previousViews * 100);
     }
 }
