@@ -58,6 +58,8 @@ final readonly class SkippedViews
 
     private function key(CarbonInterface $day, string $guard): string
     {
-        return self::CacheKey.":{$day->toDateString()}:{$guard}";
+        $prefix = self::CacheKey;
+
+        return "{$prefix}:{$day->toDateString()}:{$guard}";
     }
 }
