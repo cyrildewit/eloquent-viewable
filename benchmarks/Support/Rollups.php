@@ -13,14 +13,14 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Carbon;
 
 /**
- * Day and month rollups of the seeded dataset, folded up to its anchor so
- * every view lies in the rollups and the views table answers nothing but the
- * hand-over. Folded once per dataset: the seed it was folded from is noted in
- * the state table, so seeding again folds again.
+ * These are the day and month rollups of the seeded dataset, folded up to its
+ * anchor so every view lies in the rollups and the views table answers
+ * nothing but the hand-over. They are folded once per dataset: the seed they
+ * were folded from is noted in the state table, so seeding again folds again.
  */
 final class Rollups
 {
-    private const string FOLDED_FROM = 'bench:folded_from';
+    private const string FoldedFrom = 'bench:folded_from';
 
     public static function configure(): void
     {
@@ -29,8 +29,15 @@ final class Rollups
         $config->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
         $config->set('eloquent-viewable.retention.rollups.settle');
 
-        // The views end at the anchor, so folding up to it folds them all,
-        // on every run, whenever it happens.
+        self::pinClockToAnchor();
+    }
+
+    /**
+     * The views end at the anchor, so folding up to it folds them all, on
+     * every run, whenever it happens.
+     */
+    private static function pinClockToAnchor(): void
+    {
         CarbonImmutable::setTestNow(Dataset::anchor());
         Carbon::setTestNow(Dataset::anchor());
     }
@@ -43,7 +50,7 @@ final class Rollups
         $state = Container::getInstance()->make(StateStore::class);
         $marker = "{$dataset->size->value}:{$dataset->seed}:{$dataset->seededAt}";
 
-        if ($state->get(self::FOLDED_FROM) === $marker) {
+        if ($state->get(self::FoldedFrom) === $marker) {
             return;
         }
 
@@ -52,9 +59,14 @@ final class Rollups
 
         Container::getInstance()->make(FoldViews::class)->handle();
 
-        $state->put(self::FOLDED_FROM, $marker);
+        $state->put(self::FoldedFrom, $marker);
     }
 
+    /**
+     * The table is created without the index on `viewed_at` the migration
+     * would add, which would change the plans of every other benchmark on
+     * this dataset.
+     */
     private static function install(ConnectionInterface $connection): void
     {
         if ($connection->getSchemaBuilder()->hasTable('view_rollups')) {
@@ -63,8 +75,6 @@ final class Rollups
 
         require_once __DIR__.'/../../database/migrations/create_view_rollups_table.php.stub';
 
-        // Without the index on `viewed_at` the migration would add, which
-        // would change the plans of every other benchmark on this dataset.
         new class extends \CreateViewRollupsTable
         {
             protected function indexViewedAt(): void {}

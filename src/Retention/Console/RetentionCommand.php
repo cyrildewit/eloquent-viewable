@@ -14,11 +14,16 @@ use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
-/** @internal */
+/**
+ * This command holds what the retention commands share: their options, the
+ * run lock and the report of a run.
+ *
+ * @internal
+ */
 abstract class RetentionCommand extends Command
 {
     /**
-     * Null once the error is reported.
+     * It returns the chunk size, or null once the error is reported.
      */
     protected function chunk(RetentionPolicy $policy): ?int
     {
@@ -30,7 +35,13 @@ abstract class RetentionCommand extends Command
 
         $chunk = filter_var($option, FILTER_VALIDATE_INT);
 
-        if ($chunk === false || $chunk < 1) {
+        if ($chunk === false) {
+            $this->components->error('The --chunk option must be a positive integer.');
+
+            return null;
+        }
+
+        if ($chunk < 1) {
             $this->components->error('The --chunk option must be a positive integer.');
 
             return null;
@@ -40,8 +51,8 @@ abstract class RetentionCommand extends Command
     }
 
     /**
-     * The `--older-than` option, or the configured duration without it. False
-     * once the error is reported.
+     * It returns the `--older-than` option, the configured duration without
+     * it, or false once the error is reported.
      */
     protected function olderThan(?Duration $configured): Duration|false|null
     {
@@ -88,13 +99,14 @@ abstract class RetentionCommand extends Command
 
     protected function report(string $verb, RetentionRun $run): void
     {
-        $views = "{$run->views} ".Str::plural('view', $run->views);
-        $before = "viewed before {$run->until->toDateTimeString()}";
+        $noun = Str::plural('view', $run->views);
+        $until = $run->until->toDateTimeString();
+        $summary = "{$verb} {$run->views} {$noun} viewed before {$until}.";
 
-        $this->components->info($run->dryRun ? "Would have {$verb} {$views} {$before}." : ucfirst("{$verb} {$views} {$before}."));
+        $this->components->info($run->dryRun ? "Would have {$summary}" : ucfirst($summary));
 
         if ($run->clamped) {
-            $this->components->warn("Stopped at {$run->until->toDateTimeString()}, because the rollups have not captured the views after it yet.");
+            $this->components->warn("Stopped at {$until}, because the rollups have not captured the views after it yet.");
         }
     }
 }

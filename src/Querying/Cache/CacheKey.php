@@ -78,8 +78,22 @@ final readonly class CacheKey
             $granularity?->value,
             $grouping,
             $limit,
-            // Only when set, so the keys of unfiltered counts stay as they were.
-            ...($query->filter instanceof FiltersViews ? [$query->filter->name()] : []),
+            ...$this->filter($query),
         ]));
+    }
+
+    /**
+     * The filter joins the identity only when it is set, so the keys of
+     * unfiltered counts stay as they were.
+     *
+     * @return list<string>
+     */
+    private function filter(ViewsQuery $query): array
+    {
+        if (! $query->filter instanceof FiltersViews) {
+            return [];
+        }
+
+        return [$query->filter->name()];
     }
 }

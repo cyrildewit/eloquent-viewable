@@ -12,9 +12,9 @@ use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Support\Carbon;
 
 /**
- * Everything the `retention` config asks for, in the order that loses nothing:
- * roll up, anonymise, prune, then recount the counter columns. One line in
- * the scheduler.
+ * This command runs everything the configuration asks for, in the order that
+ * loses nothing: roll up, anonymise, prune, then recount the counter columns.
+ * It is the one line the scheduler needs.
  */
 final class MaintainViewsCommand extends RetentionCommand
 {
@@ -44,12 +44,8 @@ final class MaintainViewsCommand extends RetentionCommand
             return self::SUCCESS;
         }
 
-        // Through the commands, so retention stays unaware of how rollups are
-        // folded and counters written. Rolling up first lets the cutoffs below
-        // move as far as the rollups now reach; recounting last counts what
-        // is left.
         if ($rollups) {
-            $status = $this->call('views:rollup', ['--chunk' => (string) $chunk, '--dry-run' => $this->isDryRun()]);
+            $status = $this->rollUp($chunk);
 
             if ($status !== self::SUCCESS) {
                 return $status;
@@ -57,26 +53,53 @@ final class MaintainViewsCommand extends RetentionCommand
         }
 
         if ($retains) {
-            $this->exclusively(function () use ($anonymise, $prune, $policy, $chunk): int {
-                $now = Carbon::now();
-
-                if ($policy->anonymiseAfter instanceof Duration) {
-                    $this->report('anonymised', $anonymise->handle($policy->anonymiseAfter->before($now), $policy->anonymiseColumns, $chunk, $this->isDryRun()));
-                }
-
-                if ($policy->pruneAfter instanceof Duration) {
-                    $this->report('deleted', $prune->handle($policy->pruneAfter->before($now), $chunk, $this->isDryRun()));
-                }
-
-                return self::SUCCESS;
-            });
+            $this->anonymiseAndPrune($anonymise, $prune, $policy, $chunk);
         }
 
-        // A dry run changes nothing, so there is nothing new to count.
-        if ($counters && ! $this->isDryRun()) {
-            return $this->call('views:recount', ['--chunk' => (string) $chunk]);
+        if ($counters) {
+            return $this->recount($chunk);
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Rollups are folded through their command, so retention stays unaware of
+     * how they are folded, and first, so the cutoffs after it move as far as
+     * the rollups now reach.
+     */
+    private function rollUp(int $chunk): int
+    {
+        return $this->call('views:rollup', ['--chunk' => (string) $chunk, '--dry-run' => $this->isDryRun()]);
+    }
+
+    private function anonymiseAndPrune(AnonymiseViews $anonymise, PruneViews $prune, RetentionPolicy $policy, int $chunk): void
+    {
+        $this->exclusively(function () use ($anonymise, $prune, $policy, $chunk): int {
+            $now = Carbon::now();
+
+            if ($policy->anonymiseAfter instanceof Duration) {
+                $this->report('anonymised', $anonymise->handle($policy->anonymiseAfter->before($now), $policy->anonymiseColumns, $chunk, $this->isDryRun()));
+            }
+
+            if ($policy->pruneAfter instanceof Duration) {
+                $this->report('deleted', $prune->handle($policy->pruneAfter->before($now), $chunk, $this->isDryRun()));
+            }
+
+            return self::SUCCESS;
+        });
+    }
+
+    /**
+     * The counter columns are written last, so they count what is left. A dry
+     * run changes nothing, so it has nothing new to count.
+     */
+    private function recount(int $chunk): int
+    {
+        if ($this->isDryRun()) {
+            return self::SUCCESS;
+        }
+
+        return $this->call('views:recount', ['--chunk' => (string) $chunk]);
     }
 }

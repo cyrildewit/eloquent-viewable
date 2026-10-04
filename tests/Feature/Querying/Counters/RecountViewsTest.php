@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;

@@ -10,7 +10,7 @@ use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Support\Carbon;
 
 /**
- * The `retention` config, read and checked once.
+ * This policy is the `retention` config, read and checked once.
  */
 final readonly class RetentionPolicy
 {
@@ -25,11 +25,7 @@ final readonly class RetentionPolicy
         public ?Duration $pruneAfter,
         public int $chunk,
     ) {
-        if ($anonymiseAfter instanceof Duration
-            && $pruneAfter instanceof Duration
-            && $anonymiseAfter->isLongerThan($pruneAfter, Carbon::now())) {
-            throw InvalidConfiguration::anonymisedAfterPruned($anonymiseAfter->shorthand(), $pruneAfter->shorthand());
-        }
+        $this->guardAnonymisingBeforePruning();
     }
 
     /** @throws InvalidConfiguration */
@@ -41,5 +37,23 @@ final readonly class RetentionPolicy
             $config->pruneAfter(),
             $config->retentionChunk(),
         );
+    }
+
+    /** @throws InvalidConfiguration */
+    private function guardAnonymisingBeforePruning(): void
+    {
+        if (! $this->anonymiseAfter instanceof Duration) {
+            return;
+        }
+
+        if (! $this->pruneAfter instanceof Duration) {
+            return;
+        }
+
+        if (! $this->anonymiseAfter->isLongerThan($this->pruneAfter, Carbon::now())) {
+            return;
+        }
+
+        throw InvalidConfiguration::anonymisedAfterPruned($this->anonymiseAfter->shorthand(), $this->pruneAfter->shorthand());
     }
 }

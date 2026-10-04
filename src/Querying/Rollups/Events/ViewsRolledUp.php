@@ -8,9 +8,9 @@ use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 
 /**
- * Dispatched once a tier of the named rollup is folded up to `until`, `from` being where it stood
- * before, null on the first run. The buckets count those folded again for
- * views that landed late.
+ * Dispatched once a tier of the named rollup is folded up to `until`, `from`
+ * being where it stood before, null on the first run. The buckets count those
+ * folded again for views that landed late.
  */
 class ViewsRolledUp
 {

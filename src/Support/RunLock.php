@@ -11,7 +11,7 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\LockProvider;
 
 /**
- * One atomic lock for every command that rewrites the views or rollup
+ * This lock is shared by every command that rewrites the views or rollup
  * tables, so two servers, or two commands on one, never run at once.
  *
  * @internal
@@ -19,10 +19,10 @@ use Illuminate\Contracts\Cache\LockProvider;
 final readonly class RunLock
 {
     /**
-     * Long enough for a large first run. A lock left by a process that died
-     * is released after it.
+     * The lock lasts long enough for a large first run, and a lock left by a
+     * process that died is released after it.
      */
-    private const int SECONDS = 3600;
+    private const int Seconds = 3600;
 
     public function __construct(
         private Config $config,
@@ -30,7 +30,8 @@ final readonly class RunLock
     ) {}
 
     /**
-     * Null when another run holds the lock.
+     * It returns what the callback returns, or null when another run holds
+     * the lock.
      *
      * @param  Closure(): int  $callback
      *
@@ -46,7 +47,7 @@ final readonly class RunLock
             throw LockUnavailable::storeCannotLock($name ?? 'default');
         }
 
-        $result = $store->lock("{$this->config->cacheKey()}:maintenance", self::SECONDS)->get($callback);
+        $result = $store->lock("{$this->config->cacheKey()}:maintenance", self::Seconds)->get($callback);
 
         return is_int($result) ? $result : null;
     }

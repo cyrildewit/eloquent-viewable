@@ -5,25 +5,26 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Rollups\Contracts;
 
 /**
- * Names and values that outlive a run: how far each rollup tier is folded and
- * how far the views table is anonymised and pruned. One table holds both, so
- * the source knows where the views end and the rollups begin.
+ * Implement this to keep the names and values that outlive a run: how far
+ * each rollup tier is folded and how far the views table is anonymised and
+ * pruned. One table holds both, so the source knows where the views end and
+ * the rollups begin.
  */
 interface StateStore
 {
-    /** Views before this moment are anonymised. */
-    public const string ANONYMISED = 'anonymised';
+    /** The views before this moment are anonymised. */
+    public const string Anonymised = 'anonymised';
 
-    /** Views before this moment are deleted. */
-    public const string PRUNED = 'pruned';
+    /** The views before this moment are deleted. */
+    public const string Pruned = 'pruned';
 
-    /** The format moments are kept in, on the clock of `viewed_at`. */
-    public const string FORMAT = 'Y-m-d H:i:s';
+    /** Moments are kept in this format, on the clock of `viewed_at`. */
+    public const string Format = 'Y-m-d H:i:s';
 
     public function installed(): bool;
 
     /**
-     * The values of the names that are set, in one read.
+     * It reads the values of the names that are set in one round trip.
      *
      * @param  list<string>  $names
      * @return array<string, string>
