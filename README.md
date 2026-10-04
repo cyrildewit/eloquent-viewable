@@ -108,7 +108,8 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 
 ### Key Features
 
-- Track **total** and **unique** views for any Eloquent model, from a controller or with one route middleware
+- Track **total** and **unique** views for any Eloquent model, from a controller, a route middleware or the browser
+  when the page comes from a full-page cache
 - Query views by custom periods, compare with the previous period and group them **per hour, day, week, month or year**
 - Order and filter models by views, and rank the **most viewed content** across every model
 - Know **who viewed what** by linking views to the signed-in user
@@ -247,6 +248,54 @@ reported and the page is still sent. For a condition, a `viewedBy()` or a `conte
 > [!TIP]
 > Inertia and Livewire reload a page with another `GET` to the same route. A `cooldown` keeps those reloads from
 > adding views.
+
+#### Recording from the browser
+
+A page served from a full-page cache, such as `spatie/laravel-responsecache`, Cloudflare or Varnish, never reaches
+your controller, so neither `record()` nor the middleware runs. Let the browser record the view instead. Turn the
+beacon on in the config:
+
+```php
+'recording' => [
+    'beacon' => [
+        'enabled' => true,
+        'prefix' => 'eloquent-viewable/beacon',
+        'middleware' => ['web'],
+    ],
+],
+```
+
+And print the directive in the page:
+
+```blade
+@viewsBeacon($post)
+@viewsBeacon($post, collection: 'amp', cooldown: 30, queue: true)
+```
+
+Once the page has loaded, its script posts to a signed URL that names the model and the options. The view passes the
+same guards as `record()`. The URL is the same for every visitor and never expires, so it can be cached with the page,
+and it is signed without the host, so it still validates behind a proxy or CDN that reaches your app under another host
+name. A changed URL gets a `403`, a model that no longer exists a `404`, and everything else a `204`, also when a guard
+skips the view.
+
+The route runs the `web` group, so cooldowns, the visitor cookie and the signed-in viewer work as they do in a
+controller, and the cookie is set on the beacon's own response rather than on the cached page. A cached page cannot
+carry a CSRF token. The CSRF check accepts the beacon anyway, because the browser marks it as sent from your own origin
+in the `Sec-Fetch-Site` header, and refuses the same post from another site, so the page and the beacon must share an
+origin. Browsers too old to send that header, such as Safari before 16.4, are refused as well and their views are not
+recorded. A page the browser only prerenders posts when it is shown, so it records nothing if it is never visited.
+
+For a single-page app, or to write the script yourself, build the URL with `Http\Beacon`:
+
+```php
+use CyrildeWit\EloquentViewable\Http\Beacon;
+
+app(Beacon::class)->url($post, collection: 'amp'); // '/eloquent-viewable/beacon/...?collection=amp&signature=...'
+```
+
+> [!TIP]
+> The URL names the model by its morph class, so without a morph map it shows the class name, such as
+> `App\Models\Post`. Call `Relation::enforceMorphMap()` to show `post` instead.
 
 #### Finding out why a view was not recorded
 
