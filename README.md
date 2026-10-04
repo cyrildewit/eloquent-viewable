@@ -805,6 +805,15 @@ Rollups keep the counts of old views per bucket of time, so history outlives the
 all-time counts read a few rows per model instead of every view. Publish and run their migration, configure the tiers
 and read through the `rollup` source:
 
+```mermaid
+flowchart LR
+    views[("views table<br/>a row per view")]
+    day[("day tier<br/>a row per day and grouping<br/>kept 2 years")]
+    month[("month tier<br/>a row per month and grouping<br/>kept forever")]
+    views -->|"fold each closed day"| day
+    views -->|"fold each closed month"| month
+```
+
 ```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-rollups"
 php artisan migrate
@@ -830,6 +839,20 @@ from a date, `--dry-run` and `--chunk`. Every read and scope works through the `
 Each grouping answers one kind of count: `viewable` a model, `viewable_collection` a model within a collection, `type`
 a whole model type, and `type_collection`, off by default, a type within a collection. A read that needs a grouping
 that is not kept, or narrows to a viewer, reads the `views` table alone.
+
+A read splits its period by where each part is kept and adds the parts up. With the tiers above, an all-time count at
+15:00 on 4 October reads:
+
+```mermaid
+flowchart LR
+    month["month tier<br/>every month up to<br/>30 September"]
+    day["day tier<br/>1 to 3 October"]
+    raw["views table<br/>4 October since 00:00"]
+    month --> day --> raw
+```
+
+A `unique()` count reads the `views` table as far back as it still holds the original visitor ids, because unique
+visitors cannot be added up across buckets exactly.
 
 What to know:
 
