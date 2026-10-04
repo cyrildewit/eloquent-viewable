@@ -251,55 +251,39 @@ reported and the page is still sent. For a condition, a `viewedBy()` or a `conte
 
 #### Recording from the browser
 
-A page served from a full-page cache, such as `spatie/laravel-responsecache`, Cloudflare or Varnish, never reaches
-your controller, so neither `record()` nor the middleware runs. Let the browser record the view instead. Turn the
-beacon on in the config:
+A page served from a full-page cache, such as `spatie/laravel-responsecache`, Cloudflare or Varnish, never reaches your
+controller, so neither `record()` nor the middleware runs. Turn on the beacon and let the browser record the view:
 
 ```php
+// config/eloquent-viewable.php
 'recording' => [
     'beacon' => [
         'enabled' => true,
-        'prefix' => '_ev',
-        'middleware' => ['web'],
     ],
 ],
 ```
-
-The prefix is neutral on purpose. Privacy filter lists block paths with words such as `beacon`, `track` or
-`analytics`, so a route named after what it does would silently lose the views of every visitor who runs one. Change
-`prefix` if it collides with a route of your own or a list ever starts blocking it.
-
-And print the directive in the page:
 
 ```blade
 @viewsBeacon($post)
 @viewsBeacon($post, collection: 'amp', cooldown: 30, queue: true)
 ```
 
-Once the page has loaded, its script posts to a signed URL that names the model and the options. The view passes the
-same guards as `record()`. The URL is the same for every visitor and never expires, so it can be cached with the page,
-and it is signed without the host, so it still validates behind a proxy or CDN that reaches your app under another host
-name. A changed URL gets a `403`, a model that no longer exists a `404`, and everything else a `204`, also when a guard
-skips the view.
+Once the page has loaded, or a prerendered page is shown, its script posts to a signed URL and the view passes the same
+guards as `record()`. The URL is the same for every visitor, never expires and is signed without the host, so it is safe
+to cache with the page and behind a proxy.
 
-The route runs the `web` group, so cooldowns, the visitor cookie and the signed-in viewer work as they do in a
-controller, and the cookie is set on the beacon's own response rather than on the cached page. A cached page cannot
-carry a CSRF token. The CSRF check accepts the beacon anyway, because the browser marks it as sent from your own origin
-in the `Sec-Fetch-Site` header, and refuses the same post from another site, so the page and the beacon must share an
-origin. Browsers too old to send that header, such as Safari before 16.4, are refused as well and their views are not
-recorded. A page the browser only prerenders posts when it is shown, so it records nothing if it is never visited.
-
-For a single-page app, or to write the script yourself, build the URL with `Http\Beacon`:
-
-```php
-use CyrildeWit\EloquentViewable\Http\Beacon;
-
-app(Beacon::class)->url($post, collection: 'amp'); // '/_ev/...?collection=amp&signature=...'
-```
-
-> [!TIP]
-> The URL names the model by its morph class, so without a morph map it shows the class name, such as
-> `App\Models\Post`. Call `Relation::enforceMorphMap()` to show `post` instead.
+- **Same origin only.** The route runs the `web` group, so cooldowns, the visitor cookie and the signed-in viewer work
+  as usual, and the cookie is set on the beacon's response rather than the cached page. Laravel's CSRF check accepts
+  the beacon through the browser's `Sec-Fetch-Site` header and refuses posts from other sites. Browsers that do not
+  send it, such as Safari before 16.4, are not counted.
+- **A neutral path.** The route lives under `/_ev`, because privacy filter lists block paths such as `/beacon` or
+  `/track`. Change `prefix` if it collides with a route of your own, and `middleware` to run other middleware.
+- **Quiet answers.** A changed URL gets a `403`, a deleted model a `404` and everything else a `204`, also when a guard
+  skips the view.
+- **Your own script.** For a single-page app, build the URL with
+  `app(\CyrildeWit\EloquentViewable\Http\Beacon::class)->url($post, collection: 'amp')`.
+- **Morph map.** The URL names the model by its morph class. Call `Relation::enforceMorphMap()` to show `post` instead
+  of `App\Models\Post`.
 
 #### Finding out why a view was not recorded
 
