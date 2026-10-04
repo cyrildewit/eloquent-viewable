@@ -16,13 +16,13 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 
 /**
- * Deletes the views viewed before the cutoff. Every view before it goes, not
- * only those after the last run, so a view that landed late is not left
- * behind.
+ * This action deletes the views viewed before the cutoff. Every view before
+ * it goes, not only those after the last run, so a view that landed late is
+ * not left behind.
  */
 final readonly class PruneViews
 {
-    public const string MARK = StateStore::PRUNED;
+    public const string Mark = StateStore::Pruned;
 
     public function __construct(
         private View $view,
@@ -31,13 +31,18 @@ final readonly class PruneViews
         private Dispatcher $events,
     ) {}
 
-    /** @throws RetentionNotInstalled */
+    /**
+     * It deletes the views, `chunk` per statement, or only counts them on a
+     * dry run. The cutoff moves back to where every rollup has folded.
+     *
+     * @throws RetentionNotInstalled
+     */
     public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false): RetentionRun
     {
         $this->state->ensureInstalled();
 
         $until = $this->watermarks->clamp($cutoff);
-        $from = $this->state->moment(self::MARK);
+        $from = $this->state->moment(self::Mark);
         $clamped = $until < $cutoff;
 
         if ($dryRun) {
@@ -47,24 +52,44 @@ final readonly class PruneViews
         $views = 0;
 
         do {
-            // Postgres has no `delete … limit`, and MySQL refuses a limited
-            // subquery on the table it deletes from, so the ids come first.
-            $ids = $this->expired($until)->limit($chunk)->pluck('id')->all();
+            $ids = $this->expiredIds($until, $chunk);
 
             if ($ids !== []) {
                 $views += $this->view->newQuery()->toBase()->whereIn('id', $ids)->delete();
             }
         } while (count($ids) === $chunk);
 
-        if (! $from instanceof CarbonInterface || $from < $until) {
-            $this->state->putMoment(self::MARK, $until);
-        }
+        $this->moveMarkForward($from, $until);
 
         if ($views > 0) {
             $this->events->dispatch(new ViewsPruned($from, $until, $views));
         }
 
         return new RetentionRun($from, $until, $views, $clamped, false);
+    }
+
+    /**
+     * The ids are selected first, because Postgres has no `delete … limit`
+     * and MySQL refuses a limited subquery on the table it deletes from.
+     *
+     * @return list<int|string>
+     */
+    private function expiredIds(CarbonInterface $until, int $chunk): array
+    {
+        /** @var list<int|string> */
+        return $this->expired($until)
+            ->limit($chunk)
+            ->pluck('id')
+            ->all();
+    }
+
+    private function moveMarkForward(?CarbonInterface $from, CarbonInterface $until): void
+    {
+        if ($from instanceof CarbonInterface && $from >= $until) {
+            return;
+        }
+
+        $this->state->putMoment(self::Mark, $until);
     }
 
     private function expired(CarbonInterface $until): Builder

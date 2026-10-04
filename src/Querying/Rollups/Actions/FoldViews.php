@@ -20,10 +20,10 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 
 /**
- * Folds the views of closed buckets into the rollup table, every tier from
- * the views themselves, so unique visitors are exact per bucket at every
- * grain. A bucket is folded whole: its rows are deleted and inserted again
- * in one transaction, so a rerun or a refold is safe.
+ * This action folds the views of closed buckets into the rollup table, every
+ * tier from the views themselves, so unique visitors are exact per bucket at
+ * every grain. A bucket is folded whole: its rows are deleted and inserted
+ * again in one transaction, so a rerun or a refold is safe.
  *
  * A bucket closes once `settle` has passed since its end. A view that lands
  * after its bucket was folded is found by its id, above the highest id the
@@ -40,8 +40,10 @@ final readonly class FoldViews
     ) {}
 
     /**
-     * @param  CarbonInterface|null  $from  fold again from here instead of where the last run stopped
-     * @param  string|null  $rollup  fold only the rollup of this name
+     * It folds every tier of every rollup, or only the tier and rollup named,
+     * from where the last run stopped or again from `from`. A dry run counts
+     * the buckets without folding them.
+     *
      * @return list<ViewsRolledUp>
      *
      * @throws RollupsNotInstalled
@@ -83,17 +85,15 @@ final readonly class FoldViews
             }
         }
 
-        // Only once every tier of every rollup has looked at the views below
-        // it, or one left out would miss the late views of this run.
-        if (! $only instanceof Tier && $rollup === null && $maxId !== null && ! $dryRun) {
-            $this->state->putLastId($maxId);
+        if (! $dryRun && ! $only instanceof Tier && $rollup === null) {
+            $this->markLastId($maxId);
         }
 
         return $runs;
     }
 
     /**
-     * @param  CarbonImmutable|null  $origin  moved back to the lowest bucket this tier folds
+     * @param  ?CarbonImmutable  $origin  moved back to the lowest bucket this tier folds
      *
      * @param-out CarbonImmutable $origin
      */
@@ -109,42 +109,92 @@ final readonly class FoldViews
             $buckets += $this->foldBucket($definition, $tier, $bucket, $dryRun);
         }
 
-        $cursor = $from instanceof CarbonInterface ? $this->refoldFrom($tier, $snapshot, $from) : $folded;
-
-        if (! $cursor instanceof CarbonImmutable) {
-            $first = $this->firstViewedAt(null, $until);
-            $cursor = $first instanceof CarbonImmutable ? $tier->floor($first, $zone) : $until;
-        }
-
-        $since = $snapshot->since($tier);
+        $cursor = $this->cursor($tier, $snapshot, $from, $until);
         $lowest = $dirty === [] ? $cursor : $dirty[0]->min($cursor);
-
-        if (! $dryRun && (! $since instanceof CarbonImmutable || $lowest < $since)) {
-            $this->state->putSince($definition->name, $tier, $lowest);
-        }
-
         $origin = $origin instanceof CarbonImmutable ? $origin->min($lowest) : $lowest;
+
+        if (! $dryRun) {
+            $this->markSince($definition, $tier, $snapshot->since($tier), $lowest);
+        }
 
         while (($first = $this->firstViewedAt($cursor, $until)) instanceof CarbonImmutable) {
             $bucket = $tier->floor($first, $zone);
             $buckets += $this->foldBucket($definition, $tier, $bucket, $dryRun);
             $cursor = $tier->next($bucket, $zone);
 
-            if (! $dryRun && (! $folded instanceof CarbonImmutable || $cursor > $folded)) {
-                $this->state->putFolded($definition->name, $tier, $cursor);
+            if (! $dryRun) {
+                $this->markFolded($definition, $tier, $folded, $cursor);
             }
         }
 
-        if (! $dryRun && (! $folded instanceof CarbonImmutable || $until > $folded)) {
-            $this->state->putFolded($definition->name, $tier, $until);
+        if (! $dryRun) {
+            $this->markFolded($definition, $tier, $folded, $until);
         }
 
         return new ViewsRolledUp($definition->name, $tier, $folded, $until->max($folded ?? $until), $buckets);
     }
 
     /**
-     * The buckets behind the watermark that views landed in since the last
-     * run, as long as their views are all still there to fold again.
+     * Folding starts again from `from` when it is given, from where the last
+     * run stopped otherwise, and from the bucket of the first view on the
+     * first run.
+     */
+    private function cursor(Tier $tier, Snapshot $snapshot, ?CarbonInterface $from, CarbonImmutable $until): CarbonImmutable
+    {
+        if ($from instanceof CarbonInterface) {
+            return $this->refoldFrom($tier, $snapshot, $from);
+        }
+
+        $folded = $snapshot->folded($tier);
+
+        if ($folded instanceof CarbonImmutable) {
+            return $folded;
+        }
+
+        $first = $this->firstViewedAt(null, $until);
+
+        if (! $first instanceof CarbonImmutable) {
+            return $until;
+        }
+
+        return $tier->floor($first, $this->policy->timezone);
+    }
+
+    private function markSince(RollupDefinition $definition, Tier $tier, ?CarbonImmutable $since, CarbonImmutable $lowest): void
+    {
+        if ($since instanceof CarbonImmutable && $lowest >= $since) {
+            return;
+        }
+
+        $this->state->putSince($definition->name, $tier, $lowest);
+    }
+
+    private function markFolded(RollupDefinition $definition, Tier $tier, ?CarbonImmutable $folded, CarbonImmutable $until): void
+    {
+        if ($folded instanceof CarbonImmutable && $until <= $folded) {
+            return;
+        }
+
+        $this->state->putFolded($definition->name, $tier, $until);
+    }
+
+    /**
+     * The last id moves only once every tier of every rollup has looked at
+     * the views below it, or one left out would miss the late views of this
+     * run.
+     */
+    private function markLastId(?int $maxId): void
+    {
+        if ($maxId === null) {
+            return;
+        }
+
+        $this->state->putLastId($maxId);
+    }
+
+    /**
+     * These are the buckets behind the watermark that views landed in since
+     * the last run, as long as their views are all still there to fold again.
      *
      * @return list<CarbonImmutable>
      */
@@ -152,11 +202,21 @@ final readonly class FoldViews
     {
         $folded = $snapshot->folded($tier);
 
-        if (! $folded instanceof CarbonImmutable || $lastId === null || $maxId === null || $maxId <= $lastId) {
+        if (! $folded instanceof CarbonImmutable) {
             return [];
         }
 
-        $moments = $this->view->newQuery()->toBase()
+        if ($lastId === null || $maxId === null) {
+            return [];
+        }
+
+        if ($maxId <= $lastId) {
+            return [];
+        }
+
+        $moments = $this->view
+            ->newQuery()
+            ->toBase()
             ->where('id', '>', $lastId)
             ->where('id', '<=', $maxId)
             ->where('viewed_at', '<', $folded)
@@ -169,9 +229,11 @@ final readonly class FoldViews
         foreach ($moments as $moment) {
             $bucket = $tier->floor(CarbonImmutable::parse((string) $moment), $this->policy->timezone); // @phpstan-ignore cast.string (a timestamp column)
 
-            if (! $floor instanceof CarbonImmutable || $bucket >= $floor) {
-                $buckets[$bucket->format('Y-m-d H:i:s')] = $bucket;
+            if ($floor instanceof CarbonImmutable && $bucket < $floor) {
+                continue;
             }
+
+            $buckets[$bucket->format('Y-m-d H:i:s')] = $bucket;
         }
 
         ksort($buckets);
@@ -180,8 +242,8 @@ final readonly class FoldViews
     }
 
     /**
-     * Where folding again may start: no earlier than the first bucket whose
-     * views are all still there.
+     * Folding again starts no earlier than the first bucket whose views are
+     * all still there.
      */
     private function refoldFrom(Tier $tier, Snapshot $snapshot, CarbonInterface $from): CarbonImmutable
     {
@@ -189,7 +251,15 @@ final readonly class FoldViews
         $from = $tier->floor($from, $zone);
         $floor = $this->refoldFloor($tier, $snapshot);
 
-        return $floor instanceof CarbonImmutable && $from < $floor ? $tier->ceil($floor, $zone) : $from;
+        if (! $floor instanceof CarbonImmutable) {
+            return $from;
+        }
+
+        if ($from >= $floor) {
+            return $from;
+        }
+
+        return $tier->ceil($floor, $zone);
     }
 
     /**
@@ -205,11 +275,17 @@ final readonly class FoldViews
             return $snapshot->pruned;
         }
 
-        return $snapshot->pruned instanceof CarbonImmutable ? $anonymised->max($snapshot->pruned) : $anonymised;
+        if (! $snapshot->pruned instanceof CarbonImmutable) {
+            return $anonymised;
+        }
+
+        return $anonymised->max($snapshot->pruned);
     }
 
     /**
-     * Returns one, the bucket, so a caller can count what it folded.
+     * It returns one, the bucket, so a caller can count what it folded. The
+     * totals of a custom rollup stay next to its rows per dimension value,
+     * because unique visitors cannot be summed from those.
      */
     private function foldBucket(RollupDefinition $definition, Tier $tier, CarbonImmutable $start, bool $dryRun): int
     {
@@ -220,7 +296,9 @@ final readonly class FoldViews
         $end = $tier->next($start, $this->policy->timezone);
 
         $this->rollup->getConnection()->transaction(function () use ($definition, $tier, $start, $end): void {
-            $this->rollup->newQuery()->toBase()
+            $this->rollup
+                ->newQuery()
+                ->toBase()
                 ->where('rollup', $definition->name)
                 ->where('tier', $tier->value)
                 ->where('bucket_start', $start)
@@ -229,8 +307,6 @@ final readonly class FoldViews
             foreach ($definition->groupings as $grouping) {
                 $this->insert($definition, $tier, $grouping, $start, $end, null);
 
-                // The totals above stay, because unique visitors cannot be
-                // summed from the rows per value.
                 if ($definition->dimension() !== null) {
                     $this->insert($definition, $tier, $grouping, $start, $end, $definition->dimension());
                 }
@@ -240,56 +316,80 @@ final readonly class FoldViews
         return 1;
     }
 
+    /**
+     * A dimension such as the JSON path `context->campaign` compiles to the
+     * driver's own extraction.
+     */
     private function insert(RollupDefinition $definition, Tier $tier, Grouping $grouping, CarbonImmutable $start, CarbonImmutable $end, ?string $dimension): void
     {
         $views = $this->view->newQuery();
         $definition->filter($views);
 
-        $query = $views->toBase()
+        $query = $views
+            ->toBase()
             ->where('viewed_at', '>=', $start)
             ->where('viewed_at', '<', $end);
 
         $grammar = $query->getGrammar();
         $columns = $grouping->columns();
-
-        // Postgres types a bound value in a select list as text, which a
-        // timestamp column refuses.
-        $bucket = $this->view->getConnection()->getDriverName() === 'pgsql' ? 'cast(? as timestamp)' : '?';
+        $inserted = ['rollup', 'tier', 'bucket_start', 'grouping', ...$columns];
 
         $query
-            ->selectRaw("?, ?, {$bucket}, ?", [$definition->name, $tier->value, $start->format('Y-m-d H:i:s'), $grouping->stored($dimension !== null)])
+            ->selectRaw("?, ?, {$this->bucketPlaceholder()}, ?", [$definition->name, $tier->value, $start->format('Y-m-d H:i:s'), $grouping->stored($dimension !== null)]) // @phpstan-ignore argument.type (placeholders only, the values are bound)
             ->addSelect($columns)
             ->groupBy($columns);
 
         if ($dimension !== null) {
-            // A JSON path such as `context->campaign` compiles to the
-            // driver's own extraction.
             $query->selectRaw($grammar->wrap($dimension))->groupByRaw($grammar->wrap($dimension)); // @phpstan-ignore argument.type, argument.type (a column or JSON path the application names, not user input)
+            $inserted[] = 'dimension';
         }
 
         $query->selectRaw("count(*), count(distinct {$grammar->wrap('visitor')})"); // @phpstan-ignore argument.type (a wrapped identifier, not user input)
 
-        $this->rollup->newQuery()->toBase()->insertUsing(
-            ['rollup', 'tier', 'bucket_start', 'grouping', ...$columns, ...($dimension !== null ? ['dimension'] : []), 'views', 'unique_visitors'],
-            $query,
-        );
+        $this->rollup
+            ->newQuery()
+            ->toBase()
+            ->insertUsing([...$inserted, 'views', 'unique_visitors'], $query);
+    }
+
+    /**
+     * Postgres types a bound value in a select list as text, which a
+     * timestamp column refuses, so it gets a cast.
+     */
+    private function bucketPlaceholder(): string
+    {
+        if ($this->view->getConnection()->getDriverName() !== 'pgsql') {
+            return '?';
+        }
+
+        return 'cast(? as timestamp)';
     }
 
     private function firstViewedAt(?CarbonImmutable $from, CarbonImmutable $until): ?CarbonImmutable
     {
-        $first = $this->view->newQuery()->toBase()
+        $first = $this->view
+            ->newQuery()
+            ->toBase()
             ->when($from, fn (Builder $query, CarbonImmutable $from): Builder => $query->where('viewed_at', '>=', $from))
             ->where('viewed_at', '<', $until)
             ->min('viewed_at');
 
-        return is_string($first) ? CarbonImmutable::parse($first) : null;
+        if (! is_string($first)) {
+            return null;
+        }
+
+        return CarbonImmutable::parse($first);
     }
 
     private function maxId(): ?int
     {
         $max = $this->view->newQuery()->toBase()->max('id');
 
-        return $max === null ? null : (int) $max; // @phpstan-ignore cast.int (an integer column)
+        if ($max === null) {
+            return null;
+        }
+
+        return (int) $max; // @phpstan-ignore cast.int (an integer column)
     }
 
     /** @throws RollupsNotInstalled */

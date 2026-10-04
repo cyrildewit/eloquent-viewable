@@ -103,14 +103,17 @@ final readonly class DatabaseSource implements CountsByDimension, IdentifiesSour
         return $counts;
     }
 
-    /** @return array<string, int> */
+    /**
+     * A dimension such as the JSON path `context->campaign` compiles to the
+     * driver's own extraction, as in a where clause.
+     *
+     * @return array<string, int>
+     */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
     {
         $builder = $this->view->newQueryFor($viewable, $query)->toBase();
         $grammar = $builder->getGrammar();
 
-        // A JSON path such as `context->campaign` is compiled to the driver's
-        // own extraction, as in a where clause.
         $column = $grammar->wrap($dimension);
         $aggregate = $this->aggregate($query, $grammar);
 

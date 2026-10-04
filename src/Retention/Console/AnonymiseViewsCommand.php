@@ -25,7 +25,11 @@ final class AnonymiseViewsCommand extends RetentionCommand
         $chunk = $this->chunk($policy);
         $after = $this->olderThan($policy->anonymiseAfter);
 
-        if ($chunk === null || $after === false) {
+        if ($chunk === null) {
+            return self::FAILURE;
+        }
+
+        if ($after === false) {
             return self::FAILURE;
         }
 

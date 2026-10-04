@@ -9,13 +9,14 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 
 /**
- * The marks of each rollup in the state store, kept under its name.
+ * This state keeps the marks of each rollup in the state store, under its
+ * name.
  *
  * @internal
  */
 final readonly class RollupState
 {
-    private const string LAST_ID = 'rollup:last_id';
+    private const string LastId = 'rollup:last_id';
 
     public function __construct(
         private StateStore $store,
@@ -27,11 +28,11 @@ final readonly class RollupState
     }
 
     /**
-     * Every mark a read of the rollup needs, in one round trip.
+     * It reads every mark a read of the rollup needs in one round trip.
      */
     public function snapshot(string $rollup): Snapshot
     {
-        $names = [StateStore::ANONYMISED, StateStore::PRUNED, $this->origin($rollup)];
+        $names = [StateStore::Anonymised, StateStore::Pruned, $this->origin($rollup)];
 
         foreach (Tier::cases() as $tier) {
             $names[] = $this->folded($rollup, $tier);
@@ -39,7 +40,13 @@ final readonly class RollupState
         }
 
         $values = $this->store->many($names);
-        $moment = static fn (string $name): ?CarbonImmutable => isset($values[$name]) ? CarbonImmutable::parse($values[$name]) : null;
+        $moment = static function (string $name) use ($values): ?CarbonImmutable {
+            if (! isset($values[$name])) {
+                return null;
+            }
+
+            return CarbonImmutable::parse($values[$name]);
+        };
         $folded = [];
         $since = [];
 
@@ -51,41 +58,45 @@ final readonly class RollupState
         return new Snapshot(
             array_filter($folded),
             array_filter($since),
-            $moment(StateStore::ANONYMISED),
-            $moment(StateStore::PRUNED),
+            $moment(StateStore::Anonymised),
+            $moment(StateStore::Pruned),
             $moment($this->origin($rollup)),
         );
     }
 
     public function putFolded(string $rollup, Tier $tier, CarbonInterface $until): void
     {
-        $this->store->put($this->folded($rollup, $tier), $until->format(StateStore::FORMAT));
+        $this->store->put($this->folded($rollup, $tier), $until->format(StateStore::Format));
     }
 
     public function putSince(string $rollup, Tier $tier, CarbonInterface $since): void
     {
-        $this->store->put($this->since($rollup, $tier), $since->format(StateStore::FORMAT));
+        $this->store->put($this->since($rollup, $tier), $since->format(StateStore::Format));
     }
 
     public function putOrigin(string $rollup, CarbonInterface $origin): void
     {
-        $this->store->put($this->origin($rollup), $origin->format(StateStore::FORMAT));
+        $this->store->put($this->origin($rollup), $origin->format(StateStore::Format));
     }
 
     /**
-     * Shared by every rollup: a run only moves it once all of them have
-     * looked at the views below it.
+     * The last id is shared by every rollup: a run only moves it once all of
+     * them have looked at the views below it.
      */
     public function lastId(): ?int
     {
-        $value = $this->store->get(self::LAST_ID);
+        $value = $this->store->get(self::LastId);
 
-        return $value === null ? null : (int) $value;
+        if ($value === null) {
+            return null;
+        }
+
+        return (int) $value;
     }
 
     public function putLastId(int $id): void
     {
-        $this->store->put(self::LAST_ID, (string) $id);
+        $this->store->put(self::LastId, (string) $id);
     }
 
     private function folded(string $rollup, Tier $tier): string

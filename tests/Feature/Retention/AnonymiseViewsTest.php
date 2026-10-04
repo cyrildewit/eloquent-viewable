@@ -152,7 +152,7 @@ it('starts where the last run stopped', function (): void {
         ->and($run->views)->toBe(1)
         ->and($late->refresh()->visitor)->toBe('visitor-1')
         ->and($new->refresh()->visitor)->toStartWith('a:')
-        ->and(app(RetentionState::class)->get(AnonymiseViews::MARK))->toBe('2026-03-15 00:00:00');
+        ->and(app(RetentionState::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
 });
 
 it('does nothing when the cutoff lies before the last run', function (): void {
@@ -162,7 +162,7 @@ it('does nothing when the cutoff lies before the last run', function (): void {
 
     expect(anonymiseBefore('2026-03-10')->views)->toBe(0)
         ->and($view->refresh()->visitor)->toBe('visitor-1')
-        ->and(app(RetentionState::class)->get(AnonymiseViews::MARK))->toBe('2026-03-15 00:00:00');
+        ->and(app(RetentionState::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
 });
 
 it('counts without changing anything on a dry run', function (): void {
@@ -174,7 +174,7 @@ it('counts without changing anything on a dry run', function (): void {
     expect($run->views)->toBe(2)
         ->and($run->dryRun)->toBeTrue()
         ->and($view->refresh()->visitor)->toBe('visitor-1')
-        ->and(app(RetentionState::class)->get(AnonymiseViews::MARK))->toBeNull();
+        ->and(app(RetentionState::class)->get(AnonymiseViews::Mark))->toBeNull();
 });
 
 it('dispatches an event with the range and the views it changed', function (): void {

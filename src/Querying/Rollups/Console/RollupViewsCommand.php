@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ExpireTiers;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupDefinition;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
@@ -37,43 +38,25 @@ final class RollupViewsCommand extends Command
             return self::SUCCESS;
         }
 
-        $rollup = $this->option('rollup');
-        $rollup = is_string($rollup) ? $policy->find($rollup) ?? false : null;
+        $rollup = $this->rollup($policy);
 
         if ($rollup === false) {
-            $this->components->error('The --rollup option must name a configured rollup: `'.implode('`, `', array_map(static fn (RollupDefinition $definition): string => $definition->name, $policy->definitions())).'`.');
-
             return self::FAILURE;
         }
 
-        $tiers = [];
-
-        foreach ($rollup instanceof RollupDefinition ? [$rollup] : $policy->definitions() as $definition) {
-            $tiers = [...$tiers, ...array_map(static fn (Tier $tier): string => $tier->value, $definition->tiers())];
-        }
-
-        $tiers = array_values(array_unique($tiers));
-        $tier = $this->option('tier');
-        $tier = is_string($tier) ? Tier::tryFrom($tier) ?? false : null;
-
-        if ($tier === false || ($tier instanceof Tier && ! in_array($tier->value, $tiers, true))) {
-            $this->components->error('The --tier option must name a configured tier: `'.implode('`, `', $tiers).'`.');
-
-            return self::FAILURE;
-        }
-
+        $tier = $this->tier($policy, $rollup);
         $from = $this->from();
-        $chunk = $this->option('chunk') === null ? $config->retentionChunk() : filter_var($this->option('chunk'), FILTER_VALIDATE_INT);
+        $chunk = $this->chunk($config);
+
+        if ($tier === false) {
+            return self::FAILURE;
+        }
 
         if ($from === false) {
-            $this->components->error('The --from option must be a date such as `2025-01-01`.');
-
             return self::FAILURE;
         }
 
-        if ($chunk === false || $chunk < 1) {
-            $this->components->error('The --chunk option must be a positive integer.');
-
+        if ($chunk === null) {
             return self::FAILURE;
         }
 
@@ -81,18 +64,11 @@ final class RollupViewsCommand extends Command
 
         $result = $lock->run(function () use ($fold, $expire, $tier, $from, $chunk, $dryRun, $rollup): int {
             foreach ($fold->handle($tier, $from, $dryRun, $rollup?->name) as $run) {
-                $buckets = "{$run->buckets} ".Str::plural('bucket', $run->buckets);
-                $of = $this->tierOf($run->rollup, $run->tier);
-
-                $this->components->info($dryRun
-                    ? "Would have folded {$buckets} of {$of}, up to {$run->until->toDateTimeString()}."
-                    : "Folded {$buckets} of {$of}, up to {$run->until->toDateTimeString()}.");
+                $this->reportFolded($run, $dryRun);
             }
 
             foreach ($expire->handle($chunk, $dryRun) as $expired) {
-                $rows = "{$expired['rows']} expired ".Str::plural('row', $expired['rows']);
-
-                $this->components->info(($dryRun ? 'Would have dropped' : 'Dropped')." {$rows} of {$this->tierOf($expired['rollup'], $expired['tier'])}.");
+                $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $dryRun);
             }
 
             return self::SUCCESS;
@@ -107,13 +83,131 @@ final class RollupViewsCommand extends Command
         return $result;
     }
 
-    private function tierOf(string $rollup, Tier $tier): string
+    /**
+     * It returns the rollup the `--rollup` option names, null without it, or
+     * false once the error is reported.
+     */
+    private function rollup(RollupPolicy $policy): RollupDefinition|false|null
     {
-        return $rollup === RollupPolicy::BUILT_IN ? "the {$tier->value} tier" : "the {$tier->value} tier of `{$rollup}`";
+        $name = $this->option('rollup');
+
+        if (! is_string($name)) {
+            return null;
+        }
+
+        $rollup = $policy->find($name);
+
+        if ($rollup instanceof RollupDefinition) {
+            return $rollup;
+        }
+
+        $names = implode('`, `', array_map(static fn (RollupDefinition $definition): string => $definition->name, $policy->definitions()));
+
+        $this->components->error("The --rollup option must name a configured rollup: `{$names}`.");
+
+        return false;
     }
 
     /**
-     * False once the option does not hold a date.
+     * It returns the tier the `--tier` option names, null without it, or
+     * false once the error is reported. The tier must belong to the rollup
+     * the command folds, or to any rollup without one.
+     */
+    private function tier(RollupPolicy $policy, ?RollupDefinition $rollup): Tier|false|null
+    {
+        $name = $this->option('tier');
+
+        if (! is_string($name)) {
+            return null;
+        }
+
+        $tiers = [];
+
+        foreach ($rollup instanceof RollupDefinition ? [$rollup] : $policy->definitions() as $definition) {
+            $tiers = [...$tiers, ...array_map(static fn (Tier $tier): string => $tier->value, $definition->tiers())];
+        }
+
+        $tiers = array_values(array_unique($tiers));
+
+        if (in_array($name, $tiers, true)) {
+            return Tier::from($name);
+        }
+
+        $names = implode('`, `', $tiers);
+
+        $this->components->error("The --tier option must name a configured tier: `{$names}`.");
+
+        return false;
+    }
+
+    /**
+     * It returns the chunk size, or null once the error is reported.
+     */
+    private function chunk(Config $config): ?int
+    {
+        $option = $this->option('chunk');
+
+        if ($option === null) {
+            return $config->retentionChunk();
+        }
+
+        $chunk = filter_var($option, FILTER_VALIDATE_INT);
+
+        if ($chunk === false) {
+            $this->components->error('The --chunk option must be a positive integer.');
+
+            return null;
+        }
+
+        if ($chunk < 1) {
+            $this->components->error('The --chunk option must be a positive integer.');
+
+            return null;
+        }
+
+        return $chunk;
+    }
+
+    private function reportFolded(ViewsRolledUp $run, bool $dryRun): void
+    {
+        $buckets = Str::plural('bucket', $run->buckets);
+        $summary = "folded {$run->buckets} {$buckets} of {$this->tierOf($run->rollup, $run->tier)}, up to {$run->until->toDateTimeString()}.";
+
+        if ($dryRun) {
+            $this->components->info("Would have {$summary}");
+
+            return;
+        }
+
+        $this->components->info(ucfirst($summary));
+    }
+
+    private function reportExpired(string $rollup, Tier $tier, int $rows, bool $dryRun): void
+    {
+        $noun = Str::plural('row', $rows);
+        $summary = "dropped {$rows} expired {$noun} of {$this->tierOf($rollup, $tier)}.";
+
+        if ($dryRun) {
+            $this->components->info("Would have {$summary}");
+
+            return;
+        }
+
+        $this->components->info(ucfirst($summary));
+    }
+
+    private function tierOf(string $rollup, Tier $tier): string
+    {
+        if ($rollup === RollupPolicy::BuiltIn) {
+            return "the {$tier->value} tier";
+        }
+
+        return "the {$tier->value} tier of `{$rollup}`";
+    }
+
+    /**
+     * It returns the `--from` option as a moment, null without it, or false
+     * once the error is reported.
      */
     private function from(): CarbonImmutable|false|null
     {
@@ -126,6 +220,8 @@ final class RollupViewsCommand extends Command
         try {
             return CarbonImmutable::parse($from);
         } catch (InvalidFormatException) {
+            $this->components->error('The --from option must be a date such as `2025-01-01`.');
+
             return false;
         }
     }

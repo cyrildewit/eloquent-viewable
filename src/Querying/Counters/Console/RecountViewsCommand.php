@@ -25,18 +25,46 @@ final class RecountViewsCommand extends Command
             return self::SUCCESS;
         }
 
-        $chunk = $this->option('chunk') === null ? $config->retentionChunk() : filter_var($this->option('chunk'), FILTER_VALIDATE_INT);
+        $chunk = $this->chunk($config);
 
-        if ($chunk === false || $chunk < 1) {
-            $this->components->error('The --chunk option must be a positive integer.');
-
+        if ($chunk === null) {
             return self::FAILURE;
         }
 
         foreach ($recount->handle($chunk) as $class => $models) {
-            $this->components->info("Recounted {$models} ".Str::plural(class_basename($class), $models).'.');
+            $noun = Str::plural(class_basename($class), $models);
+
+            $this->components->info("Recounted {$models} {$noun}.");
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * It returns the chunk size, or null once the error is reported.
+     */
+    private function chunk(Config $config): ?int
+    {
+        $option = $this->option('chunk');
+
+        if ($option === null) {
+            return $config->retentionChunk();
+        }
+
+        $chunk = filter_var($option, FILTER_VALIDATE_INT);
+
+        if ($chunk === false) {
+            $this->components->error('The --chunk option must be a positive integer.');
+
+            return null;
+        }
+
+        if ($chunk < 1) {
+            $this->components->error('The --chunk option must be a positive integer.');
+
+            return null;
+        }
+
+        return $chunk;
     }
 }

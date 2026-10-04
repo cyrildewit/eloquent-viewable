@@ -42,7 +42,7 @@ it('deletes the views before the cutoff', function (): void {
         ->and($run->until->toDateTimeString())->toBe('2026-03-01 00:00:00')
         ->and($run->clamped)->toBeFalse()
         ->and(View::query()->pluck('viewed_at')->all())->toBe(['2026-03-01 00:00:00'])
-        ->and(app(RetentionState::class)->get(PruneViews::MARK))->toBe('2026-03-01 00:00:00');
+        ->and(app(RetentionState::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
 });
 
 it('deletes in chunks', function (): void {
@@ -67,7 +67,7 @@ it('keeps the mark where it is when a run asks for less', function (): void {
     pruneBefore('2026-03-01');
     pruneBefore('2026-02-01');
 
-    expect(app(RetentionState::class)->get(PruneViews::MARK))->toBe('2026-03-01 00:00:00');
+    expect(app(RetentionState::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
 });
 
 it('counts without deleting on a dry run', function (): void {
@@ -78,7 +78,7 @@ it('counts without deleting on a dry run', function (): void {
     expect($run->views)->toBe(2)
         ->and($run->dryRun)->toBeTrue()
         ->and(View::query()->count())->toBe(2)
-        ->and(app(RetentionState::class)->get(PruneViews::MARK))->toBeNull();
+        ->and(app(RetentionState::class)->get(PruneViews::Mark))->toBeNull();
 });
 
 it('stops where the rollups have captured the views', function (): void {

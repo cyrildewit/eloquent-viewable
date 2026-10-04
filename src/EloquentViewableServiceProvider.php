@@ -91,16 +91,26 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 ], 'migrations');
             }
 
-            // A tag of its own, so the shared `migrations` tag keeps only the
-            // views table and an application opts in to retention.
-            $this->publishes([
-                __DIR__.'/../database/migrations/create_view_retention_state_table.php.stub' => $this->app->databasePath('migrations/'.date('Y_m_d_His', time()).'_create_view_retention_state_table.php'),
-            ], 'eloquent-viewable-retention');
-
-            $this->publishes([
-                __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath('migrations/'.date('Y_m_d_His', time()).'_create_view_rollups_table.php'),
-            ], 'eloquent-viewable-rollups');
+            $this->publishOptInMigrations();
         }
+    }
+
+    /**
+     * Each migration has a tag of its own, so the shared `migrations` tag
+     * keeps only the views table and an application opts in to retention and
+     * rollups one at a time.
+     */
+    protected function publishOptInMigrations(): void
+    {
+        $timestamp = date('Y_m_d_His', time());
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_view_retention_state_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_retention_state_table.php"),
+        ], 'eloquent-viewable-retention');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_rollups_table.php"),
+        ], 'eloquent-viewable-rollups');
     }
 
     protected function forgetCountsOfDestroyedViews(): void
@@ -235,25 +245,34 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * The policies are bound rather than shared, so a config change is read
+     * on the next run.
+     */
     protected function registerRetention(): void
     {
-        // Bound rather than shared, so a config change is read on the next run.
         $this->app->bind(RetentionPolicy::class, fn (Application $app): RetentionPolicy => RetentionPolicy::fromConfig($app->make(Config::class)));
 
         $this->app->bind(StateStore::class, RetentionState::class);
     }
 
+    /**
+     * The watermarks stay null until a rollup is configured, so retention runs
+     * on its own. The rest of querying never learns about rollups: the source
+     * is offered to the manager here, and read once the driver names it.
+     */
     protected function registerRollups(): void
     {
         $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class)));
 
-        // Null until a tier is configured, so retention runs on its own.
-        $this->app->bind(Watermarks::class, fn (Application $app): Watermarks => $app->make(RollupPolicy::class)->isEnabled()
-            ? $app->make(RollupWatermarks::class)
-            : new NullWatermarks);
+        $this->app->bind(Watermarks::class, function (Application $app): Watermarks {
+            if (! $app->make(RollupPolicy::class)->isEnabled()) {
+                return new NullWatermarks;
+            }
 
-        // The rest of querying never learns about rollups; the source is
-        // offered to the manager here, and read once the driver names it.
+            return $app->make(RollupWatermarks::class);
+        });
+
         $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {
             $sources->extend('rollup', fn (Application $app): RollupSource => $app->make(RollupSource::class));
         });

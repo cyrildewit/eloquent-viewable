@@ -8,8 +8,8 @@ use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use Exception;
 
 /**
- * Thrown with `retention.rollups.strict` on, for a count that only rollups
- * can answer and cannot answer exactly.
+ * This exception is thrown with `retention.rollups.strict` on, for a count that
+ * only rollups can answer and cannot answer exactly.
  */
 final class ResolutionUnavailable extends Exception implements EloquentViewableException
 {

@@ -132,8 +132,8 @@ class Views
     }
 
     /**
-     * The views per value of the dimension of the custom rollup named with
-     * `rollup()`, most viewed first.
+     * It counts the views per value of the dimension of the custom rollup
+     * named with `rollup()`, most viewed first.
      *
      * @return array<string, int>
      *
@@ -141,7 +141,11 @@ class Views
      */
     public function countByDimension(): array
     {
-        $dimension = $this->rollup?->dimension() ?? throw UnknownRollup::withoutDimension($this->rollup?->name);
+        $dimension = $this->rollup?->dimension();
+
+        if ($dimension === null) {
+            throw UnknownRollup::withoutDimension($this->rollup?->name);
+        }
 
         return $this->reader->countByDimension($this->viewable(), $this->query(), $dimension, $this->cacheLifetime);
     }
@@ -246,15 +250,27 @@ class Views
     }
 
     /**
-     * Count only the views the custom rollup of this name keeps, from its
-     * rollups through the `rollup` source and from the views table through
-     * its filter. `null` clears it.
+     * The counts then read only the views the custom rollup of this name
+     * keeps, from its rollups through the `rollup` source and from the views
+     * table through its filter. `null` clears it.
      *
      * @throws UnknownRollup
      */
     public function rollup(?string $name): self
     {
-        $this->rollup = $name === null ? null : (Container::getInstance()->make(RollupPolicy::class)->find($name)?->rollup() ?? throw UnknownRollup::named($name));
+        if ($name === null) {
+            $this->rollup = null;
+
+            return $this;
+        }
+
+        $rollup = Container::getInstance()->make(RollupPolicy::class)->find($name)?->rollup();
+
+        if (! $rollup instanceof Rollup) {
+            throw UnknownRollup::named($name);
+        }
+
+        $this->rollup = $rollup;
 
         return $this;
     }

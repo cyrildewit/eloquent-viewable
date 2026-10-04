@@ -21,20 +21,20 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 
 /**
- * Takes what ties a view to a person out of the views viewed in
- * `[anonymised, cutoff)`, one day at a time, on the clock of
- * `retention.rollups.timezone`. `visitor` is re-hashed under a
- * salt of that day, so the views of one visitor on one day keep sharing an
- * id but no id links two days, and once the salt is forgotten nothing leads
- * back. `viewer` and `context` become null.
+ * This action takes what ties a view to a person out of the views viewed in
+ * `[anonymised, cutoff)`, one day at a time on the clock of
+ * `retention.rollups.timezone`. It re-hashes `visitor` under a salt of that
+ * day, so the views of one visitor on one day keep sharing an id but no id
+ * links two days, and once the salt is forgotten nothing leads back.
+ * `viewer` and `context` become null.
  */
 final readonly class AnonymiseViews
 {
-    public const string MARK = StateStore::ANONYMISED;
+    public const string Mark = StateStore::Anonymised;
 
-    public const string PREFIX = 'a:';
+    public const string Prefix = 'a:';
 
-    private const string SALT = 'anonymise:salt:';
+    private const string Salt = 'anonymise:salt:';
 
     public function __construct(
         private View $view,
@@ -45,19 +45,24 @@ final readonly class AnonymiseViews
     ) {}
 
     /**
+     * It anonymises the given columns of the views viewed before the cutoff,
+     * `chunk` views per statement, or only counts them on a dry run. The
+     * cutoff is moved back to midnight, so a day is never split across two
+     * salts and a day bucket never holds two ids of one visitor.
+     *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      *
+     * @throws InvalidConfiguration
+     * @throws InvalidTimezone
      * @throws RetentionNotInstalled
      */
     public function handle(CarbonInterface $cutoff, array $columns, int $chunk, bool $dryRun = false): RetentionRun
     {
         $this->state->ensureInstalled();
 
-        // Whole days on the clock rollups align to, so a day is never split
-        // across two salts and a day bucket never holds two ids of a visitor.
         $requested = $this->midnight($cutoff);
         $until = $this->midnight($this->watermarks->clamp($requested));
-        $from = $this->state->moment(self::MARK);
+        $from = $this->state->moment(self::Mark);
         $clamped = $until < $requested;
 
         if ($from instanceof CarbonInterface && $from >= $until) {
@@ -75,10 +80,10 @@ final readonly class AnonymiseViews
             $views += $this->anonymiseDay($day, $columns, $chunk);
             $cursor = $this->nextMidnight($day);
 
-            $this->state->putMoment(self::MARK, $cursor);
+            $this->state->putMoment(self::Mark, $cursor);
         }
 
-        $this->state->putMoment(self::MARK, $until);
+        $this->state->putMoment(self::Mark, $until);
 
         if ($views > 0) {
             $this->events->dispatch(new ViewsAnonymised($from, $until, $views));
@@ -87,33 +92,45 @@ final readonly class AnonymiseViews
         return new RetentionRun($from, $until, $views, $clamped, false);
     }
 
-    /** @param  list<'visitor'|'viewer'|'context'>  $columns */
+    /**
+     * This is the next day with views left to anonymise, null once there is
+     * none before `until`.
+     *
+     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidTimezone
+     */
     private function nextDay(?CarbonInterface $from, CarbonInterface $until, array $columns): ?Carbon
     {
         $first = $this->pending($from, $until, $columns)->min('viewed_at');
 
-        return is_string($first) ? $this->midnight(Carbon::parse($first)) : null;
-    }
-
-    /** @param  list<'visitor'|'viewer'|'context'>  $columns */
-    private function anonymiseDay(Carbon $day, array $columns, int $chunk): int
-    {
-        $name = self::SALT.$day->avoidMutation()->setTimezone($this->zone())->toDateString();
-        $salt = $this->state->get($name);
-
-        // Kept until the day is done, so a run that stops halfway picks the
-        // same salt up again and one visitor keeps one id.
-        if ($salt === null) {
-            $salt = bin2hex(random_bytes(32));
-
-            $this->state->put($name, $salt);
+        if (! is_string($first)) {
+            return null;
         }
 
+        return $this->midnight(Carbon::parse($first));
+    }
+
+    /**
+     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidTimezone
+     */
+    private function anonymiseDay(Carbon $day, array $columns, int $chunk): int
+    {
+        $name = self::Salt.$day->avoidMutation()->setTimezone($this->zone())->toDateString();
+        $salt = $this->saltOfDayInProgress($name);
         $end = $this->nextMidnight($day);
         $views = 0;
 
         do {
-            $visitors = $this->pending($day, $end, $columns)->orderBy('id')->limit($chunk)->pluck('visitor', 'id')->all();
+            $visitors = $this->pending($day, $end, $columns)
+                ->orderBy('id')
+                ->limit($chunk)
+                ->pluck('visitor', 'id')
+                ->all();
 
             if ($visitors !== []) {
                 $this->update($visitors, $columns, $salt);
@@ -128,14 +145,37 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * The midnight at or before the moment, on the clock of `viewed_at`.
+     * The salt is kept until its day is done, so a run that stops halfway
+     * picks the same salt up again and one visitor keeps one id.
+     */
+    private function saltOfDayInProgress(string $name): string
+    {
+        $salt = $this->state->get($name);
+
+        if ($salt !== null) {
+            return $salt;
+        }
+
+        $salt = bin2hex(random_bytes(32));
+
+        $this->state->put($name, $salt);
+
+        return $salt;
+    }
+
+    /**
+     * This is the midnight at or before the moment, on the clock of
+     * `viewed_at`.
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
     private function midnight(CarbonInterface $moment): Carbon
     {
-        return Carbon::instance($moment)->setTimezone($this->zone())->startOfDay()->setTimezone(date_default_timezone_get());
+        return Carbon::instance($moment)
+            ->setTimezone($this->zone())
+            ->startOfDay()
+            ->setTimezone(date_default_timezone_get());
     }
 
     /**
@@ -144,7 +184,11 @@ final readonly class AnonymiseViews
      */
     private function nextMidnight(Carbon $midnight): Carbon
     {
-        return $midnight->avoidMutation()->setTimezone($this->zone())->addDay()->setTimezone(date_default_timezone_get());
+        return $midnight
+            ->avoidMutation()
+            ->setTimezone($this->zone())
+            ->addDay()
+            ->setTimezone(date_default_timezone_get());
     }
 
     /**
@@ -155,14 +199,18 @@ final readonly class AnonymiseViews
     {
         $zone = $this->config->rollupTimezone();
 
-        return $zone === null ? Timezone::application() : new Timezone($zone);
+        if ($zone === null) {
+            return Timezone::application();
+        }
+
+        return new Timezone($zone);
     }
 
     /**
-     * One statement per chunk. Each visitor gets its own hash, so the new
-     * values go through a `case` on the old one.
+     * It writes one statement per chunk. Each visitor gets a hash of its own,
+     * so the new values go through a `case` on the old one.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors  keyed by view id
+     * @param  non-empty-array<int|string, mixed>  $visitors  keyed by the id of the view
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
@@ -171,24 +219,16 @@ final readonly class AnonymiseViews
         $grammar = $connection->getQueryGrammar();
         $sets = [];
         $bindings = [];
+        $hashes = in_array('visitor', $columns, true) ? $this->hashes($visitors, $salt) : [];
 
-        if (in_array('visitor', $columns, true)) {
-            $hashes = [];
+        if ($hashes !== []) {
+            $visitor = $grammar->wrap('visitor');
+            $cases = str_repeat(' when ? then ?', count($hashes));
+            $sets[] = "{$visitor} = case {$visitor}{$cases} else {$visitor} end";
 
-            foreach ($visitors as $visitor) {
-                if (is_string($visitor) && ! str_starts_with($visitor, self::PREFIX)) {
-                    $hashes[$visitor] = self::PREFIX.hash_hmac('sha256', $visitor, $salt);
-                }
-            }
-
-            if ($hashes !== []) {
-                $visitor = $grammar->wrap('visitor');
-                $sets[] = "{$visitor} = case {$visitor}".str_repeat(' when ? then ?', count($hashes))." else {$visitor} end";
-
-                foreach ($hashes as $old => $new) {
-                    $bindings[] = $old;
-                    $bindings[] = $new;
-                }
+            foreach ($hashes as $old => $new) {
+                $bindings[] = $old;
+                $bindings[] = $new;
             }
         }
 
@@ -202,29 +242,59 @@ final readonly class AnonymiseViews
         }
 
         $ids = array_keys($visitors);
+        $table = $grammar->wrapTable($this->view->getTable());
+        $assignments = implode(', ', $sets);
 
         $connection->update(
-            "update {$grammar->wrapTable($this->view->getTable())} set ".implode(', ', $sets)
-                ." where {$grammar->wrap('id')} in ({$grammar->parameterize($ids)})",
+            "update {$table} set {$assignments} where {$grammar->wrap('id')} in ({$grammar->parameterize($ids)})",
             [...$bindings, ...$ids],
         );
     }
 
     /**
-     * The views in `[from, until)` that still hold something to anonymise.
+     * These are the new ids, keyed by the old ones. A visitor that is null or
+     * anonymised already is left out.
+     *
+     * @param  array<int|string, mixed>  $visitors
+     * @return array<string, string>
+     */
+    private function hashes(array $visitors, string $salt): array
+    {
+        $hashes = [];
+
+        foreach ($visitors as $visitor) {
+            if (! is_string($visitor)) {
+                continue;
+            }
+
+            if (str_starts_with($visitor, self::Prefix)) {
+                continue;
+            }
+
+            $hashes[$visitor] = self::Prefix.hash_hmac('sha256', $visitor, $salt);
+        }
+
+        return $hashes;
+    }
+
+    /**
+     * These are the views in `[from, until)` that still hold something to
+     * anonymise.
      *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      */
     private function pending(?CarbonInterface $from, CarbonInterface $until, array $columns): Builder
     {
-        return $this->view->newQuery()->toBase()
+        return $this->view
+            ->newQuery()
+            ->toBase()
             ->when($from, fn (Builder $query, CarbonInterface $from): Builder => $query->where('viewed_at', '>=', $from))
             ->where('viewed_at', '<', $until)
             ->where(function (Builder $query) use ($columns): void {
                 if (in_array('visitor', $columns, true)) {
                     $query->orWhere(fn (Builder $query): Builder => $query
                         ->whereNotNull('visitor')
-                        ->where('visitor', 'not like', self::PREFIX.'%'));
+                        ->where('visitor', 'not like', self::Prefix.'%'));
                 }
 
                 if (in_array('viewer', $columns, true)) {

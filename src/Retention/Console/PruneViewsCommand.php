@@ -29,11 +29,19 @@ final class PruneViewsCommand extends RetentionCommand
         $after = $this->olderThan($policy->pruneAfter);
         $before = $this->before();
 
-        if ($chunk === null || $after === false || $before === false) {
+        if ($chunk === null) {
             return self::FAILURE;
         }
 
-        $cutoff = $before ?? ($after instanceof Duration ? $after->before(Carbon::now()) : null);
+        if ($after === false) {
+            return self::FAILURE;
+        }
+
+        if ($before === false) {
+            return self::FAILURE;
+        }
+
+        $cutoff = $before ?? $this->olderThanCutoff($after);
 
         if (! $cutoff instanceof CarbonInterface) {
             $this->components->info('Nothing to prune, `retention.prune.after` is not set.');
@@ -48,8 +56,18 @@ final class PruneViewsCommand extends RetentionCommand
         });
     }
 
+    private function olderThanCutoff(?Duration $after): ?CarbonInterface
+    {
+        if (! $after instanceof Duration) {
+            return null;
+        }
+
+        return $after->before(Carbon::now());
+    }
+
     /**
-     * False once the error is reported.
+     * It returns the `--before` option as a moment, or false once the error is
+     * reported.
      */
     private function before(): CarbonInterface|false|null
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
 use Carbon\CarbonImmutable;
+use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -24,22 +25,22 @@ use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use DateTimeZone;
-use JsonException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use JsonException;
 use stdClass;
 
 /**
- * Reads recent views from the views table and older history from the rollup
- * tiers, through the same contract, so every count, series, ranking and scope
+ * This source reads recent views from the views table and older history from
+ * the rollup tiers, through the same contract, so every count, series, ranking and scope
  * keeps working when the views behind them are gone. A query the rollups
  * cannot answer, such as one narrowed to a viewer or one that needs a
  * grouping that is not kept, reads the views table alone.
  */
 final readonly class RollupSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
 {
-    private const int CHUNK = 1_000;
+    private const int Chunk = 1_000;
 
     public function __construct(
         private DatabaseSource $raw,
@@ -152,8 +153,8 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * Per value of the dimension of the custom rollup the query reads
-     * through. Any other dimension reads the views table alone.
+     * It counts per value of the dimension of the custom rollup the query
+     * reads through. Any other dimension reads the views table alone.
      *
      * @return array<string, int>
      *
@@ -162,8 +163,12 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
      */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
     {
+        if ($this->policy->for($query)?->dimension() !== $dimension) {
+            return $this->raw->countByDimension($viewable, $query, $dimension);
+        }
+
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $plan = $this->policy->for($query)?->dimension() === $dimension ? $this->plan($grouping, $query) : null;
+        $plan = $this->plan($grouping, $query);
 
         if (! $plan instanceof Plan) {
             return $this->raw->countByDimension($viewable, $query, $dimension);
@@ -216,7 +221,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
 
         $id = $this->rollup->qualifyColumn('viewable_id');
 
-        foreach (array_chunk($keys, self::CHUNK) as $chunk) {
+        foreach (array_chunk($keys, self::Chunk) as $chunk) {
             /** @var Collection<int|string, int|string> $rows */
             $rows = $this->rollups($viewable->getMorphClass(), null, $grouping, $plan, $query)
                 ->whereIn($id, $chunk)
@@ -237,7 +242,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The sum of a correlated subquery per segment of the views table and
+     * The query sums a correlated subquery per segment of the views table and
      * one over the rollups, so the scopes order and filter on all-time
      * counts without scanning every view.
      *
@@ -273,7 +278,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * An existence check reads the views table alone, like every read of a
+     * The existence check reads the views table alone, like every read of a
      * viewer or visitor: the rollups keep neither.
      */
     public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
@@ -323,8 +328,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
             $union->unionAll($branch);
         }
 
-        // Ordered by the alias, then by the group columns so ties come back
-        // in the same order everywhere, as the views table ranks them.
         $rows = $this->view->getConnection()->query()
             ->fromSub($union, 'ranked')
             ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate')
@@ -346,7 +349,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * Null when the views table answers alone.
+     * It returns null when the views table answers alone.
      *
      * @throws ResolutionUnavailable
      */
@@ -354,7 +357,15 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     {
         $definition = $this->policy->for($query);
 
-        if (! $definition instanceof RollupDefinition || $query->viewer instanceof Model || ! $definition->keeps($grouping)) {
+        if (! $definition instanceof RollupDefinition) {
+            return null;
+        }
+
+        if ($query->viewer instanceof Model) {
+            return null;
+        }
+
+        if (! $definition->keeps($grouping)) {
             return null;
         }
 
@@ -368,18 +379,13 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
             return null;
         }
 
-        $zone = $this->seriesZone($query);
-        $align = $granularity instanceof Granularity
-            ? static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($granularity->floor($moment->setTimezone($zone)))->setTimezone($moment->getTimezone())
-            : null;
-
         $plan = new Planner($this->policy->timezone)->plan(
             $this->state->snapshot($definition->name),
             $tiers,
             $query->period?->getStartDateTime(),
             $query->period?->getEndDateTime(),
             $query->unique,
-            $align,
+            $this->alignToSeries($query, $granularity),
         );
 
         if ($plan->isRawOnly()) {
@@ -393,6 +399,24 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         return $plan;
     }
 
+    /**
+     * The hand-over from rollups to the views table moves back onto the edge
+     * of a series bucket, so no bucket of the series is summed from both.
+     *
+     * @return (Closure(CarbonImmutable): CarbonImmutable)|null
+     */
+    private function alignToSeries(ViewsQuery $query, ?Granularity $granularity): ?Closure
+    {
+        if (! $granularity instanceof Granularity) {
+            return null;
+        }
+
+        $zone = $this->seriesZone($query);
+
+        return static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($granularity->floor($moment->setTimezone($zone)))
+            ->setTimezone($moment->getTimezone());
+    }
+
     /** @throws ResolutionUnavailable */
     private function guard(Plan $plan, ViewsQuery $query, ?Granularity $granularity): void
     {
@@ -401,9 +425,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         }
 
         if (! $granularity instanceof Granularity) {
-            if ($query->unique && $plan->parts($this->policy->timezone) > 1) {
-                throw ResolutionUnavailable::summedUniques();
-            }
+            $this->guardCount($plan, $query);
 
             return;
         }
@@ -411,11 +433,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         $zone = $this->seriesZone($query);
 
         if ($zone->getName() !== $this->policy->timezone->getName()) {
-            foreach ($plan->rollups() as $segment) {
-                if ($segment->tier !== Tier::Hour || ! $this->alignsByTheHour($segment, $zone)) {
-                    throw ResolutionUnavailable::otherTimezone($zone->getName(), $this->policy->timezone->getName());
-                }
-            }
+            $this->guardOtherTimezone($plan, $zone);
         }
 
         if (! $query->unique) {
@@ -435,17 +453,56 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         }
     }
 
-    /**
-     * Whether the hours of the rollups and of the series start together
-     * across the segment, so every hour bucket lies inside one series bucket.
-     */
-    private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
+    /** @throws ResolutionUnavailable */
+    private function guardCount(Plan $plan, ViewsQuery $query): void
     {
-        return array_all([$segment->start, $segment->end], fn (?CarbonImmutable $moment): bool => ! $moment instanceof CarbonImmutable || ($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 === 0);
+        if (! $query->unique) {
+            return;
+        }
+
+        if ($plan->parts($this->policy->timezone) > 1) {
+            throw ResolutionUnavailable::summedUniques();
+        }
     }
 
     /**
-     * Where a bucket lands on the clock of a series. An hour is converted, so
+     * Only hour buckets can be placed exactly in a series in another zone,
+     * and only while the two zones are a whole number of hours apart.
+     *
+     * @throws ResolutionUnavailable
+     */
+    private function guardOtherTimezone(Plan $plan, DateTimeZone $zone): void
+    {
+        foreach ($plan->rollups() as $segment) {
+            if ($segment->tier === Tier::Hour && $this->alignsByTheHour($segment, $zone)) {
+                continue;
+            }
+
+            throw ResolutionUnavailable::otherTimezone($zone->getName(), $this->policy->timezone->getName());
+        }
+    }
+
+    /**
+     * The hours of the rollups and of the series start together when the two
+     * zones are a whole number of hours apart at both ends of the segment.
+     */
+    private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
+    {
+        foreach ([$segment->start, $segment->end] as $moment) {
+            if (! $moment instanceof CarbonImmutable) {
+                continue;
+            }
+
+            if (($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 !== 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * This is where a bucket lands on the clock of a series. An hour is converted, so
      * a series in a zone a whole number of hours away stays exact. A coarser
      * bucket keeps its label: January on the rollup clock is January in the
      * series, rather than the last hours of December.
@@ -466,14 +523,17 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The rollup rows of the grouping inside the plan's rollup segments.
+     * These are the rollup rows of the grouping inside the plan's rollup
+     * segments.
      */
     private function rollups(?string $type, int|string|null $key, Grouping $grouping, Plan $plan, ViewsQuery $query, bool $perDimension = false): Builder
     {
         $column = fn (string $name): string => $this->rollup->qualifyColumn($name);
 
-        $builder = $this->rollup->newQuery()->toBase()
-            ->where($column('rollup'), $this->policy->for($query)->name ?? RollupPolicy::BUILT_IN)
+        $builder = $this->rollup
+            ->newQuery()
+            ->toBase()
+            ->where($column('rollup'), $this->policy->for($query)->name ?? RollupPolicy::BuiltIn)
             ->where($column('grouping'), $grouping->stored($perDimension))
             ->when($type !== null, fn (Builder $builder): Builder => $builder->where($column('viewable_type'), $type))
             ->when($key !== null, fn (Builder $builder): Builder => $builder->where($column('viewable_id'), $key));
@@ -493,15 +553,15 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The views of one raw segment grouped per viewable, a branch of the
-     * ranking union.
+     * These are the views of one raw segment grouped per viewable, a branch of
+     * the ranking union.
      */
     private function rawRanking(?string $type, ViewsQuery $query): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase();
         $viewableType = $this->view->qualifyColumn('viewable_type');
         $viewableId = $this->view->qualifyColumn('viewable_id');
-        $aggregate = $query->unique ? "count(distinct {$this->wrap($this->view->qualifyColumn('visitor'))})" : 'count(*)';
+        $aggregate = $this->aggregate($query);
 
         return $builder
             ->when($type !== null, fn (Builder $builder): Builder => $builder->where($viewableType, $type))
@@ -509,9 +569,22 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
             ->groupBy($viewableType, $viewableId);
     }
 
+    private function aggregate(ViewsQuery $query): string
+    {
+        if (! $query->unique) {
+            return 'count(*)';
+        }
+
+        return "count(distinct {$this->wrap($this->view->qualifyColumn('visitor'))})";
+    }
+
     private function column(ViewsQuery $query): string
     {
-        return $query->unique ? 'unique_visitors' : 'views';
+        if (! $query->unique) {
+            return 'views';
+        }
+
+        return 'unique_visitors';
     }
 
     private function seriesZone(ViewsQuery $query): Timezone

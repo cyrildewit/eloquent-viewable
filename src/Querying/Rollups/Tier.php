@@ -10,8 +10,8 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use DateTimeZone;
 
 /**
- * The width of a rollup bucket. Week is left out, because weeks do not nest
- * into months; a weekly series is built from day buckets.
+ * A tier is the width of a rollup bucket. Week is left out, because weeks do
+ * not nest into months; a weekly series is built from day buckets.
  *
  * Moments go in and come out on the clock of `viewed_at`. The bucket edges
  * fall on the clock of the zone handed in.
@@ -48,8 +48,9 @@ enum Tier: string
     }
 
     /**
-     * Whether every bucket of this tier lies inside one bucket of the
-     * granularity, so a series of it can be summed from this tier.
+     * A tier fits a granularity when every bucket of the tier lies inside one
+     * bucket of the granularity, so a series of it can be summed from the
+     * tier.
      */
     public function fits(Granularity $granularity): bool
     {
@@ -75,11 +76,15 @@ enum Tier: string
     {
         $floor = $this->floor($moment, $zone);
 
-        return $floor->equalTo($moment) ? $floor : $this->next($floor, $zone);
+        if ($floor->equalTo($moment)) {
+            return $floor;
+        }
+
+        return $this->next($floor, $zone);
     }
 
     /**
-     * How many buckets lie in `[start, end)`, both on a bucket edge.
+     * It counts the buckets in `[start, end)`, both on a bucket edge.
      */
     public function countBetween(CarbonInterface $start, CarbonInterface $end, DateTimeZone $zone): int
     {

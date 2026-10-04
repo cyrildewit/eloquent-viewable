@@ -15,16 +15,16 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Carbon;
 
 /**
- * The `retention.rollups` config, read and checked once: the built-in rollup
- * when tiers are configured, and every custom rollup.
+ * This policy is the `retention.rollups` config, read and checked once: the
+ * built-in rollup when tiers are configured, and every custom rollup.
  */
 final readonly class RollupPolicy
 {
-    public const string BUILT_IN = 'views';
+    public const string BuiltIn = 'views';
 
-    private const array TIERS = ['hour', 'day', 'month', 'year'];
+    private const array Tiers = ['hour', 'day', 'month', 'year'];
 
-    private const array GROUPINGS = ['viewable', 'viewable_collection', 'type', 'type_collection'];
+    private const array Groupings = ['viewable', 'viewable_collection', 'type', 'type_collection'];
 
     /**
      * @param  list<RollupDefinition>  $definitions
@@ -75,7 +75,7 @@ final readonly class RollupPolicy
 
         if ($tiers !== []) {
             $definitions[] = new RollupDefinition(
-                self::BUILT_IN,
+                self::BuiltIn,
                 self::ordered($tiers),
                 array_map(Grouping::from(...), $config->rollupGroupings()),
             );
@@ -93,11 +93,9 @@ final readonly class RollupPolicy
             $definitions[] = $definition;
         }
 
-        $timezone = $config->rollupTimezone();
-
         return new self(
             $definitions,
-            $timezone === null ? Timezone::application() : new Timezone($timezone),
+            self::timezone($config),
             $config->rollupSettle(),
             $config->rollupsStrict(),
             $config->rollupTable(),
@@ -128,12 +126,16 @@ final readonly class RollupPolicy
     }
 
     /**
-     * The rollup a read goes through: the custom one its filter names, or the
-     * built-in one without a filter.
+     * This is the rollup a read goes through: the custom one its filter names,
+     * or the built-in one without a filter.
      */
     public function for(ViewsQuery $query): ?RollupDefinition
     {
-        return $this->find($query->filter instanceof FiltersViews ? $query->filter->name() : self::BUILT_IN);
+        if (! $query->filter instanceof FiltersViews) {
+            return $this->find(self::BuiltIn);
+        }
+
+        return $this->find($query->filter->name());
     }
 
     private function coarsestTier(): ?Tier
@@ -143,12 +145,30 @@ final readonly class RollupPolicy
         foreach ($this->definitions as $definition) {
             $tier = $definition->tiers()[0] ?? null;
 
-            if ($tier instanceof Tier && (! $coarsest instanceof Tier || $tier->isCoarserThan($coarsest))) {
-                $coarsest = $tier;
+            if (! $tier instanceof Tier) {
+                continue;
             }
+
+            if ($coarsest instanceof Tier && ! $tier->isCoarserThan($coarsest)) {
+                continue;
+            }
+
+            $coarsest = $tier;
         }
 
         return $coarsest;
+    }
+
+    /** @throws InvalidTimezone */
+    private static function timezone(Config $config): Timezone
+    {
+        $timezone = $config->rollupTimezone();
+
+        if ($timezone === null) {
+            return Timezone::application();
+        }
+
+        return new Timezone($timezone);
     }
 
     /**
@@ -161,39 +181,92 @@ final readonly class RollupPolicy
         $rollup = Container::getInstance()->make($class);
 
         if (! $rollup instanceof Rollup) {
-            throw InvalidConfiguration::invalidRollup($class, 'must extend `'.Rollup::class.'`');
-        }
+            $parent = Rollup::class;
 
-        $name = $rollup->name;
-
-        if (preg_match('/^[A-Za-z0-9_-]+$/', $name) !== 1 || $name === self::BUILT_IN) {
-            throw InvalidConfiguration::invalidRollup($class, 'must have a `name` of letters, digits, `-` and `_` other than `'.self::BUILT_IN.'`');
-        }
-
-        $tiers = [];
-
-        foreach ($rollup->tiers() as $tier => $keep) {
-            $duration = is_string($keep) ? Duration::tryParse($keep) : null;
-
-            if (! in_array($tier, self::TIERS, true) || ($keep !== null && ! $duration instanceof Duration)) {
-                throw InvalidConfiguration::invalidRollup($class, 'must map `hour`, `day`, `month` or `year` to a duration such as `2y`, or null, in `tiers()`');
-            }
-
-            $tiers[$tier] = $duration;
-        }
-
-        $groupings = $rollup->groupings();
-
-        if ($tiers === [] || $groupings === [] || array_diff($groupings, self::GROUPINGS) !== []) {
-            throw InvalidConfiguration::invalidRollup($class, 'must keep at least one tier, and at least one grouping of `'.implode('`, `', self::GROUPINGS).'`');
+            throw InvalidConfiguration::invalidRollup($class, "must extend `{$parent}`");
         }
 
         return new RollupDefinition(
-            $name,
-            self::ordered($tiers),
-            array_map(Grouping::from(...), array_values(array_intersect(self::GROUPINGS, $groupings))),
+            self::nameOf($class, $rollup),
+            self::ordered(self::tiersOf($class, $rollup)),
+            self::groupingsOf($class, $rollup),
             $rollup,
         );
+    }
+
+    /** @throws InvalidConfiguration */
+    private static function nameOf(string $class, Rollup $rollup): string
+    {
+        $builtIn = self::BuiltIn;
+        $problem = "must have a `name` of letters, digits, `-` and `_` other than `{$builtIn}`";
+
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $rollup->name) !== 1) {
+            throw InvalidConfiguration::invalidRollup($class, $problem);
+        }
+
+        if ($rollup->name === $builtIn) {
+            throw InvalidConfiguration::invalidRollup($class, $problem);
+        }
+
+        return $rollup->name;
+    }
+
+    /**
+     * @return array<string, Duration|null>
+     *
+     * @throws InvalidConfiguration
+     */
+    private static function tiersOf(string $class, Rollup $rollup): array
+    {
+        $problem = 'must map `hour`, `day`, `month` or `year` to a duration such as `2y`, or null, in `tiers()`';
+        $tiers = [];
+
+        foreach ($rollup->tiers() as $tier => $keep) {
+            if (! in_array($tier, self::Tiers, true)) {
+                throw InvalidConfiguration::invalidRollup($class, $problem);
+            }
+
+            if ($keep === null) {
+                $tiers[$tier] = null;
+
+                continue;
+            }
+
+            $tiers[$tier] = Duration::tryParse($keep) ?? throw InvalidConfiguration::invalidRollup($class, $problem);
+        }
+
+        if ($tiers === []) {
+            throw InvalidConfiguration::invalidRollup($class, self::missingGroupingOrTier());
+        }
+
+        return $tiers;
+    }
+
+    /**
+     * @return list<Grouping>
+     *
+     * @throws InvalidConfiguration
+     */
+    private static function groupingsOf(string $class, Rollup $rollup): array
+    {
+        $groupings = $rollup->groupings();
+
+        if ($groupings === []) {
+            throw InvalidConfiguration::invalidRollup($class, self::missingGroupingOrTier());
+        }
+
+        if (array_diff($groupings, self::Groupings) !== []) {
+            throw InvalidConfiguration::invalidRollup($class, self::missingGroupingOrTier());
+        }
+
+        return array_map(Grouping::from(...), array_values(array_intersect(self::Groupings, $groupings)));
+    }
+
+    private static function missingGroupingOrTier(): string
+    {
+        $groupings = implode('`, `', self::Groupings);
+
+        return "must keep at least one tier, and at least one grouping of `{$groupings}`";
     }
 
     /**
@@ -222,6 +295,10 @@ final readonly class RollupPolicy
             return false;
         }
 
-        return ! $finerKeep instanceof Duration || $finerKeep->isLongerThan($coarserKeep, $now);
+        if (! $finerKeep instanceof Duration) {
+            return true;
+        }
+
+        return $finerKeep->isLongerThan($coarserKeep, $now);
     }
 }

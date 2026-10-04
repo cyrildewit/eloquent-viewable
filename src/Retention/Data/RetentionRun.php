@@ -7,9 +7,9 @@ namespace CyrildeWit\EloquentViewable\Retention\Data;
 use Carbon\CarbonInterface;
 
 /**
- * What one run of anonymising or pruning covered: the views viewed in
- * `[from, until)`, `from` being null on the first run. Clamped when a rollup
- * had not yet captured the views up to the cutoff that was asked for.
+ * A run of anonymising or pruning covers the views viewed in `[from, until)`,
+ * `from` being null on the first run. It is clamped when a rollup had not yet
+ * folded the views up to the cutoff that was asked for.
  */
 final readonly class RetentionRun
 {

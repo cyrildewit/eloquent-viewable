@@ -247,8 +247,9 @@ final readonly class Config
     }
 
     /**
-     * The counter columns to keep, per viewable model, each with the count it
-     * holds. A column listed without options holds the all-time count.
+     * These are the counter columns to keep, per viewable model, each with the
+     * count it holds. A column listed without options holds the all-time
+     * count.
      *
      * @return array<class-string<Model&Viewable>, array<string, ViewsQuery>>
      *
@@ -257,42 +258,22 @@ final readonly class Config
      */
     public function counters(): array
     {
-        $key = 'querying.counters';
-        $value = $this->get($key, []);
+        $value = $this->get('querying.counters', []);
 
         if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeCounters($key, $value);
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $value);
         }
 
         $counters = [];
 
         foreach ($value as $class => $columns) {
-            if (! is_string($class) || ! is_a($class, Model::class, true) || ! is_a($class, Viewable::class, true) || ! is_array($columns) || $columns === []) {
-                throw InvalidConfiguration::mustBeCounters($key, $class);
+            $model = $this->counterModel($class);
+
+            if (! is_array($columns) || $columns === []) {
+                throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
             }
 
-            foreach ($columns as $column => $options) {
-                if (is_int($column) && is_string($options)) {
-                    [$column, $options] = [$options, []];
-                }
-
-                if (! is_string($column) || $column === '' || ! is_array($options) || array_diff(array_keys($options), ['unique', 'period', 'collection']) !== []) {
-                    throw InvalidConfiguration::mustBeCounters($key, $column);
-                }
-
-                $period = $options['period'] ?? null;
-                $collection = $options['collection'] ?? null;
-
-                if (($period !== null && ! is_string($period)) || ($collection !== null && ! is_string($collection))) {
-                    throw InvalidConfiguration::mustBeCounters($key, $column);
-                }
-
-                $counters[$class][$column] = new ViewsQuery(
-                    $period === null ? null : Period::parse($period),
-                    $collection,
-                    (bool) ($options['unique'] ?? false),
-                );
-            }
+            $counters[$model] = $this->counterColumns($columns);
         }
 
         return $counters;
@@ -311,21 +292,10 @@ final readonly class Config
      */
     public function anonymiseColumns(): array
     {
-        $allowed = ['visitor', 'viewer', 'context'];
-        $value = $this->get('retention.anonymise.columns', $allowed);
-
-        if (! is_array($value) || $value === []) {
-            throw InvalidConfiguration::mustBeSubsetOf('retention.anonymise.columns', $allowed, $value);
-        }
-
-        foreach ($value as $column) {
-            if (! in_array($column, $allowed, true)) {
-                throw InvalidConfiguration::mustBeSubsetOf('retention.anonymise.columns', $allowed, $column);
-            }
-        }
+        $columns = ['visitor', 'viewer', 'context'];
 
         /** @var list<'visitor'|'viewer'|'context'> */
-        return array_values(array_intersect($allowed, $value));
+        return $this->subsetOf('retention.anonymise.columns', $columns, $columns);
     }
 
     /** @throws InvalidConfiguration */
@@ -359,7 +329,8 @@ final readonly class Config
     }
 
     /**
-     * The tiers to keep, each with how long it is kept, null for forever.
+     * These are the tiers to keep, each with how long it is kept, or null to
+     * keep it forever.
      *
      * @return array<'hour'|'day'|'month'|'year', Duration|null>
      *
@@ -381,7 +352,7 @@ final readonly class Config
                 throw InvalidConfiguration::mustBeTiers('retention.rollups.tiers', $tier);
             }
 
-            $tiers[$tier] = $keep === null ? null : $this->duration("retention.rollups.tiers.{$tier}");
+            $tiers[$tier] = $this->duration("retention.rollups.tiers.{$tier}");
         }
 
         return $tiers;
@@ -394,21 +365,12 @@ final readonly class Config
      */
     public function rollupGroupings(): array
     {
-        $allowed = ['viewable', 'viewable_collection', 'type', 'type_collection'];
-        $value = $this->get('retention.rollups.groupings', ['viewable', 'viewable_collection', 'type']);
-
-        if (! is_array($value) || $value === []) {
-            throw InvalidConfiguration::mustBeSubsetOf('retention.rollups.groupings', $allowed, $value);
-        }
-
-        foreach ($value as $grouping) {
-            if (! in_array($grouping, $allowed, true)) {
-                throw InvalidConfiguration::mustBeSubsetOf('retention.rollups.groupings', $allowed, $grouping);
-            }
-        }
-
         /** @var list<'viewable'|'viewable_collection'|'type'|'type_collection'> */
-        return array_values(array_intersect($allowed, $value));
+        return $this->subsetOf(
+            'retention.rollups.groupings',
+            ['viewable', 'viewable_collection', 'type', 'type_collection'],
+            ['viewable', 'viewable_collection', 'type'],
+        );
     }
 
     /**
@@ -425,7 +387,11 @@ final readonly class Config
         }
 
         foreach ($value as $class) {
-            if (! is_string($class) || ! class_exists($class)) {
+            if (! is_string($class)) {
+                throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $class);
+            }
+
+            if (! class_exists($class)) {
                 throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $class);
             }
         }
@@ -472,6 +438,86 @@ final readonly class Config
         return $value;
     }
 
+    /**
+     * @return class-string<Model&Viewable>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function counterModel(mixed $class): string
+    {
+        if (! is_string($class)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
+        }
+
+        if (! is_a($class, Model::class, true)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
+        }
+
+        if (! is_a($class, Viewable::class, true)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
+        }
+
+        return $class;
+    }
+
+    /**
+     * @param  array<mixed>  $columns
+     * @return array<string, ViewsQuery>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    private function counterColumns(array $columns): array
+    {
+        $counters = [];
+
+        foreach ($columns as $column => $options) {
+            if (is_int($column) && is_string($options)) {
+                [$column, $options] = [$options, []];
+            }
+
+            if (! is_string($column) || $column === '') {
+                throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+            }
+
+            $counters[$column] = $this->counterQuery($column, $options);
+        }
+
+        return $counters;
+    }
+
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    private function counterQuery(string $column, mixed $options): ViewsQuery
+    {
+        if (! is_array($options)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        if (array_diff(array_keys($options), ['unique', 'period', 'collection']) !== []) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        $period = $options['period'] ?? null;
+        $collection = $options['collection'] ?? null;
+
+        if ($period !== null && ! is_string($period)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        if ($collection !== null && ! is_string($collection)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        return new ViewsQuery(
+            $period === null ? null : Period::parse($period),
+            $collection,
+            (bool) ($options['unique'] ?? false),
+        );
+    }
+
     /** @throws InvalidConfiguration */
     private function duration(string $key): ?Duration
     {
@@ -481,8 +527,39 @@ final readonly class Config
             return null;
         }
 
-        return (is_string($value) ? Duration::tryParse($value) : null)
-            ?? throw InvalidConfiguration::mustBeDuration($key, $value);
+        if (! is_string($value)) {
+            throw InvalidConfiguration::mustBeDuration($key, $value);
+        }
+
+        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value);
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     * @param  list<string>  $default
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function subsetOf(string $key, array $allowed, array $default): array
+    {
+        $value = $this->get($key, $default);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $value);
+        }
+
+        if ($value === []) {
+            throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $value);
+        }
+
+        foreach ($value as $item) {
+            if (! in_array($item, $allowed, true)) {
+                throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $item);
+            }
+        }
+
+        return array_values(array_intersect($allowed, $value));
     }
 
     /** @throws InvalidConfiguration */

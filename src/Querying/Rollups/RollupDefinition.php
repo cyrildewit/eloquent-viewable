@@ -9,8 +9,8 @@ use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * One rollup as it is folded and read: the built-in one from the config, or
- * a custom one with its filter and dimension.
+ * A definition describes one rollup as it is folded and read: the built-in one
+ * from the config, or a custom one with its filter and dimension.
  *
  * @internal
  */
@@ -28,7 +28,7 @@ final readonly class RollupDefinition
     ) {}
 
     /**
-     * The tiers, coarse to fine.
+     * These are the tiers, coarse to fine.
      *
      * @return list<Tier>
      */
@@ -38,7 +38,7 @@ final readonly class RollupDefinition
     }
 
     /**
-     * Null when the tier is kept forever.
+     * It returns how long the tier is kept, null for forever.
      */
     public function keep(Tier $tier): ?Duration
     {
@@ -46,7 +46,7 @@ final readonly class RollupDefinition
     }
 
     /**
-     * The next tier of this rollup coarser than the given one.
+     * This is the next tier of the rollup coarser than the given one.
      */
     public function coarserThan(Tier $tier): ?Tier
     {
@@ -78,7 +78,7 @@ final readonly class RollupDefinition
     }
 
     /**
-     * The custom rollup, null for the built-in one.
+     * This is the custom rollup, null for the built-in one.
      */
     public function rollup(): ?Rollup
     {

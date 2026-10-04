@@ -13,12 +13,13 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 
 /**
- * Names and values in the `view_retention_state` table, on the connection of
- * the views table. Moments are kept on the clock of `viewed_at`.
+ * This store keeps names and values in the `view_retention_state` table, on
+ * the connection of the views table. It keeps moments on the clock of
+ * `viewed_at`.
  */
 final readonly class RetentionState implements StateStore
 {
-    public const string TABLE = 'view_retention_state';
+    public const string Table = 'view_retention_state';
 
     private ConnectionInterface $connection;
 
@@ -31,13 +32,13 @@ final readonly class RetentionState implements StateStore
     public function ensureInstalled(): void
     {
         if (! $this->installed()) {
-            throw RetentionNotInstalled::missingTable(self::TABLE);
+            throw RetentionNotInstalled::missingTable(self::Table);
         }
     }
 
     public function installed(): bool
     {
-        return $this->connection->getSchemaBuilder()->hasTable(self::TABLE);
+        return $this->connection->getSchemaBuilder()->hasTable(self::Table);
     }
 
     /**
@@ -59,7 +60,11 @@ final readonly class RetentionState implements StateStore
     {
         $value = $this->table()->where('name', $name)->value('value');
 
-        return is_string($value) ? $value : null;
+        if (! is_string($value)) {
+            return null;
+        }
+
+        return $value;
     }
 
     public function put(string $name, string $value): void
@@ -76,16 +81,20 @@ final readonly class RetentionState implements StateStore
     {
         $value = $this->get($name);
 
-        return $value === null ? null : Carbon::parse($value);
+        if ($value === null) {
+            return null;
+        }
+
+        return Carbon::parse($value);
     }
 
     public function putMoment(string $name, CarbonInterface $moment): void
     {
-        $this->put($name, $moment->format(self::FORMAT));
+        $this->put($name, $moment->format(self::Format));
     }
 
     private function table(): Builder
     {
-        return $this->connection->table(self::TABLE);
+        return $this->connection->table(self::Table);
     }
 }
