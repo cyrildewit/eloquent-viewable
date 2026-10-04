@@ -218,6 +218,17 @@ it('stops where the rollups have captured the views', function (): void {
         ->and($waiting->refresh()->visitor)->toBe('visitor-1');
 });
 
+it('forgets the remembered counts once views are anonymised', function (): void {
+    retainedView($this->post, '2026-03-01 10:00:00');
+    retainedView($this->post, '2026-03-02 10:00:00');
+
+    expect(views($this->post)->unique()->remember(3600)->count())->toBe(1);
+
+    anonymiseBefore('2026-03-15');
+
+    expect(views($this->post)->unique()->remember(3600)->count())->toBe(2);
+});
+
 it('throws when the retention migration has not run', function (): void {
     config()->set('database.connections.bare', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
     config()->set('eloquent-viewable.models.view.connection', 'bare');

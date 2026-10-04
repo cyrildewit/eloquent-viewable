@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Exceptions\LockUnavailable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Carbon;
@@ -164,6 +165,24 @@ it('anonymises and then prunes as configured', function (): void {
             fn ($visitor) => $visitor->toStartWith('a:'),
             fn ($visitor) => $visitor->toBe('visitor-1'),
         );
+});
+
+it('keeps every count and counter column through a full maintenance run', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    config()->set('eloquent-viewable.retention.anonymise.after', '30d');
+    config()->set('eloquent-viewable.retention.prune.after', '60d');
+    config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
+    config()->set('eloquent-viewable.querying.source.driver', 'rollup');
+
+    $anonymised = View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-02-15 10:00:00'))->create(['visitor' => 'visitor-1']);
+
+    $this->artisan('views:maintain')->assertSuccessful();
+
+    expect(View::query()->count())->toBe(2)
+        ->and($anonymised->refresh()->visitor)->toStartWith('a:')
+        ->and(views($this->post)->count())->toBe(4)
+        ->and(views($this->post)->period(Period::create('2025-01-01', '2025-02-01'))->count())->toBe(1)
+        ->and((int) Post::query()->whereKey($this->post->getKey())->value('cached_views'))->toBe(4);
 });
 
 it('maintains only what is configured', function (string $key, string $value, string $message): void {
