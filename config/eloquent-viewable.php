@@ -225,6 +225,21 @@ return [
         ],
 
         /*
+         * Counter columns on your own tables, which `views:recount` and
+         * `views:maintain` write the count into, so a listing can order and
+         * filter by a plain column. List a column by name for its all-time
+         * count, or map it to the `unique`, `period` and `collection` of the
+         * count it holds. For example:
+         *
+         *   Post::class => [
+         *       'views_count',
+         *       'unique_views_count' => ['unique' => true],
+         *       'views_last_week' => ['period' => '7d'],
+         *   ],
+         */
+        'counters' => [],
+
+        /*
          * Counting views by interval fills every bucket between the period
          * start and end, so a wide period with a fine granularity produces a
          * large series. Calls that would produce more buckets than this

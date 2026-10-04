@@ -20,6 +20,14 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
         return new self("The view source [{$class}] cannot be queried in SQL, so the withViewsCount(), orderByViews(), whereViewsCount() and whereViewedBy() scopes cannot read from it. Implement `{$contract}` on it, or count through views() instead.");
     }
 
+    public static function counters(ViewSource $source): self
+    {
+        $class = $source::class;
+        $contract = SubquerySource::class;
+
+        return new self("The view source [{$class}] cannot be queried in SQL, so views:recount cannot write the counter columns from it. Implement `{$contract}` on it.");
+    }
+
     public static function dimension(ViewSource $source): self
     {
         $class = $source::class;

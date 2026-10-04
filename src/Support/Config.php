@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Typed access to the keys of the package config file.
@@ -241,6 +244,58 @@ final readonly class Config
     public function cooldownCacheStore(): ?string
     {
         return $this->string('cooldown.cache.store');
+    }
+
+    /**
+     * The counter columns to keep, per viewable model, each with the count it
+     * holds. A column listed without options holds the all-time count.
+     *
+     * @return array<class-string<Model&Viewable>, array<string, ViewsQuery>>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    public function counters(): array
+    {
+        $key = 'querying.counters';
+        $value = $this->get($key, []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeCounters($key, $value);
+        }
+
+        $counters = [];
+
+        foreach ($value as $class => $columns) {
+            if (! is_string($class) || ! is_a($class, Model::class, true) || ! is_a($class, Viewable::class, true) || ! is_array($columns) || $columns === []) {
+                throw InvalidConfiguration::mustBeCounters($key, $class);
+            }
+
+            foreach ($columns as $column => $options) {
+                if (is_int($column) && is_string($options)) {
+                    [$column, $options] = [$options, []];
+                }
+
+                if (! is_string($column) || $column === '' || ! is_array($options) || array_diff(array_keys($options), ['unique', 'period', 'collection']) !== []) {
+                    throw InvalidConfiguration::mustBeCounters($key, $column);
+                }
+
+                $period = $options['period'] ?? null;
+                $collection = $options['collection'] ?? null;
+
+                if (($period !== null && ! is_string($period)) || ($collection !== null && ! is_string($collection))) {
+                    throw InvalidConfiguration::mustBeCounters($key, $column);
+                }
+
+                $counters[$class][$column] = new ViewsQuery(
+                    $period === null ? null : Period::parse($period),
+                    $collection,
+                    (bool) ($options['unique'] ?? false),
+                );
+            }
+        }
+
+        return $counters;
     }
 
     /** @throws InvalidConfiguration */

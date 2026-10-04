@@ -38,7 +38,7 @@ it('says so when nothing is configured', function (string $command, string $mess
 })->with([
     ['views:anonymise', 'Nothing to anonymise, `retention.anonymise.after` is not set.'],
     ['views:prune', 'Nothing to prune, `retention.prune.after` is not set.'],
-    ['views:maintain', 'Nothing to maintain, neither `retention.rollups.tiers`, `retention.anonymise.after` nor `retention.prune.after` is set.'],
+    ['views:maintain', 'Nothing to maintain, neither `retention.rollups`, `retention.anonymise.after`, `retention.prune.after` nor `querying.counters` is set.'],
 ]);
 
 it('prunes after the configured duration', function (): void {

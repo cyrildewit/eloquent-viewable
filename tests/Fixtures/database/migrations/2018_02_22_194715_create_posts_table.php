@@ -14,6 +14,10 @@ class CreatePostsTable extends Migration
             $table->increments('id');
             $table->string('title');
             $table->text('body');
+            // Counter columns `views:recount` keeps, named apart from the
+            // `views_count` alias the scopes select.
+            $table->unsignedInteger('cached_views')->default(0);
+            $table->unsignedInteger('cached_unique_views')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
