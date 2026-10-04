@@ -78,6 +78,37 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must be one of `{$options}`, {$given} given.");
     }
 
+    public static function mustBeDuration(string $key, mixed $value): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`, or null, ".self::describe($value).' given.');
+    }
+
+    /** @param  list<string>  $allowed */
+    public static function mustBeSubsetOf(string $key, array $allowed, mixed $value): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must be a list of `".implode('`, `', $allowed).'`, '.self::describe($value).' given.');
+    }
+
+    public static function anonymisedAfterPruned(string $anonymise, string $prune): self
+    {
+        return new self("The `eloquent-viewable.retention.anonymise.after` config value must not be longer than `retention.prune.after`, `{$anonymise}` and `{$prune}` given. Views are deleted before they would be anonymised.");
+    }
+
+    public static function mustBeTiers(string $key, mixed $value): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must map `hour`, `day`, `month` or `year` to a duration or null, ".self::describe($value).' given.');
+    }
+
+    public static function coarserTierKeptShorter(string $coarser, string $finer): self
+    {
+        return new self("The `{$coarser}` rollup tier in `eloquent-viewable.retention.rollups.tiers` must be kept at least as long as the finer `{$finer}` tier, because a finer tier only expires once a coarser one has captured it.");
+    }
+
+    public static function prunedBeforeFolded(string $prune, string $tier, string $settle): self
+    {
+        return new self("The `eloquent-viewable.retention.prune.after` config value must be longer than one `{$tier}` plus `retention.rollups.settle`, `{$prune}` and `{$settle}` given. A `{$tier}` bucket can only be folded while its views still exist.");
+    }
+
     public static function invalidMiddlewareOption(string $option): self
     {
         return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");

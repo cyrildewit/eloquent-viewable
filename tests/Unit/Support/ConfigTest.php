@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
 use Illuminate\Config\Repository;
@@ -229,3 +230,80 @@ it('rejects a redis connection that is not a string', function (): void {
     expect(fn (): ?string => packageConfig(['recording' => ['store' => ['redis' => ['connection' => 1]]]])->redisConnection())
         ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.recording.store.redis.connection` config value must be a string or null, `1` given.');
 });
+
+it('reads the retention settings', function (): void {
+    $config = packageConfig(['retention' => [
+        'anonymise' => ['after' => '30d', 'columns' => ['viewer']],
+        'prune' => ['after' => '2y'],
+        'chunk' => '250',
+    ]]);
+
+    expect($config->anonymiseAfter()?->shorthand())->toBe('30d')
+        ->and($config->anonymiseColumns())->toBe(['viewer'])
+        ->and($config->pruneAfter()?->shorthand())->toBe('2y')
+        ->and($config->retentionChunk())->toBe(250)
+        ->and(packageConfig())
+        ->anonymiseAfter()->toBeNull()
+        ->pruneAfter()->toBeNull()
+        ->anonymiseColumns()->toBe(['visitor', 'viewer', 'context']);
+});
+
+it('rejects a retention duration that is not a shorthand', function (mixed $value, string $described): void {
+    expect(fn (): mixed => packageConfig(['retention' => ['prune' => ['after' => $value]]])->pruneAfter())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.retention.prune.after` config value must be a duration such as `30d` or `2y`, or null, {$described} given.");
+})->with([
+    'unknown unit' => ['90x', '`"90x"`'],
+    'zero' => ['0d', '`"0d"`'],
+    'integer' => [90, '`90`'],
+]);
+
+it('rejects anonymised columns that are not visitor, viewer or context', function (mixed $value, string $described): void {
+    expect(fn (): array => packageConfig(['retention' => ['anonymise' => ['columns' => $value]]])->anonymiseColumns())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.retention.anonymise.columns` config value must be a list of `visitor`, `viewer`, `context`, {$described} given.");
+})->with([
+    'string' => ['visitor', '`"visitor"`'],
+    'empty' => [[], 'array'],
+    'unknown column' => [['visitor', 'collection'], '`"collection"`'],
+    'nested' => [[['visitor']], 'array'],
+]);
+
+it('reads the rollup settings', function (): void {
+    $config = packageConfig(['retention' => ['rollups' => [
+        'table' => 'rollups',
+        'timezone' => 'Europe/Amsterdam',
+        'settle' => '2h',
+        'tiers' => ['day' => '2y', 'month' => null],
+        'groupings' => ['type', 'viewable'],
+        'strict' => true,
+    ]]]);
+
+    expect($config->rollupTable())->toBe('rollups')
+        ->and($config->rollupTimezone())->toBe('Europe/Amsterdam')
+        ->and($config->rollupSettle()?->shorthand())->toBe('2h')
+        ->and(array_map(fn (?Duration $keep): ?string => $keep?->shorthand(), $config->rollupTiers()))->toBe(['day' => '2y', 'month' => null])
+        ->and($config->rollupGroupings())->toBe(['viewable', 'type'])
+        ->and($config->rollupsStrict())->toBeTrue()
+        ->and(packageConfig())
+        ->rollupTiers()->toBe([])
+        ->rollupGroupings()->toBe(['viewable', 'viewable_collection', 'type'])
+        ->rollupsStrict()->toBeFalse();
+});
+
+it('rejects rollup tiers that are not a map of tiers to durations', function (mixed $value, string $message): void {
+    expect(fn (): array => packageConfig(['retention' => ['rollups' => ['tiers' => $value]]])->rollupTiers())
+        ->toThrow(InvalidConfiguration::class, $message);
+})->with([
+    'string' => ['day', 'must map `hour`, `day`, `month` or `year` to a duration or null, `"day"` given.'],
+    'week' => [['week' => null], 'must map `hour`, `day`, `month` or `year` to a duration or null, `"week"` given.'],
+    'list' => [['day'], 'must map `hour`, `day`, `month` or `year` to a duration or null, `0` given.'],
+    'bad duration' => [['day' => 'forever'], 'The `eloquent-viewable.retention.rollups.tiers.day` config value must be a duration'],
+]);
+
+it('rejects groupings that are not known', function (mixed $value): void {
+    expect(fn (): array => packageConfig(['retention' => ['rollups' => ['groupings' => $value]]])->rollupGroupings())
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.retention.rollups.groupings` config value must be a list of `viewable`, `viewable_collection`, `type`, `type_collection`');
+})->with([
+    'string' => ['type'],
+    'empty' => [[]],
+    'unknown' => [['viewer']],
+]);

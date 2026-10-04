@@ -7,6 +7,8 @@
 #   EntryPoints   service provider, facade, trait, helpers, middleware
 #   Testing       the fake behind Views::fake(), stands in for both sides
 #   Views         the builder that ties recording and counting together
+#   Retention     anonymises and prunes old views, above querying for the
+#                 rollup watermarks it clamps to
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
@@ -50,6 +52,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Querying\\.*
+
+    - name: Retention
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Retention\\.*
 
     # The builder behind the facade. It records views as well as counting them,
     # so it sits above both.
@@ -99,6 +106,11 @@ deptrac:
       - Cooldowns
     Querying:
       - Foundation
+    # Clamps its cutoffs to the rollup watermarks, so nothing is destroyed
+    # before a rollup has captured it.
+    Retention:
+      - Foundation
+      - Querying
     Views:
       - +Recording
       - +Querying
@@ -108,6 +120,7 @@ deptrac:
     EntryPoints:
       - +Views
       - Testing
+      - +Retention
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.
       - CrawlerDetect
@@ -118,6 +131,7 @@ deptrac:
         Modules:
           - Recording
           - Querying
+          - Retention
           - Cooldowns
           - Visitors
           - Crawlers
