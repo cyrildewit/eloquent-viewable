@@ -71,11 +71,7 @@ final readonly class Reader
         $type = $viewables->type();
         $keys = $viewables->keys();
 
-        if (! $type instanceof Viewable) {
-            return [];
-        }
-
-        if ($keys === []) {
+        if (! $type instanceof Viewable || $keys === []) {
             return [];
         }
 
