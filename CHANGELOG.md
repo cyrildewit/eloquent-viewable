@@ -49,6 +49,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added retention: `views:anonymise` anonymises views older than `retention.anonymise.after`, `views:prune` deletes views older than `retention.prune.after`, and `views:maintain` runs every step from one scheduler line. The migration is published under the `eloquent-viewable-retention` tag
 - Added rollups: `views:rollup` folds views into day, month or other tiers per grouping, and the `rollup` source reads them, so history and fast all-time counts outlive deleted views. The migration is published under the `eloquent-viewable-rollups` tag
 - Added custom rollups, classes that extend `Querying\Rollups\Rollup` with a filter, tiers, groupings and one dimension, listed under `retention.rollups.custom`. `Views::rollup()` reads one and `Views::countByDimension()` counts per value of its dimension, through the new `Contracts\FiltersViews` and `Querying\Contracts\CountsByDimension` contracts
+- Added counter columns: `querying.counters` lists columns on your own tables that `views:recount` fills with a view count, and `views:maintain` runs it
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
 #### Models and testing

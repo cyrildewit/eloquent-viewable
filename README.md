@@ -130,7 +130,7 @@ time. None of these changes how you query.
 | [Queued recording](#queueing-view-recording)            | The insert moves out of the request                              | A queue worker                                    |
 | [Redis buffer](#buffering-views-in-redis)               | One Redis write per request, one insert per thousand views       | Redis 7+ and a scheduled `views:flush`            |
 | [Optional indexes](#database-indexes)                   | Faster unique counts and counts over a whole model type          | A migration of your own                           |
-| [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled command                  |
+| [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled `views:maintain`         |
 | [Cache cooldowns](#setting-a-cooldown)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |
 | [Fingerprint identity](#recording-without-a-cookie)     | Unique visitors without setting a cookie                         | A shared cache store, trusted proxies configured  |
 | [Retention](#retention)                                 | Old views anonymised and deleted on a schedule                   | A migration and a scheduled `views:maintain`      |
@@ -848,15 +848,24 @@ What to know:
 ### Storing counts on your own table
 
 `remember()` caches counts, but `orderByViews()` and `whereViewsCount()` still count in SQL on every query. For large
-lists, store the count in a column of your own, such as `unique_views_count`, refresh it from a scheduled command and
-sort on that:
+lists, keep the count in a column of your own, default `0`, and sort on that. List the column under
+`querying.counters`, by name for the all-time count or with the `unique`, `period` and `collection` of its count:
 
 ```php
-Post::query()->each(function (Post $post): void {
-    $post->unique_views_count = views($post)->unique()->count();
-    $post->save();
-});
+'querying' => [
+    'counters' => [
+        Post::class => [
+            'views_count',
+            'unique_views_count' => ['unique' => true],
+            'views_last_week' => ['period' => '7d'],
+        ],
+    ],
+],
 ```
+
+`views:recount` writes every column, trashed models included, and `views:maintain` runs it after rolling up and
+pruning, so one scheduler line keeps them fresh. A column is as fresh as the last run. Name it apart from
+`views_count` when you also use `withViewsCount()`, whose alias is the same.
 
 ### Buffering views in Redis
 
