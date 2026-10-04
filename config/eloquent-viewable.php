@@ -5,8 +5,11 @@ use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreHeadRequests;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreMissingUserAgent;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
+use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 
 return [
 
@@ -102,15 +105,22 @@ return [
          * list a class of your own that implements
          * `Recording\Contracts\RecordingGuard`.
          *
-         * Out of the box crawlers and `ignored_ip_addresses` are dropped, as
-         * in v8, so are pages the browser only prefetches, and `EnforceCooldown` is listed because `cooldown()` does
-         * nothing without it. Uncomment the privacy guards to honour those
-         * headers, or remove a guard to turn its check off:
+         * Out of the box crawlers, requests without a user agent, `HEAD`
+         * requests, `ignored_ip_addresses` and pages the browser only
+         * prefetches are dropped, and `EnforceCooldown` is listed because
+         * `cooldown()` does nothing without it. Uncomment the others to turn
+         * them on:
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
+         *   IgnoreMissingUserAgent      drops requests without a user agent,
+         *                               such as scripts and health checks
          *   IgnoreIpAddresses           drops views from `ignored_ip_addresses`
+         *   IgnoreHeadRequests          drops `HEAD` requests, such as uptime
+         *                               monitors and link checkers
          *   IgnorePrefetch              drops prefetched and prerendered pages
+         *   ThrottleVisitors            caps the views of one visitor per
+         *                               minute, see `throttle`
          *   IgnoreDoNotTrack            honours the `DNT: 1` header
          *   IgnoreGlobalPrivacyControl  honours the `Sec-GPC: 1` header
          *
@@ -119,19 +129,47 @@ return [
          */
         'guards' => [
             IgnoreCrawlers::class,
+            IgnoreMissingUserAgent::class,
             IgnoreIpAddresses::class,
+            IgnoreHeadRequests::class,
             IgnorePrefetch::class,
             EnforceCooldown::class,
+            // ThrottleVisitors::class,
             // IgnoreDoNotTrack::class,
             // IgnoreGlobalPrivacyControl::class,
         ],
 
         /*
          * Views from these IP addresses are dropped by `IgnoreIpAddresses`.
+         * A CIDR range such as `10.0.0.0/8` or `2001:db8::/32` drops every
+         * address in it.
          */
         'ignored_ip_addresses' => [
 
             // '127.0.0.1',
+
+        ],
+
+        'throttle' => [
+
+            /*
+             * How many views one visitor may record per minute, across every
+             * viewable, once `ThrottleVisitors` is listed. Views over the
+             * limit are dropped.
+             */
+            'max_per_minute' => 60,
+
+            /*
+             * The cache store the counts are kept in. Every server that
+             * records views must share it. When `null`, the application's
+             * default cache store is used.
+             */
+            'store' => null,
+
+            /*
+             * The cache key prefix the counts are kept under.
+             */
+            'key' => 'cyrildewit.eloquent-viewable.throttle',
 
         ],
 

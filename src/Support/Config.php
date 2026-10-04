@@ -127,6 +127,24 @@ final readonly class Config
         return $this->strings('recording.ignored_ip_addresses');
     }
 
+    /** @throws InvalidConfiguration */
+    public function throttleMaxPerMinute(): int
+    {
+        return $this->positiveInteger('recording.throttle.max_per_minute');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function throttleKey(): string
+    {
+        return $this->nonEmptyString('recording.throttle.key');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function throttleCacheStore(): ?string
+    {
+        return $this->string('recording.throttle.store');
+    }
+
     public function queueEnabled(): bool
     {
         return (bool) $this->get('recording.queue.enabled', false);

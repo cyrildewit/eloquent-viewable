@@ -13,8 +13,9 @@ function cacheCooldownVisitor(string $id): Visitor
     $visitor = Mockery::mock(Visitor::class);
     $visitor->allows('id')->andReturn($id);
     $visitor->allows('ip')->andReturn('10.0.0.1');
-    $visitor->allows('userAgent')->andReturn(null);
+    $visitor->allows('userAgent')->andReturn('Mozilla/5.0');
     $visitor->allows('isPrefetch')->andReturn(false);
+    $visitor->allows('isHeadRequest')->andReturn(false);
 
     return $visitor;
 }
