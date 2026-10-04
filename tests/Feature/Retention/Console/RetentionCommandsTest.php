@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\LockUnavailable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
+use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Carbon;
@@ -191,3 +192,20 @@ it('publishes the retention migration under a tag of its own', function (): void
         ->and($retention[0])->toEndWith('create_view_retention_state_table.php.stub')
         ->and($migrations)->each->not->toContain('retention');
 });
+
+it('prunes before a date given on the command line', function (): void {
+    $this->artisan('views:prune', ['--before' => '2026-01-01'])
+        ->expectsOutputToContain('Deleted 1 view viewed before 2026-01-01 00:00:00.')
+        ->assertSuccessful();
+
+    expect(app(RetentionState::class)->get('pruned'))->toBe('2026-01-01 00:00:00');
+});
+
+it('rejects a date it cannot read, or a date and an age together', function (array $options, string $message): void {
+    $this->artisan('views:prune', $options)
+        ->expectsOutputToContain($message)
+        ->assertFailed();
+})->with([
+    'not a date' => [['--before' => 'the beginning'], 'The --before option must be a date such as `2026-01-01`.'],
+    'both' => [['--before' => '2026-01-01', '--older-than' => '30d'], 'Pass either --before or --older-than, not both.'],
+]);
