@@ -31,6 +31,13 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
         return new self("top() ranks every viewable of a type or every type. [{$class}] with key {$key} was given; pass a model without a key, or none at all.");
     }
 
+    public static function cannotPairType(Viewable $viewable): self
+    {
+        $class = $viewable::class;
+
+        return new self("alsoViewed() ranks what the visitors of one viewable also viewed. A [{$class}] without a key was given; pass a saved model.");
+    }
+
     public static function missingSet(): self
     {
         return new self('No viewables were given. Call forViewables() before counting them.');

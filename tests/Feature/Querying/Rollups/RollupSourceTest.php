@@ -90,6 +90,18 @@ function reads(Post $post, Post $other): array
     ];
 }
 
+it('ranks what visitors also viewed from the views it still holds', function (): void {
+    config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
+    readFrom('rollup');
+
+    expect(views($this->post)->alsoViewed()->entries->map(fn ($entry): array => [$entry->viewable->getKey(), $entry->count])->all())
+        ->toBe([[$this->other->getKey(), 2]]);
+
+    foldAndPrune();
+
+    expect(views($this->post)->alsoViewed()->isEmpty())->toBeTrue();
+});
+
 it('is registered as the rollup source driver', function (): void {
     expect(app(SourceManager::class)->driver('rollup'))->toBeInstanceOf(RollupSource::class);
 });

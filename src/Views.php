@@ -7,13 +7,16 @@ namespace CyrildeWit\EloquentViewable;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\UnknownRollup;
@@ -156,6 +159,23 @@ class Views
         return $this->reader->top($this->viewable, $this->query(), $limit, $this->cacheLifetime);
     }
 
+    /**
+     * What the visitors of the viewable also viewed, ranked by how many of
+     * them did. Pass a model class to rank only models of that class.
+     *
+     * @param  class-string<Model&Viewable>|null  $among
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws InvalidViewer
+     * @throws UnsupportedBySource
+     */
+    public function alsoViewed(int $limit = 10, ?string $among = null): Ranking
+    {
+        return $this->reader->alsoViewed($this->viewable(), $this->among($among), $this->query(), $limit, $this->cacheLifetime);
+    }
+
     /** @throws RecordingFailed */
     public function record(): bool
     {
@@ -291,6 +311,22 @@ class Views
     protected function viewable(): Viewable
     {
         return $this->viewable ?? throw InvalidViewable::missing();
+    }
+
+    /** @throws InvalidViewable */
+    protected function among(?string $class): ?Viewable
+    {
+        if ($class === null) {
+            return null;
+        }
+
+        $model = Container::getInstance()->make($class);
+
+        if (! $model instanceof Viewable) {
+            throw InvalidViewable::classDoesNotImplementViewable($class);
+        }
+
+        return $model;
     }
 
     protected function query(): ViewsQuery

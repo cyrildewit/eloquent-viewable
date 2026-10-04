@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Exceptions;
 
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use LogicException;
@@ -34,6 +35,14 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
         $contract = CountsByDimension::class;
 
         return new self("The view source [{$class}] cannot count by dimension, so countByDimension() cannot read from it. Implement `{$contract}` on it.");
+    }
+
+    public static function alsoViewed(ViewSource $source): self
+    {
+        $class = $source::class;
+        $contract = RanksAlsoViewed::class;
+
+        return new self("The view source [{$class}] cannot rank what visitors also viewed, so alsoViewed() cannot read from it. Implement `{$contract}` on it.");
     }
 
     public static function filter(ViewSource $source): self

@@ -5,15 +5,18 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Entry;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
@@ -39,6 +42,7 @@ use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -1500,6 +1504,166 @@ describe('ranking', function (): void {
 
         expect(ViewsFacade::remember(60)->top()->viewables()->first()->title)->toBe('Renamed');
     });
+});
+
+describe('also viewed', function (): void {
+    beforeEach(function (): void {
+        Config::set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
+    });
+
+    /** @param  list<string>  $visitors */
+    function viewedByEach(Model $viewable, array $visitors, string $viewedAt = '2026-01-10'): void
+    {
+        foreach ($visitors as $visitor) {
+            View::factory()->for($viewable, 'viewable')->fromVisitor($visitor)->viewedAt(Carbon::parse($viewedAt))->create();
+        }
+    }
+
+    it('ranks what the visitors of a model also viewed', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        viewedByEach($this->post, ['one', 'two']);
+        viewedByEach($apartment, ['one', 'two', 'stranger']);
+        viewedByEach($other, ['two']);
+
+        expect(rankingOf(views($this->post)->alsoViewed()))->toBe([
+            [Apartment::class, $apartment->getKey(), 2, 1],
+            [Post::class, $other->getKey(), 1, 2],
+        ])
+            ->and(views($this->post)->alsoViewed(1)->viewables()->modelKeys())->toBe([$apartment->getKey()])
+            ->and(views($this->post)->alsoViewed(among: Post::class)->viewables()->modelKeys())->toBe([$other->getKey()]);
+    });
+
+    it('leaves out what fewer visitors than the minimum viewed', function (): void {
+        Config::set('eloquent-viewable.querying.also_viewed.minimum_visitors', 2);
+        $popular = Post::factory()->create();
+        $rare = Post::factory()->create();
+
+        viewedByEach($this->post, ['one', 'two']);
+        viewedByEach($popular, ['one', 'two']);
+        viewedByEach($rare, ['one']);
+
+        expect(views($this->post)->alsoViewed()->viewables()->modelKeys())->toBe([$popular->getKey()]);
+    });
+
+    it('needs three visitors in common out of the box', function (): void {
+        Config::set('eloquent-viewable.querying.also_viewed.minimum_visitors', 3);
+        $other = Post::factory()->create();
+
+        viewedByEach($this->post, ['one', 'two', 'three']);
+        viewedByEach($other, ['one', 'two']);
+
+        expect(views($this->post)->alsoViewed()->isEmpty())->toBeTrue();
+
+        viewedByEach($other, ['three']);
+
+        expect(views($this->post)->alsoViewed()->viewables()->modelKeys())->toBe([$other->getKey()]);
+    });
+
+    it('reads only the most recent visitors of the model', function (string|int|null $maxVisitors, int $count): void {
+        Config::set('eloquent-viewable.querying.also_viewed.max_visitors', $maxVisitors);
+        $other = Post::factory()->create();
+
+        viewedByEach($this->post, ['early'], '2026-01-01');
+        viewedByEach($this->post, ['late'], '2026-01-20');
+        viewedByEach($other, ['early', 'late']);
+
+        expect(views($this->post)->alsoViewed()->entries->first()->count)->toBe($count);
+    })->with([
+        'one' => [1, 1],
+        'one, as a string' => ['1', 1],
+        'every visitor' => [null, 2],
+    ]);
+
+    it('refuses a max_visitors that is not a positive integer or null', function (mixed $value): void {
+        Config::set('eloquent-viewable.querying.also_viewed.max_visitors', $value);
+
+        views($this->post)->alsoViewed();
+    })->with([0, 'many', 1.5])->throws(InvalidConfiguration::class, 'The `eloquent-viewable.querying.also_viewed.max_visitors` config value must be a positive integer or null');
+
+    it('applies the period and collection', function (): void {
+        $other = Post::factory()->create();
+
+        viewedByEach($this->post, ['january'], '2026-01-10');
+        viewedByEach($this->post, ['february'], '2026-02-10');
+        viewedByEach($other, ['january', 'february'], '2026-02-10');
+
+        expect(views($this->post)->alsoViewed()->entries->first()->count)->toBe(2)
+            ->and(views($this->post)->period(Period::since('2026-02-01'))->alsoViewed()->entries->first()->count)->toBe(1)
+            ->and(views($this->post)->collection('sidebar')->alsoViewed()->isEmpty())->toBeTrue();
+    });
+
+    it('refuses a model without a key', function (): void {
+        expect(fn (): Ranking => views(Post::class)->alsoViewed())
+            ->toThrow(InvalidViewable::class, 'alsoViewed() ranks what the visitors of one viewable also viewed. A ['.Post::class.'] without a key was given; pass a saved model.');
+    });
+
+    it('refuses a limit below one', function (): void {
+        expect(fn (): Ranking => views($this->post)->alsoViewed(0))
+            ->toThrow(InvalidLimit::class, 'alsoViewed() needs a limit of at least one, 0 given.');
+    });
+
+    it('refuses to narrow to one viewer', function (): void {
+        expect(fn (): Ranking => views($this->post)->viewedBy(User::factory()->create())->alsoViewed())
+            ->toThrow(InvalidViewer::class, 'alsoViewed() ranks across every visitor, so it cannot be narrowed to one viewer.');
+    });
+
+    it('refuses to rank among a class that is not viewable', function (): void {
+        expect(fn (): Ranking => views($this->post)->alsoViewed(among: User::class))
+            ->toThrow(InvalidViewable::class, 'Class ['.User::class.'] must implement');
+    });
+
+    it('can remember the ranking until the cache of the model is forgotten', function (): void {
+        $other = Post::factory()->create();
+        $later = Post::factory()->create();
+
+        viewedByEach($this->post, ['one']);
+        viewedByEach($other, ['one']);
+
+        expect(views($this->post)->remember(60)->alsoViewed()->viewables()->modelKeys())->toBe([$other->getKey()]);
+
+        viewedByEach($later, ['one', 'one']);
+
+        expect(views($this->post)->remember(60)->alsoViewed()->viewables()->modelKeys())->toBe([$other->getKey()])
+            ->and(views($this->post)->remember(60)->alsoViewed(among: Post::class)->viewables()->modelKeys())->toBe([$other->getKey(), $later->getKey()]);
+
+        views($this->post)->forgetCache();
+
+        expect(views($this->post)->remember(60)->alsoViewed()->viewables()->modelKeys())->toBe([$other->getKey(), $later->getKey()]);
+    });
+
+    it('refuses a source that cannot rank it', function (bool $remember): void {
+        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
+        {
+            public function count(Viewable $viewable, ViewsQuery $query): int
+            {
+                return 0;
+            }
+
+            public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+            {
+                return [];
+            }
+
+            public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+            {
+                return [];
+            }
+
+            public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+            {
+                return [];
+            }
+
+            public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+            {
+                return [];
+            }
+        });
+
+        views($this->post)->remember($remember ? 60 : null)->alsoViewed();
+    })->with(['read' => false, 'remembered' => true])->throws(UnsupportedBySource::class, 'cannot rank what visitors also viewed, so alsoViewed() cannot read from it.');
 });
 
 describe('destroying', function (): void {
