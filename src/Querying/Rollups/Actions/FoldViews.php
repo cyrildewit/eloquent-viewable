@@ -31,6 +31,12 @@ use Illuminate\Database\Query\Builder;
  */
 final readonly class FoldViews
 {
+    /**
+     * Postgres types a bound value in a select list as text, which a
+     * timestamp column refuses, so it gets a cast.
+     */
+    private const array BucketPlaceholders = ['pgsql' => 'cast(? as timestamp)'];
+
     public function __construct(
         private View $view,
         private ViewRollup $rollup,
@@ -332,17 +338,9 @@ final readonly class FoldViews
             ->insertUsing([...$inserted, 'views', 'unique_visitors'], $query);
     }
 
-    /**
-     * Postgres types a bound value in a select list as text, which a
-     * timestamp column refuses, so it gets a cast.
-     */
     private function bucketPlaceholder(): string
     {
-        if ($this->view->getConnection()->getDriverName() !== 'pgsql') {
-            return '?';
-        }
-
-        return 'cast(? as timestamp)';
+        return self::BucketPlaceholders[$this->view->getConnection()->getDriverName()] ?? '?';
     }
 
     private function firstViewedAt(?CarbonImmutable $from, CarbonImmutable $until): ?CarbonImmutable
