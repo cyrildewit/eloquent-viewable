@@ -529,6 +529,39 @@ The models are loaded with one query per type and never cached, so a `remember()
 model that can no longer be loaded, for example because it was deleted, is left out, so a ranking can hold fewer
 entries than the limit. The ranking serializes to JSON as `rank`, `count` and `viewable`.
 
+### People who viewed this also viewed
+
+`alsoViewed()` ranks what the visitors of one model also viewed, by the number of them who did:
+
+```php
+$ranking = views($post)->period(Period::pastDays(30))->alsoViewed(5);
+
+foreach ($ranking as $entry) {
+    $entry->count;     // visitors who viewed both
+    $entry->viewable;  // a Post, a Video, ... whichever model it is
+}
+
+views($post)->alsoViewed(5, among: Post::class);  // only posts
+```
+
+It returns the same ranking as `top()`, and takes `period()`, `collection()` and `remember()`, which forgets the ranking
+with the model's own cache. The count is always of distinct visitors, so `unique()` changes nothing, and it cannot be
+narrowed to one viewer with `viewedBy()`. What it pairs on is the `visitor` column, so the
+[visitor identity](#counting-one-account-as-one-visitor) decides what "the same visitor" means: one browser, one account
+with `viewer`, or one day with `fingerprint` and on anonymised views.
+
+Two config options under `querying.also_viewed` bound it:
+
+- `minimum_visitors`, 3 by default, leaves out a model fewer visitors than that have in common with this one, so the
+  ranking does not reveal what one or two people looked at.
+- `max_visitors`, 1,000 by default, reads only that many of the model's most recent visitors. The query reads every
+  view of every visitor it pairs, so a popular model gets expensive without it. `null` reads them all.
+
+A raw count of shared visitors favours popular models, which tend to show up next to everything. On a large table,
+add the `(visitor, viewed_at, viewable_type, viewable_id)` [index](#database-indexes), and consider computing the
+rankings from a scheduled command into a table of your own rather than on every request. The `rollup` source reads them
+from the views table, so they cover only the views it still holds.
+
 ### Get view counts of models you already have
 
 For a page of results you already loaded, `forViewables()` counts them all in one query instead of one per model:
@@ -765,11 +798,13 @@ series only read the rows inside the period, and `viewed_at`, so retention and r
 before the last two existed, the [upgrade guide](UPGRADING.md#4-add-the-new-columns-and-indexes) has a migration for
 them.
 
-Two optional indexes, added in a migration of your own:
+Three optional indexes, added in a migration of your own:
 
 - `visitor` as a fourth column of that composite index, or `include (visitor)` on Postgres, speeds up `unique()` counts.
 - `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
   `views(Post::class)->countByInterval()`.
+- `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()` find the views of each visitor it pairs
+  without scanning the table.
 
 ### Retention
 
