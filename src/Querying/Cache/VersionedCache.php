@@ -102,8 +102,6 @@ final readonly class VersionedCache
             $entries[$entry['key']] = ['version' => $entry['version'], 'value' => $fresh[$id] ?? null];
         }
 
-        // The PSR contract takes an interval, not a moment. One that lies in
-        // the past makes the repository forget the keys, as put() does.
         $this->cache->setMultiple($entries, Carbon::now()->diff($until));
 
         return $values + $fresh;
