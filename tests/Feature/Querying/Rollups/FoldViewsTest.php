@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\RollupsNotInstalled;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
+use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
@@ -157,6 +158,21 @@ it('folds a bucket again when a view lands in it late', function (): void {
         ->and(ViewRollup::query()->where('tier', 'day')->where('grouping', 'viewable')->count())->toBe(1);
 });
 
+it('keeps a late view for the tiers a run of one tier left out', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    fold();
+
+    viewAt($this->post, '2026-01-10 18:00:00', 'visitor-2');
+    fold(Tier::Day);
+
+    expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 2])
+        ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBe([1, 1]);
+
+    fold();
+
+    expect(bucket('month', '2026-01-01', 'viewable', $this->post))->toBe([2, 2]);
+});
+
 it('leaves a bucket alone when views before it are pruned', function (): void {
     viewAt($this->post, '2026-01-10 10:00:00');
     viewAt($this->post, '2026-01-20 10:00:00');
@@ -185,6 +201,28 @@ it('leaves a month alone that anonymising reached, but folds its days again', fu
 
     expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 2])
         ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBe([1, 1]);
+});
+
+it('folds anonymised days again with the same unique visitors, on the rollup clock across daylight saving time', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.timezone', 'Europe/Amsterdam');
+    $this->travelTo(Carbon::parse('2026-04-15 12:00:00'));
+
+    // 29 March is 23 hours long in Amsterdam, from 2026-03-28 23:00 to 2026-03-29 22:00 UTC.
+    $first = viewAt($this->post, '2026-03-28 23:30:00');
+    $last = viewAt($this->post, '2026-03-29 21:30:00');
+    $nextDay = viewAt($this->post, '2026-03-29 22:30:00');
+
+    fold();
+
+    $run = app(AnonymiseViews::class)->handle(Carbon::parse('2026-04-01'), ['visitor', 'viewer', 'context'], 100);
+
+    fold(from: '2026-03-01');
+
+    expect($run->until->toDateTimeString())->toBe('2026-03-31 22:00:00')
+        ->and($first->refresh()->visitor)->toStartWith('a:')->toBe($last->refresh()->visitor)->not->toBe($nextDay->refresh()->visitor)
+        ->and(bucket('day', '2026-03-28 23:00:00', 'viewable', $this->post))->toBe([2, 1])
+        ->and(bucket('day', '2026-03-29 22:00:00', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('month', '2026-02-28 23:00:00', 'viewable', $this->post))->toBe([3, 1]);
 });
 
 it('folds again from a given date', function (): void {

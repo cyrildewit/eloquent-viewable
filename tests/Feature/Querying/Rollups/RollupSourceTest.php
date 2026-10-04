@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ExpireTiers;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailable;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
+use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -163,6 +166,48 @@ it('reads unique visitors from the views table while it holds them all', functio
     expect(views($this->post)->unique()->count())->toBe(4)
         ->and(views(new Post)->unique()->count())->toBe(4)
         ->and(Post::query()->orderByUniqueViews()->pluck('id')->first())->toBe($this->post->getKey());
+});
+
+it('keeps the unique visitors of whole buckets once the views behind them are anonymised', function (): void {
+    $january = fn (): int => views($this->post)->unique()->period(Period::create('2026-01-01', '2026-02-01'))->count();
+    $monthly = fn (): array => views($this->post)->unique()->period(Period::create('2026-01-01', '2026-03-01'))->countByInterval(Granularity::Month)->values();
+
+    expect($january())->toBe(2)
+        ->and($monthly())->toBe([2, 1]);
+
+    app(FoldViews::class)->handle();
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-01'), ['visitor', 'viewer', 'context'], 100);
+
+    // The views table now holds one id per visitor per day.
+    expect($january())->toBe(3);
+
+    readFrom('rollup');
+
+    expect($january())->toBe(2)
+        ->and($monthly())->toBe([2, 1]);
+});
+
+it('loses resolution but never a count once a tier expires', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '30d', 'month' => null]);
+    config()->set('eloquent-viewable.retention.rollups.strict', true);
+
+    $reads = fn (): array => [
+        'all time' => views($this->post)->count(),
+        'whole months' => views($this->post)->period(Period::create('2026-01-01', '2026-03-01'))->count(),
+        'monthly' => views($this->post)->period(Period::create('2026-01-01', '2026-04-01'))->countByInterval(Granularity::Month)->values(),
+        'type' => views(new Post)->count(),
+    ];
+    $expected = $reads();
+
+    app(FoldViews::class)->handle();
+    app(ExpireTiers::class)->handle(chunk: 100);
+    app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), 100);
+    readFrom('rollup');
+
+    expect(ViewRollup::query()->where('tier', 'day')->where('bucket_start', '<', '2026-03-01')->count())->toBe(0)
+        ->and($reads())->toBe($expected)
+        ->and(fn (): int => views($this->post)->period(Period::create('2026-01-10', '2026-03-20'))->count())
+        ->toThrow(ResolutionUnavailable::class, 'The period starts or ends inside a rollup bucket');
 });
 
 it('ranks by unique visitors summed across the views table and the rollups', function (): void {
