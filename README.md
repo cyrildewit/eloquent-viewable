@@ -799,6 +799,52 @@ What to know:
   later is found by its id and its bucket folded again.
 - **Destroying views** removes the model's rollup rows, but not its share of the unique visitors of its type.
 
+#### Custom rollups
+
+A custom rollup counts only the views a filter keeps, in tiers and groupings of its own and per value of at most one
+dimension. It is the only way a value from `context` outlives anonymising.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Rollups\Rollup;
+use Illuminate\Database\Eloquent\Builder;
+
+final class NewsletterViews extends Rollup
+{
+    public string $name = 'newsletter';
+
+    public function tiers(): array
+    {
+        return ['day' => '2y', 'month' => null];
+    }
+
+    public function filter(Builder $views): void
+    {
+        $views->getQuery()->where('context->source', 'newsletter');
+    }
+
+    public function dimension(): ?string
+    {
+        return 'context->campaign';
+    }
+}
+```
+
+List it under `retention.rollups.custom` and read it with `rollup()`:
+
+```php
+views($post)->rollup('newsletter')->period(Period::pastYears(1))->count();
+views($post)->rollup('newsletter')->countByDimension(); // ['spring' => 120, 'winter' => 45, '' => 8]
+```
+
+What to know:
+
+- **Recent and old counts agree.** `rollup()` reads the `views` table through the same filter, so it works with the
+  `database` source too.
+- **Keep the dimension small.** Every value is a row per bucket. `groupings()` defaults to `viewable` and `type`.
+- **Anonymising and pruning wait for every custom rollup.** `views:rollup --rollup=newsletter` folds one rollup.
+- **A source of your own** counts by dimension by implementing `Querying\Contracts\CountsByDimension`, and the fake
+  refuses `rollup()`.
+
 ### Storing counts on your own table
 
 `remember()` caches counts, but `orderByViews()` and `whereViewsCount()` still count in SQL on every query. For large
