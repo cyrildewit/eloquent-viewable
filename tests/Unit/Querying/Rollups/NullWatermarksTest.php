@@ -10,3 +10,9 @@ it('leaves every cutoff where it is', function (): void {
 
     expect(new NullWatermarks()->clamp($cutoff))->toBe($cutoff);
 });
+
+it('has nothing to wait for after folding either', function (): void {
+    $watermarks = new NullWatermarks;
+
+    expect($watermarks->afterFolding())->toBe($watermarks);
+});

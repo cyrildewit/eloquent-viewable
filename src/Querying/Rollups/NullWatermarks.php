@@ -13,4 +13,9 @@ final readonly class NullWatermarks implements Watermarks
     {
         return $cutoff;
     }
+
+    public function afterFolding(): self
+    {
+        return $this;
+    }
 }

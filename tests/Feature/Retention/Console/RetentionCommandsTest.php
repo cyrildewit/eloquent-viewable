@@ -8,6 +8,9 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\LockUnavailable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -111,6 +114,11 @@ it('warns when the rollups held the cutoff back', function (): void {
         {
             return Carbon::parse('2025-06-01 00:00:00');
         }
+
+        public function afterFolding(): Watermarks
+        {
+            return $this;
+        }
     });
 
     $this->artisan('views:prune', ['--older-than' => '90d'])
@@ -183,6 +191,35 @@ it('keeps every count and counter column through a full maintenance run', functi
         ->and(views($this->post)->count())->toBe(4)
         ->and(views($this->post)->period(Period::create('2025-01-01', '2025-02-01'))->count())->toBe(1)
         ->and((int) Post::query()->whereKey($this->post->getKey())->value('cached_views'))->toBe(4);
+});
+
+it('reports on a dry run what the real run would delete once it rolled up', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    config()->set('eloquent-viewable.retention.prune.after', '60d');
+
+    $this->artisan('views:maintain', ['--dry-run' => true])
+        ->expectsOutputToContain('Would have deleted 2 views viewed before 2026-01-30 12:00:00.')
+        ->doesntExpectOutputToContain('Stopped at')
+        ->assertSuccessful();
+
+    expect(View::query()->count())->toBe(3)
+        ->and(ViewRollup::query()->count())->toBe(0)
+        ->and(app(RollupState::class)->snapshot('views')->folded(Tier::Day))->toBeNull()
+        ->and(app(RetentionState::class)->get('pruned'))->toBeNull();
+
+    $this->artisan('views:maintain')
+        ->expectsOutputToContain('Deleted 2 views viewed before 2026-01-30 12:00:00.')
+        ->assertSuccessful();
+});
+
+it('warns on a dry run where the real run would stop for the rollups too', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['month' => null]);
+    config()->set('eloquent-viewable.retention.anonymise.after', '7d');
+
+    $this->artisan('views:maintain', ['--dry-run' => true])
+        ->expectsOutputToContain('Would have anonymised 2 views viewed before 2026-03-01 00:00:00.')
+        ->expectsOutputToContain('Stopped at 2026-03-01 00:00:00, because the rollups have not captured the views after it yet.')
+        ->assertSuccessful();
 });
 
 it('maintains only what is configured', function (string $key, string $value, string $message): void {
