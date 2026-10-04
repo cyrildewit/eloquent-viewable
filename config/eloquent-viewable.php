@@ -192,9 +192,13 @@ return [
             'enabled' => false,
 
             /*
-             * The path the beacon route is registered under.
+             * The path the beacon route is registered under. Neutral on
+             * purpose: privacy filter lists block paths with words such as
+             * `beacon`, `track` or `analytics`, which would silently drop the
+             * views of every visitor who runs one. Change it if a list ever
+             * starts blocking it.
              */
-            'prefix' => 'eloquent-viewable/beacon',
+            'prefix' => '_ev',
 
             /*
              * The middleware the beacon route runs. The `web` group gives the
