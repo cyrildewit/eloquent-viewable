@@ -50,6 +50,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added rollups: `views:rollup` folds views into day, month or other tiers per grouping, and the `rollup` source reads them, so history and fast all-time counts outlive deleted views. The migration is published under the `eloquent-viewable-rollups` tag
 - Added custom rollups, classes that extend `Querying\Rollups\Rollup` with a filter, tiers, groupings and one dimension, listed under `retention.rollups.custom`. `Views::rollup()` reads one and `Views::countByDimension()` counts per value of its dimension, through the new `Contracts\FiltersViews` and `Querying\Contracts\CountsByDimension` contracts
 - Added counter columns: `querying.counters` lists columns on your own tables that `views:recount` fills with a view count, and `views:maintain` runs it
+- Added `--before` to `views:prune`, for an application that drops partitions of the `views` table itself
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
 #### Models and testing
