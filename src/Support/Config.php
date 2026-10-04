@@ -155,6 +155,27 @@ final readonly class Config
         return $this->string('recording.viewer.guard');
     }
 
+    public function beaconEnabled(): bool
+    {
+        return (bool) $this->get('recording.beacon.enabled', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function beaconPrefix(): string
+    {
+        return $this->nonEmptyString('recording.beacon.prefix');
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function beaconMiddleware(): array
+    {
+        return $this->strings('recording.beacon.middleware');
+    }
+
     /** @throws InvalidConfiguration */
     public function sourceDriver(): string
     {
