@@ -11,7 +11,6 @@ beacon.
 |--------------------------------------------------------------------------------|-------------------------------------------------------------|
 | [`DocPage.php`](DocPage.php)                                                   | The viewable model                                          |
 | [`RecordPageView.php`](RecordPageView.php)                                     | The beacon endpoint, which says why a view was not recorded |
-| [`IgnoreStaffNetwork.php`](IgnoreStaffNetwork.php)                             | A guard that drops the office and VPN networks              |
 | [`SkippedViews.php`](SkippedViews.php)                                         | A `ViewSkipped` listener that tallies the refusals          |
 | [`create_doc_pages_table.php`](database/migrations/create_doc_pages_table.php) | The `doc_pages` table                                       |
 | [`PrivacyFirstAnalyticsTest.php`](PrivacyFirstAnalyticsTest.php)               | The behaviour below, as tests, against `Views::fake()`      |
@@ -20,7 +19,6 @@ Identify visitors without a cookie, keep cooldowns out of the session, and list 
 `config/eloquent-viewable.php`:
 
 ```php
-use App\Analytics\IgnoreStaffNetwork;
 use CyrildeWit\EloquentViewable\Recording\Guards;
 
 'recording' => [
@@ -28,9 +26,10 @@ use CyrildeWit\EloquentViewable\Recording\Guards;
         Guards\IgnoreCrawlers::class,
         Guards\IgnoreDoNotTrack::class,
         Guards\IgnoreGlobalPrivacyControl::class,
-        IgnoreStaffNetwork::class,
+        Guards\IgnoreIpAddresses::class,
         Guards\EnforceCooldown::class,
     ],
+    'ignored_ip_addresses' => ['10.20.0.0/16', '2001:db8:20::/48'],
 ],
 
 'visitor' => [
@@ -87,10 +86,8 @@ JavaScript never sends the beacon; one that does is still dropped by `IgnoreCraw
 **Honour the signals.** `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl` are off by default and listed here, so a
 reader whose browser sends `DNT: 1` or `Sec-GPC: 1` is not counted at all, not even as an anonymous hash.
 
-**Write a guard for what the config cannot say.** `recording.ignored_ip_addresses` matches whole addresses, and the
-writers proofreading the docs come from a /16 office network and a VPN range. `IgnoreStaffNetwork` implements
-`RecordingGuard` and matches the ranges with Symfony's `IpUtils`. Guards are resolved from the container, so a guard
-that needs the config or the auth guard can take it in its constructor.
+**Leave out the staff network.** The writers proofreading the docs come from a /16 office network and a VPN range.
+`recording.ignored_ip_addresses` takes CIDR ranges, so listing both ranges is enough.
 
 **Store a word, not the referrer.** A referrer can hold a search query or the address of a private page. The endpoint
 reduces it to `direct`, `internal`, `search` or `external` and stores only that word as the view's

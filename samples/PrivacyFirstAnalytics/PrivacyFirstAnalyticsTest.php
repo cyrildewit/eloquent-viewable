@@ -10,8 +10,8 @@ use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
 use CyrildeWit\EloquentViewable\Samples\PrivacyFirstAnalytics\DocPage;
-use CyrildeWit\EloquentViewable\Samples\PrivacyFirstAnalytics\IgnoreStaffNetwork;
 use CyrildeWit\EloquentViewable\Samples\PrivacyFirstAnalytics\RecordPageView;
 use CyrildeWit\EloquentViewable\Samples\PrivacyFirstAnalytics\SkippedViews;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
@@ -29,9 +29,10 @@ beforeEach(function (): void {
             IgnoreCrawlers::class,
             IgnoreDoNotTrack::class,
             IgnoreGlobalPrivacyControl::class,
-            IgnoreStaffNetwork::class,
+            IgnoreIpAddresses::class,
             EnforceCooldown::class,
         ],
+        'eloquent-viewable.recording.ignored_ip_addresses' => ['10.20.0.0/16', '2001:db8:20::/48'],
     ]);
 
     Route::post('/api/docs/{page}/views', RecordPageView::class)->middleware('api');
@@ -113,8 +114,8 @@ it('honours global privacy control and do not track', function (): void {
 it('leaves out the staff network', function (): void {
     $page = DocPage::create(['title' => 'Installation']);
 
-    sendBeacon($page, ip: '10.20.3.4')->assertJson(['skipped_by' => 'IgnoreStaffNetwork']);
-    sendBeacon($page, ip: '2001:db8:20::1')->assertJson(['skipped_by' => 'IgnoreStaffNetwork']);
+    sendBeacon($page, ip: '10.20.3.4')->assertJson(['skipped_by' => 'IgnoreIpAddresses']);
+    sendBeacon($page, ip: '2001:db8:20::1')->assertJson(['skipped_by' => 'IgnoreIpAddresses']);
     sendBeacon($page, ip: '10.21.0.1')->assertJson(['recorded' => true]);
 
     fakeViews()->assertRecorded($page, 1);
