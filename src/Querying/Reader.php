@@ -71,8 +71,11 @@ final readonly class Reader
         $type = $viewables->type();
         $keys = $viewables->keys();
 
-        // A set with a type always has keys; the second check tells PHPStan.
-        if (! $type instanceof Viewable || $keys === []) {
+        if (! $type instanceof Viewable) {
+            return [];
+        }
+
+        if ($keys === []) {
             return [];
         }
 
