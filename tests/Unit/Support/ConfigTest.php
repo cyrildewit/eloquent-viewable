@@ -332,9 +332,11 @@ it('rejects counters that are not viewable models mapped to columns', function (
 })->with([
     'string' => ['views_count'],
     'list' => [[['views_count']]],
+    'not a model' => [[Config::class => ['views_count']]],
     'not a viewable' => [[SoftDeletableView::class => ['views_count']]],
     'no columns' => [[Post::class => []]],
     'a column by number' => [[Post::class => [1]]],
+    'options not a map' => [[Post::class => ['views_count' => true]]],
     'unknown option' => [[Post::class => ['views_count' => ['viewer' => 1]]]],
     'period not a string' => [[Post::class => ['views_count' => ['period' => 7]]]],
     'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],

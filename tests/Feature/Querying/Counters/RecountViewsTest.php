@@ -87,11 +87,21 @@ it('says so when no counter is configured', function (): void {
         ->assertSuccessful();
 });
 
-it('rejects a chunk size that is not a positive integer', function (): void {
-    $this->artisan('views:recount', ['--chunk' => '0'])
+it('recounts in chunks of the configured size by default', function (): void {
+    config()->set('eloquent-viewable.retention.chunk', 1);
+
+    $this->artisan('views:recount')
+        ->expectsOutputToContain('Recounted 3 SoftDeletablePosts.')
+        ->assertSuccessful();
+
+    expect(counted($this->post))->toBe([[4, 2]]);
+});
+
+it('rejects a chunk size that is not a positive integer', function (string $chunk): void {
+    $this->artisan('views:recount', ['--chunk' => $chunk])
         ->expectsOutputToContain('The --chunk option must be a positive integer.')
         ->assertFailed();
-});
+})->with(['zero' => '0', 'not a number' => 'many']);
 
 it('recounts last when maintaining', function (): void {
     config()->set('eloquent-viewable.retention.prune.after', '30d');

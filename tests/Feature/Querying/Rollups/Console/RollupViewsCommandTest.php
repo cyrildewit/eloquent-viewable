@@ -73,6 +73,22 @@ it('reports what a dry run would fold', function (): void {
     expect(ViewRollup::query()->count())->toBe(0);
 });
 
+it('reports what a dry run would expire', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null]);
+
+    $this->artisan('views:rollup')->assertSuccessful();
+
+    $rows = ViewRollup::query()->count();
+
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '1y']);
+
+    $this->artisan('views:rollup', ['--dry-run' => true])
+        ->expectsOutputToContain('Would have dropped 3 expired rows of the day tier.')
+        ->assertSuccessful();
+
+    expect(ViewRollup::query()->count())->toBe($rows);
+});
+
 it('rejects options it cannot use', function (array $options, string $message): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
 
@@ -84,6 +100,7 @@ it('rejects options it cannot use', function (array $options, string $message): 
     'tier not configured' => [['--tier' => 'hour'], 'The --tier option must name a configured tier'],
     'from' => [['--from' => 'the beginning'], 'The --from option must be a date such as `2025-01-01`.'],
     'chunk' => [['--chunk' => '0'], 'The --chunk option must be a positive integer.'],
+    'chunk not a number' => [['--chunk' => 'many'], 'The --chunk option must be a positive integer.'],
 ]);
 
 it('skips the run while another one holds the lock', function (): void {

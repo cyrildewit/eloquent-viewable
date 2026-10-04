@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -75,4 +76,17 @@ it('keeps the entries of two source identities apart', function (): void {
     expect(($this->remembering)($source, 'database:one')->count($type, new ViewsQuery))->toBe(3)
         ->and(($this->remembering)($source, 'database:two')->count($type, new ViewsQuery))->toBe(4)
         ->and(($this->remembering)($source, 'database:one')->count($type, new ViewsQuery))->toBe(3);
+});
+
+it('remembers the counts by dimension of a source that has them', function (): void {
+    $type = rememberingType();
+
+    $source = Mockery::mock(ViewSource::class, CountsByDimension::class);
+    $source->expects('countByDimension')->once()->with($type, Mockery::type(ViewsQuery::class), 'campaign')->andReturn(['spring' => 3]);
+
+    $first = ($this->remembering)($source)->countByDimension($type, new ViewsQuery, 'campaign');
+    $second = ($this->remembering)($source)->countByDimension($type, new ViewsQuery, 'campaign');
+
+    expect($first)->toBe(['spring' => 3])
+        ->and($second)->toBe(['spring' => 3]);
 });
