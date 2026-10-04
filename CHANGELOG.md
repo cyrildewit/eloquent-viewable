@@ -99,6 +99,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Fixed a count remembered in a Redis cache store failing to read back with a `TypeError`, because Redis returns numbers as strings
 - Fixed the `Views` facade carrying the viewable, period, collection and every other option of one call into the next within a request. See the [upgrade guide](UPGRADING.md#every-facade-call-starts-a-fresh-builder)
 - Fixed the crawler detector judging every request in a long-running worker, such as Octane, by the user agent of the first request
+- Fixed an Octane worker reading the package config it booted with, so a `config()` change made during a request was ignored
 - Fixed `PeriodInterval::subtract()` mutating the date instance passed to it
 - Fixed a visitor without a cookie getting a new id, and queueing another cookie, from every `Visitor` instance in the same request
 - Fixed expired session cooldowns being pruned only for the viewable type being checked, so cooldowns for other types piled up in the session
