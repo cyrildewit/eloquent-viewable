@@ -11,8 +11,6 @@ class CreateViewRollupsTable extends Migration
 
     protected string $table;
 
-    protected string $views;
-
     public function __construct()
     {
         $this->schema = Schema::connection(
@@ -20,13 +18,10 @@ class CreateViewRollupsTable extends Migration
         );
 
         $this->table = config('eloquent-viewable.retention.rollups.table');
-        $this->views = config('eloquent-viewable.models.view.table_name');
     }
 
     public function up(): void
     {
-        $this->indexViewedAt();
-
         $this->schema->create($this->table, function (Blueprint $table) {
             $table->id();
             $table->string('rollup', 64);
@@ -65,22 +60,5 @@ class CreateViewRollupsTable extends Migration
     public function down(): void
     {
         $this->schema->dropIfExists($this->table);
-    }
-
-    /**
-     * Folding and the hand-over from rollups to views are range scans on
-     * `viewed_at`, which the composite index cannot serve because it leads
-     * with the viewable. The retention migration adds the same index, so it
-     * is added by whichever runs first and left in place by `down()`.
-     */
-    protected function indexViewedAt(): void
-    {
-        if ($this->schema->hasIndex($this->views, "{$this->views}_viewed_at_index")) {
-            return;
-        }
-
-        $this->schema->table($this->views, function (Blueprint $table) {
-            $table->index('viewed_at', "{$this->views}_viewed_at_index");
-        });
     }
 }

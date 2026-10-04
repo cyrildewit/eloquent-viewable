@@ -100,11 +100,12 @@ particular. The `cooldown` block needs the new keys, otherwise every `views()` c
 Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
 other than a string or `null` throws `InvalidConfiguration` naming the key.
 
-### 4. Add the new columns and index
+### 4. Add the new columns and indexes
 
 The `views` table needs three new nullable columns, `viewer_type`, `viewer_id` and `context`, because every view
 writes them. A composite index on `viewable_type`, `viewable_id` and `viewed_at` lets period counts read only the rows
-inside the period. Your published migration has already run, so add them in a migration of your own:
+inside the period, and an index on `viewed_at` serves retention and rollups, which scan by date across every viewable.
+Your published migration has already run, so add them in a migration of your own:
 
 ```php
 <?php
@@ -124,6 +125,7 @@ return new class extends Migration
                 $blueprint->nullableMorphs('viewer'); // nullableUuidMorphs or nullableUlidMorphs to match your user model
                 $blueprint->json('context')->nullable();
                 $blueprint->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$table}_viewable_viewed_at_index");
+                $blueprint->index('viewed_at', "{$table}_viewed_at_index");
             });
     }
 
@@ -134,6 +136,7 @@ return new class extends Migration
         Schema::connection(config('eloquent-viewable.models.view.connection'))
             ->table($table, function (Blueprint $blueprint) use ($table) {
                 $blueprint->dropIndex("{$table}_viewable_viewed_at_index");
+                $blueprint->dropIndex("{$table}_viewed_at_index");
                 $blueprint->dropMorphs('viewer');
                 $blueprint->dropColumn('context');
             });
@@ -141,7 +144,7 @@ return new class extends Migration
 };
 ```
 
-On a large table, building the index locks writes while it runs. MySQL 8 and MariaDB 10.5 build it online. On
+On a large table, building an index locks writes while it runs. MySQL 8 and MariaDB 10.5 build it online. On
 Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
 
 Nothing is recorded in the new columns until you opt in to [recording the viewer](README.md#who-viewed-what) or pass a

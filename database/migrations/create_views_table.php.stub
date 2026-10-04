@@ -32,6 +32,11 @@ class CreateViewsTable extends Migration
             $table->timestamp('viewed_at')->useCurrent();
 
             $table->index(['viewable_type', 'viewable_id', 'viewed_at'], "{$this->table}_viewable_viewed_at_index");
+
+            // Retention and rollups scan `viewed_at` across every viewable,
+            // which the composite index cannot serve because it leads with
+            // the viewable.
+            $table->index('viewed_at', "{$this->table}_viewed_at_index");
         });
     }
 
