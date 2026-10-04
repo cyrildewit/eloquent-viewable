@@ -44,6 +44,12 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `Querying\Contracts\SubquerySource` contract, which a source implements so the scopes can read from it. A source that does not throws `Querying\Exceptions\UnsupportedBySource` from a scope
 - Added the `Querying\Contracts\IdentifiesSource` contract, whose `cacheIdentity()` keeps the remembered counts of a source apart per setting
 
+#### Retention
+
+- Added retention: `views:anonymise` anonymises views older than `retention.anonymise.after`, `views:prune` deletes views older than `retention.prune.after`, and `views:maintain` runs every step from one scheduler line. The migration is published under the `eloquent-viewable-retention` tag
+- Added rollups: `views:rollup` folds views into day, month or other tiers per grouping, and the `rollup` source reads them, so history and fast all-time counts outlive deleted views. The migration is published under the `eloquent-viewable-rollups` tag
+- Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
+
 #### Models and testing
 
 - Added the `models.view.class` config option to use your own `View` model
