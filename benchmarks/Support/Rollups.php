@@ -62,11 +62,6 @@ final class Rollups
         $state->put(self::FoldedFrom, $marker);
     }
 
-    /**
-     * The table is created without the index on `viewed_at` the migration
-     * would add, which would change the plans of every other benchmark on
-     * this dataset.
-     */
     private static function install(ConnectionInterface $connection): void
     {
         if ($connection->getSchemaBuilder()->hasTable('view_rollups')) {
@@ -75,9 +70,6 @@ final class Rollups
 
         require_once __DIR__.'/../../database/migrations/create_view_rollups_table.php.stub';
 
-        new class extends \CreateViewRollupsTable
-        {
-            protected function indexViewedAt(): void {}
-        }->up();
+        new \CreateViewRollupsTable()->up();
     }
 }
