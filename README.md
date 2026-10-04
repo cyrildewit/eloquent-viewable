@@ -53,6 +53,8 @@
     <li><a href="#optimizing">Optimizing</a>
       <ul>
         <li><a href="#database-indexes">Database indexes</a></li>
+        <li><a href="#retention">Retention</a></li>
+        <li><a href="#rollups">Rollups</a></li>
         <li><a href="#storing-counts-on-your-own-table">Storing counts on your own table</a></li>
         <li><a href="#buffering-views-in-redis">Buffering views in Redis</a></li>
       </ul>
@@ -119,7 +121,7 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 
 Out of the box every view is one insert during the request and every count is one query. That is fine for most
 applications and needs nothing beyond the migration. When traffic grows, switch on what you need, one config key at a
-time. Counts always read from the `views` table, so none of these changes how you query.
+time. None of these changes how you query.
 
 | Option                                                  | What you gain                                                    | What you need                                     |
 |---------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------|
@@ -131,6 +133,8 @@ time. Counts always read from the `views` table, so none of these changes how yo
 | [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled command                  |
 | [Cache cooldowns](#setting-a-cooldown)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |
 | [Fingerprint identity](#recording-without-a-cookie)     | Unique visitors without setting a cookie                         | A shared cache store, trusted proxies configured  |
+| [Retention](#retention)                                 | Old views anonymised and deleted on a schedule                   | A migration and a scheduled `views:maintain`      |
+| [Rollups](#rollups)                                     | History and cheap all-time counts after views are deleted        | A migration and the `rollup` source               |
 
 ## Getting Started
 
@@ -693,9 +697,8 @@ View::factory()->for($post, 'viewable')->viewedAt(now()->subDays(2))->by($user)-
 ## Optimizing
 
 Every view is its own row, so the `views` table grows with traffic. The table in
-[Start simple, scale when you need to](#start-simple-scale-when-you-need-to) lists what to switch on. Two more things
-help at scale: deleting rows you no longer need from a scheduled command, as the package does not prune them, and
-partitioning the table.
+[Start simple, scale when you need to](#start-simple-scale-when-you-need-to) lists what to switch on, and
+[retention](#retention) and [rollups](#rollups) keep the table from growing forever.
 
 The repository has a [benchmark suite](benchmarks) that times the expensive paths against millions of seeded views on
 every supported database. The optional indexes below were measured with it.
@@ -711,6 +714,90 @@ Two optional indexes, added in a migration of your own:
 - `visitor` as a fourth column of that composite index, or `include (visitor)` on Postgres, speeds up `unique()` counts.
 - `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
   `views(Post::class)->countByInterval()`.
+
+### Retention
+
+The `views` table keeps every row, with the visitor id, the viewer and the context of each view. A retention policy
+anonymises views once they reach one age and deletes them at another. Nothing is set out of the box.
+
+Publish and run the migration, which adds an index on `viewed_at` and a small state table:
+
+```bash
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-retention"
+php artisan migrate
+```
+
+Set the ages in the period shorthand and schedule one command:
+
+```php
+'retention' => [
+    'anonymise' => ['after' => '30d', 'columns' => ['visitor', 'viewer', 'context']],
+    'prune' => ['after' => '1y'],
+],
+```
+
+```php
+Schedule::command('views:maintain')->hourly()->onOneServer();
+```
+
+`views:anonymise` and `views:prune` run one step, and take `--older-than=90d` in place of the configured age. Every
+command takes `--dry-run` and `--chunk`.
+
+What to know:
+
+- **Anonymising keeps daily uniques exact.** `viewer` and `context` become `null`, and `visitor` is re-hashed under a
+  salt per day that is destroyed afterwards. One visitor keeps one id within a day but no id links two days, so
+  `anonymise.after` is how far back unique counts across days stay exact. It must not be longer than `prune.after`.
+- **A run holds a lock** on the `querying.cache.store` store, so two servers never run at once.
+- **A run forgets every remembered count** when it changed a view, and dispatches `Retention\Events\ViewsAnonymised`
+  or `ViewsPruned`.
+- **A command throws `Retention\Exceptions\RetentionNotInstalled`** when the migration has not run.
+
+### Rollups
+
+Rollups keep the counts of old views per bucket of time, so history outlives the views it was counted from and
+all-time counts read a few rows per model instead of every view. Publish and run their migration, configure the tiers
+and read through the `rollup` source:
+
+```bash
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-rollups"
+php artisan migrate
+```
+
+```php
+'querying' => [
+    'source' => ['driver' => 'rollup'],
+],
+
+'retention' => [
+    'rollups' => [
+        'tiers' => ['day' => '2y', 'month' => null], // null keeps a tier forever
+        'groupings' => ['viewable', 'viewable_collection', 'type'],
+    ],
+],
+```
+
+`views:maintain` folds closed buckets with `views:rollup` before it anonymises and prunes, so the same scheduler line
+covers it. `views:rollup` also drops the buckets of a tier past its age, and takes `--tier`, `--from` to fold again
+from a date, `--dry-run` and `--chunk`. Every read and scope works through the `rollup` source.
+
+Each grouping answers one kind of count: `viewable` a model, `viewable_collection` a model within a collection, `type`
+a whole model type, and `type_collection`, off by default, a type within a collection. A read that needs a grouping
+that is not kept, or narrows to a viewer, reads the `views` table alone.
+
+What to know:
+
+- **Recent views and exact uniques come from the `views` table.** Older history comes from the coarsest tier that
+  covers it.
+- **Older history has the resolution of its tier.** A bucket counts when its start lies inside the period, and unique
+  visitors are summed across buckets. With `retention.rollups.strict` such a read throws
+  `Querying\Rollups\Exceptions\ResolutionUnavailable` instead.
+- **Nothing is deleted before it is folded.** Anonymising and pruning stop at the last bucket every tier has folded, and
+  a tier drops only buckets the next coarser tier has folded. Settings that would break this throw
+  `InvalidConfiguration` at boot.
+- **Late views are folded again.** A bucket waits `settle`, an hour by default, after it closes, and a view that lands
+  later is found by its id and its bucket folded again.
+- **Destroying views** removes the model's rollup rows, but not its share of the unique visitors of its type.
 
 ### Storing counts on your own table
 
