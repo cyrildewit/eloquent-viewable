@@ -430,12 +430,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
                 throw ResolutionUnavailable::summedUniques();
             }
         }
-
-        foreach ($plan->boundaries() as $boundary) {
-            if (! $granularity->floor($boundary->setTimezone($zone))->equalTo($boundary)) {
-                throw ResolutionUnavailable::summedUniques();
-            }
-        }
     }
 
     /** @throws ResolutionUnavailable */
@@ -469,17 +463,10 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
 
     private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
     {
-        foreach ([$segment->start, $segment->end] as $moment) {
-            if (! $moment instanceof CarbonImmutable) {
-                continue;
-            }
-
-            if (($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 !== 0) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all(
+            array_filter([$segment->start, $segment->end]),
+            fn (CarbonImmutable $moment): bool => ($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 === 0,
+        );
     }
 
     /**

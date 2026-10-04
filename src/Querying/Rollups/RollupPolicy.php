@@ -146,17 +146,13 @@ final readonly class RollupPolicy
         $coarsest = null;
 
         foreach ($this->definitions as $definition) {
-            $tier = $definition->tiers()[0] ?? null;
+            foreach ($definition->tiers() as $tier) {
+                if ($coarsest instanceof Tier && ! $tier->isCoarserThan($coarsest)) {
+                    continue;
+                }
 
-            if (! $tier instanceof Tier) {
-                continue;
+                $coarsest = $tier;
             }
-
-            if ($coarsest instanceof Tier && ! $tier->isCoarserThan($coarsest)) {
-                continue;
-            }
-
-            $coarsest = $tier;
         }
 
         return $coarsest;

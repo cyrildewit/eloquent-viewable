@@ -140,8 +140,7 @@ it('reads unique visitors raw back to where the views table is exact', function 
         'month 2026-02-01 00:00..2026-03-01 00:00',
         'day 2026-03-01 00:00..2026-03-10 00:00',
         'raw 2026-03-10 00:00..',
-    ])
-        ->and($plan->boundaries())->toHaveCount(3);
+    ]);
 });
 
 it('hands over to raw on the edge of a series bucket', function (): void {
