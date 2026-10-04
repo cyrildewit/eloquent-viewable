@@ -307,3 +307,35 @@ it('rejects groupings that are not known', function (mixed $value): void {
     'empty' => [[]],
     'unknown' => [['viewer']],
 ]);
+
+it('reads the counter columns', function (): void {
+    $counters = packageConfig(['querying' => ['counters' => [Post::class => [
+        'views_count',
+        'weekly' => ['period' => '7d', 'unique' => true, 'collection' => 'featured'],
+    ]]]])->counters();
+
+    expect(array_keys($counters))->toBe([Post::class])
+        ->and(array_keys($counters[Post::class]))->toBe(['views_count', 'weekly'])
+        ->and($counters[Post::class]['views_count'])
+        ->period->toBeNull()
+        ->unique->toBeFalse()
+        ->and($counters[Post::class]['weekly'])
+        ->unique->toBeTrue()
+        ->collection->toBe('featured')
+        ->and($counters[Post::class]['weekly']->period?->getRouteKey())->toBe('7d')
+        ->and(packageConfig()->counters())->toBeEmpty();
+});
+
+it('rejects counters that are not viewable models mapped to columns', function (mixed $value): void {
+    expect(fn (): array => packageConfig(['querying' => ['counters' => $value]])->counters())
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.querying.counters` config value must map viewable model classes to their counter columns');
+})->with([
+    'string' => ['views_count'],
+    'list' => [[['views_count']]],
+    'not a viewable' => [[SoftDeletableView::class => ['views_count']]],
+    'no columns' => [[Post::class => []]],
+    'a column by number' => [[Post::class => [1]]],
+    'unknown option' => [[Post::class => ['views_count' => ['viewer' => 1]]]],
+    'period not a string' => [[Post::class => ['views_count' => ['period' => 7]]]],
+    'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],
+]);

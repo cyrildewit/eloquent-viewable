@@ -14,6 +14,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Counters\Console\RecountViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
@@ -72,6 +73,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $this->commands([
                 FlushViewsCommand::class,
                 RollupViewsCommand::class,
+                RecountViewsCommand::class,
                 AnonymiseViewsCommand::class,
                 PruneViewsCommand::class,
                 MaintainViewsCommand::class,
