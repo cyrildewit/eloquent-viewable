@@ -133,6 +133,11 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");
     }
 
+    public static function beaconDisabled(): self
+    {
+        return new self('The beacon route is not registered. Set `eloquent-viewable.recording.beacon.enabled` to `true` to record views from the browser.');
+    }
+
     private static function describe(mixed $value): string
     {
         if (! is_scalar($value)) {

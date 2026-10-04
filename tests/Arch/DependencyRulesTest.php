@@ -6,6 +6,8 @@ use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
+use CyrildeWit\EloquentViewable\Http\Beacon;
+use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Views;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
@@ -46,6 +48,8 @@ const ENTRY_POINTS = [
     InteractsWithViews::class,
     EloquentViewableServiceProvider::class,
     RecordViews::class,
+    Beacon::class,
+    BeaconController::class,
 ];
 
 const EXCEPTIONS = [

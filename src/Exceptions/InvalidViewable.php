@@ -69,4 +69,9 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
 
         return new self("The parameter [{$parameter}] of the route [{$uri}] must be bound to a model that implements {$viewable}.");
     }
+
+    public static function beaconWithoutKey(string $class): self
+    {
+        return new self("A beacon records a view of a saved model, an unsaved [{$class}] was given.");
+    }
 }

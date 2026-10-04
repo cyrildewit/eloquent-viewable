@@ -9,6 +9,8 @@ use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Http\Beacon;
+use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
@@ -55,6 +57,7 @@ use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\Compilers\BladeCompiler;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class EloquentViewableServiceProvider extends ServiceProvider
@@ -65,6 +68,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $router->aliasMiddleware(RecordViews::Alias, RecordViews::class);
         });
 
+        $this->registerBeacon();
         $this->forgetCountsOfDestroyedViews();
         $this->flushCountsAfterRetentionRuns();
         $this->validateRetentionPolicies();
@@ -110,6 +114,37 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_rollups_table.php"),
         ], 'eloquent-viewable-rollups');
+    }
+
+    /**
+     * The directive is there whenever Blade is, so a page that prints it while
+     * the beacon is off fails with the reason rather than a missing directive.
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function registerBeacon(): void
+    {
+        $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
+            $blade->directive('viewsBeacon', function (string $expression): string {
+                $beacon = Beacon::class;
+
+                return "<?php echo \\Illuminate\\Container\\Container::getInstance()->make(\\{$beacon}::class)->script({$expression}); ?>";
+            });
+        });
+
+        $config = $this->app->make(Config::class);
+
+        if (! $config->beaconEnabled()) {
+            return;
+        }
+
+        $prefix = trim($config->beaconPrefix(), '/');
+
+        $this->app->make(Router::class)->post("{$prefix}/{type}/{key}", [
+            'uses' => BeaconController::class,
+            'as' => Beacon::RouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
     }
 
     protected function forgetCountsOfDestroyedViews(): void
