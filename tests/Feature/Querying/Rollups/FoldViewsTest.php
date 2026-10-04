@@ -129,6 +129,17 @@ it('marks a tier folded when there is nothing to fold', function (): void {
         ->and(app(RollupState::class)->snapshot('views')->since(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00');
 });
 
+it('folds what is new after a run over no views at all', function (): void {
+    fold();
+
+    viewAt($this->post, '2026-03-31 10:00:00');
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    fold();
+
+    expect(bucket('day', '2026-03-31', 'viewable', $this->post))->toBe([1, 1]);
+});
+
 it('folds only what is new on the next run', function (): void {
     viewAt($this->post, '2026-03-29 10:00:00');
     fold();
@@ -249,6 +260,38 @@ it('folds again no further back than the views are all still there', function ()
     fold(Tier::Day, from: '2026-01-01');
 
     expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([1, 1]);
+});
+
+it('folds again from a given date after the views are pruned', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-01-20 10:00:00');
+    fold();
+
+    app(RetentionState::class)->put('pruned', '2026-01-15 00:00:00');
+    View::query()->where('viewed_at', '<', '2026-01-15')->delete();
+    ViewRollup::query()->delete();
+
+    $runs = fold(Tier::Day, from: '2026-01-20');
+
+    expect(bucket('day', '2026-01-20', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBeNull()
+        ->and($runs[0]->buckets)->toBe(1);
+});
+
+it('folds a month again no further back than both anonymising and pruning reached', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-02-10 10:00:00');
+    fold();
+
+    app(RetentionState::class)->put('pruned', '2026-01-15 00:00:00');
+    app(RetentionState::class)->put('anonymised', '2026-02-01 00:00:00');
+    View::query()->where('viewed_at', '<', '2026-01-15')->delete();
+    ViewRollup::query()->delete();
+
+    fold(Tier::Month, from: '2026-01-01');
+
+    expect(bucket('month', '2026-02-01', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBeNull();
 });
 
 it('aligns buckets to the configured timezone', function (): void {

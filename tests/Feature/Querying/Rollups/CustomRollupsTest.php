@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Rollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -102,6 +103,15 @@ it('counts a dimension from the views table through a source without rollups for
     config()->set('eloquent-viewable.querying.source.driver', 'rollup');
 
     expect(views($this->post)->rollup('newsletter')->countByDimension())->toBe(['spring' => 3, '' => 1, 'winter' => 1]);
+});
+
+it('counts a dimension of no rollup from the views table', function (): void {
+    app(FoldViews::class)->handle();
+    app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), 100);
+
+    $source = app(SourceManager::class)->driver('rollup');
+
+    expect($source->countByDimension($this->post, new ViewsQuery, 'context->source'))->toBe(['newsletter' => 1]);
 });
 
 it('keeps the counts of a rollup apart in the cache', function (): void {
@@ -283,6 +293,20 @@ describe('config', function (): void {
                 return [];
             }
         }, 'must keep at least one tier, and at least one grouping of `viewable`, `viewable_collection`, `type`, `type_collection`'],
+        'no groupings' => [fn (): Rollup => new class extends Rollup
+        {
+            public string $name = 'ungrouped';
+
+            public function tiers(): array
+            {
+                return ['day' => null];
+            }
+
+            public function groupings(): array
+            {
+                return [];
+            }
+        }, 'must keep at least one tier, and at least one grouping of `viewable`, `viewable_collection`, `type`, `type_collection`'],
         'an unknown grouping' => [fn (): Rollup => new class extends Rollup
         {
             public string $name = 'viewers';
@@ -327,7 +351,7 @@ describe('config', function (): void {
 
         app(RollupPolicy::class);
     })->throws(InvalidConfiguration::class, 'The `eloquent-viewable.retention.rollups.custom` config value must be a list of class names')
-        ->with(['string' => [NewsletterViews::class], 'missing class' => [['App\\Rollups\\Missing']]]);
+        ->with(['string' => [NewsletterViews::class], 'not a string' => [[1]], 'missing class' => [['App\\Rollups\\Missing']]]);
 
     it('checks custom rollups at boot', function (): void {
         config()->set('eloquent-viewable.retention.rollups.custom', [Post::class]);
