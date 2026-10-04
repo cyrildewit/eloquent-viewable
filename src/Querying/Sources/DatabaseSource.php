@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -24,7 +25,7 @@ use Illuminate\Support\Collection;
 use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements IdentifiesSource, SubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -97,6 +98,32 @@ final readonly class DatabaseSource implements IdentifiesSource, SubquerySource,
 
         foreach ($rows as $name => $count) {
             $counts[(string) $name] = (int) $count;
+        }
+
+        return $counts;
+    }
+
+    /** @return array<string, int> */
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
+    {
+        $builder = $this->view->newQueryFor($viewable, $query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        // A JSON path such as `context->campaign` is compiled to the driver's
+        // own extraction, as in a where clause.
+        $column = $grammar->wrap($dimension);
+        $aggregate = $this->aggregate($query, $grammar);
+
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $builder
+            ->selectRaw("{$column} as dimension, {$aggregate} as aggregate") // @phpstan-ignore argument.type (a column or JSON path the application names, not user input)
+            ->groupBy('dimension')
+            ->pluck('aggregate', 'dimension');
+
+        $counts = [];
+
+        foreach ($rows as $value => $count) {
+            $counts[(string) $value] = (int) $count;
         }
 
         return $counts;

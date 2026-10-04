@@ -37,6 +37,16 @@ enum Grouping: string
     }
 
     /**
+     * The value of the `grouping` column. The rows per dimension value of a
+     * custom rollup are kept apart from its totals, because unique visitors
+     * summed across values would count a visitor once per value.
+     */
+    public function stored(bool $perDimension = false): string
+    {
+        return $perDimension ? "{$this->value}:dimension" : $this->value;
+    }
+
+    /**
      * The columns of the views table a row of this grouping is grouped by.
      *
      * @return non-empty-list<string>

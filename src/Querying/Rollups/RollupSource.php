@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -36,7 +37,7 @@ use stdClass;
  * cannot answer, such as one narrowed to a viewer or one that needs a
  * grouping that is not kept, reads the views table alone.
  */
-final readonly class RollupSource implements IdentifiesSource, SubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
 {
     private const int CHUNK = 1_000;
 
@@ -148,6 +149,47 @@ final readonly class RollupSource implements IdentifiesSource, SubquerySource, V
         }
 
         return $this->add($counts, $rollups);
+    }
+
+    /**
+     * Per value of the dimension of the custom rollup the query reads
+     * through. Any other dimension reads the views table alone.
+     *
+     * @return array<string, int>
+     *
+     * @throws InvalidPeriod
+     * @throws ResolutionUnavailable
+     */
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
+    {
+        $grouping = Grouping::for($viewable, $query->collection !== null);
+        $plan = $this->policy->for($query)?->dimension() === $dimension ? $this->plan($grouping, $query) : null;
+
+        if (! $plan instanceof Plan) {
+            return $this->raw->countByDimension($viewable, $query, $dimension);
+        }
+
+        $counts = [];
+
+        foreach ($plan->raw() as $segment) {
+            $counts = self::add($counts, $this->raw->countByDimension($viewable, $this->narrow($query, $segment), $dimension));
+        }
+
+        $column = $this->rollup->qualifyColumn('dimension');
+
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $plan, $query, perDimension: true)
+            ->selectRaw("{$this->wrap($column)} as dimension, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->groupBy($column)
+            ->pluck('aggregate', 'dimension');
+
+        $rollups = [];
+
+        foreach ($rows as $value => $count) {
+            $rollups[(string) $value] = (int) $count;
+        }
+
+        return self::add($counts, $rollups);
     }
 
     /**
@@ -310,11 +352,13 @@ final readonly class RollupSource implements IdentifiesSource, SubquerySource, V
      */
     private function plan(Grouping $grouping, ViewsQuery $query, ?Granularity $granularity = null): ?Plan
     {
-        if (! $this->policy->isEnabled() || $query->viewer instanceof Model || ! $this->policy->keeps($grouping)) {
+        $definition = $this->policy->for($query);
+
+        if (! $definition instanceof RollupDefinition || $query->viewer instanceof Model || ! $definition->keeps($grouping)) {
             return null;
         }
 
-        $tiers = $this->policy->tiers();
+        $tiers = $definition->tiers();
 
         if ($granularity instanceof Granularity) {
             $tiers = array_values(array_filter($tiers, static fn (Tier $tier): bool => $tier->fits($granularity)));
@@ -330,7 +374,7 @@ final readonly class RollupSource implements IdentifiesSource, SubquerySource, V
             : null;
 
         $plan = new Planner($this->policy->timezone)->plan(
-            $this->state->snapshot(),
+            $this->state->snapshot($definition->name),
             $tiers,
             $query->period?->getStartDateTime(),
             $query->period?->getEndDateTime(),
@@ -424,13 +468,13 @@ final readonly class RollupSource implements IdentifiesSource, SubquerySource, V
     /**
      * The rollup rows of the grouping inside the plan's rollup segments.
      */
-    private function rollups(?string $type, int|string|null $key, Grouping $grouping, Plan $plan, ViewsQuery $query): Builder
+    private function rollups(?string $type, int|string|null $key, Grouping $grouping, Plan $plan, ViewsQuery $query, bool $perDimension = false): Builder
     {
         $column = fn (string $name): string => $this->rollup->qualifyColumn($name);
 
         $builder = $this->rollup->newQuery()->toBase()
-            ->where($column('rollup'), RollupState::ROLLUP)
-            ->where($column('grouping'), $grouping->value)
+            ->where($column('rollup'), $this->policy->for($query)->name ?? RollupPolicy::BUILT_IN)
+            ->where($column('grouping'), $grouping->stored($perDimension))
             ->when($type !== null, fn (Builder $builder): Builder => $builder->where($column('viewable_type'), $type))
             ->when($key !== null, fn (Builder $builder): Builder => $builder->where($column('viewable_id'), $key));
 
