@@ -18,8 +18,9 @@ use Illuminate\Support\Facades\URL;
 
 /**
  * The route is registered at boot, so the provider boots again once the
- * config is set. Without the `web` group by default, so cooldowns keep the
- * session between requests the way the middleware tests rely on.
+ * config is set. The `web` group is left out unless a test asks for it, so
+ * cooldowns keep the session between requests, as the middleware tests rely
+ * on.
  *
  * @param  array<string, mixed>  $config
  */
@@ -174,7 +175,7 @@ describe('refusing', function (): void {
     ]);
 });
 
-/**
+/*
  * Laravel skips its CSRF check while the environment is `testing`, so these
  * leave it for a moment. A cached page carries no token, so only the browser's
  * `Sec-Fetch-Site` header gets a beacon through.
