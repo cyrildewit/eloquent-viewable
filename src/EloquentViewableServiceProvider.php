@@ -120,6 +120,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
      * The directive is there whenever Blade is, so a page that prints it while
      * the beacon is off fails with the reason rather than a missing directive.
      *
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests.
+     *
      * @throws InvalidConfiguration
      */
     protected function registerBeacon(): void
@@ -132,7 +135,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             });
         });
 
-        $config = $this->app->make(Config::class);
+        $config = new Config($this->app->make('config'));
 
         if (! $config->beaconEnabled()) {
             return;
