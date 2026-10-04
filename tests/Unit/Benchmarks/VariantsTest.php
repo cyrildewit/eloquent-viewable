@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Benchmarks\Php\CooldownManagerBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Php\ViewSeriesBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\AlsoViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
@@ -61,6 +62,7 @@ it('finds every benchmark class in path order', function (): void {
     expect($classes)->toBe([
         CooldownManagerBench::class,
         ViewSeriesBench::class,
+        AlsoViewedBench::class,
         CountViewsBench::class,
         CountViewsByCollectionBench::class,
         CountViewsByIntervalBench::class,
@@ -86,7 +88,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
+    expect($names('read'))->toBe(['AlsoViewedBench', 'CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'TopViewedBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
@@ -193,6 +195,27 @@ it('names the parameter sets of the interval benchmarks', function (): void {
     expect(setsOf(CountViewsByIntervalBench::class, 'benchCountByInterval'))->toBe($expected)
         ->and(setsOf(CountViewsByIntervalBench::class, 'benchUniqueCountByInterval'))->toBe($expected)
         ->and(setsOf(CountViewsByIntervalBench::class, 'benchCountByIntervalInTimezone'))->toBe($expected);
+});
+
+it('names the parameter sets of the also viewed benchmark, three providers deep', function (): void {
+    expect(setsOf(AlsoViewedBench::class, 'benchAlsoViewed'))->toBe([
+        'hot article,thousand visitors,all time',
+        'cold article,thousand visitors,all time',
+        'hot article,every visitor,all time',
+        'cold article,every visitor,all time',
+        'hot article,thousand visitors,past year',
+        'cold article,thousand visitors,past year',
+        'hot article,every visitor,past year',
+        'cold article,every visitor,past year',
+        'hot article,thousand visitors,past 30 days',
+        'cold article,thousand visitors,past 30 days',
+        'hot article,every visitor,past 30 days',
+        'cold article,every visitor,past 30 days',
+        'hot article,thousand visitors,past day',
+        'cold article,thousand visitors,past day',
+        'hot article,every visitor,past day',
+        'cold article,every visitor,past day',
+    ]);
 });
 
 it('names the parameter sets of the ranking benchmark', function (): void {

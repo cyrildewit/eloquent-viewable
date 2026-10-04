@@ -28,6 +28,12 @@ enum OptionalIndex: string
     case TypeViewedAt = 'type-viewed-at';
 
     /**
+     * `(visitor, viewed_at, viewable_type, viewable_id)`, which finds every
+     * view of one visitor, so `alsoViewed()` pairs without a scan per visitor.
+     */
+    case VisitorHistory = 'visitor-history';
+
+    /**
      * @return list<self>
      */
     public static function fromList(string $list): array
@@ -58,6 +64,7 @@ enum OptionalIndex: string
         return match ($this) {
             self::Visitor => 'views_viewable_viewed_at_visitor_index',
             self::TypeViewedAt => 'views_viewable_type_viewed_at_index',
+            self::VisitorHistory => 'views_visitor_viewed_at_viewable_index',
         };
     }
 
@@ -91,6 +98,7 @@ enum OptionalIndex: string
         return match ($this) {
             self::Visitor => ['viewable_type', 'viewable_id', 'viewed_at', 'visitor'],
             self::TypeViewedAt => ['viewable_type', 'viewed_at'],
+            self::VisitorHistory => ['visitor', 'viewed_at', 'viewable_type', 'viewable_id'],
         };
     }
 }
