@@ -29,7 +29,11 @@ final readonly class BeaconController
         private UrlGenerator $urls,
     ) {}
 
-    /** @throws RecordingFailed only for a model without a key, which a lookup never returns */
+    /**
+     * A model found by its key always has one, so recording never fails here.
+     *
+     * @throws RecordingFailed
+     */
     public function __invoke(Request $request, string $type, string $key): Response
     {
         if (! $this->urls->hasValidSignature($request, absolute: false)) {
@@ -68,7 +72,11 @@ final readonly class BeaconController
         return $model;
     }
 
-    /** The options were signed along with the model, so they are as the page printed them. */
+    /**
+     * The options were signed along with the model, so they are as the page
+     * printed them. An option the URL leaves out is not set at all, so the
+     * config still decides it.
+     */
     private function views(Request $request): Views
     {
         $views = $this->container->make(Views::class);
@@ -81,7 +89,6 @@ final readonly class BeaconController
             $views->cooldown($request->query->getInt('cooldown'));
         }
 
-        // Left alone when absent, so `recording.queue.enabled` still decides.
         if ($request->query->has('queue')) {
             $views->queue($request->query->getBoolean('queue'));
         }
