@@ -26,59 +26,63 @@ final readonly class ExpireTiers
     ) {}
 
     /**
-     * @return array<string, int> the rows dropped, by tier
+     * @return list<array{rollup: string, tier: Tier, rows: int}> the rows dropped
      */
     public function handle(int $chunk, bool $dryRun = false): array
     {
-        $snapshot = $this->state->snapshot();
         $now = CarbonImmutable::now();
         $zone = $this->policy->timezone;
         $dropped = [];
 
-        foreach ($this->policy->tiers() as $tier) {
-            $keep = $this->policy->keep($tier);
+        foreach ($this->policy->definitions() as $definition) {
+            $snapshot = $this->state->snapshot($definition->name);
 
-            if (! $keep instanceof Duration) {
-                continue;
-            }
+            foreach ($definition->tiers() as $tier) {
+                $keep = $definition->keep($tier);
 
-            $cutoff = CarbonImmutable::instance($keep->before($now));
-            $coarser = $this->policy->coarserThan($tier);
-
-            if ($coarser instanceof Tier) {
-                $captured = $snapshot->folded($coarser);
-
-                if (! $captured instanceof CarbonImmutable) {
+                if (! $keep instanceof Duration) {
                     continue;
                 }
 
-                $cutoff = $coarser->floor($cutoff->min($captured), $zone);
-            } else {
-                $cutoff = $tier->floor($cutoff, $zone);
-            }
+                $cutoff = CarbonImmutable::instance($keep->before($now));
+                $coarser = $definition->coarserThan($tier);
 
-            $since = $snapshot->since($tier);
+                if ($coarser instanceof Tier) {
+                    $captured = $snapshot->folded($coarser);
 
-            if ($since instanceof CarbonImmutable && $since >= $cutoff) {
-                continue;
-            }
+                    if (! $captured instanceof CarbonImmutable) {
+                        continue;
+                    }
 
-            $dropped[$tier->value] = $dryRun ? $this->expired($tier, $cutoff)->count() : $this->drop($tier, $cutoff, $chunk);
+                    $cutoff = $coarser->floor($cutoff->min($captured), $zone);
+                } else {
+                    $cutoff = $tier->floor($cutoff, $zone);
+                }
 
-            if (! $dryRun) {
-                $this->state->putSince($tier, $cutoff);
+                $since = $snapshot->since($tier);
+
+                if ($since instanceof CarbonImmutable && $since >= $cutoff) {
+                    continue;
+                }
+
+                $rows = $dryRun ? $this->expired($definition->name, $tier, $cutoff)->count() : $this->drop($definition->name, $tier, $cutoff, $chunk);
+                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $rows];
+
+                if (! $dryRun) {
+                    $this->state->putSince($definition->name, $tier, $cutoff);
+                }
             }
         }
 
         return $dropped;
     }
 
-    private function drop(Tier $tier, CarbonImmutable $cutoff, int $chunk): int
+    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk): int
     {
         $dropped = 0;
 
         do {
-            $ids = $this->expired($tier, $cutoff)->limit($chunk)->pluck('id')->all();
+            $ids = $this->expired($rollup, $tier, $cutoff)->limit($chunk)->pluck('id')->all();
 
             if ($ids !== []) {
                 $dropped += $this->rollup->newQuery()->toBase()->whereIn('id', $ids)->delete();
@@ -88,10 +92,10 @@ final readonly class ExpireTiers
         return $dropped;
     }
 
-    private function expired(Tier $tier, CarbonImmutable $cutoff): Builder
+    private function expired(string $rollup, Tier $tier, CarbonImmutable $cutoff): Builder
     {
         return $this->rollup->newQuery()->toBase()
-            ->where('rollup', RollupState::ROLLUP)
+            ->where('rollup', $rollup)
             ->where('tier', $tier->value)
             ->where('bucket_start', '<', $cutoff);
     }

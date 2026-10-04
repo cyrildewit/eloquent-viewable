@@ -33,7 +33,7 @@ final class MaintainViewsCommand extends RetentionCommand
             return self::FAILURE;
         }
 
-        $rollups = $config->rollupTiers() !== [];
+        $rollups = $config->rollupTiers() !== [] || $config->customRollups() !== [];
         $retains = $policy->anonymiseAfter instanceof Duration || $policy->pruneAfter instanceof Duration;
 
         if (! $rollups && ! $retains) {

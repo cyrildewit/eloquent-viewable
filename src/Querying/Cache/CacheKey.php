@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Cache;
 
+use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
@@ -77,6 +78,8 @@ final readonly class CacheKey
             $granularity?->value,
             $grouping,
             $limit,
+            // Only when set, so the keys of unfiltered counts stay as they were.
+            ...($query->filter instanceof FiltersViews ? [$query->filter->name()] : []),
         ]));
     }
 }

@@ -9,17 +9,13 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 
 /**
- * The marks of the built-in rollup in the state store.
+ * The marks of each rollup in the state store, kept under its name.
  *
  * @internal
  */
 final readonly class RollupState
 {
-    public const string ROLLUP = 'views';
-
     private const string LAST_ID = 'rollup:last_id';
-
-    private const string ORIGIN = 'rollup:'.self::ROLLUP.':origin';
 
     public function __construct(
         private StateStore $store,
@@ -31,55 +27,55 @@ final readonly class RollupState
     }
 
     /**
-     * Every mark a read needs, in one round trip.
+     * Every mark a read of the rollup needs, in one round trip.
      */
-    public function snapshot(): Snapshot
+    public function snapshot(string $rollup): Snapshot
     {
-        $names = [StateStore::ANONYMISED, StateStore::PRUNED, self::ORIGIN];
+        $names = [StateStore::ANONYMISED, StateStore::PRUNED, $this->origin($rollup)];
 
         foreach (Tier::cases() as $tier) {
-            $names[] = $this->folded($tier);
-            $names[] = $this->since($tier);
+            $names[] = self::folded($rollup, $tier);
+            $names[] = $this->since($rollup, $tier);
         }
 
         $values = $this->store->many($names);
+        $moment = static fn (string $name): ?CarbonImmutable => isset($values[$name]) ? CarbonImmutable::parse($values[$name]) : null;
         $folded = [];
         $since = [];
 
         foreach (Tier::cases() as $tier) {
-            if (isset($values[$this->folded($tier)])) {
-                $folded[$tier->value] = $this->parse($values[$this->folded($tier)]);
-            }
-
-            if (isset($values[$this->since($tier)])) {
-                $since[$tier->value] = $this->parse($values[$this->since($tier)]);
-            }
+            $folded[$tier->value] = $moment(self::folded($rollup, $tier));
+            $since[$tier->value] = $moment($this->since($rollup, $tier));
         }
 
         return new Snapshot(
-            $folded,
-            $since,
-            isset($values[StateStore::ANONYMISED]) ? $this->parse($values[StateStore::ANONYMISED]) : null,
-            isset($values[StateStore::PRUNED]) ? $this->parse($values[StateStore::PRUNED]) : null,
-            isset($values[self::ORIGIN]) ? $this->parse($values[self::ORIGIN]) : null,
+            array_filter($folded),
+            array_filter($since),
+            $moment(StateStore::ANONYMISED),
+            $moment(StateStore::PRUNED),
+            $moment($this->origin($rollup)),
         );
     }
 
-    public function putFolded(Tier $tier, CarbonInterface $until): void
+    public function putFolded(string $rollup, Tier $tier, CarbonInterface $until): void
     {
-        $this->store->put($this->folded($tier), $until->format(StateStore::FORMAT));
+        $this->store->put(self::folded($rollup, $tier), $until->format(StateStore::FORMAT));
     }
 
-    public function putSince(Tier $tier, CarbonInterface $since): void
+    public function putSince(string $rollup, Tier $tier, CarbonInterface $since): void
     {
-        $this->store->put($this->since($tier), $since->format(StateStore::FORMAT));
+        $this->store->put($this->since($rollup, $tier), $since->format(StateStore::FORMAT));
     }
 
-    public function putOrigin(CarbonInterface $origin): void
+    public function putOrigin(string $rollup, CarbonInterface $origin): void
     {
-        $this->store->put(self::ORIGIN, $origin->format(StateStore::FORMAT));
+        $this->store->put($this->origin($rollup), $origin->format(StateStore::FORMAT));
     }
 
+    /**
+     * Shared by every rollup: a run only moves it once all of them have
+     * looked at the views below it.
+     */
     public function lastId(): ?int
     {
         $value = $this->store->get(self::LAST_ID);
@@ -92,18 +88,18 @@ final readonly class RollupState
         $this->store->put(self::LAST_ID, (string) $id);
     }
 
-    private function folded(Tier $tier): string
+    private static function folded(string $rollup, Tier $tier): string
     {
-        return 'rollup:'.self::ROLLUP.":{$tier->value}";
+        return "rollup:{$rollup}:{$tier->value}";
     }
 
-    private function since(Tier $tier): string
+    private function since(string $rollup, Tier $tier): string
     {
-        return $this->folded($tier).':since';
+        return self::folded($rollup, $tier).':since';
     }
 
-    private function parse(string $value): CarbonImmutable
+    private function origin(string $rollup): string
     {
-        return CarbonImmutable::parse($value);
+        return "rollup:{$rollup}:origin";
     }
 }

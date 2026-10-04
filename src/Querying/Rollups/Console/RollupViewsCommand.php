@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ExpireTiers;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupDefinition;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -20,6 +21,7 @@ final class RollupViewsCommand extends Command
     #[\Override]
     protected $signature = 'views:rollup
         {--tier= : Fold only this tier: hour, day, month or year}
+        {--rollup= : Fold only the rollup of this name, views for the built-in one}
         {--from= : Fold again from this date instead of where the last run stopped}
         {--chunk= : How many expired rollup rows to delete per statement}
         {--dry-run : Count the buckets that would be folded without folding them}';
@@ -30,16 +32,32 @@ final class RollupViewsCommand extends Command
     public function handle(FoldViews $fold, ExpireTiers $expire, RollupPolicy $policy, Config $config, RunLock $lock): int
     {
         if (! $policy->isEnabled()) {
-            $this->components->info('Nothing to roll up, `retention.rollups.tiers` is empty.');
+            $this->components->info('Nothing to roll up, neither `retention.rollups.tiers` nor `retention.rollups.custom` is set.');
 
             return self::SUCCESS;
         }
 
+        $rollup = $this->option('rollup');
+        $rollup = is_string($rollup) ? $policy->find($rollup) ?? false : null;
+
+        if ($rollup === false) {
+            $this->components->error('The --rollup option must name a configured rollup: `'.implode('`, `', array_map(static fn (RollupDefinition $definition): string => $definition->name, $policy->definitions())).'`.');
+
+            return self::FAILURE;
+        }
+
+        $tiers = [];
+
+        foreach ($rollup instanceof RollupDefinition ? [$rollup] : $policy->definitions() as $definition) {
+            $tiers = [...$tiers, ...array_map(static fn (Tier $tier): string => $tier->value, $definition->tiers())];
+        }
+
+        $tiers = array_values(array_unique($tiers));
         $tier = $this->option('tier');
         $tier = is_string($tier) ? Tier::tryFrom($tier) ?? false : null;
 
-        if ($tier === false || ($tier instanceof Tier && ! in_array($tier, $policy->tiers(), true))) {
-            $this->components->error('The --tier option must name a configured tier: `'.implode('`, `', array_map(static fn (Tier $tier): string => $tier->value, $policy->tiers())).'`.');
+        if ($tier === false || ($tier instanceof Tier && ! in_array($tier->value, $tiers, true))) {
+            $this->components->error('The --tier option must name a configured tier: `'.implode('`, `', $tiers).'`.');
 
             return self::FAILURE;
         }
@@ -61,17 +79,20 @@ final class RollupViewsCommand extends Command
 
         $dryRun = (bool) $this->option('dry-run');
 
-        $result = $lock->run(function () use ($fold, $expire, $tier, $from, $chunk, $dryRun): int {
-            foreach ($fold->handle($tier, $from, $dryRun) as $run) {
+        $result = $lock->run(function () use ($fold, $expire, $tier, $from, $chunk, $dryRun, $rollup): int {
+            foreach ($fold->handle($tier, $from, $dryRun, $rollup?->name) as $run) {
                 $buckets = "{$run->buckets} ".Str::plural('bucket', $run->buckets);
+                $of = $this->tierOf($run->rollup, $run->tier);
 
                 $this->components->info($dryRun
-                    ? "Would have folded {$buckets} of the {$run->tier->value} tier, up to {$run->until->toDateTimeString()}."
-                    : "Folded {$buckets} of the {$run->tier->value} tier, up to {$run->until->toDateTimeString()}.");
+                    ? "Would have folded {$buckets} of {$of}, up to {$run->until->toDateTimeString()}."
+                    : "Folded {$buckets} of {$of}, up to {$run->until->toDateTimeString()}.");
             }
 
-            foreach ($expire->handle($chunk, $dryRun) as $expired => $rows) {
-                $this->components->info(($dryRun ? 'Would have dropped' : 'Dropped')." {$rows} expired ".Str::plural('row', $rows)." of the {$expired} tier.");
+            foreach ($expire->handle($chunk, $dryRun) as $expired) {
+                $rows = "{$expired['rows']} expired ".Str::plural('row', $expired['rows']);
+
+                $this->components->info(($dryRun ? 'Would have dropped' : 'Dropped')." {$rows} of {$this->tierOf($expired['rollup'], $expired['tier'])}.");
             }
 
             return self::SUCCESS;
@@ -84,6 +105,11 @@ final class RollupViewsCommand extends Command
         }
 
         return $result;
+    }
+
+    private function tierOf(string $rollup, Tier $tier): string
+    {
+        return $rollup === RollupPolicy::BUILT_IN ? "the {$tier->value} tier" : "the {$tier->value} tier of `{$rollup}`";
     }
 
     /**

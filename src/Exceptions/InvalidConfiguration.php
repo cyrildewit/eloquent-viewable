@@ -99,9 +99,14 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must map `hour`, `day`, `month` or `year` to a duration or null, ".self::describe($value).' given.');
     }
 
-    public static function coarserTierKeptShorter(string $coarser, string $finer): self
+    public static function coarserTierKeptShorter(string $rollup, string $coarser, string $finer): self
     {
-        return new self("The `{$coarser}` rollup tier in `eloquent-viewable.retention.rollups.tiers` must be kept at least as long as the finer `{$finer}` tier, because a finer tier only expires once a coarser one has captured it.");
+        return new self("The `{$coarser}` tier of the `{$rollup}` rollup must be kept at least as long as the finer `{$finer}` tier, because a finer tier only expires once a coarser one has captured it.");
+    }
+
+    public static function invalidRollup(string $class, string $problem): self
+    {
+        return new self("The `{$class}` rollup in `eloquent-viewable.retention.rollups.custom` {$problem}.");
     }
 
     public static function prunedBeforeFolded(string $prune, string $tier, string $settle): self

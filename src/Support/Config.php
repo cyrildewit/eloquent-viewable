@@ -356,6 +356,29 @@ final readonly class Config
         return array_values(array_intersect($allowed, $value));
     }
 
+    /**
+     * @return list<class-string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function customRollups(): array
+    {
+        $value = $this->get('retention.rollups.custom', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $value);
+        }
+
+        foreach ($value as $class) {
+            if (! is_string($class) || ! class_exists($class)) {
+                throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $class);
+            }
+        }
+
+        /** @var list<class-string> */
+        return array_values($value);
+    }
+
     public function rollupsStrict(): bool
     {
         return (bool) $this->get('retention.rollups.strict', false);

@@ -6,9 +6,11 @@ namespace CyrildeWit\EloquentViewable\Testing;
 
 use Carbon\CarbonInterface;
 use Closure;
+use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -210,6 +212,10 @@ final class ViewsFake implements ViewSource, ViewStore
      */
     private function matchingRecords(ViewsQuery $query, Closure $filter): Collection
     {
+        if ($query->filter instanceof FiltersViews) {
+            throw UnsupportedBySource::filter($this);
+        }
+
         $viewerKey = $query->viewer instanceof Model ? (string) ViewerKey::of($query->viewer) : null;
 
         return new Collection($this->store->records())
