@@ -213,10 +213,9 @@ public function show(Post $post)
 ```
 
 `record()` returns `true` when the view was stored or queued and `false` when a guard refused it. The guards are listed
-under `recording.guards` in the config. Out of the box they drop crawlers, the addresses in
-`recording.ignored_ip_addresses` and browser prefetches, and enforce cooldowns. Uncomment `IgnoreDoNotTrack` or
-`IgnoreGlobalPrivacyControl` to honour those headers, remove a guard to turn its check off, or
-[add your own](#adding-a-recording-guard).
+under `recording.guards` in the config. Out of the box they drop crawlers, requests without a user agent, `HEAD`
+requests, browser prefetches and the addresses in `recording.ignored_ip_addresses`, and enforce cooldowns. See
+[the guards](#adding-a-recording-guard) for the ones you can turn on, or add your own.
 
 > [!NOTE]
 > Tools like **Postman** are often detected as crawlers, so keep `IgnoreCrawlers` in mind when testing.
@@ -1283,11 +1282,26 @@ drops the view:
 | Guard                        | Refuses                                         | On by default |
 |------------------------------|-------------------------------------------------|---------------|
 | `IgnoreCrawlers`             | crawlers, judged by the bound `CrawlerDetector` | yes           |
+| `IgnoreMissingUserAgent`     | requests without a user agent                   | yes           |
 | `IgnoreIpAddresses`          | `recording.ignored_ip_addresses`                | yes           |
+| `IgnoreHeadRequests`         | `HEAD` requests                                 | yes           |
 | `IgnorePrefetch`             | pages the browser prefetches or prerenders      | yes           |
 | `EnforceCooldown`            | a second view inside the cooldown               | yes           |
+| `ThrottleVisitors`           | views over `recording.throttle.max_per_minute`  | no            |
 | `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | no            |
 | `IgnoreGlobalPrivacyControl` | visitors sending `Sec-GPC: 1`                   | no            |
+
+Browsers always send a user agent, so a request without one is a script or a health check. Laravel answers a `HEAD`
+request with your `GET` route, so without `IgnoreHeadRequests` every uptime monitor and link checker would count as a
+view.
+
+`recording.ignored_ip_addresses` takes single addresses and ranges, so `10.0.0.0/8` leaves out a whole office or VPN
+network.
+
+The cooldown only stops repeat views of the same model. A scraper that opens 5,000 different pages still records 5,000
+views and pushes them up the [rankings](#most-viewed-across-the-app). `ThrottleVisitors` caps how many views one
+visitor records per minute across every model, 60 by default. The counts are kept in the cache, so use a store that
+every server shares.
 
 To add one, implement `Recording\Contracts\RecordingGuard` and add the class to the list. Guards are resolved from the
 container.

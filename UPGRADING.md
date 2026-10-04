@@ -175,10 +175,12 @@ A `Period` now includes its start and excludes its end, so `Period::create('2018
 Bounds built in another timezone are converted to `app.timezone` before they are compared, and `getStartDateTime()`
 and `getEndDateTime()` return the converted values.
 
-#### Prefetched pages are not counted
+#### Prefetches, `HEAD` requests and requests without a user agent are not counted
 
-The new `IgnorePrefetch` guard is on by default. Sites that use prefetching or speculation rules see lower counts,
-because pages the browser only fetched in advance no longer count.
+Three new guards are on by default. `IgnorePrefetch` drops pages the browser only fetched in advance, so sites that use
+prefetching or speculation rules see lower counts. `IgnoreHeadRequests` drops `HEAD` requests, such as uptime monitors.
+`IgnoreMissingUserAgent` drops requests without a user agent, such as scripts and health checks; if you record views
+from a client that sends none, remove it from `recording.guards`.
 
 #### Every facade call starts a fresh builder
 
@@ -270,6 +272,7 @@ The contract changed:
 - `isCrawler()` is gone. Add `userAgent(): ?string` and return `null` when there is none.
 - Add `viewer(): ?Model`, the signed-in model or `null`.
 - Add `hasGlobalPrivacyControl(): bool` and `isPrefetch(): bool`. Return `false` when the request has no such header.
+- Add `isHeadRequest(): bool`, which is `true` for a `HEAD` request.
 
 A subclass of the shipped `Visitor` that overrides its constructor drops the `CrawlerDetector` argument and passes
 `Request`, `Support\Config`, `Illuminate\Contracts\Cookie\QueueingFactory` and `Illuminate\Contracts\Auth\Factory`, in
