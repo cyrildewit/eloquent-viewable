@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
@@ -25,7 +26,7 @@ use Illuminate\Support\Collection;
 use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, SubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -212,6 +213,65 @@ final readonly class DatabaseSource implements CountsByDimension, IdentifiesSour
         $rows = $builder
             ->selectRaw("{$grammar->wrap($type)}, {$grammar->wrap($id)}, {$this->aggregate($query, $grammar)} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
             ->groupBy($type, $id)
+            ->orderByDesc('aggregate')
+            ->orderBy($type)
+            ->orderBy($id)
+            ->limit($limit)
+            ->get();
+
+        $ranking = [];
+
+        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
+        foreach ($rows as $row) {
+            $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
+        }
+
+        return $ranking;
+    }
+
+    /**
+     * Joins the views table to the visitors of the viewable, read as a
+     * derived table so the cap on the visitors works on every driver: MySQL
+     * refuses a limit inside `in (...)`. Views without a visitor never pair.
+     *
+     * @return list<array{type: string, id: int|string, count: int}>
+     */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
+    {
+        $visitor = $this->view->qualifyColumn('visitor');
+        $type = $this->view->qualifyColumn('viewable_type');
+        $id = $this->view->qualifyColumn('viewable_id');
+
+        $visitors = $this->view->newQueryFor($viewable, $query)
+            ->toBase()
+            ->whereNotNull($visitor)
+            ->select("{$visitor} as anchor_visitor")
+            ->groupBy($visitor);
+
+        if ($maxVisitors !== null) {
+            $visitors->orderByRaw("max({$visitors->getGrammar()->wrap($this->view->qualifyColumn('viewed_at'))}) desc") // @phpstan-ignore argument.type (a wrapped identifier, not user input)
+                ->orderBy($visitor)
+                ->limit($maxVisitors);
+        }
+
+        $builder = $this->view->newQuery()->matching($query)->toBase();
+        $grammar = $builder->getGrammar();
+        $aggregate = "count(distinct {$grammar->wrap($visitor)})";
+
+        $builder
+            ->joinSub($visitors, 'anchor', 'anchor.anchor_visitor', '=', $visitor)
+            ->where(static fn (Builder $pair): Builder => $pair
+                ->where($type, '!=', $viewable->getMorphClass())
+                ->orWhere($id, '!=', $viewable->getKey()));
+
+        if ($among instanceof Viewable) {
+            $builder->where($type, $among->getMorphClass());
+        }
+
+        $rows = $builder
+            ->selectRaw("{$grammar->wrap($type)}, {$grammar->wrap($id)}, {$aggregate} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+            ->groupBy($type, $id)
+            ->havingRaw("{$aggregate} >= ?", [$minimum]) // @phpstan-ignore argument.type (built from wrapped identifiers, the minimum is bound)
             ->orderByDesc('aggregate')
             ->orderBy($type)
             ->orderBy($id)

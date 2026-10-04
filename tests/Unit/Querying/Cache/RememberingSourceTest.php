@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -89,4 +90,23 @@ it('remembers the counts by dimension of a source that has them', function (): v
 
     expect($first)->toBe(['spring' => 3])
         ->and($second)->toBe(['spring' => 3]);
+});
+
+it('remembers what the visitors of a viewable also viewed, apart for every minimum, cap and type', function (): void {
+    $viewable = Mockery::mock(Viewable::class);
+    $viewable->allows('getKey')->andReturn(7);
+    $viewable->allows('getMorphClass')->andReturn('posts');
+
+    $ranking = [['type' => 'posts', 'id' => 8, 'count' => 3]];
+
+    $source = Mockery::mock(ViewSource::class, RanksAlsoViewed::class);
+    $source->expects('alsoViewed')->times(4)->andReturn($ranking);
+
+    $read = fn (?Viewable $among, int $minimum, ?int $maxVisitors): array => ($this->remembering)($source)->alsoViewed($viewable, $among, new ViewsQuery, 10, $minimum, $maxVisitors);
+
+    expect($read(null, 3, 1_000))->toBe($ranking)
+        ->and($read(null, 3, 1_000))->toBe($ranking)
+        ->and($read(null, 2, 1_000))->toBe($ranking)
+        ->and($read(null, 3, null))->toBe($ranking)
+        ->and($read(rememberingType(), 3, 1_000))->toBe($ranking);
 });

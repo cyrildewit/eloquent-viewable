@@ -37,6 +37,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added `Views::compare()` and `Period::previous()`, which compare a period with the one before it
 - Added `Views::countByCollection()`, the counts of every collection at once
 - Added `Views::top()`, a ranking of the most viewed models across every type or within one
+- Added `Views::alsoViewed()`, a ranking of what the visitors of one model also viewed, bounded by the `querying.also_viewed.minimum_visitors` and `querying.also_viewed.max_visitors` config options. A view source of your own supports it by implementing `Querying\Contracts\RanksAlsoViewed`
 - Added `Views::forViewables()` and `counts()`, which count a set of models you already have in one query
 - Added the `whereViewsCount()` and `whereUniqueViewsCount()` scopes
 - Added `Period::parse()`, route model binding for `Period`, and an optional timezone argument on the relative `Period` constructors

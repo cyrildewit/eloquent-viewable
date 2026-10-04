@@ -8,6 +8,7 @@ use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -23,7 +24,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, ViewSource
+final readonly class RememberingSource implements CountsByDimension, RanksAlsoViewed, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -114,6 +115,30 @@ final readonly class RememberingSource implements CountsByDimension, ViewSource
             $viewable,
             $this->key($viewable)->make($query, limit: $limit),
             fn (): array => $this->source->top($viewable, $query, $limit),
+        );
+    }
+
+    /**
+     * Remembered with the viewable, so forgetting its cache forgets what its
+     * visitors also viewed. The minimum and the cap change the ranking, so
+     * they are part of the key.
+     *
+     * @return list<array{type: string, id: int|string, count: int}>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof RanksAlsoViewed) {
+            throw UnsupportedBySource::alsoViewed($source);
+        }
+
+        return $this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: "also-viewed:{$among?->getMorphClass()}:{$minimum}:{$maxVisitors}", limit: $limit),
+            fn (): array => $source->alsoViewed($viewable, $among, $query, $limit, $minimum, $maxVisitors),
         );
     }
 

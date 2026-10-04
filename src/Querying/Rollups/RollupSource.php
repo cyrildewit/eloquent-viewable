@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -36,7 +37,7 @@ use stdClass;
  * the rollups, through every read and scope. A read the rollups cannot answer,
  * such as one narrowed to a viewer, reads the views table alone.
  */
-final readonly class RollupSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, SubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -278,6 +279,17 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
     {
         return $this->raw->viewsSubquery($viewable, $query, $visitor);
+    }
+
+    /**
+     * Rollups keep no visitors, so the pairs are read from the views table
+     * alone, over the views it still holds.
+     *
+     * @return list<array{type: string, id: int|string, count: int}>
+     */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
+    {
+        return $this->raw->alsoViewed($viewable, $among, $query, $limit, $minimum, $maxVisitors);
     }
 
     /** @throws JsonException */

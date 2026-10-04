@@ -201,6 +201,30 @@ final readonly class Config
     }
 
     /** @throws InvalidConfiguration */
+    public function alsoViewedMinimumVisitors(): int
+    {
+        return $this->positiveInteger('querying.also_viewed.minimum_visitors');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function alsoViewedMaxVisitors(): ?int
+    {
+        $value = $this->get('querying.also_viewed.max_visitors');
+
+        if ($value === null) {
+            return null;
+        }
+
+        $integer = filter_var($value, FILTER_VALIDATE_INT);
+
+        if ($integer === false || $integer < 1) {
+            throw InvalidConfiguration::mustBePositiveIntegerOrNull('querying.also_viewed.max_visitors', $value);
+        }
+
+        return $integer;
+    }
+
+    /** @throws InvalidConfiguration */
     public function visitorCookieName(): string
     {
         return $this->nonEmptyString('visitor.cookie.name');

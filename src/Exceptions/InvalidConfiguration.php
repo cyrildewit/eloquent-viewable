@@ -16,6 +16,13 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must be a positive integer, {$given} given.");
     }
 
+    public static function mustBePositiveIntegerOrNull(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must be a positive integer or null, {$given} given.");
+    }
+
     public static function mustBeNonEmptyString(string $key, mixed $value): self
     {
         $given = self::describe($value);

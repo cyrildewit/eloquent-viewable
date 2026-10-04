@@ -21,6 +21,7 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Container\Container;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -342,6 +343,145 @@ describe('top', function (): void {
 
         expect(array_column(DB::getQueryLog(), 'query'))->toBe([
             'select "views"."viewable_type", "views"."viewable_id", count(distinct "views"."visitor") as aggregate from "views" where "viewed_at" >= ? and "viewed_at" < ? and "collection" = ? and "views"."viewable_type" = ? group by "views"."viewable_type", "views"."viewable_id" order by "aggregate" desc, "views"."viewable_type" asc, "views"."viewable_id" asc limit 5',
+        ]);
+    })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
+});
+
+describe('also viewed', function (): void {
+    /** @param  list<string>  $visitors */
+    function seenByVisitors(Model $viewable, array $visitors, string $viewedAt = '2026-01-10'): void
+    {
+        foreach ($visitors as $visitor) {
+            View::factory()->for($viewable, 'viewable')->fromVisitor($visitor)->viewedAt(Carbon::parse($viewedAt))->create();
+        }
+    }
+
+    /** @return list<array{type: string, id: int|string, count: int}> */
+    function alsoViewedOf(Post $post, ViewsQuery $query = new ViewsQuery, ?Model $among = null, int $limit = 10, int $minimum = 1, ?int $maxVisitors = null): array
+    {
+        return databaseSource()->alsoViewed($post, $among, $query, $limit, $minimum, $maxVisitors);
+    }
+
+    it('ranks what the visitors of the viewable also viewed by distinct visitors', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        seenByVisitors($this->post, ['one', 'two', 'three']);
+        seenByVisitors($apartment, ['one', 'two', 'two', 'two']);
+        seenByVisitors($other, ['three', 'stranger', 'stranger']);
+
+        expect(alsoViewedOf($this->post))->toBe([
+            ['type' => $apartment->getMorphClass(), 'id' => $apartment->getKey(), 'count' => 2],
+            ['type' => $other->getMorphClass(), 'id' => $other->getKey(), 'count' => 1],
+        ]);
+    });
+
+    it('never ranks the viewable itself', function (): void {
+        seenByVisitors($this->post, ['one', 'one', 'two']);
+
+        expect(alsoViewedOf($this->post))->toBeEmpty();
+    });
+
+    it('ranks a viewable of another type that shares the key', function (): void {
+        $apartment = Apartment::factory()->create(['id' => $this->post->getKey()]);
+
+        seenByVisitors($this->post, ['one']);
+        seenByVisitors($apartment, ['one']);
+
+        expect(alsoViewedOf($this->post))->toBe([
+            ['type' => $apartment->getMorphClass(), 'id' => $this->post->getKey(), 'count' => 1],
+        ]);
+    });
+
+    it('never pairs views without a visitor', function (): void {
+        $other = Post::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->state(['visitor' => null])->create();
+        View::factory()->for($other, 'viewable')->state(['visitor' => null])->create();
+
+        expect(alsoViewedOf($this->post))->toBeEmpty();
+    });
+
+    it('leaves out what fewer visitors than the minimum viewed', function (): void {
+        $popular = Post::factory()->create();
+        $rare = Post::factory()->create();
+
+        seenByVisitors($this->post, ['one', 'two']);
+        seenByVisitors($popular, ['one', 'two']);
+        seenByVisitors($rare, ['one']);
+
+        expect(array_column(alsoViewedOf($this->post, minimum: 2), 'id'))->toBe([$popular->getKey()]);
+    });
+
+    it('ranks among one type', function (): void {
+        $apartment = Apartment::factory()->create();
+        $other = Post::factory()->create();
+
+        seenByVisitors($this->post, ['one', 'two']);
+        seenByVisitors($apartment, ['one', 'two']);
+        seenByVisitors($other, ['one']);
+
+        expect(array_column(alsoViewedOf($this->post, among: new Post), 'id'))->toBe([$other->getKey()]);
+    });
+
+    it('stops at the limit and breaks ties on the type, then the key', function (): void {
+        $apartment = Apartment::factory()->create();
+        $first = Post::factory()->create();
+        $second = Post::factory()->create();
+
+        seenByVisitors($this->post, ['one']);
+        seenByVisitors($second, ['one']);
+        seenByVisitors($first, ['one']);
+        seenByVisitors($apartment, ['one']);
+
+        expect(array_map(fn (array $row): array => [$row['type'], $row['id']], alsoViewedOf($this->post)))->toBe([
+            [$apartment->getMorphClass(), $apartment->getKey()],
+            [$first->getMorphClass(), $first->getKey()],
+            [$second->getMorphClass(), $second->getKey()],
+        ])
+            ->and(array_column(alsoViewedOf($this->post, limit: 1), 'id'))->toBe([$apartment->getKey()]);
+    });
+
+    it('reads only the most recent visitors of the viewable', function (): void {
+        $old = Post::factory()->create();
+        $recent = Post::factory()->create();
+
+        seenByVisitors($this->post, ['early'], '2026-01-01');
+        seenByVisitors($this->post, ['late'], '2026-01-20');
+        seenByVisitors($old, ['early']);
+        seenByVisitors($recent, ['late']);
+
+        expect(array_column(alsoViewedOf($this->post, maxVisitors: 1), 'id'))->toBe([$recent->getKey()])
+            ->and(array_column(alsoViewedOf($this->post, maxVisitors: 2), 'id'))->toBe([$old->getKey(), $recent->getKey()]);
+    });
+
+    it('applies the period and collection to both sides of the pair', function (): void {
+        $other = Post::factory()->create();
+
+        seenByVisitors($this->post, ['january'], '2026-01-10');
+        seenByVisitors($this->post, ['february'], '2026-02-10');
+        seenByVisitors($other, ['january', 'february'], '2026-02-10');
+        View::factory()->for($this->post, 'viewable')->fromVisitor('sidebar')->inCollection('sidebar')->viewedAt(Carbon::parse('2026-01-10'))->create();
+        View::factory()->for($other, 'viewable')->fromVisitor('sidebar')->inCollection('sidebar')->viewedAt(Carbon::parse('2026-01-10'))->create();
+
+        expect(alsoViewedOf($this->post)[0]['count'])->toBe(3)
+            ->and(alsoViewedOf($this->post, new ViewsQuery(Period::since('2026-02-01')))[0]['count'])->toBe(1)
+            ->and(alsoViewedOf($this->post, new ViewsQuery(collection: 'sidebar'))[0]['count'])->toBe(1);
+    });
+
+    it('returns nothing when the viewable has no views', function (): void {
+        seenByVisitors(Post::factory()->create(), ['one']);
+
+        expect(alsoViewedOf($this->post))->toBeEmpty();
+    });
+
+    it('pairs through the visitors of the viewable in one statement', function (): void {
+        DB::enableQueryLog();
+
+        alsoViewedOf($this->post, new ViewsQuery(Period::create('2026-01-01', '2026-02-01')), new Post, 5, 3, 100);
+
+        expect(array_column(DB::getQueryLog(), 'query'))->toBe([
+            'select "views"."viewable_type", "views"."viewable_id", count(distinct "views"."visitor") as aggregate from "views" inner join (select "views"."visitor" as "anchor_visitor" from "views" where "viewable_type" = ? and "viewable_id" = ? and "viewed_at" >= ? and "viewed_at" < ? and "views"."visitor" is not null group by "views"."visitor" order by max("views"."viewed_at") desc, "views"."visitor" asc limit 100) as "anchor" on "anchor"."anchor_visitor" = "views"."visitor" where "viewed_at" >= ? and "viewed_at" < ? and ("views"."viewable_type" != ? or "views"."viewable_id" != ?) and "views"."viewable_type" = ? group by "views"."viewable_type", "views"."viewable_id" having count(distinct "views"."visitor") >= ? order by "aggregate" desc, "views"."viewable_type" asc, "views"."viewable_id" asc limit 5',
         ]);
     })->skip(fn (): bool => driver() !== 'sqlite', 'SQL string assertions are written for the SQLite grammar');
 });
