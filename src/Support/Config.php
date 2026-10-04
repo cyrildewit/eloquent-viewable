@@ -124,16 +124,7 @@ final readonly class Config
      */
     public function ignoredIpAddresses(): array
     {
-        $value = (array) $this->get('recording.ignored_ip_addresses', []);
-
-        foreach ($value as $ipAddress) {
-            if (! is_string($ipAddress)) {
-                throw InvalidConfiguration::mustBeListOfStrings('recording.ignored_ip_addresses', $ipAddress);
-            }
-        }
-
-        /** @var list<string> */
-        return array_values($value);
+        return $this->strings('recording.ignored_ip_addresses');
     }
 
     public function queueEnabled(): bool
@@ -401,6 +392,27 @@ final readonly class Config
     private function get(string $key, mixed $default = null): mixed
     {
         return $this->config->get("eloquent-viewable.{$key}", $default);
+    }
+
+    /**
+     * A single string is read as a list of one.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function strings(string $key): array
+    {
+        $value = (array) $this->get($key, []);
+
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                throw InvalidConfiguration::mustBeListOfStrings($key, $item);
+            }
+        }
+
+        /** @var list<string> */
+        return array_values($value);
     }
 
     /** @throws InvalidConfiguration */
