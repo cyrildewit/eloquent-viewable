@@ -41,7 +41,7 @@ final class RecountViewsCommand extends Command
     }
 
     /**
-     * It returns the chunk size, or null once the error is reported.
+     * It returns null once the error is reported.
      */
     private function chunk(Config $config): ?int
     {

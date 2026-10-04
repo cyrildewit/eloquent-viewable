@@ -97,8 +97,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
     /**
      * Each migration has a tag of its own, so the shared `migrations` tag
-     * keeps only the views table and an application opts in to retention and
-     * rollups one at a time.
+     * keeps publishing only the views table.
      */
     protected function publishOptInMigrations(): void
     {
@@ -133,8 +132,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The policies are read once at boot, so a policy that contradicts itself
-     * fails on deploy rather than in the first scheduled run.
+     * A policy that contradicts itself fails at boot rather than in the first
+     * scheduled run.
      */
     protected function validateRetentionPolicies(): void
     {
@@ -257,9 +256,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The watermarks stay null until a rollup is configured, so retention runs
-     * on its own. The rest of querying never learns about rollups: the source
-     * is offered to the manager here, and read once the driver names it.
+     * The rest of querying never learns about rollups: the source is offered
+     * to the manager here.
      */
     protected function registerRollups(): void
     {

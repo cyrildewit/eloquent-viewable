@@ -120,8 +120,7 @@ final readonly class Reader
     }
 
     /**
-     * The counts are sorted like `countByCollection()`: most viewed first,
-     * then by value.
+     * Most viewed first, then by value, like `countByCollection()`.
      *
      * @return array<string, int>
      *

@@ -12,11 +12,6 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 
-/**
- * This store keeps names and values in the `view_retention_state` table, on
- * the connection of the views table. It keeps moments on the clock of
- * `viewed_at`.
- */
 final readonly class RetentionState implements StateStore
 {
     public const string Table = 'view_retention_state';

@@ -48,9 +48,8 @@ enum Tier: string
     }
 
     /**
-     * A tier fits a granularity when every bucket of the tier lies inside one
-     * bucket of the granularity, so a series of it can be summed from the
-     * tier.
+     * A tier fits a granularity when each of its buckets lies inside one bucket
+     * of the granularity.
      */
     public function fits(Granularity $granularity): bool
     {
@@ -83,9 +82,6 @@ enum Tier: string
         return $this->next($floor, $zone);
     }
 
-    /**
-     * It counts the buckets in `[start, end)`, both on a bucket edge.
-     */
     public function countBetween(CarbonInterface $start, CarbonInterface $end, DateTimeZone $zone): int
     {
         return $this->granularity()->countBetween(
