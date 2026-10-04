@@ -71,6 +71,19 @@ it('ranks and counts models it already has', function (string $table, string $po
         ->toBe([$one->getKey() => 1, $two->getKey() => 2, $three->getKey() => 0]);
 })->with('key types');
 
+it('ranks what the visitors of a model also viewed', function (string $table, string $post): void {
+    config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
+
+    $one = viewableWithKeyType($table, $post);
+    $two = $post::query()->create(['title' => 'Two']);
+
+    View::factory()->for($one, 'viewable')->fromVisitor('reader')->create();
+    View::factory()->for($two, 'viewable')->fromVisitor('reader')->create();
+
+    expect(views($one)->alsoViewed()->viewables()->modelKeys())->toBe([$two->getKey()])
+        ->and(views($two)->alsoViewed()->viewables()->modelKeys())->toBe([$one->getKey()]);
+})->with('key types');
+
 it('records and reads the viewer', function (string $table, string $post, string $user): void {
     $viewable = viewableWithKeyType($table, $post);
     $other = $post::query()->create(['title' => 'Another post']);

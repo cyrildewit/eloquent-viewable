@@ -279,6 +279,24 @@ return [
          */
         'max_intervals' => 10_000,
 
+        /*
+         * `alsoViewed()` ranks what the visitors of a model also viewed.
+         *
+         * A model seen by fewer than `minimum_visitors` of them is left out,
+         * so the ranking never reveals what one or two people looked at.
+         *
+         * Only the `max_visitors` most recent visitors of the model are read,
+         * because the query reads every view of every visitor it pairs, and a
+         * popular model has many. `null` reads them all.
+         */
+        'also_viewed' => [
+
+            'minimum_visitors' => 3,
+
+            'max_visitors' => 1_000,
+
+        ],
+
     ],
 
     /*

@@ -9,8 +9,8 @@ use InvalidArgumentException;
 
 final class InvalidLimit extends InvalidArgumentException implements EloquentViewableException
 {
-    public static function belowOne(int $limit): self
+    public static function belowOne(int $limit, string $method = 'top()'): self
     {
-        return new self("top() needs a limit of at least one, {$limit} given.");
+        return new self("{$method} needs a limit of at least one, {$limit} given.");
     }
 }

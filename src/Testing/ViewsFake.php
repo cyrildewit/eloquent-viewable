@@ -9,6 +9,7 @@ use Closure;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
-final class ViewsFake implements ViewSource, ViewStore
+final class ViewsFake implements RanksAlsoViewed, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -130,6 +131,53 @@ final class ViewsFake implements ViewSource, ViewStore
             $first = $views->first();
 
             $rows[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'count' => $this->aggregate($views, $query)];
+        }
+
+        usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);
+
+        return array_slice($rows, 0, $limit);
+    }
+
+    /** @return list<array{type: string, id: int|string, count: int}> */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
+    {
+        $records = $this->matchingRecords($query, static fn (ViewRecord $record): bool => $record->visitor !== null);
+
+        /** @var list<array{string, float}> $seen */
+        $seen = $records
+            ->filter(static fn (ViewRecord $record): bool => $record->belongsTo($viewable))
+            ->groupBy(static fn (ViewRecord $record): string => (string) $record->visitor)
+            ->map(static fn (Collection $views): array => [
+                (string) $views->first()?->visitor,
+                (float) $views->max(static fn (ViewRecord $record): float => $record->viewedAt->getPreciseTimestamp()),
+            ])
+            ->values()
+            ->all();
+
+        if ($maxVisitors !== null) {
+            usort($seen, static fn (array $a, array $b): int => [$b[1], $a[0]] <=> [$a[1], $b[0]]);
+            $seen = array_slice($seen, 0, $maxVisitors);
+        }
+
+        $visitors = array_column($seen, 0);
+        $amongType = $among?->getMorphClass();
+
+        $grouped = $records
+            ->filter(static fn (ViewRecord $record): bool => in_array($record->visitor, $visitors, true)
+                && ! $record->belongsTo($viewable)
+                && ($amongType === null || $record->viewableType === $amongType))
+            ->groupBy(static fn (ViewRecord $record): string => "{$record->viewableType}:{$record->viewableId}");
+
+        $rows = [];
+
+        foreach ($grouped as $views) {
+            /** @var ViewRecord $first */
+            $first = $views->first();
+            $count = $views->pluck('visitor')->unique()->count();
+
+            if ($count >= $minimum) {
+                $rows[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'count' => $count];
+            }
         }
 
         usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);

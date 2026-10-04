@@ -144,6 +144,38 @@ describe('assertions', function (): void {
 });
 
 describe('counting', function (): void {
+    it('ranks what the visitors of a model also viewed', function (): void {
+        config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
+        $other = Post::factory()->create();
+        $third = Post::factory()->create();
+
+        Carbon::setTestNow('2026-09-01 10:00:00');
+        views($this->post)->useVisitor(visitor('early'))->record();
+        views($third)->useVisitor(visitor('early'))->record();
+
+        Carbon::setTestNow('2026-09-05 10:00:00');
+        views($this->post)->useVisitor(visitor('late'))->record();
+        views($this->post)->useVisitor(visitor('late'))->record();
+        views($other)->useVisitor(visitor('late'))->record();
+        views($other)->useVisitor(visitor('early'))->record();
+        views($other)->useVisitor(visitor('stranger'))->record();
+
+        $ranked = fn (): array => views($this->post)->alsoViewed()->entries->map(fn ($entry): array => [$entry->viewable->getKey(), $entry->count])->all();
+
+        expect($ranked())->toBe([[$other->getKey(), 2], [$third->getKey(), 1]])
+            ->and(views($this->post)->alsoViewed(1)->viewables()->modelKeys())->toBe([$other->getKey()])
+            ->and(views($this->post)->alsoViewed(among: Apartment::class)->isEmpty())->toBeTrue();
+
+        config()->set('eloquent-viewable.querying.also_viewed.max_visitors', 1);
+
+        expect($ranked())->toBe([[$other->getKey(), 1]]);
+
+        config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 2);
+        config()->set('eloquent-viewable.querying.also_viewed.max_visitors');
+
+        expect($ranked())->toBe([[$other->getKey(), 2]]);
+    });
+
     it('counts what was recorded', function (): void {
         views($this->post)->record();
         views($this->post)->record();

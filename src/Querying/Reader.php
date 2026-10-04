@@ -7,13 +7,16 @@ namespace CyrildeWit\EloquentViewable\Querying;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
@@ -28,6 +31,7 @@ use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewableSet;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Reads counts from the source, through the cache when the call asks to
@@ -154,6 +158,47 @@ final readonly class Reader
         }
 
         return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
+    }
+
+    /**
+     * What the visitors of the viewable also viewed, ranked by how many of
+     * them did. The count is always of distinct visitors, so `unique()` makes
+     * no difference.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws InvalidViewer
+     * @throws UnsupportedBySource
+     */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'alsoViewed()');
+        }
+
+        if (ViewableKey::of($viewable) === null) {
+            throw InvalidViewable::cannotPairType($viewable);
+        }
+
+        if ($query->viewer instanceof Model) {
+            throw InvalidViewer::cannotNarrowAlsoViewed();
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksAlsoViewed) {
+            throw UnsupportedBySource::alsoViewed($source);
+        }
+
+        return $this->loader->load($source->alsoViewed(
+            $viewable,
+            $among,
+            $query,
+            $limit,
+            $this->config->alsoViewedMinimumVisitors(),
+            $this->config->alsoViewedMaxVisitors(),
+        ));
     }
 
     /**
