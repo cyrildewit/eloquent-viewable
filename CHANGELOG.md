@@ -15,6 +15,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 #### Recording
 
 - Added the `views` route middleware, `Http\Middleware\RecordViews`, which records the model bound to a route once a `GET` request gets a successful response. Route parameters or model classes pick what to record, `collection`, `cooldown` and `queue` options apply, and `RecordViews::using()` builds the middleware string
+- Added the beacon, which records views of pages served from a full-page cache. Turn it on with `recording.beacon.enabled` and print the `@viewsBeacon($post)` Blade directive; the page posts to a signed route once it has loaded. `Http\Beacon::url()` builds the URL for a script of your own
 - Added recording guards: the `recording.guards` config list, the `Recording\Contracts\RecordingGuard` contract for your own, and the new `IgnorePrefetch` guard, on by default, and `IgnoreGlobalPrivacyControl` guard, which honours `Sec-GPC: 1`
 - Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` saying whether the view was stored or queued, or which guard skipped it. `Recording\Events\ViewSkipped` is dispatched when a guard refuses a view
 - Added `Views::context(?array $context)` and a nullable `context` JSON column to store extra data with a view
