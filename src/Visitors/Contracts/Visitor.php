@@ -39,4 +39,10 @@ interface Visitor
      * come, a prefetch or a prerender.
      */
     public function isPrefetch(): bool;
+
+    /**
+     * Whether the request is a `HEAD` request, which asks for the headers of
+     * a page without its body.
+     */
+    public function isHeadRequest(): bool;
 }

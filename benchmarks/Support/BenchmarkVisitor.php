@@ -31,11 +31,11 @@ final readonly class BenchmarkVisitor implements Visitor
     }
 
     /**
-     * No user agent, which the crawler guard never treats as a crawler.
+     * A desktop browser, which the crawler guard lets through.
      */
-    public function userAgent(): ?string
+    public function userAgent(): string
     {
-        return null;
+        return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
     }
 
     public function hasDoNotTrackHeader(): bool
@@ -49,6 +49,11 @@ final readonly class BenchmarkVisitor implements Visitor
     }
 
     public function isPrefetch(): bool
+    {
+        return false;
+    }
+
+    public function isHeadRequest(): bool
     {
         return false;
     }
