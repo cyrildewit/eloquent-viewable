@@ -24,18 +24,22 @@ class RecordPageView
      */
     public function __invoke(Request $request, DocPage $page): JsonResponse
     {
+        $source = $this->source($request->string('referrer')->toString(), $request->getHost());
+
         $result = views($page)
             // The fingerprint changes at midnight, so a cooldown running
             // until then counts each reader once per page per day.
             ->cooldown(Carbon::tomorrow())
-            ->context(['source' => $this->source($request->string('referrer')->toString(), $request->getHost())])
+            ->context(['source' => $source])
             ->attempt();
+
+        $skippedBy = $result->skippedBy instanceof RecordingGuard ? class_basename($result->skippedBy) : null;
 
         // `sendBeacon()` ignores the response. It is there for whoever opens
         // the network tab to find out why their own visit did not count.
         return new JsonResponse([
             'recorded' => $result->recorded,
-            'skipped_by' => $result->skippedBy instanceof RecordingGuard ? class_basename($result->skippedBy) : null,
+            'skipped_by' => $skippedBy,
         ]);
     }
 
