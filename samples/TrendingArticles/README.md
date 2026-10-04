@@ -8,15 +8,18 @@ days, each with its view count.
 | File                                                                         | Role                                               |
 |------------------------------------------------------------------------------|----------------------------------------------------|
 | [`Article.php`](Article.php)                                                 | The viewable model                                 |
-| [`ShowArticle.php`](ShowArticle.php)                                         | The controller that records a view with a cooldown |
+| [`ShowArticle.php`](ShowArticle.php)                                         | The controller that shows the article              |
 | [`TrendingArticles.php`](TrendingArticles.php)                               | Ranks the articles and caches the ranking          |
 | [`create_articles_table.php`](database/migrations/create_articles_table.php) | The `articles` table                               |
 | [`TrendingArticlesTest.php`](TrendingArticlesTest.php)                       | The behaviour below, as tests                      |
 
-Register the controller and render the list:
+Register the controller, with the `views` middleware recording a view with a cooldown, and render the list:
 
 ```php
-Route::get('/articles/{article}', ShowArticle::class);
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+
+Route::get('/articles/{article}', ShowArticle::class)
+    ->middleware(RecordViews::using('article', cooldown: 30));
 ```
 
 ```blade
@@ -27,10 +30,11 @@ Route::get('/articles/{article}', ShowArticle::class);
 
 ## Decisions
 
-**Record with a cooldown.** A reader who refreshes the page ten times should not put an article in the list. The
-controller records views with a 30 minute cooldown, so a reader counts once per half hour. `unique()` would be the
-alternative, but a cooldown keeps the counts meaningful for other uses too, and it stops the views table from growing
-with every refresh.
+**Record from the route, with a cooldown.** A reader who refreshes the page ten times should not put an article in
+the list. The `views` middleware records the `{article}` parameter with a 30 minute cooldown, so a reader counts once per
+half hour. `unique()` would be the alternative, but a cooldown keeps the counts meaningful for other uses too, and it
+stops the views table from growing with every refresh. The middleware records only a successful `GET`, so a mistyped
+article id that ends in a 404 counts for nothing, and the controller has no tracking code to forget.
 
 **Rank inside the database.** `orderByViews('desc', Period::pastDays(7))` adds a `views_count` subquery limited to the
 period and sorts on it, so only the top ten rows come back. Views older than the window drop out on their own; there is
@@ -49,7 +53,7 @@ which is exactly the `views_viewable_viewed_at_index` composite index from the m
 ## Where to take it next
 
 - Use `orderByUniqueViews()` instead to rank by distinct readers.
-- Rank per section with a [view collection](../../README.md#view-collections), recording
-  `views($article)->collection('sidebar')`.
-- On a high-traffic site, [queue the recording](../../README.md#queueing-view-recording) so the insert leaves the
-  request. The cooldown is still checked during the request.
+- Rank per section with a [view collection](../../README.md#view-collections), recording with
+  `RecordViews::using('article', collection: 'sidebar', cooldown: 30)`.
+- On a high-traffic site, [queue the recording](../../README.md#queueing-view-recording) with `queue: true` so the
+  insert leaves the request. The cooldown is still checked during the request.
