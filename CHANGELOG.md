@@ -17,6 +17,9 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `views` route middleware, `Http\Middleware\RecordViews`, which records the model bound to a route once a `GET` request gets a successful response. Route parameters or model classes pick what to record, `collection`, `cooldown` and `queue` options apply, and `RecordViews::using()` builds the middleware string
 - Added the beacon, which records views of pages served from a full-page cache. Turn it on with `recording.beacon.enabled` and print the `@viewsBeacon($post)` Blade directive; the page posts to a signed route once it has loaded. `Http\Beacon::url()` builds the URL for a script of your own
 - Added recording guards: the `recording.guards` config list, the `Recording\Contracts\RecordingGuard` contract for your own, and the new `IgnorePrefetch` guard, on by default, and `IgnoreGlobalPrivacyControl` guard, which honours `Sec-GPC: 1`
+- Added the `IgnoreMissingUserAgent` and `IgnoreHeadRequests` guards, on by default, which drop requests without a user agent and `HEAD` requests
+- Added the `ThrottleVisitors` guard, off by default, which caps the views one visitor records per minute across every model. Configure it under `recording.throttle`
+- `recording.ignored_ip_addresses` accepts CIDR ranges such as `10.0.0.0/8`
 - Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` saying whether the view was stored or queued, or which guard skipped it. `Recording\Events\ViewSkipped` is dispatched when a guard refuses a view
 - Added `Views::context(?array $context)` and a nullable `context` JSON column to store extra data with a view
 - Added store drivers, picked by `recording.store.driver`: `database`, the default, `redis`, `array` and `null`. Add your own `Recording\Contracts\ViewStore` with `StoreManager::extend()`
@@ -69,7 +72,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - `Period` converts bounds built in another timezone to the application timezone
 - The migration stub creates a composite `(viewable_type, viewable_id, viewed_at)` index, an index on `viewed_at` and the `viewer` and `context` columns. Existing installations add them with the migration in the upgrade guide
 - The config file is grouped by module: `cache` moved to `querying.cache`, `queue` to `recording.queue`, `ignored_ip_addresses` to `recording.ignored_ip_addresses` and `visitor_cookie_key` to `visitor.cookie.name`. Config values are validated when read and throw `InvalidConfiguration` when invalid
-- The crawler, Do Not Track, IP address and cooldown checks are guards in `recording.guards`. The defaults keep the v8 behaviour and also skip prefetched pages
+- The crawler, Do Not Track, IP address and cooldown checks are guards in `recording.guards`. The defaults keep the v8 behaviour and also skip prefetched pages, `HEAD` requests and requests without a user agent
 - Classes moved into module namespaces, and `CreateView`, `StoreView`, `ViewRecordException` and `PendingView` were renamed. The upgrade guide has the full table
 - `Visitor::DNT` is renamed to `Visitor::DoNotTrackHeader`
 - `Recording\Contracts\RecordsViews::handle()` receives a `Data\ViewRecord` and returns `void`
