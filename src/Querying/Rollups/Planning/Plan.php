@@ -66,18 +66,4 @@ final readonly class Plan
 
         return $parts;
     }
-
-    /** @return list<CarbonImmutable> */
-    public function boundaries(): array
-    {
-        $boundaries = [];
-
-        foreach (array_slice($this->segments, 1) as $segment) {
-            if ($segment->start instanceof CarbonImmutable) {
-                $boundaries[] = $segment->start;
-            }
-        }
-
-        return $boundaries;
-    }
 }
