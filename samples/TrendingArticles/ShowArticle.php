@@ -7,17 +7,11 @@ namespace CyrildeWit\EloquentViewable\Samples\TrendingArticles;
 class ShowArticle
 {
     /**
-     * A reader who refreshes the page or comes back within the cooldown is
-     * counted once, so a single visitor cannot push an article up the list.
+     * The view is recorded by the `views` middleware on the route, once this
+     * has returned a successful response.
      */
-    private const int CooldownMinutes = 30;
-
     public function __invoke(Article $article): Article
     {
-        views($article)
-            ->cooldown(self::CooldownMinutes)
-            ->record();
-
         return $article;
     }
 }

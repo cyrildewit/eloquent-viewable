@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Samples\TrendingArticles\Article;
 use CyrildeWit\EloquentViewable\Samples\TrendingArticles\ShowArticle;
 use CyrildeWit\EloquentViewable\Samples\TrendingArticles\TrendingArticles;
@@ -11,7 +13,8 @@ beforeEach(function (): void {
     // The web middleware encrypts the session and visitor cookies.
     config(['app.key' => 'base64:'.base64_encode(random_bytes(32))]);
 
-    Route::get('/articles/{article}', ShowArticle::class)->middleware('web');
+    Route::get('/articles/{article}', ShowArticle::class)
+        ->middleware(['web', RecordViews::using('article', cooldown: 30)]);
 });
 
 /**
@@ -63,6 +66,12 @@ it('counts a reader who comes back within the cooldown once', function (): void 
         ->assertOk();
 
     expect($article)->toHaveViewsCount(1);
+});
+
+it('records nothing for an article that does not exist', function (): void {
+    $this->get('/articles/404')->assertNotFound();
+
+    expect(View::count())->toBe(0);
 });
 
 it('keeps serving the cached ranking until it expires', function (): void {
