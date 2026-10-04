@@ -1133,8 +1133,13 @@ $this->app->bind(RecordsViews::class, \App\Actions\Views\RecordView::class);
 - `array` keeps views in memory for the process, see [Testing](#testing).
 - `null` discards every view.
 
-Counts always read from the `views` table. A store that writes elsewhere is a buffer in front of it and implements
-`Recording\Contracts\BufferedViewStore`, so `views:flush` can drain it.
+Counts read from the configured [view source](#customizing-how-views-are-counted), and the shipped `database` and
+`rollup` sources read the `views` table and the rollups built from it. A store that writes elsewhere is then a buffer
+in front of it and implements `Recording\Contracts\BufferedViewStore`, so `views:flush` can drain it.
+
+A store can also keep views somewhere else for good, such as MongoDB, when it is paired with a source that reads them
+back from there. The `views()` and `viewed()` relations, `hasViewed()`, `lastViewedAt()`, retention and rollups keep
+working on the `views` table, and the scopes need a source in the same database as the viewable.
 
 To add a driver, implement `Recording\Contracts\ViewStore` and register it in a service provider:
 
