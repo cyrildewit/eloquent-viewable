@@ -259,11 +259,15 @@ beacon on in the config:
 'recording' => [
     'beacon' => [
         'enabled' => true,
-        'prefix' => 'eloquent-viewable/beacon',
+        'prefix' => '_ev',
         'middleware' => ['web'],
     ],
 ],
 ```
+
+The prefix is neutral on purpose. Privacy filter lists block paths with words such as `beacon`, `track` or
+`analytics`, so a route named after what it does would silently lose the views of every visitor who runs one. Change
+`prefix` if it collides with a route of your own or a list ever starts blocking it.
 
 And print the directive in the page:
 
@@ -290,7 +294,7 @@ For a single-page app, or to write the script yourself, build the URL with `Http
 ```php
 use CyrildeWit\EloquentViewable\Http\Beacon;
 
-app(Beacon::class)->url($post, collection: 'amp'); // '/eloquent-viewable/beacon/...?collection=amp&signature=...'
+app(Beacon::class)->url($post, collection: 'amp'); // '/_ev/...?collection=amp&signature=...'
 ```
 
 > [!TIP]

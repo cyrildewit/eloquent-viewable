@@ -26,8 +26,8 @@ use Illuminate\Support\Facades\URL;
 function enableBeacon(array $config = []): void
 {
     config()->set('eloquent-viewable.recording.beacon', [
+        ...config('eloquent-viewable.recording.beacon'),
         'enabled' => true,
-        'prefix' => 'eloquent-viewable/beacon',
         'middleware' => [],
         ...$config,
     ]);
@@ -125,7 +125,7 @@ describe('recording', function (): void {
         try {
             $url = beaconUrl($this->post);
 
-            expect($url)->toStartWith('/eloquent-viewable/beacon/post/');
+            expect($url)->toStartWith('/_ev/post/');
 
             $this->post($url)->assertNoContent();
 
@@ -140,7 +140,7 @@ describe('refusing', function (): void {
     beforeEach(fn () => enableBeacon());
 
     it('refuses a url that is not signed', function (): void {
-        $this->post("/eloquent-viewable/beacon/post/{$this->post->getKey()}")->assertForbidden();
+        $this->post("/_ev/post/{$this->post->getKey()}")->assertForbidden();
 
         expect(View::count())->toBe(0);
     });
@@ -223,7 +223,7 @@ describe('url', function (): void {
 
         $url = beaconUrl($this->post, collection: 'amp', cooldown: 30, queue: false);
 
-        expect($url)->toStartWith('/eloquent-viewable/beacon/')
+        expect($url)->toStartWith('/_ev/')
             ->toContain('collection=amp', 'cooldown=30', 'queue=0', 'signature=')
             ->and(beaconUrl($this->post, collection: 'amp', cooldown: 30, queue: false))->toBe($url);
     });
