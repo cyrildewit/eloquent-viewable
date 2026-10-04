@@ -7,10 +7,6 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use Exception;
 
-/**
- * This exception is thrown with `retention.rollups.strict` on, for a count that
- * only rollups can answer and cannot answer exactly.
- */
 final class ResolutionUnavailable extends Exception implements EloquentViewableException
 {
     public static function partialBucket(): self

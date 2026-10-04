@@ -84,8 +84,7 @@ final class RollupViewsCommand extends Command
     }
 
     /**
-     * It returns the rollup the `--rollup` option names, null without it, or
-     * false once the error is reported.
+     * It returns false once the error is reported.
      */
     private function rollup(RollupPolicy $policy): RollupDefinition|false|null
     {
@@ -109,9 +108,7 @@ final class RollupViewsCommand extends Command
     }
 
     /**
-     * It returns the tier the `--tier` option names, null without it, or
-     * false once the error is reported. The tier must belong to the rollup
-     * the command folds, or to any rollup without one.
+     * It returns false once the error is reported.
      */
     private function tier(RollupPolicy $policy, ?RollupDefinition $rollup): Tier|false|null
     {
@@ -141,7 +138,7 @@ final class RollupViewsCommand extends Command
     }
 
     /**
-     * It returns the chunk size, or null once the error is reported.
+     * It returns null once the error is reported.
      */
     private function chunk(Config $config): ?int
     {
@@ -206,8 +203,7 @@ final class RollupViewsCommand extends Command
     }
 
     /**
-     * It returns the `--from` option as a moment, null without it, or false
-     * once the error is reported.
+     * It returns false once the error is reported.
      */
     private function from(): CarbonImmutable|false|null
     {

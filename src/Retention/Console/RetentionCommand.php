@@ -14,16 +14,11 @@ use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
-/**
- * This command holds what the retention commands share: their options, the
- * run lock and the report of a run.
- *
- * @internal
- */
+/** @internal */
 abstract class RetentionCommand extends Command
 {
     /**
-     * It returns the chunk size, or null once the error is reported.
+     * It returns null once the error is reported.
      */
     protected function chunk(RetentionPolicy $policy): ?int
     {
@@ -51,8 +46,7 @@ abstract class RetentionCommand extends Command
     }
 
     /**
-     * It returns the `--older-than` option, the configured duration without
-     * it, or false once the error is reported.
+     * It returns false once the error is reported.
      */
     protected function olderThan(?Duration $configured): Duration|false|null
     {

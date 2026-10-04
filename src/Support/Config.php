@@ -247,10 +247,6 @@ final readonly class Config
     }
 
     /**
-     * These are the counter columns to keep, per viewable model, each with the
-     * count it holds. A column listed without options holds the all-time
-     * count.
-     *
      * @return array<class-string<Model&Viewable>, array<string, ViewsQuery>>
      *
      * @throws InvalidConfiguration
@@ -329,10 +325,7 @@ final readonly class Config
     }
 
     /**
-     * These are the tiers to keep, each with how long it is kept, or null to
-     * keep it forever.
-     *
-     * @return array<'hour'|'day'|'month'|'year', Duration|null>
+     * @return array<'hour'|'day'|'month'|'year', ?Duration>
      *
      * @throws InvalidConfiguration
      */

@@ -45,10 +45,8 @@ final readonly class AnonymiseViews
     ) {}
 
     /**
-     * It anonymises the given columns of the views viewed before the cutoff,
-     * `chunk` views per statement, or only counts them on a dry run. The
-     * cutoff is moved back to midnight, so a day is never split across two
-     * salts and a day bucket never holds two ids of one visitor.
+     * The cutoff moves back to midnight, so a day is never split across two
+     * salts.
      *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      *
@@ -93,9 +91,6 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * This is the next day with views left to anonymise, null once there is
-     * none before `until`.
-     *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      *
      * @throws InvalidConfiguration
@@ -164,9 +159,6 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * This is the midnight at or before the moment, on the clock of
-     * `viewed_at`.
-     *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
@@ -207,8 +199,8 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * It writes one statement per chunk. Each visitor gets a hash of its own,
-     * so the new values go through a `case` on the old one.
+     * Each visitor gets a hash of its own, so one statement sets them all
+     * through a `case` on the old value.
      *
      * @param  non-empty-array<int|string, mixed>  $visitors  keyed by the id of the view
      * @param  list<'visitor'|'viewer'|'context'>  $columns
@@ -252,9 +244,6 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * These are the new ids, keyed by the old ones. A visitor that is null or
-     * anonymised already is left out.
-     *
      * @param  array<int|string, mixed>  $visitors
      * @return array<string, string>
      */
@@ -277,12 +266,7 @@ final readonly class AnonymiseViews
         return $hashes;
     }
 
-    /**
-     * These are the views in `[from, until)` that still hold something to
-     * anonymise.
-     *
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
-     */
+    /** @param  list<'visitor'|'viewer'|'context'>  $columns */
     private function pending(?CarbonInterface $from, CarbonInterface $until, array $columns): Builder
     {
         return $this->view

@@ -33,10 +33,8 @@ use stdClass;
 
 /**
  * This source reads recent views from the views table and older history from
- * the rollup tiers, through the same contract, so every count, series, ranking and scope
- * keeps working when the views behind them are gone. A query the rollups
- * cannot answer, such as one narrowed to a viewer or one that needs a
- * grouping that is not kept, reads the views table alone.
+ * the rollups, through every read and scope. A read the rollups cannot answer,
+ * such as one narrowed to a viewer, reads the views table alone.
  */
 final readonly class RollupSource implements CountsByDimension, IdentifiesSource, SubquerySource, ViewSource
 {
@@ -153,8 +151,8 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * It counts per value of the dimension of the custom rollup the query
-     * reads through. Any other dimension reads the views table alone.
+     * Only the dimension of the custom rollup the query reads through is read
+     * from the rollups.
      *
      * @return array<string, int>
      *
@@ -242,10 +240,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The query sums a correlated subquery per segment of the views table and
-     * one over the rollups, so the scopes order and filter on all-time
-     * counts without scanning every view.
-     *
      * @throws InvalidPeriod
      * @throws ResolutionUnavailable
      */
@@ -278,20 +272,15 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The existence check reads the views table alone, like every read of a
-     * viewer or visitor: the rollups keep neither.
+     * Rollups keep no visitors, so the existence check reads the views table
+     * alone.
      */
     public function viewsSubquery(Viewable $viewable, ViewsQuery $query, ?string $visitor = null): Builder
     {
         return $this->raw->viewsSubquery($viewable, $query, $visitor);
     }
 
-    /**
-     * The rollup table joins the identity of the views table, so two rollup
-     * tables behind one cache store keep their entries apart.
-     *
-     * @throws JsonException
-     */
+    /** @throws JsonException */
     public function cacheIdentity(): string
     {
         return json_encode([$this->raw->cacheIdentity(), $this->policy->table], JSON_THROW_ON_ERROR);
@@ -348,11 +337,7 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         return $ranking;
     }
 
-    /**
-     * It returns null when the views table answers alone.
-     *
-     * @throws ResolutionUnavailable
-     */
+    /** @throws ResolutionUnavailable */
     private function plan(Grouping $grouping, ViewsQuery $query, ?Granularity $granularity = null): ?Plan
     {
         $definition = $this->policy->for($query);
@@ -400,8 +385,8 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * The hand-over from rollups to the views table moves back onto the edge
-     * of a series bucket, so no bucket of the series is summed from both.
+     * The hand-over to the views table moves onto the edge of a series bucket,
+     * so no bucket of the series is summed from both.
      *
      * @return (Closure(CarbonImmutable): CarbonImmutable)|null
      */
@@ -466,8 +451,8 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     }
 
     /**
-     * Only hour buckets can be placed exactly in a series in another zone,
-     * and only while the two zones are a whole number of hours apart.
+     * Only hour buckets fit a series in another zone, and only while the zones
+     * are whole hours apart.
      *
      * @throws ResolutionUnavailable
      */
@@ -482,10 +467,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         }
     }
 
-    /**
-     * The hours of the rollups and of the series start together when the two
-     * zones are a whole number of hours apart at both ends of the segment.
-     */
     private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
     {
         foreach ([$segment->start, $segment->end] as $moment) {
@@ -522,10 +503,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         return $query->withPeriod($segment->period());
     }
 
-    /**
-     * These are the rollup rows of the grouping inside the plan's rollup
-     * segments.
-     */
     private function rollups(?string $type, int|string|null $key, Grouping $grouping, Plan $plan, ViewsQuery $query, bool $perDimension = false): Builder
     {
         $column = fn (string $name): string => $this->rollup->qualifyColumn($name);
@@ -552,10 +529,6 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         });
     }
 
-    /**
-     * These are the views of one raw segment grouped per viewable, a branch of
-     * the ranking union.
-     */
     private function rawRanking(?string $type, ViewsQuery $query): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase();

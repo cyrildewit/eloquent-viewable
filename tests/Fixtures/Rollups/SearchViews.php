@@ -14,7 +14,7 @@ final class SearchViews extends Rollup
     #[\Override]
     public string $name = 'search';
 
-    /** @return array<string, string|null> */
+    /** @return array<string, ?string> */
     public function tiers(): array
     {
         return ['month' => null];

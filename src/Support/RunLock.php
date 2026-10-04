@@ -10,17 +10,12 @@ use CyrildeWit\EloquentViewable\Exceptions\LockUnavailable;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\LockProvider;
 
-/**
- * This lock is shared by every command that rewrites the views or rollup
- * tables, so two servers, or two commands on one, never run at once.
- *
- * @internal
- */
+/** @internal */
 final readonly class RunLock
 {
     /**
-     * The lock lasts long enough for a large first run, and a lock left by a
-     * process that died is released after it.
+     * The lock expires after an hour, so a lock left by a process that died
+     * does not block every run after it.
      */
     private const int Seconds = 3600;
 
@@ -30,8 +25,7 @@ final readonly class RunLock
     ) {}
 
     /**
-     * It returns what the callback returns, or null when another run holds
-     * the lock.
+     * It returns null when another run holds the lock.
      *
      * @param  Closure(): int  $callback
      *

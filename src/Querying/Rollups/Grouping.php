@@ -21,10 +21,6 @@ enum Grouping: string
 
     case TypeCollection = 'type_collection';
 
-    /**
-     * This is the grouping that answers a count of the viewable, within one
-     * collection or across them. A viewable without a key stands for its type.
-     */
     public static function for(?Viewable $viewable, bool $perCollection): self
     {
         $type = $viewable instanceof Viewable && $viewable->getKey() === null;
@@ -51,12 +47,7 @@ enum Grouping: string
         return "{$this->value}:dimension";
     }
 
-    /**
-     * These are the columns of the views table a row of this grouping is
-     * grouped by.
-     *
-     * @return non-empty-list<string>
-     */
+    /** @return non-empty-list<string> */
     public function columns(): array
     {
         return match ($this) {

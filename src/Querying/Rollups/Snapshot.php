@@ -6,13 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
 use Carbon\CarbonImmutable;
 
-/**
- * A snapshot holds the marks of one rollup at one moment: what each tier
- * holds, where the views table stops being complete, and the first bucket any
- * tier folded, before which no view was there to fold.
- *
- * @internal
- */
+/** @internal */
 final readonly class Snapshot
 {
     /**
@@ -32,9 +26,6 @@ final readonly class Snapshot
         return $this->folded[$tier->value] ?? null;
     }
 
-    /**
-     * This is where the rows of the tier start, null before its first fold.
-     */
     public function since(Tier $tier): ?CarbonImmutable
     {
         return $this->since[$tier->value] ?? null;

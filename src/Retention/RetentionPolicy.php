@@ -9,9 +9,6 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Support\Carbon;
 
-/**
- * This policy is the `retention` config, read and checked once.
- */
 final readonly class RetentionPolicy
 {
     /**

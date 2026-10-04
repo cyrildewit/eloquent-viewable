@@ -30,7 +30,7 @@ abstract class Rollup implements FiltersViews
      * These are the tiers to keep, each with how long it is kept, or null to
      * keep it forever.
      *
-     * @return array<string, string|null>
+     * @return array<string, ?string>
      */
     abstract public function tiers(): array;
 

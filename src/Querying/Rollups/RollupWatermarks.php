@@ -9,9 +9,8 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 
 /**
- * These watermarks wait for every tier of every rollup: every tier keeps
- * unique visitors, and a custom rollup may keep a value from `context`, so
- * nothing is anonymised or deleted before all of them have folded it.
+ * Every tier of every rollup holds the cutoff back, because every tier keeps
+ * unique visitors and a custom rollup may keep a value from `context`.
  */
 final readonly class RollupWatermarks implements Watermarks
 {
@@ -26,8 +25,7 @@ final readonly class RollupWatermarks implements Watermarks
             $snapshot = $this->state->snapshot($definition->name);
 
             foreach ($definition->tiers() as $tier) {
-                // A tier that has never been folded has captured nothing yet.
-                $folded = $snapshot->folded($tier) ?? CarbonImmutable::createFromTimestamp(0, $cutoff->getTimezone());
+                $folded = $snapshot->folded($tier) ?? $this->nothingFolded($cutoff);
 
                 if ($folded < $cutoff) {
                     $cutoff = $folded;
@@ -36,5 +34,10 @@ final readonly class RollupWatermarks implements Watermarks
         }
 
         return $cutoff;
+    }
+
+    private function nothingFolded(CarbonInterface $cutoff): CarbonImmutable
+    {
+        return CarbonImmutable::createFromTimestamp(0, $cutoff->getTimezone());
     }
 }

@@ -14,10 +14,6 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
 use Illuminate\Support\Carbon;
 
-/**
- * This policy is the `retention.rollups` config, read and checked once: the
- * built-in rollup when tiers are configured, and every custom rollup.
- */
 final readonly class RollupPolicy
 {
     public const string BuiltIn = 'views';
@@ -125,10 +121,6 @@ final readonly class RollupPolicy
         return null;
     }
 
-    /**
-     * This is the rollup a read goes through: the custom one its filter names,
-     * or the built-in one without a filter.
-     */
     public function for(ViewsQuery $query): ?RollupDefinition
     {
         if (! $query->filter instanceof FiltersViews) {
@@ -212,7 +204,7 @@ final readonly class RollupPolicy
     }
 
     /**
-     * @return array<string, Duration|null>
+     * @return array<string, ?Duration>
      *
      * @throws InvalidConfiguration
      */
@@ -270,8 +262,8 @@ final readonly class RollupPolicy
     }
 
     /**
-     * @param  array<string, Duration|null>  $tiers
-     * @return array<string, Duration|null> coarse to fine
+     * @param  array<string, ?Duration>  $tiers
+     * @return array<string, ?Duration> coarse to fine
      */
     private static function ordered(array $tiers): array
     {

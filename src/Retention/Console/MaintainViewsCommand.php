@@ -11,11 +11,6 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Support\Carbon;
 
-/**
- * This command runs everything the configuration asks for, in the order that
- * loses nothing: roll up, anonymise, prune, then recount the counter columns.
- * It is the one line the scheduler needs.
- */
 final class MaintainViewsCommand extends RetentionCommand
 {
     #[\Override]
@@ -64,9 +59,8 @@ final class MaintainViewsCommand extends RetentionCommand
     }
 
     /**
-     * Rollups are folded through their command, so retention stays unaware of
-     * how they are folded, and first, so the cutoffs after it move as far as
-     * the rollups now reach.
+     * Rollups are folded through their command, so retention does not depend on
+     * how they are folded.
      */
     private function rollUp(int $chunk): int
     {
@@ -90,10 +84,6 @@ final class MaintainViewsCommand extends RetentionCommand
         });
     }
 
-    /**
-     * The counter columns are written last, so they count what is left. A dry
-     * run changes nothing, so it has nothing new to count.
-     */
     private function recount(int $chunk): int
     {
         if ($this->isDryRun()) {

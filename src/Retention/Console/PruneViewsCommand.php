@@ -66,8 +66,7 @@ final class PruneViewsCommand extends RetentionCommand
     }
 
     /**
-     * It returns the `--before` option as a moment, or false once the error is
-     * reported.
+     * It returns false once the error is reported.
      */
     private function before(): CarbonInterface|false|null
     {

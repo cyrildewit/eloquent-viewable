@@ -40,10 +40,6 @@ final readonly class FoldViews
     ) {}
 
     /**
-     * It folds every tier of every rollup, or only the tier and rollup named,
-     * from where the last run stopped or again from `from`. A dry run counts
-     * the buckets without folding them.
-     *
      * @return list<ViewsRolledUp>
      *
      * @throws RollupsNotInstalled
@@ -134,11 +130,6 @@ final readonly class FoldViews
         return new ViewsRolledUp($definition->name, $tier, $folded, $until->max($folded ?? $until), $buckets);
     }
 
-    /**
-     * Folding starts again from `from` when it is given, from where the last
-     * run stopped otherwise, and from the bucket of the first view on the
-     * first run.
-     */
     private function cursor(Tier $tier, Snapshot $snapshot, ?CarbonInterface $from, CarbonImmutable $until): CarbonImmutable
     {
         if ($from instanceof CarbonInterface) {
@@ -193,8 +184,7 @@ final readonly class FoldViews
     }
 
     /**
-     * These are the buckets behind the watermark that views landed in since
-     * the last run, as long as their views are all still there to fold again.
+     * Only buckets whose views are all still there are folded again.
      *
      * @return list<CarbonImmutable>
      */
@@ -241,10 +231,6 @@ final readonly class FoldViews
         return array_values($buckets);
     }
 
-    /**
-     * Folding again starts no earlier than the first bucket whose views are
-     * all still there.
-     */
     private function refoldFrom(Tier $tier, Snapshot $snapshot, CarbonInterface $from): CarbonImmutable
     {
         $zone = $this->policy->timezone;
@@ -283,8 +269,7 @@ final readonly class FoldViews
     }
 
     /**
-     * It returns one, the bucket, so a caller can count what it folded. The
-     * totals of a custom rollup stay next to its rows per dimension value,
+     * The totals of a custom rollup are kept next to its rows per value,
      * because unique visitors cannot be summed from those.
      */
     private function foldBucket(RollupDefinition $definition, Tier $tier, CarbonImmutable $start, bool $dryRun): int
@@ -316,10 +301,6 @@ final readonly class FoldViews
         return 1;
     }
 
-    /**
-     * A dimension such as the JSON path `context->campaign` compiles to the
-     * driver's own extraction.
-     */
     private function insert(RollupDefinition $definition, Tier $tier, Grouping $grouping, CarbonImmutable $start, CarbonImmutable $end, ?string $dimension): void
     {
         $views = $this->view->newQuery();

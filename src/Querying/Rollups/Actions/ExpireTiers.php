@@ -27,12 +27,7 @@ final readonly class ExpireTiers
         private RollupState $state,
     ) {}
 
-    /**
-     * It returns the rows dropped per rollup and tier, or the rows it would
-     * drop on a dry run.
-     *
-     * @return list<array{rollup: string, tier: Tier, rows: int}>
-     */
+    /** @return list<array{rollup: string, tier: Tier, rows: int}> */
     public function handle(int $chunk, bool $dryRun = false): array
     {
         $now = CarbonImmutable::now();
@@ -75,11 +70,6 @@ final readonly class ExpireTiers
         return $dropped;
     }
 
-    /**
-     * The cutoff moves back onto the edge of a bucket of the next coarser
-     * tier that tier has folded. It is null while that tier has folded
-     * nothing.
-     */
     private function cutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $cutoff): ?CarbonImmutable
     {
         $zone = $this->policy->timezone;
