@@ -21,6 +21,10 @@ final readonly class IgnoreStaffNetwork implements RecordingGuard
     {
         $ip = $attempt->visitor->ip();
 
-        return $ip === null || ! IpUtils::checkIp($ip, self::Networks);
+        if ($ip === null) {
+            return true;
+        }
+
+        return ! IpUtils::checkIp($ip, self::Networks);
     }
 }
