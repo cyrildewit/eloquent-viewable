@@ -648,9 +648,11 @@ This works on every cache store, including those without tags. For fresher count
 
 The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
 [trending articles](samples/TrendingArticles) list, a [stats page](samples/ListingStats) for one listing, a
-[most viewed](samples/PopularProducts) sort over a large catalog or a news site that
-[buffers views in Redis](samples/BreakingNews) through a traffic spike. Each sample is tested with the rest of the
-suite.
+[most viewed](samples/PopularProducts) sort over a large catalog, a news site that
+[buffers views in Redis](samples/BreakingNews) through a traffic spike, a
+[recently viewed](samples/RecentlyViewed) row for signed-in users, an editors'
+[dashboard](samples/ContentDashboard) across content types or docs that count readers
+[without cookies](samples/PrivacyFirstAnalytics). Each sample is tested with the rest of the suite.
 
 ## Testing
 
