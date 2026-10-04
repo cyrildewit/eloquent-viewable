@@ -7,9 +7,9 @@ namespace CyrildeWit\EloquentViewable\Support;
 use Carbon\CarbonInterface;
 
 /**
- * A length of time in the shorthand periods are parsed from, such as `30d`,
- * `12h` or `2y`. Unlike a period it is not anchored, it counts back from
- * whatever moment it is handed.
+ * A duration is a length of time in the shorthand periods are parsed from,
+ * such as `30d`, `12h` or `2y`. Unlike a period it is not anchored: it counts
+ * back from whatever moment it is handed.
  */
 final readonly class Duration
 {
@@ -19,7 +19,8 @@ final readonly class Duration
     ) {}
 
     /**
-     * Null when the string is not a shorthand of a positive amount.
+     * It returns null when the string is not the shorthand of a positive
+     * amount.
      */
     public static function tryParse(string $duration): ?self
     {
@@ -29,7 +30,11 @@ final readonly class Duration
 
         $interval = PeriodInterval::fromShorthand($matches[2]);
 
-        return $interval instanceof PeriodInterval ? new self($interval, (int) $matches[1]) : null;
+        if (! $interval instanceof PeriodInterval) {
+            return null;
+        }
+
+        return new self($interval, (int) $matches[1]);
     }
 
     public function before(CarbonInterface $dateTime): CarbonInterface
@@ -38,7 +43,8 @@ final readonly class Duration
     }
 
     /**
-     * Measured back from the same moment, so `30d` is longer than `4w`.
+     * Both durations are measured back from the same moment, so `30d` is
+     * longer than `4w`.
      */
     public function isLongerThan(self $other, CarbonInterface $from): bool
     {

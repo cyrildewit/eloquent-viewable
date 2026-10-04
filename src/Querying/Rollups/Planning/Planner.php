@@ -12,7 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use DateTimeZone;
 
 /**
- * Splits a period between the views table and the rollup tiers.
+ * This planner splits a period between the views table and the rollup tiers.
  *
  * Views after the last folded bucket are always read raw, and so are unique
  * visitors back to where the views table stops being exact. Older history is
@@ -35,8 +35,8 @@ final readonly class Planner
      */
     public function plan(Snapshot $state, array $tiers, ?CarbonInterface $start, ?CarbonInterface $end, bool $unique, ?Closure $align = null): Plan
     {
-        $start = $start instanceof CarbonInterface ? CarbonImmutable::instance($start) : null;
-        $end = $end instanceof CarbonInterface ? CarbonImmutable::instance($end) : null;
+        $start = $this->immutable($start);
+        $end = $this->immutable($end);
         $tiers = array_values(array_filter($tiers, static fn (Tier $tier): bool => $state->folded($tier) instanceof CarbonImmutable));
         $rawFloor = $unique ? $this->latest($state->anonymised, $state->pruned) : $state->pruned;
         $rawFrom = $this->rawFrom($state, $tiers, $unique, $rawFloor, $align);
@@ -45,57 +45,59 @@ final readonly class Planner
             return new Plan([new Segment(null, $start, $end)]);
         }
 
-        $historyEnd = $end instanceof CarbonImmutable && $end < $rawFrom ? $end : $rawFrom;
+        $historyEnd = $this->earliest($end, $rawFrom);
         $segments = [];
 
-        if (! $start instanceof CarbonImmutable || $start < $historyEnd) {
+        if ($this->startsBefore($start, $historyEnd)) {
             $segments = $this->cover($state, $tiers, $tiers, $rawFloor, $start, $historyEnd);
         }
 
-        if (! $end instanceof CarbonImmutable || $end > $rawFrom) {
-            $segments[] = new Segment(null, $start instanceof CarbonImmutable && $start > $rawFrom ? $start : $rawFrom, $end);
+        if ($this->endsAfter($end, $rawFrom)) {
+            $segments[] = new Segment(null, $this->latest($start, $rawFrom), $end);
         }
 
         return new Plan($this->merge($segments));
     }
 
     /**
-     * Null when everything is read raw.
+     * Unique visitors are exact in the views table and summed in the rollups,
+     * so for them the views table answers as far back as it is complete. It
+     * returns null when everything is read raw.
      *
      * @param  list<Tier>  $tiers
      * @param  (Closure(CarbonImmutable): CarbonImmutable)|null  $align
      */
     private function rawFrom(Snapshot $state, array $tiers, bool $unique, ?CarbonImmutable $rawFloor, ?Closure $align): ?CarbonImmutable
     {
-        $from = null;
-
-        foreach ($tiers as $tier) {
-            $from = $this->latest($from, $state->folded($tier));
-        }
+        $from = $this->latest(...array_map($state->folded(...), $tiers));
 
         if (! $from instanceof CarbonImmutable) {
             return null;
         }
 
-        // Unique visitors are exact in the views table and summed in the
-        // rollups, so the views table answers as far back as it is complete.
-        if ($unique) {
-            if (! $rawFloor instanceof CarbonImmutable) {
-                return null;
-            }
+        if ($unique && ! $rawFloor instanceof CarbonImmutable) {
+            return null;
+        }
 
+        if ($unique) {
             $from = $from->min($rawFloor);
         }
 
-        if ($align instanceof Closure) {
-            $aligned = $align($from);
-
-            if (! $rawFloor instanceof CarbonImmutable || $aligned >= $rawFloor) {
-                return $aligned;
-            }
+        if (! $align instanceof Closure) {
+            return $from;
         }
 
-        return $from;
+        $aligned = $align($from);
+
+        if (! $rawFloor instanceof CarbonImmutable) {
+            return $aligned;
+        }
+
+        if ($aligned < $rawFloor) {
+            return $from;
+        }
+
+        return $aligned;
     }
 
     /**
@@ -105,7 +107,7 @@ final readonly class Planner
      */
     private function cover(Snapshot $state, array $tiers, array $all, ?CarbonImmutable $rawFloor, ?CarbonImmutable $from, CarbonImmutable $until): array
     {
-        if ($from instanceof CarbonImmutable && $from >= $until) {
+        if (! $this->startsBefore($from, $until)) {
             return [];
         }
 
@@ -120,50 +122,81 @@ final readonly class Planner
         $first = $low instanceof CarbonImmutable ? $tier->ceil($low, $this->zone) : null;
         $last = $tier->floor($high, $this->zone);
 
-        if ($first instanceof CarbonImmutable && $first >= $last) {
+        if (! $this->startsBefore($first, $last)) {
             return $this->cover($state, $tiers, $all, $rawFloor, $from, $until);
         }
 
+        $before = $first instanceof CarbonImmutable ? $this->cover($state, $tiers, $all, $rawFloor, $from, $first) : [];
+
         return [
-            ...($first instanceof CarbonImmutable ? $this->cover($state, $tiers, $all, $rawFloor, $from, $first) : []),
+            ...$before,
             new Segment($tier, $first, $last),
             ...$this->cover($state, $tiers, $all, $rawFloor, $last, $until),
         ];
     }
 
     /**
-     * What no tier holds whole. The views table answers it exactly while it
-     * still holds it; otherwise the finest tier with buckets there does.
+     * This is what no tier holds whole. The views table answers it exactly
+     * while it still holds it; otherwise the finest tier with buckets there
+     * does. Nothing was viewed before the first bucket folded, so nothing is
+     * read there and a scan of the views table is spared.
      *
      * @param  list<Tier>  $tiers  coarse to fine
      * @return list<Segment>
      */
     private function leftover(Snapshot $state, array $tiers, ?CarbonImmutable $rawFloor, ?CarbonImmutable $from, CarbonImmutable $until): array
     {
-        // Nothing was viewed before the first bucket folded, so there is
-        // nothing to read there, and a scan of the views table is spared.
-        if ($state->origin instanceof CarbonImmutable) {
-            if ($until <= $state->origin) {
-                return [];
-            }
-
-            $from = $this->latest($from, $state->origin);
+        if ($state->origin instanceof CarbonImmutable && $until <= $state->origin) {
+            return [];
         }
 
-        if (! $rawFloor instanceof CarbonImmutable || ($from instanceof CarbonImmutable && $from >= $rawFloor)) {
+        $from = $this->latest($from, $state->origin);
+
+        if ($this->viewsTableHolds($rawFloor, $from)) {
             return [new Segment(null, $from, $until)];
         }
 
         foreach (array_reverse($tiers) as $tier) {
-            $since = $state->since($tier);
-            $folded = $state->folded($tier);
-
-            if ((! $since instanceof CarbonImmutable || $since < $until) && (! $from instanceof CarbonImmutable || $folded > $from)) {
+            if ($this->holds($state, $tier, $from, $until)) {
                 return [new Segment($tier, $from, $until, exact: false)];
             }
         }
 
         return [];
+    }
+
+    /**
+     * A tier holds part of `[from, until)` when its rows start before the end
+     * and its last folded bucket ends after the start.
+     */
+    private function holds(Snapshot $state, Tier $tier, ?CarbonImmutable $from, CarbonImmutable $until): bool
+    {
+        if (! $this->startsBefore($state->since($tier), $until)) {
+            return false;
+        }
+
+        if (! $from instanceof CarbonImmutable) {
+            return true;
+        }
+
+        return $this->endsAfter($state->folded($tier), $from);
+    }
+
+    /**
+     * The views table still holds every view from `from` on when nothing was
+     * deleted from it, or when it was only deleted before `from`.
+     */
+    private function viewsTableHolds(?CarbonImmutable $rawFloor, ?CarbonImmutable $from): bool
+    {
+        if (! $rawFloor instanceof CarbonImmutable) {
+            return true;
+        }
+
+        if (! $from instanceof CarbonImmutable) {
+            return false;
+        }
+
+        return $from >= $rawFloor;
     }
 
     /**
@@ -193,16 +226,65 @@ final readonly class Planner
         return $merged;
     }
 
+    /**
+     * A missing start stands for the beginning of time, so it starts before
+     * every moment.
+     */
+    private function startsBefore(?CarbonImmutable $start, CarbonImmutable $moment): bool
+    {
+        if (! $start instanceof CarbonImmutable) {
+            return true;
+        }
+
+        return $start < $moment;
+    }
+
+    /**
+     * A missing end stands for the end of time, so it ends after every moment.
+     */
+    private function endsAfter(?CarbonImmutable $end, CarbonImmutable $moment): bool
+    {
+        if (! $end instanceof CarbonImmutable) {
+            return true;
+        }
+
+        return $end > $moment;
+    }
+
+    private function earliest(?CarbonImmutable $moment, CarbonImmutable $other): CarbonImmutable
+    {
+        if (! $moment instanceof CarbonImmutable) {
+            return $other;
+        }
+
+        return $moment->min($other);
+    }
+
     private function latest(?CarbonImmutable ...$moments): ?CarbonImmutable
     {
         $latest = null;
 
         foreach ($moments as $moment) {
-            if ($moment instanceof CarbonImmutable && (! $latest instanceof CarbonImmutable || $moment > $latest)) {
-                $latest = $moment;
+            if (! $moment instanceof CarbonImmutable) {
+                continue;
             }
+
+            if ($latest instanceof CarbonImmutable && $moment <= $latest) {
+                continue;
+            }
+
+            $latest = $moment;
         }
 
         return $latest;
+    }
+
+    private function immutable(?CarbonInterface $moment): ?CarbonImmutable
+    {
+        if (! $moment instanceof CarbonInterface) {
+            return null;
+        }
+
+        return CarbonImmutable::instance($moment);
     }
 }

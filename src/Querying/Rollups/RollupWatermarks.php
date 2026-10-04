@@ -9,9 +9,9 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 
 /**
- * Every tier keeps unique visitors, and a custom rollup may keep a value
- * from `context`, so nothing is anonymised or deleted before every tier of
- * every rollup has folded it.
+ * These watermarks wait for every tier of every rollup: every tier keeps
+ * unique visitors, and a custom rollup may keep a value from `context`, so
+ * nothing is anonymised or deleted before all of them have folded it.
  */
 final readonly class RollupWatermarks implements Watermarks
 {

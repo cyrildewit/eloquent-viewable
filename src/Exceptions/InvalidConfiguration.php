@@ -80,13 +80,18 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeDuration(string $key, mixed $value): self
     {
-        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`, or null, ".self::describe($value).' given.');
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`, or null, {$given} given.");
     }
 
     /** @param  list<string>  $allowed */
     public static function mustBeSubsetOf(string $key, array $allowed, mixed $value): self
     {
-        return new self("The `eloquent-viewable.{$key}` config value must be a list of `".implode('`, `', $allowed).'`, '.self::describe($value).' given.');
+        $options = implode('`, `', $allowed);
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must be a list of `{$options}`, {$given} given.");
     }
 
     public static function anonymisedAfterPruned(string $anonymise, string $prune): self
@@ -96,7 +101,9 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeTiers(string $key, mixed $value): self
     {
-        return new self("The `eloquent-viewable.{$key}` config value must map `hour`, `day`, `month` or `year` to a duration or null, ".self::describe($value).' given.');
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map `hour`, `day`, `month` or `year` to a duration or null, {$given} given.");
     }
 
     public static function coarserTierKeptShorter(string $rollup, string $coarser, string $finer): self
@@ -116,7 +123,9 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeCounters(string $key, mixed $value): self
     {
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period` and `collection`, ".self::describe($value).' given.');
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period` and `collection`, {$given} given.");
     }
 
     public static function invalidMiddlewareOption(string $option): self

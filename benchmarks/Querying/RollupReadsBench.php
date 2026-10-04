@@ -28,7 +28,7 @@ use PhpBench\Attributes\Warmup;
 #[Iterations(5)]
 final class RollupReadsBench extends BenchCase
 {
-    private const int PAGE_SIZE = 20;
+    private const int PageSize = 20;
 
     #[\Override]
     public function setUp(): void
@@ -55,7 +55,7 @@ final class RollupReadsBench extends BenchCase
     #[ParamProviders('providePeriods')]
     public function benchOrderByViews(array $params): void
     {
-        Article::query()->orderByViews('desc', $this->period($params))->limit(self::PAGE_SIZE)->get();
+        Article::query()->orderByViews('desc', $this->period($params))->limit(self::PageSize)->get();
     }
 
     /**

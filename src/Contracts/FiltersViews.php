@@ -8,13 +8,13 @@ use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Narrows the views a count reads, the way a custom rollup was folded, so the
- * views table and the rollups count the same views.
+ * Implement this to narrow the views a count reads, the way a custom rollup
+ * was folded, so the views table and the rollups count the same views.
  */
 interface FiltersViews
 {
     /**
-     * Identifies the filter in cache keys.
+     * The name identifies the filter in cache keys.
      */
     public function name(): string;
 
