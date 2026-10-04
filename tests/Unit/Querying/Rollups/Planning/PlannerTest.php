@@ -97,6 +97,10 @@ it('reads a recent period raw', function (): void {
     expect(describePlan(plan(folded(), '2026-03-31 06:00', null)))->toBe(['raw 2026-03-31 06:00..']);
 });
 
+it('reads an edge raw in one piece with the recent views', function (): void {
+    expect(describePlan(plan(folded(), '2026-02-10', null, tiers: [Tier::Month])))->toBe(['raw 2026-02-10 00:00..']);
+});
+
 it('reads an edge raw while the views table still holds it', function (): void {
     expect(describePlan(plan(folded(pruned: '2026-01-01'), '2026-01-15 10:00', '2026-02-01')))->toBe([
         'raw 2026-01-15 10:00..2026-01-16 00:00',
@@ -119,6 +123,12 @@ it('counts an edge in the month tier once the day tier expired it', function ():
         'month 2025-06-15 00:00..2025-07-01 00:00 ~',
         'month 2025-07-01 00:00..2026-03-01 00:00',
         'day 2026-03-01 00:00..2026-03-20 00:00',
+    ]);
+});
+
+it('counts an edge without a start in a tier once the views table no longer holds it', function (): void {
+    expect(describePlan(plan(folded(pruned: '2026-01-01'), null, '2025-01-15', tiers: [Tier::Month])))->toBe([
+        'month ..2025-01-15 00:00 ~',
     ]);
 });
 
@@ -168,6 +178,10 @@ it('counts every bucket of a segment without a start as more than one part', fun
 
     expect(describePlan(plan($state, null, '2026-02-01', tiers: [Tier::Month])))->toBe(['month ..2026-02-01 00:00'])
         ->and(plan($state, null, '2026-02-01', tiers: [Tier::Month])->parts(new DateTimeZone('UTC')))->toBe(PHP_INT_MAX);
+});
+
+it('counts a segment without an end as more than one part', function (): void {
+    expect(new Plan([new Segment(Tier::Day, at('2026-01-01'), null)])->parts(new DateTimeZone('UTC')))->toBe(PHP_INT_MAX);
 });
 
 it('turns a raw segment into a period', function (): void {

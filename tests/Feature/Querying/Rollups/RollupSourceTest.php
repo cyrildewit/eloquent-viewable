@@ -125,7 +125,37 @@ it('reads only the views table before the first fold', function (): void {
     readFrom('rollup');
 
     expect(views($this->post)->count())->toBe(7)
-        ->and(views(new Post)->forViewables([$this->post])->counts()->all())->toBe([$this->post->getKey() => 7]);
+        ->and(views(new Post)->forViewables([$this->post])->counts()->all())->toBe([$this->post->getKey() => 7])
+        ->and(views(new Post)->top()->entries->map(fn ($entry): array => [$entry->viewable->getKey(), $entry->count])->all())
+        ->toBe([[$this->post->getKey(), 7], [$this->other->getKey(), 2]]);
+});
+
+it('reads a series no tier fits from the views table', function (): void {
+    $hourly = fn (): array => views($this->post)->period(Period::create('2026-01-10', '2026-01-11'))->countByInterval(Granularity::Hour)->values();
+    $expected = $hourly();
+
+    app(FoldViews::class)->handle();
+    readFrom('rollup');
+
+    expect($hourly())->toBe($expected);
+});
+
+it('reads whether a visitor viewed from the views table', function (): void {
+    foldAndPrune();
+    readFrom('rollup');
+
+    expect(Post::query()->whereViewedByVisitor('visitor-4')->pluck('id')->all())->toBe([$this->post->getKey()])
+        ->and(Post::query()->whereViewedByVisitor('visitor-3')->pluck('id')->all())->toBe([]);
+});
+
+it('remembers its counts apart from the views table', function (): void {
+    foldAndPrune();
+
+    expect(views($this->post)->remember(3600)->count())->toBe(2);
+
+    readFrom('rollup');
+
+    expect(views($this->post)->remember(3600)->count())->toBe(7);
 });
 
 it('reads only what is kept for a viewer', function (): void {
@@ -246,6 +276,21 @@ it('converts an hour bucket into a series in another timezone', function (): voi
 
     expect(views($this->post)->period(Period::create('2026-01-10', '2026-01-11'))->timezone('Asia/Kolkata')->countByInterval(Granularity::Hour)->values())
         ->toBe($expected);
+});
+
+it('builds an hour series in a zone whole hours apart in strict mode', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['hour' => null, 'day' => null, 'month' => null]);
+    config()->set('eloquent-viewable.retention.rollups.strict', true);
+
+    $hourly = fn (string $timezone): array => views($this->post)->period(Period::create('2026-01-10', '2026-01-11'))->timezone($timezone)->countByInterval(Granularity::Hour)->values();
+    $expected = $hourly('America/New_York');
+
+    foldAndPrune();
+    readFrom('rollup');
+
+    expect($hourly('America/New_York'))->toBe($expected)
+        ->and(fn (): array => $hourly('Asia/Kolkata'))
+        ->toThrow(ResolutionUnavailable::class, 'A series in `Asia/Kolkata` cannot be built exactly from rollup buckets aligned to `UTC`.');
 });
 
 describe('strict', function (): void {
