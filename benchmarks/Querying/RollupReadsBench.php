@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Benchmarks\Querying;
+
+use CyrildeWit\EloquentViewable\Benchmarks\Models\Article;
+use CyrildeWit\EloquentViewable\Benchmarks\Support\BenchCase;
+use CyrildeWit\EloquentViewable\Benchmarks\Support\Rollups;
+use PhpBench\Attributes\BeforeMethods;
+use PhpBench\Attributes\Groups;
+use PhpBench\Attributes\Iterations;
+use PhpBench\Attributes\ParamProviders;
+use PhpBench\Attributes\Revs;
+use PhpBench\Attributes\Warmup;
+
+/**
+ * The reads of `CountViewsBench`, `OrderByViewsBench` and `TopViewedBench`
+ * through the `rollup` source, with every view folded into day and month
+ * rollups. Compare a subject with its counterpart in those classes to see
+ * what the rollups save. Unique counts still read the views table, which
+ * holds them exactly while nothing is anonymised or pruned.
+ */
+#[Groups(['rollup'])]
+#[BeforeMethods('setUp')]
+#[Warmup(1)]
+#[Revs(3)]
+#[Iterations(5)]
+final class RollupReadsBench extends BenchCase
+{
+    private const int PAGE_SIZE = 20;
+
+    #[\Override]
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        Rollups::fold($this->connection(), $this->dataset);
+
+        config()->set('eloquent-viewable.querying.source.driver', 'rollup');
+    }
+
+    /**
+     * @param  array{target: string, days: int|null}  $params
+     */
+    #[ParamProviders(['provideTargets', 'providePeriods'])]
+    public function benchCount(array $params): void
+    {
+        views($this->target($params))->period($this->period($params))->count();
+    }
+
+    /**
+     * @param  array{days: int|null}  $params
+     */
+    #[ParamProviders('providePeriods')]
+    public function benchOrderByViews(array $params): void
+    {
+        Article::query()->orderByViews('desc', $this->period($params))->limit(self::PAGE_SIZE)->get();
+    }
+
+    /**
+     * @param  array{days: int|null}  $params
+     */
+    #[ParamProviders('providePeriods')]
+    public function benchTop(array $params): void
+    {
+        views(Article::class)->period($this->period($params))->top(10);
+    }
+}
