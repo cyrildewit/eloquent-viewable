@@ -651,13 +651,25 @@ This works on every cache store, including those without tags. For fresher count
 
 ## Samples
 
-The [`samples`](samples) directory has real-world scenarios that combine several features, such as a
-[trending articles](samples/TrendingArticles) list, a [stats page](samples/ListingStats) for one listing, a
-[most viewed](samples/PopularProducts) sort over a large catalog, a news site that
-[buffers views in Redis](samples/BreakingNews) through a traffic spike, a
-[recently viewed](samples/RecentlyViewed) row for signed-in users, an editors'
-[dashboard](samples/ContentDashboard) across content types or docs that count readers
-[without cookies](samples/PrivacyFirstAnalytics). Each sample is tested with the rest of the suite.
+The sections above document each feature on its own. The [`samples`](samples) directory shows what they add up to:
+complete features you would build in a real application, each one a few files you can read top to bottom and copy.
+
+- [**Trending articles**](samples/TrendingArticles): a "Trending this week" sidebar with the ten most viewed
+  articles, recorded by middleware and ranked from cache.
+- [**Listing stats**](samples/ListingStats): a seller's stats page with a daily chart, unique visitors and the change
+  against the 30 days before.
+- [**Popular products**](samples/PopularProducts): a "Most viewed" sort that stays fast over millions of views,
+  without slowing down the product page.
+- [**Breaking news**](samples/BreakingNews): a story that a hundred thousand readers open within minutes, buffered in
+  Redis instead of hitting the database on every request.
+- [**Recently viewed**](samples/RecentlyViewed): "Continue where you left off" and "Not opened yet" rows for a
+  signed-in learner.
+- [**Content dashboard**](samples/ContentDashboard): one editors' page that answers "what worked this week" across
+  guides and podcast episodes.
+- [**Privacy-first analytics**](samples/PrivacyFirstAnalytics): counting readers of a docs site without cookies, IP
+  addresses or a cookie banner.
+
+Every sample comes with a Pest test that runs with the rest of the suite, so the code you copy is code that works.
 
 ## Testing
 
