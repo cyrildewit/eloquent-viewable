@@ -82,17 +82,19 @@ it('compares the views with the 30 days before', function (): void {
 
     $report = app(ListingStats::class)->for($listing);
 
-    expect($report->previousViews)->toBe(2)
-        ->and($report->totalViews())->toBe(3)
-        ->and($report->change())->toBe(50);
+    expect($report->trend)
+        ->previous->toBe(2)
+        ->current->toBe(3)
+        ->delta->toBe(1)
+        ->percent->toBe(50.0);
 });
 
-it('has no change to show when the 30 days before had no views', function (): void {
+it('has no percentage to show when the 30 days before had no views', function (): void {
     $listing = Listing::create(['title' => 'New listing']);
 
     viewListing($listing, '2026-10-01 10:00');
 
-    expect(app(ListingStats::class)->for($listing)->change())->toBeNull();
+    expect(app(ListingStats::class)->for($listing)->trend->percent)->toBeNull();
 });
 
 it('keeps serving the cached counts for ten minutes', function (): void {
@@ -127,5 +129,5 @@ it('moves the window on at midnight without waiting for the cache', function ():
 
     expect(array_key_first($counts))->toBe('2026-09-03')
         ->and($counts['2026-10-02'])->toBe(1)
-        ->and(app(ListingStats::class)->for($listing)->previousViews)->toBe(1);
+        ->and(app(ListingStats::class)->for($listing)->trend->previous)->toBe(1);
 });

@@ -23,8 +23,8 @@ $report = app(ListingStats::class)->for($listing);
 ```blade
 <p>
     {{ $report->totalViews() }} views by {{ $report->visitors }} people
-    @if ($report->change() !== null)
-        ({{ sprintf('%+d', $report->change()) }}% on the 30 days before)
+    @if ($report->trend->percent !== null)
+        ({{ sprintf('%+.1f', $report->trend->percent) }}% on the 30 days before)
     @endif
 </p>
 
@@ -39,23 +39,29 @@ $report = app(ListingStats::class)->for($listing);
 and fills the days without views with zero, so the chart always has 30 bars and needs one query. Looping over the days
 and calling `count()` for each would run 30.
 
-**Start the window at midnight.** `remember()` builds its cache key from the period, and an absolute period is
-identified by its timestamps. A window that starts 30 days before *now* gets a new key every second, so nothing would
-ever be read back from the cache. Starting at midnight keeps the key the same all day and gives a new one at midnight,
-which is exactly when the chart should gain a bar for the new day. That also means the comparison is not like for
-like: today so far is compared with a full day 30 days ago. Comparing up to the same time of day would bring back the
-moving key.
+**Run the window from midnight to midnight.** `remember()` builds its cache key from the period, and an absolute period
+is identified by its timestamps. A window that starts 30 days before *now* gets a new key every second, so nothing would
+ever be read back from the cache. Running from midnight 29 days ago to midnight tonight keeps the key the same all day
+and gives a new one at midnight, which is exactly when the chart should gain a bar for the new day. A `Period::since()`
+would chart the same days, but `compare()` needs both bounds to know how far to step back.
+
+**Let `compare()` find the window before.** `compare()` counts the window and `Period::previous()`, the 30 days that
+end where the window starts, and returns both with the delta and the percentage. The page needs no date arithmetic of
+its own, and the percentage is `null` when the 30 days before had no views, because growth from nothing has none. The
+comparison is not quite like for like: today so far is compared with a full day 30 days ago. Comparing up to the same
+time of day would bring back the moving key.
 
 **Count the people once.** A person who views the listing on three days is one of the people who saw it, but a
 visitor on each of those days. `visitors` is a `unique()` count over the whole window; `visitorsPerDay` is the unique
 series. Their numbers differ, so the page should not show the sum of the chart as the number of people.
 
-**Cache each window for as long as it can change.** The current window ends with today, which keeps changing, so it is
-cached for ten minutes. Views are recorded at the current time, so a window that has ended cannot change. The previous
-window is cached until midnight, when its key goes out of use anyway.
+**Cache for ten minutes.** The window ends with today, which keeps changing, so its counts are cached for ten minutes.
+`compare()` remembers the previous window for as long, under a key of its own. Views are recorded at the current time,
+so the previous window cannot change and could be cached until midnight, but only by building and counting it
+separately again. One extra count every ten minutes is the price of letting `compare()` do it.
 
-**`remember()` does the caching.** Unlike the ranking in the trending articles sample, `count()` and
-`countByInterval()` go through `remember()`, so `ListingStats` needs no cache of its own.
+**`remember()` does the caching.** Unlike the ranking in the trending articles sample, `count()`,
+`countByInterval()` and `compare()` go through `remember()`, so `ListingStats` needs no cache of its own.
 
 ## Where to take it next
 
