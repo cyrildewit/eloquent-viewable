@@ -180,6 +180,33 @@ return [
 
         ],
 
+        /*
+         * A route the browser posts to after the page has loaded, for pages
+         * served from a full-page cache or a CDN that never reach your
+         * controller. The `@viewsBeacon($post)` Blade directive prints the
+         * script that calls it. Off by default, so no route is registered
+         * until you turn it on.
+         */
+        'beacon' => [
+
+            'enabled' => false,
+
+            /*
+             * The path the beacon route is registered under.
+             */
+            'prefix' => 'eloquent-viewable/beacon',
+
+            /*
+             * The middleware the beacon route runs. The `web` group gives the
+             * request the session and cookies that cooldowns, the visitor
+             * cookie and the signed-in viewer rely on, and its CSRF check
+             * accepts the beacon because the browser marks it as sent from
+             * your own origin. A post from another site is refused.
+             */
+            'middleware' => ['web'],
+
+        ],
+
     ],
 
     /*
