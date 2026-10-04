@@ -198,8 +198,10 @@ return [
          * Where counts come from. `count()`, `countByInterval()`, `top()`
          * and the other counts all read through this source, and so do the
          * scopes when the source can be queried in SQL. The `database`
-         * driver reads the views table. Register your own driver with
-         * `SourceManager::extend()`, for example to read a rollup table.
+         * driver reads the views table. The `rollup` driver reads recent
+         * views from the views table and older history from the rollups in
+         * `retention.rollups`. Register your own driver with
+         * `SourceManager::extend()`.
          */
         'source' => [
 
@@ -230,6 +232,111 @@ return [
          * 8,760.
          */
         'max_intervals' => 10_000,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retention
+    |--------------------------------------------------------------------------
+    |
+    | How long views are kept as they were recorded. Nothing is set out of the
+    | box, so nothing is anonymised or deleted until you say so. Durations use
+    | the period shorthand: `30d`, `12w`, `6m`, `2y`. The `views:anonymise`,
+    | `views:prune` and `views:maintain` commands apply them, and need the
+    | migration published with `--tag=eloquent-viewable-retention`.
+    |
+    */
+    'retention' => [
+
+        'anonymise' => [
+
+            /*
+             * Views older than this lose what ties them to a person. The
+             * `visitor` column is re-hashed under a salt per day that is
+             * destroyed afterwards, so unique counts stay exact within a day
+             * but no longer link a visitor across days. `viewer` and
+             * `context` become null. Must not be longer than `prune.after`.
+             */
+            'after' => null,
+
+            /*
+             * Which of `visitor`, `viewer` and `context` are anonymised.
+             */
+            'columns' => ['visitor', 'viewer', 'context'],
+
+        ],
+
+        'prune' => [
+
+            /*
+             * Views older than this are deleted.
+             */
+            'after' => null,
+
+        ],
+
+        /*
+         * How many views one statement anonymises or deletes.
+         */
+        'chunk' => 5_000,
+
+        /*
+         * Rollups keep the counts of old views per bucket of time, so history
+         * outlives the views it was counted from. `views:rollup` folds them
+         * from the views table, and setting `querying.source.driver` to
+         * `rollup` reads them. They need the migration published with
+         * `--tag=eloquent-viewable-rollups`.
+         */
+        'rollups' => [
+
+            'table' => 'view_rollups',
+
+            /*
+             * The clock buckets align to. When `null`, the application's
+             * timezone is used.
+             */
+            'timezone' => null,
+
+            /*
+             * How long a closed bucket waits for views that land late, from
+             * a queue or the Redis buffer, before it is folded.
+             */
+            'settle' => '1h',
+
+            /*
+             * The tiers to keep, `hour`, `day`, `month` or `year`, each with
+             * how long it is kept, or `null` for forever. A coarser tier must
+             * be kept at least as long as a finer one. For example:
+             * `['day' => '2y', 'month' => null]`.
+             */
+            'tiers' => [],
+
+            /*
+             * What a bucket is counted per. Views add up across groupings,
+             * unique visitors do not, so each count needs a grouping of its
+             * own:
+             *
+             *   viewable             a model across its collections
+             *   viewable_collection  a model within one collection
+             *   type                 every model of a type
+             *   type_collection      every model of a type within one
+             *                        collection
+             *
+             * A count that needs a grouping that is not kept reads the views
+             * table.
+             */
+            'groupings' => ['viewable', 'viewable_collection', 'type'],
+
+            /*
+             * History beyond the views table has the resolution of its
+             * tier: a bucket counts when its start lies inside the period,
+             * and unique visitors are summed across buckets. When `true`,
+             * a count that cannot be answered exactly throws instead.
+             */
+            'strict' => false,
+
+        ],
 
     ],
 

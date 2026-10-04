@@ -27,6 +27,7 @@ const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Visitors\Contracts',
     'CyrildeWit\EloquentViewable\Crawlers\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Contracts',
+    'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
     'CyrildeWit\EloquentViewable\Cooldowns\Contracts',
 ];
 
@@ -36,6 +37,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Visitors',
     'CyrildeWit\EloquentViewable\Crawlers',
     'CyrildeWit\EloquentViewable\Cooldowns',
+    'CyrildeWit\EloquentViewable\Retention',
 ];
 
 const ENTRY_POINTS = [
@@ -50,6 +52,8 @@ const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Exceptions',
     'CyrildeWit\EloquentViewable\Recording\Exceptions',
     'CyrildeWit\EloquentViewable\Querying\Exceptions',
+    'CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions',
+    'CyrildeWit\EloquentViewable\Retention\Exceptions',
 ];
 
 arch('no debugging statements are left in the codebase')
@@ -105,6 +109,25 @@ arch('recording does not depend on querying')
 arch('querying does not depend on recording')
     ->expect('CyrildeWit\EloquentViewable\Querying')
     ->not->toUse('CyrildeWit\EloquentViewable\Recording');
+
+arch('the core of querying is unaware of rollups')
+    ->expect('CyrildeWit\EloquentViewable\Querying')
+    ->not->toUse('CyrildeWit\EloquentViewable\Querying\Rollups')
+    ->ignoring('CyrildeWit\EloquentViewable\Querying\Rollups');
+
+arch('recording and querying do not depend on retention')
+    ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying'])
+    ->not->toUse('CyrildeWit\EloquentViewable\Retention');
+
+arch('retention knows querying only through the rollup contracts')
+    ->expect('CyrildeWit\EloquentViewable\Retention')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Retention',
+        'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        'Carbon',
+        'Illuminate',
+    ]);
 
 arch('only the entry points join the two sides')
     ->expect(MODULES)

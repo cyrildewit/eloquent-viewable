@@ -243,6 +243,124 @@ final readonly class Config
         return $this->string('cooldown.cache.store');
     }
 
+    /** @throws InvalidConfiguration */
+    public function anonymiseAfter(): ?Duration
+    {
+        return $this->duration('retention.anonymise.after');
+    }
+
+    /**
+     * @return list<'visitor'|'viewer'|'context'>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function anonymiseColumns(): array
+    {
+        $allowed = ['visitor', 'viewer', 'context'];
+        $value = $this->get('retention.anonymise.columns', $allowed);
+
+        if (! is_array($value) || $value === []) {
+            throw InvalidConfiguration::mustBeSubsetOf('retention.anonymise.columns', $allowed, $value);
+        }
+
+        foreach ($value as $column) {
+            if (! in_array($column, $allowed, true)) {
+                throw InvalidConfiguration::mustBeSubsetOf('retention.anonymise.columns', $allowed, $column);
+            }
+        }
+
+        /** @var list<'visitor'|'viewer'|'context'> */
+        return array_values(array_intersect($allowed, $value));
+    }
+
+    /** @throws InvalidConfiguration */
+    public function pruneAfter(): ?Duration
+    {
+        return $this->duration('retention.prune.after');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function retentionChunk(): int
+    {
+        return $this->positiveInteger('retention.chunk');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function rollupTable(): string
+    {
+        return $this->nonEmptyString('retention.rollups.table');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function rollupTimezone(): ?string
+    {
+        return $this->string('retention.rollups.timezone');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function rollupSettle(): ?Duration
+    {
+        return $this->duration('retention.rollups.settle');
+    }
+
+    /**
+     * The tiers to keep, each with how long it is kept, null for forever.
+     *
+     * @return array<'hour'|'day'|'month'|'year', Duration|null>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function rollupTiers(): array
+    {
+        $allowed = ['hour', 'day', 'month', 'year'];
+        $value = $this->get('retention.rollups.tiers', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeTiers('retention.rollups.tiers', $value);
+        }
+
+        $tiers = [];
+
+        foreach ($value as $tier => $keep) {
+            if (! in_array($tier, $allowed, true)) {
+                throw InvalidConfiguration::mustBeTiers('retention.rollups.tiers', $tier);
+            }
+
+            $tiers[$tier] = $keep === null ? null : $this->duration("retention.rollups.tiers.{$tier}");
+        }
+
+        return $tiers;
+    }
+
+    /**
+     * @return list<'viewable'|'viewable_collection'|'type'|'type_collection'>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function rollupGroupings(): array
+    {
+        $allowed = ['viewable', 'viewable_collection', 'type', 'type_collection'];
+        $value = $this->get('retention.rollups.groupings', ['viewable', 'viewable_collection', 'type']);
+
+        if (! is_array($value) || $value === []) {
+            throw InvalidConfiguration::mustBeSubsetOf('retention.rollups.groupings', $allowed, $value);
+        }
+
+        foreach ($value as $grouping) {
+            if (! in_array($grouping, $allowed, true)) {
+                throw InvalidConfiguration::mustBeSubsetOf('retention.rollups.groupings', $allowed, $grouping);
+            }
+        }
+
+        /** @var list<'viewable'|'viewable_collection'|'type'|'type_collection'> */
+        return array_values(array_intersect($allowed, $value));
+    }
+
+    public function rollupsStrict(): bool
+    {
+        return (bool) $this->get('retention.rollups.strict', false);
+    }
+
     private function get(string $key, mixed $default = null): mixed
     {
         return $this->config->get("eloquent-viewable.{$key}", $default);
@@ -274,6 +392,19 @@ final readonly class Config
         }
 
         return $value;
+    }
+
+    /** @throws InvalidConfiguration */
+    private function duration(string $key): ?Duration
+    {
+        $value = $this->get($key);
+
+        if ($value === null) {
+            return null;
+        }
+
+        return (is_string($value) ? Duration::tryParse($value) : null)
+            ?? throw InvalidConfiguration::mustBeDuration($key, $value);
     }
 
     /** @throws InvalidConfiguration */
