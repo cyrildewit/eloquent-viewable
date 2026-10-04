@@ -1,0 +1,56 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Schema;
+
+class CreateViewRetentionStateTable extends Migration
+{
+    protected Builder $schema;
+
+    protected string $table;
+
+    public function __construct()
+    {
+        $this->schema = Schema::connection(
+            config('eloquent-viewable.models.view.connection')
+        );
+
+        $this->table = config('eloquent-viewable.models.view.table_name');
+    }
+
+    public function up(): void
+    {
+        // Every retention run is a range scan on `viewed_at`, which the
+        // composite index cannot serve because it leads with the viewable.
+        // The rollups migration adds the same index, whichever runs first.
+        if (! $this->schema->hasIndex($this->table, "{$this->table}_viewed_at_index")) {
+            $this->schema->table($this->table, function (Blueprint $table) {
+                $table->index('viewed_at', "{$this->table}_viewed_at_index");
+            });
+        }
+
+        // The rollups migration creates it too, whichever runs first.
+        if (! $this->schema->hasTable('view_retention_state')) {
+            $this->schema->create('view_retention_state', function (Blueprint $table) {
+                $table->string('name')->primary();
+                $table->text('value');
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        // Rollups keep their marks in the state table and fold by the index.
+        if ($this->schema->hasTable(config('eloquent-viewable.retention.rollups.table'))) {
+            return;
+        }
+
+        $this->schema->dropIfExists('view_retention_state');
+
+        $this->schema->table($this->table, function (Blueprint $table) {
+            $table->dropIndex("{$this->table}_viewed_at_index");
+        });
+    }
+}

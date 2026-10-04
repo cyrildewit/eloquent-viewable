@@ -18,6 +18,15 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
+use CyrildeWit\EloquentViewable\Querying\Rollups\NullWatermarks;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
 use CyrildeWit\EloquentViewable\Recording\Actions\RecordView;
 use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
@@ -27,6 +36,13 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
+use CyrildeWit\EloquentViewable\Retention\Console\AnonymiseViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\MaintainViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\PruneViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
+use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
+use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
@@ -49,9 +65,17 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->forgetCountsOfDestroyedViews();
+        $this->flushCountsAfterRetentionRuns();
+        $this->validateRetentionPolicies();
 
         if ($this->app->runningInConsole()) {
-            $this->commands([FlushViewsCommand::class]);
+            $this->commands([
+                FlushViewsCommand::class,
+                RollupViewsCommand::class,
+                AnonymiseViewsCommand::class,
+                PruneViewsCommand::class,
+                MaintainViewsCommand::class,
+            ]);
 
             $this->publishes([
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
@@ -64,6 +88,16 @@ class EloquentViewableServiceProvider extends ServiceProvider
                     __DIR__.'/../database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_views_table.php"),
                 ], 'migrations');
             }
+
+            // A tag of its own, so the shared `migrations` tag keeps only the
+            // views table and an application opts in to retention.
+            $this->publishes([
+                __DIR__.'/../database/migrations/create_view_retention_state_table.php.stub' => $this->app->databasePath('migrations/'.date('Y_m_d_His', time()).'_create_view_retention_state_table.php'),
+            ], 'eloquent-viewable-retention');
+
+            $this->publishes([
+                __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath('migrations/'.date('Y_m_d_His', time()).'_create_view_rollups_table.php'),
+            ], 'eloquent-viewable-rollups');
         }
     }
 
@@ -71,8 +105,29 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->make(EventDispatcher::class)->listen(
             ViewsDestroyed::class,
-            fn (ViewsDestroyed $event) => $this->app->make(CacheVersions::class)->forgetCache($event->viewable),
+            function (ViewsDestroyed $event): void {
+                $this->app->make(ForgetRollups::class)->handle($event->viewable);
+                $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
+            },
         );
+    }
+
+    protected function flushCountsAfterRetentionRuns(): void
+    {
+        $this->app->make(EventDispatcher::class)->listen(
+            [ViewsRolledUp::class, ViewsAnonymised::class, ViewsPruned::class],
+            fn () => $this->app->make(CacheVersions::class)->flushCache(),
+        );
+    }
+
+    /**
+     * The policies are read once at boot, so a policy that contradicts itself
+     * fails on deploy rather than in the first scheduled run.
+     */
+    protected function validateRetentionPolicies(): void
+    {
+        $this->app->make(RetentionPolicy::class);
+        $this->app->make(RollupPolicy::class);
     }
 
     #[\Override]
@@ -86,6 +141,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->registerCore();
         $this->registerRecording();
         $this->registerQuerying();
+        $this->registerRollups();
+        $this->registerRetention();
     }
 
     protected function registerCore(): void
@@ -173,6 +230,30 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $grammars->register('pgsql', PostgresGrammar::class);
 
             return $grammars;
+        });
+    }
+
+    protected function registerRetention(): void
+    {
+        // Bound rather than shared, so a config change is read on the next run.
+        $this->app->bind(RetentionPolicy::class, fn (Application $app): RetentionPolicy => RetentionPolicy::fromConfig($app->make(Config::class)));
+
+        $this->app->bind(StateStore::class, RetentionState::class);
+    }
+
+    protected function registerRollups(): void
+    {
+        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class)));
+
+        // Null until a tier is configured, so retention runs on its own.
+        $this->app->bind(Watermarks::class, fn (Application $app): Watermarks => $app->make(RollupPolicy::class)->isEnabled()
+            ? $app->make(RollupWatermarks::class)
+            : new NullWatermarks);
+
+        // The rest of querying never learns about rollups; the source is
+        // offered to the manager here, and read once the driver names it.
+        $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {
+            $sources->extend('rollup', fn (Application $app): RollupSource => $app->make(RollupSource::class));
         });
     }
 }
