@@ -59,9 +59,6 @@ final readonly class RememberingSource implements CountsByDimension, ViewSource
     }
 
     /**
-     * The counts per value are remembered like the counts per collection, as
-     * long as the source behind the cache can count by dimension.
-     *
      * @return array<string, int>
      *
      * @throws UnsupportedBySource

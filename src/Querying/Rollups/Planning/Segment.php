@@ -10,10 +10,8 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Period;
 
 /**
- * A segment is a stretch of a period and where it is read from: the views
- * table when the tier is null, or the buckets of a tier that start inside it.
- * It is inexact when its edges cut through a bucket only a rollup still
- * holds.
+ * The tier is null for a segment the views table answers. A segment is inexact
+ * when its edges cut through a bucket only a rollup still holds.
  *
  * @internal
  */

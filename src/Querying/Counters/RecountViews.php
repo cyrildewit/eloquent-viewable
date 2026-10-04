@@ -14,10 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 
 /**
- * This action writes the count of every configured counter column into the
- * viewable's own table, so ordering and filtering by it is a plain column
- * read. Each column is set from the source's correlated count, so it reads the
- * rollups as well as the views table under the `rollup` source.
+ * Each column is set from the source's correlated count, so under the `rollup`
+ * source it includes history whose views are gone.
  */
 final readonly class RecountViews
 {
@@ -27,8 +25,6 @@ final readonly class RecountViews
     ) {}
 
     /**
-     * It returns the number of models recounted, by class.
-     *
      * @return array<class-string, int>
      *
      * @throws InvalidConfiguration
@@ -60,9 +56,8 @@ final readonly class RecountViews
     }
 
     /**
-     * It writes the models a chunk at a time, paged by key, and counts the
-     * models rather than the rows the update reports, because MySQL reports
-     * only the rows whose value changed.
+     * MySQL reports only the rows whose value changed, so the models are
+     * counted instead.
      *
      * @param  array<string, Builder>  $values
      */
@@ -94,8 +89,8 @@ final readonly class RecountViews
     }
 
     /**
-     * This is the model's table without its scopes, so trashed models are
-     * counted too and a restored one comes back counted.
+     * The table is read without the model's scopes, so trashed models are
+     * counted too.
      */
     private function table(Model $model): Builder
     {

@@ -13,7 +13,7 @@ final class NewsletterViews extends Rollup
     #[\Override]
     public string $name = 'newsletter';
 
-    /** @return array<string, string|null> */
+    /** @return array<string, ?string> */
     public function tiers(): array
     {
         return ['day' => null, 'month' => null];

@@ -31,12 +31,7 @@ final readonly class PruneViews
         private Dispatcher $events,
     ) {}
 
-    /**
-     * It deletes the views, `chunk` per statement, or only counts them on a
-     * dry run. The cutoff moves back to where every rollup has folded.
-     *
-     * @throws RetentionNotInstalled
-     */
+    /** @throws RetentionNotInstalled */
     public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false): RetentionRun
     {
         $this->state->ensureInstalled();

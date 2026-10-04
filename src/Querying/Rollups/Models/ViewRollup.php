@@ -9,9 +9,6 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A rollup row holds the count of the views in one bucket of time, per
- * grouping. It is kept on the connection of the views table.
- *
  * @property int $id
  * @property string $rollup
  * @property string $tier
@@ -19,8 +16,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $grouping
  * @property string $viewable_type
  * @property int|string|null $viewable_id
- * @property string|null $collection
- * @property string|null $dimension
+ * @property ?string $collection
+ * @property ?string $dimension
  * @property int $views
  * @property int $unique_visitors
  */

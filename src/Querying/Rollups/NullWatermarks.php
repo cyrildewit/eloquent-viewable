@@ -7,10 +7,6 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 
-/**
- * These watermarks are bound while no rollups are kept, so retention runs on
- * its own.
- */
 final readonly class NullWatermarks implements Watermarks
 {
     public function clamp(CarbonInterface $cutoff): CarbonInterface

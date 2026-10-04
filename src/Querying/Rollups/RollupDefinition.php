@@ -8,16 +8,11 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * A definition describes one rollup as it is folded and read: the built-in one
- * from the config, or a custom one with its filter and dimension.
- *
- * @internal
- */
+/** @internal */
 final readonly class RollupDefinition
 {
     /**
-     * @param  array<string, Duration|null>  $tiers  keyed by tier, coarse to fine
+     * @param  array<string, ?Duration>  $tiers  keyed by tier, coarse to fine
      * @param  list<Grouping>  $groupings
      */
     public function __construct(
@@ -27,27 +22,17 @@ final readonly class RollupDefinition
         private ?Rollup $custom = null,
     ) {}
 
-    /**
-     * These are the tiers, coarse to fine.
-     *
-     * @return list<Tier>
-     */
+    /** @return list<Tier> */
     public function tiers(): array
     {
         return array_map(Tier::from(...), array_keys($this->tiers));
     }
 
-    /**
-     * It returns how long the tier is kept, null for forever.
-     */
     public function keep(Tier $tier): ?Duration
     {
         return $this->tiers[$tier->value] ?? null;
     }
 
-    /**
-     * This is the next tier of the rollup coarser than the given one.
-     */
     public function coarserThan(Tier $tier): ?Tier
     {
         $coarser = null;
@@ -77,9 +62,6 @@ final readonly class RollupDefinition
         $this->custom?->filter($views);
     }
 
-    /**
-     * This is the custom rollup, null for the built-in one.
-     */
     public function rollup(): ?Rollup
     {
         return $this->custom;

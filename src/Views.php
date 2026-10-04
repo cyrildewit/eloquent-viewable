@@ -132,9 +132,6 @@ class Views
     }
 
     /**
-     * It counts the views per value of the dimension of the custom rollup
-     * named with `rollup()`, most viewed first.
-     *
      * @return array<string, int>
      *
      * @throws UnknownRollup
@@ -249,13 +246,7 @@ class Views
         return $this;
     }
 
-    /**
-     * The counts then read only the views the custom rollup of this name
-     * keeps, from its rollups through the `rollup` source and from the views
-     * table through its filter. `null` clears it.
-     *
-     * @throws UnknownRollup
-     */
+    /** @throws UnknownRollup */
     public function rollup(?string $name): self
     {
         if ($name === null) {

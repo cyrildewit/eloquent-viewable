@@ -60,9 +60,8 @@ final readonly class Planner
     }
 
     /**
-     * Unique visitors are exact in the views table and summed in the rollups,
-     * so for them the views table answers as far back as it is complete. It
-     * returns null when everything is read raw.
+     * Rollups sum unique visitors, so those are read from the views table as
+     * far back as it is complete.
      *
      * @param  list<Tier>  $tiers
      * @param  (Closure(CarbonImmutable): CarbonImmutable)|null  $align
@@ -136,10 +135,8 @@ final readonly class Planner
     }
 
     /**
-     * This is what no tier holds whole. The views table answers it exactly
-     * while it still holds it; otherwise the finest tier with buckets there
-     * does. Nothing was viewed before the first bucket folded, so nothing is
-     * read there and a scan of the views table is spared.
+     * No view existed before the origin, the first bucket ever folded, so
+     * nothing is read there.
      *
      * @param  list<Tier>  $tiers  coarse to fine
      * @return list<Segment>
@@ -165,10 +162,6 @@ final readonly class Planner
         return [];
     }
 
-    /**
-     * A tier holds part of `[from, until)` when its rows start before the end
-     * and its last folded bucket ends after the start.
-     */
     private function holds(Snapshot $state, Tier $tier, ?CarbonImmutable $from, CarbonImmutable $until): bool
     {
         if (! $this->startsBefore($state->since($tier), $until)) {
@@ -182,10 +175,6 @@ final readonly class Planner
         return $this->endsAfter($state->folded($tier), $from);
     }
 
-    /**
-     * The views table still holds every view from `from` on when nothing was
-     * deleted from it, or when it was only deleted before `from`.
-     */
     private function viewsTableHolds(?CarbonImmutable $rawFloor, ?CarbonImmutable $from): bool
     {
         if (! $rawFloor instanceof CarbonImmutable) {
@@ -227,8 +216,7 @@ final readonly class Planner
     }
 
     /**
-     * A missing start stands for the beginning of time, so it starts before
-     * every moment.
+     * A missing start stands for the beginning of time.
      */
     private function startsBefore(?CarbonImmutable $start, CarbonImmutable $moment): bool
     {
@@ -240,7 +228,7 @@ final readonly class Planner
     }
 
     /**
-     * A missing end stands for the end of time, so it ends after every moment.
+     * A missing end stands for the end of time.
      */
     private function endsAfter(?CarbonImmutable $end, CarbonImmutable $moment): bool
     {

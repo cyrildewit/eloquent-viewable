@@ -8,12 +8,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 
-/**
- * This state keeps the marks of each rollup in the state store, under its
- * name.
- *
- * @internal
- */
+/** @internal */
 final readonly class RollupState
 {
     private const string LastId = 'rollup:last_id';
@@ -27,9 +22,6 @@ final readonly class RollupState
         return $this->store->installed();
     }
 
-    /**
-     * It reads every mark a read of the rollup needs in one round trip.
-     */
     public function snapshot(string $rollup): Snapshot
     {
         $names = [StateStore::Anonymised, StateStore::Pruned, $this->origin($rollup)];
