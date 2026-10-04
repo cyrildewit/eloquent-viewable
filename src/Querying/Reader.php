@@ -12,10 +12,12 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
@@ -113,6 +115,27 @@ final readonly class Reader
     public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
     {
         $counts = $this->source($rememberUntil)->countByCollection($viewable, $query);
+
+        return $this->sortByCountThenName($counts);
+    }
+
+    /**
+     * The counts are sorted like `countByCollection()`: most viewed first,
+     * then by value.
+     *
+     * @return array<string, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
+    {
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsByDimension) {
+            throw UnsupportedBySource::dimension($source);
+        }
+
+        $counts = $source->countByDimension($viewable, $query, $dimension);
 
         return $this->sortByCountThenName($counts);
     }

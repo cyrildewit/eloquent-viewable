@@ -7,7 +7,9 @@ namespace CyrildeWit\EloquentViewable\Querying\Cache;
 use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -21,7 +23,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements ViewSource
+final readonly class RememberingSource implements CountsByDimension, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -53,6 +55,29 @@ final readonly class RememberingSource implements ViewSource
             $viewable,
             $this->key($viewable)->make($query, grouping: 'collection'),
             fn (): array => $this->source->countByCollection($viewable, $query),
+        );
+    }
+
+    /**
+     * The counts per value are remembered like the counts per collection, as
+     * long as the source behind the cache can count by dimension.
+     *
+     * @return array<string, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof CountsByDimension) {
+            throw UnsupportedBySource::dimension($source);
+        }
+
+        return $this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: "dimension:{$dimension}"),
+            fn (): array => $source->countByDimension($viewable, $query, $dimension),
         );
     }
 

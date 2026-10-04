@@ -36,7 +36,12 @@ final readonly class ForgetRollups
             ->where('viewable_type', $viewable->getMorphClass())
             ->when($key !== null, fn (Builder $query): Builder => $query
                 ->where('viewable_id', $key)
-                ->whereIn('grouping', [Grouping::Viewable->value, Grouping::ViewableCollection->value]))
+                ->whereIn('grouping', [
+                    Grouping::Viewable->stored(),
+                    Grouping::Viewable->stored(perDimension: true),
+                    Grouping::ViewableCollection->stored(),
+                    Grouping::ViewableCollection->stored(perDimension: true),
+                ]))
             ->delete();
     }
 }

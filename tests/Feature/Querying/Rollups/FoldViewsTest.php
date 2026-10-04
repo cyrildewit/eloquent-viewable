@@ -108,7 +108,7 @@ it('marks how far each tier is folded and where it starts', function (): void {
     viewAt($this->post, '2026-01-10 10:00:00');
 
     $runs = fold();
-    $snapshot = app(RollupState::class)->snapshot();
+    $snapshot = app(RollupState::class)->snapshot('views');
 
     expect($snapshot->folded(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00')
         ->and($snapshot->folded(Tier::Month)?->toDateTimeString())->toBe('2026-03-01 00:00:00')
@@ -124,8 +124,8 @@ it('marks how far each tier is folded and where it starts', function (): void {
 it('marks a tier folded when there is nothing to fold', function (): void {
     fold();
 
-    expect(app(RollupState::class)->snapshot()->folded(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00')
-        ->and(app(RollupState::class)->snapshot()->since(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00');
+    expect(app(RollupState::class)->snapshot('views')->folded(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00')
+        ->and(app(RollupState::class)->snapshot('views')->since(Tier::Day)?->toDateTimeString())->toBe('2026-03-31 00:00:00');
 });
 
 it('folds only what is new on the next run', function (): void {
@@ -232,7 +232,7 @@ it('counts the buckets without folding them on a dry run', function (): void {
 
     expect(array_map(fn (ViewsRolledUp $run): int => $run->buckets, $runs))->toBe([2, 2])
         ->and(ViewRollup::query()->count())->toBe(0)
-        ->and(app(RollupState::class)->snapshot()->folded(Tier::Day))->toBeNull()
+        ->and(app(RollupState::class)->snapshot('views')->folded(Tier::Day))->toBeNull()
         ->and(app(RollupState::class)->lastId())->toBeNull();
 });
 

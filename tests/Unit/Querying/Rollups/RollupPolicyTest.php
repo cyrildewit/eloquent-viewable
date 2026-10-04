@@ -22,44 +22,48 @@ it('is off without tiers', function (): void {
     $policy = rollupPolicy();
 
     expect($policy->isEnabled())->toBeFalse()
-        ->and($policy->tiers())->toBeEmpty()
+        ->and($policy->definitions())->toBeEmpty()
+        ->and($policy->find('views'))->toBeNull()
         ->and($policy->table)->toBe('view_rollups')
         ->and($policy->strict)->toBeFalse()
         ->and($policy->timezone->getName())->toBe(date_default_timezone_get())
-        ->and($policy->groupings)->toBe([Grouping::Viewable, Grouping::ViewableCollection, Grouping::Type]);
+        ->and(rollupPolicy(['tiers' => ['day' => null]])->find('views')?->groupings)->toBe([Grouping::Viewable, Grouping::ViewableCollection, Grouping::Type]);
 });
 
 it('orders the tiers coarse to fine whatever order they are listed in', function (): void {
     $policy = rollupPolicy(['tiers' => ['day' => '2y', 'year' => null, 'month' => null]]);
+    $views = $policy->find('views');
 
     expect($policy->isEnabled())->toBeTrue()
-        ->and($policy->tiers())->toBe([Tier::Year, Tier::Month, Tier::Day])
-        ->and($policy->keep(Tier::Day)?->shorthand())->toBe('2y')
-        ->and($policy->keep(Tier::Month))->toBeNull()
-        ->and($policy->coarserThan(Tier::Day))->toBe(Tier::Month)
-        ->and($policy->coarserThan(Tier::Year))->toBeNull();
+        ->and($views?->tiers())->toBe([Tier::Year, Tier::Month, Tier::Day])
+        ->and($views?->keep(Tier::Day)?->shorthand())->toBe('2y')
+        ->and($views?->keep(Tier::Month))->toBeNull()
+        ->and($views?->coarserThan(Tier::Day))->toBe(Tier::Month)
+        ->and($views?->coarserThan(Tier::Year))->toBeNull()
+        ->and($views?->rollup())->toBeNull()
+        ->and($views?->dimension())->toBeNull();
 });
 
 it('reads the timezone, groupings and strictness', function (): void {
     $policy = rollupPolicy(['tiers' => ['day' => null], 'timezone' => 'Europe/Amsterdam', 'groupings' => ['type', 'viewable'], 'strict' => true]);
 
     expect($policy->timezone->getName())->toBe('Europe/Amsterdam')
-        ->and($policy->groupings)->toBe([Grouping::Viewable, Grouping::Type])
-        ->and($policy->keeps(Grouping::Type))->toBeTrue()
-        ->and($policy->keeps(Grouping::ViewableCollection))->toBeFalse()
+        ->and($policy->find('views')?->groupings)->toBe([Grouping::Viewable, Grouping::Type])
+        ->and($policy->find('views')?->keeps(Grouping::Type))->toBeTrue()
+        ->and($policy->find('views')?->keeps(Grouping::ViewableCollection))->toBeFalse()
         ->and($policy->strict)->toBeTrue();
 });
 
 it('refuses a coarser tier kept shorter than a finer one', function (array $tiers, string $coarser, string $finer): void {
     expect(fn (): RollupPolicy => rollupPolicy(['tiers' => $tiers]))
-        ->toThrow(InvalidConfiguration::class, "The `{$coarser}` rollup tier in `eloquent-viewable.retention.rollups.tiers` must be kept at least as long as the finer `{$finer}` tier");
+        ->toThrow(InvalidConfiguration::class, "The `{$coarser}` tier of the `views` rollup must be kept at least as long as the finer `{$finer}` tier");
 })->with([
     'shorter' => [['day' => '2y', 'month' => '1y'], 'month', 'day'],
     'finer forever' => [['day' => null, 'month' => '5y'], 'month', 'day'],
 ]);
 
 it('accepts a coarser tier kept as long as a finer one', function (): void {
-    expect(rollupPolicy(['tiers' => ['day' => '1y', 'month' => '12m']])->tiers())->toBe([Tier::Month, Tier::Day]);
+    expect(rollupPolicy(['tiers' => ['day' => '1y', 'month' => '12m']])->find('views')?->tiers())->toBe([Tier::Month, Tier::Day]);
 });
 
 it('refuses to prune views before the coarsest tier can fold them', function (): void {

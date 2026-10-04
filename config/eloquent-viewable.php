@@ -329,6 +329,18 @@ return [
             'groupings' => ['viewable', 'viewable_collection', 'type'],
 
             /*
+             * Rollups of your own, each a class that extends
+             * `Querying\Rollups\Rollup`: a filter, its tiers and groupings,
+             * and at most one dimension. Read them with
+             * `views($post)->rollup('name')`.
+             */
+            'custom' => [
+
+                // App\Rollups\NewsletterViews::class,
+
+            ],
+
+            /*
              * History beyond the views table has the resolution of its
              * tier: a bucket counts when its start lies inside the period,
              * and unique visitors are summed across buckets. When `true`,

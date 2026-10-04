@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
+use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * aligned to when counting by interval, and a relative period built without
  * a zone of its own is re-anchored on it, so one `timezone()` call covers
  * both. A plain count ignores it, because a period is a pair of instants.
+ * The filter narrows the views counted, the way a custom rollup was folded.
  */
 final readonly class ViewsQuery
 {
@@ -22,12 +24,13 @@ final readonly class ViewsQuery
         public bool $unique = false,
         public ?Timezone $timezone = null,
         public ?Model $viewer = null,
+        public ?FiltersViews $filter = null,
     ) {
         $this->period = $timezone instanceof Timezone ? $period?->anchoredIn($timezone) : $period;
     }
 
     public function withPeriod(?Period $period): self
     {
-        return new self($period, $this->collection, $this->unique, $this->timezone, $this->viewer);
+        return new self($period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->filter);
     }
 }

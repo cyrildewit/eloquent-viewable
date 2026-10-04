@@ -28,7 +28,7 @@ it('is registered', function (): void {
 
 it('says so when no tier is configured', function (): void {
     $this->artisan('views:rollup')
-        ->expectsOutputToContain('Nothing to roll up, `retention.rollups.tiers` is empty.')
+        ->expectsOutputToContain('Nothing to roll up, neither `retention.rollups.tiers` nor `retention.rollups.custom` is set.')
         ->assertSuccessful();
 });
 
@@ -137,7 +137,7 @@ it('checks the rollup config at boot', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => '1y']);
 
     app()->getProvider(EloquentViewableServiceProvider::class)?->boot();
-})->throws(InvalidConfiguration::class, 'The `month` rollup tier');
+})->throws(InvalidConfiguration::class, 'The `month` tier of the `views` rollup');
 
 it('publishes the rollups migration under a tag of its own', function (): void {
     $rollups = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'eloquent-viewable-rollups'));

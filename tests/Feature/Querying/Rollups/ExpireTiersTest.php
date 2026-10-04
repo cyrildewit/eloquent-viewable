@@ -34,10 +34,10 @@ it('drops the buckets of a tier older than it is kept, in whole buckets of the n
 
     $dropped = app(ExpireTiers::class)->handle(chunk: 1);
 
-    expect($dropped)->toBe(['day' => 3])
+    expect($dropped)->toBe([['rollup' => 'views', 'tier' => Tier::Day, 'rows' => 3]])
         ->and(bucketsOf('day'))->toBe(['2025-02-15', '2025-03-15', '2026-03-15'])
         ->and(bucketsOf('month'))->toHaveCount(3)
-        ->and(app(RollupState::class)->snapshot()->since(Tier::Day)?->toDateTimeString())->toBe('2025-02-01 00:00:00');
+        ->and(app(RollupState::class)->snapshot('views')->since(Tier::Day)?->toDateTimeString())->toBe('2025-02-01 00:00:00');
 });
 
 it('keeps buckets the coarser tier has not folded yet', function (): void {
@@ -53,7 +53,7 @@ it('drops the coarsest tier on its own grain', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['month' => '1y']);
     app(FoldViews::class)->handle();
 
-    expect(app(ExpireTiers::class)->handle(chunk: 100))->toBe(['month' => 6])
+    expect(app(ExpireTiers::class)->handle(chunk: 100))->toBe([['rollup' => 'views', 'tier' => Tier::Month, 'rows' => 6]])
         ->and(bucketsOf('month'))->toBe(['2025-03-01']);
 });
 
@@ -77,6 +77,6 @@ it('counts the rows it would drop on a dry run', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
     app(FoldViews::class)->handle();
 
-    expect(app(ExpireTiers::class)->handle(chunk: 100, dryRun: true))->toBe(['day' => 3])
+    expect(app(ExpireTiers::class)->handle(chunk: 100, dryRun: true))->toBe([['rollup' => 'views', 'tier' => Tier::Day, 'rows' => 3]])
         ->and(bucketsOf('day'))->toHaveCount(4);
 });

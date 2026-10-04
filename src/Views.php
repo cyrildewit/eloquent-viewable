@@ -16,6 +16,9 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\UnknownRollup;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Rollup;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Recording\Actions\DestroyViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
@@ -30,6 +33,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
 use DateTimeZone;
+use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
@@ -60,6 +64,8 @@ class Views
 
     /** @var ?array<string, mixed> */
     protected ?array $context = null;
+
+    protected ?Rollup $rollup = null;
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -123,6 +129,21 @@ class Views
     public function countByCollection(): array
     {
         return $this->reader->countByCollection($this->viewable(), $this->query(), $this->cacheLifetime);
+    }
+
+    /**
+     * The views per value of the dimension of the custom rollup named with
+     * `rollup()`, most viewed first.
+     *
+     * @return array<string, int>
+     *
+     * @throws UnknownRollup
+     */
+    public function countByDimension(): array
+    {
+        $dimension = $this->rollup?->dimension() ?? throw UnknownRollup::withoutDimension($this->rollup?->name);
+
+        return $this->reader->countByDimension($this->viewable(), $this->query(), $dimension, $this->cacheLifetime);
     }
 
     /**
@@ -224,6 +245,20 @@ class Views
         return $this;
     }
 
+    /**
+     * Count only the views the custom rollup of this name keeps, from its
+     * rollups through the `rollup` source and from the views table through
+     * its filter. `null` clears it.
+     *
+     * @throws UnknownRollup
+     */
+    public function rollup(?string $name): self
+    {
+        $this->rollup = $name === null ? null : (Container::getInstance()->make(RollupPolicy::class)->find($name)?->rollup() ?? throw UnknownRollup::named($name));
+
+        return $this;
+    }
+
     public function unique(bool $state = true): self
     {
         $this->unique = $state;
@@ -253,7 +288,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface
