@@ -149,6 +149,10 @@ time. None of these changes how you query.
 
 Support for Lumen is not maintained.
 
+The package runs on [Laravel Octane](https://laravel.com/docs/octane). Nothing it resolves while booting outlives a
+request, so the visitor, viewer, user agent, cooldowns and config of one request never reach the next. The tests in
+`tests/Feature/Octane` send several requests through one Octane worker to keep it that way.
+
 ### Installation
 
 Install the package via Composer, publish the migration and run it:
