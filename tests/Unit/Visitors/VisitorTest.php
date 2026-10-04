@@ -205,3 +205,13 @@ it('can determine if the browser only prefetches the page', function (bool $expe
     'another purpose' => [false, ['HTTP_SEC_PURPOSE' => 'navigate']],
     'header absent' => [false, []],
 ]);
+
+it('can determine if the request is a HEAD request', function (string $method, bool $expected): void {
+    $visitor = ($this->visitor)(Request::create('/', $method));
+
+    expect($visitor->isHeadRequest())->toBe($expected);
+})->with([
+    'HEAD' => ['HEAD', true],
+    'GET' => ['GET', false],
+    'POST' => ['POST', false],
+]);

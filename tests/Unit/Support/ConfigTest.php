@@ -97,6 +97,14 @@ it('rejects ignored ip addresses that are not strings', function (): void {
         ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.recording.ignored_ip_addresses` config value must be a list of strings, `1` given.');
 });
 
+it('reads the throttle settings', function (): void {
+    expect(packageConfig(['recording' => ['throttle' => ['max_per_minute' => '30', 'key' => 'throttle', 'store' => 'redis']]]))
+        ->throttleMaxPerMinute()->toBe(30)
+        ->throttleKey()->toBe('throttle')
+        ->throttleCacheStore()->toBe('redis')
+        ->and(packageConfig())->throttleCacheStore()->toBeNull();
+});
+
 it('reads the visitor cookie settings', function (): void {
     expect(packageConfig(['visitor' => ['cookie' => ['name' => 'who', 'lifetime' => '120']]]))
         ->visitorCookieName()->toBe('who')
@@ -142,6 +150,7 @@ it('rejects a positive integer key that is not one', function (string $method, s
 })->with([
     'interval cap' => ['maxIntervals', 'querying.max_intervals'],
     'cookie lifetime' => ['visitorCookieLifetime', 'visitor.cookie.lifetime'],
+    'throttle maximum' => ['throttleMaxPerMinute', 'recording.throttle.max_per_minute'],
 ])->with([
     'zero' => [0, '`0`'],
     'negative' => [-1, '`-1`'],
@@ -166,6 +175,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'cache store' => ['cacheStore', 'querying.cache.store'],
     'cooldown cache store' => ['cooldownCacheStore', 'cooldown.cache.store'],
     'fingerprint cache store' => ['fingerprintCacheStore', 'visitor.fingerprint.store'],
+    'throttle cache store' => ['throttleCacheStore', 'recording.throttle.store'],
 ]);
 
 it('rejects an empty key', function (string $method, string $key): void {
@@ -180,6 +190,7 @@ it('rejects an empty key', function (string $method, string $key): void {
     'cache key' => ['cacheKey', 'querying.cache.key'],
     'cooldown store' => ['cooldownStore', 'cooldown.store'],
     'cooldown key' => ['cooldownKey', 'cooldown.key'],
+    'throttle key' => ['throttleKey', 'recording.throttle.key'],
     'visitor cookie name' => ['visitorCookieName', 'visitor.cookie.name'],
     'fingerprint key' => ['fingerprintKey', 'visitor.fingerprint.key'],
     'store driver' => ['storeDriver', 'recording.store.driver'],

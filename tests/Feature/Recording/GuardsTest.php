@@ -11,8 +11,11 @@ use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreHeadRequests;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreMissingUserAgent;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
+use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 use CyrildeWit\EloquentViewable\Support\Config as PackageConfig;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\NotAGuard;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\RefuseAll;
@@ -36,10 +39,12 @@ function alwaysCrawler(): CrawlerDetector
     };
 }
 
-it('ships with the crawler, IP address, prefetch and cooldown guards listed', function (): void {
+it('ships with the crawler, user agent, IP address, HEAD, prefetch and cooldown guards listed', function (): void {
     expect($this->app->make(PackageConfig::class)->guards())->toBe([
         IgnoreCrawlers::class,
+        IgnoreMissingUserAgent::class,
         IgnoreIpAddresses::class,
+        IgnoreHeadRequests::class,
         IgnorePrefetch::class,
         EnforceCooldown::class,
     ]);
@@ -130,6 +135,32 @@ it('drops a page the browser only prefetches', function (): void {
 
     expect(views($this->post)->record())->toBeFalse()
         ->and(View::count())->toBe(0);
+});
+
+it('drops a request without a user agent', function (): void {
+    $this->app['request']->headers->remove('User-Agent');
+
+    expect(views($this->post)->record())->toBeFalse()
+        ->and(View::count())->toBe(0);
+});
+
+it('drops a HEAD request', function (): void {
+    $this->app['request']->setMethod('HEAD');
+
+    expect(views($this->post)->record())->toBeFalse()
+        ->and(View::count())->toBe(0);
+});
+
+it('throttles a visitor across viewables once ThrottleVisitors is listed', function (): void {
+    Config::set('eloquent-viewable.recording.guards', [ThrottleVisitors::class]);
+    Config::set('eloquent-viewable.recording.throttle.max_per_minute', 2);
+
+    $other = Post::factory()->create();
+
+    expect(views($this->post)->record())->toBeTrue()
+        ->and(views($other)->record())->toBeTrue()
+        ->and(views($this->post)->record())->toBeFalse()
+        ->and(View::count())->toBe(2);
 });
 
 it('rejects a guard class that does not implement the contract', function (): void {

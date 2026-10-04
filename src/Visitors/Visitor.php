@@ -101,6 +101,11 @@ class Visitor implements VisitorContract
         return false;
     }
 
+    public function isHeadRequest(): bool
+    {
+        return $this->request()->isMethod('HEAD');
+    }
+
     /**
      * Every visitor instance in a request must hand out the same new id.
      */
