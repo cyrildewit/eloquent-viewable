@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Retention\Console;
 
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
@@ -21,7 +22,7 @@ final class MaintainViewsCommand extends RetentionCommand
     #[\Override]
     protected $description = 'Roll up, anonymise and delete old views and recount counter columns as configured';
 
-    public function handle(AnonymiseViews $anonymise, PruneViews $prune, RetentionPolicy $policy, Config $config): int
+    public function handle(AnonymiseViews $anonymise, PruneViews $prune, RetentionPolicy $policy, Config $config, Watermarks $watermarks): int
     {
         $chunk = $this->chunk($policy);
 
@@ -47,6 +48,10 @@ final class MaintainViewsCommand extends RetentionCommand
             }
         }
 
+        if ($retains && $this->isDryRun()) {
+            [$anonymise, $prune] = $this->afterFolding($watermarks);
+        }
+
         if ($retains) {
             $this->anonymiseAndPrune($anonymise, $prune, $policy, $chunk);
         }
@@ -65,6 +70,22 @@ final class MaintainViewsCommand extends RetentionCommand
     private function rollUp(int $chunk): int
     {
         return $this->call('views:rollup', ['--chunk' => (string) $chunk, '--dry-run' => $this->isDryRun()]);
+    }
+
+    /**
+     * A dry run folds nothing, so anonymising and pruning are held back where
+     * the rollups will stand once the real run has folded them.
+     *
+     * @return array{AnonymiseViews, PruneViews}
+     */
+    private function afterFolding(Watermarks $watermarks): array
+    {
+        $watermarks = $watermarks->afterFolding();
+
+        return [
+            $this->laravel->make(AnonymiseViews::class, ['watermarks' => $watermarks]),
+            $this->laravel->make(PruneViews::class, ['watermarks' => $watermarks]),
+        ];
     }
 
     private function anonymiseAndPrune(AnonymiseViews $anonymise, PruneViews $prune, RetentionPolicy $policy, int $chunk): void

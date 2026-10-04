@@ -32,3 +32,25 @@ it('clamps every cutoff to the epoch before the first fold', function (): void {
 
     expect(app(Watermarks::class)->clamp(Carbon::parse('2026-03-20'))->getTimestamp())->toBe(0);
 });
+
+it('clamps a cutoff to where a run would fold every tier up to now', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+
+    expect(app(Watermarks::class)->afterFolding()->clamp(Carbon::parse('2026-03-20'))->toDateTimeString())->toBe('2026-03-01 00:00:00');
+
+    app(FoldViews::class)->handle();
+    $this->travelTo(Carbon::parse('2026-05-15 12:00:00'));
+
+    expect(app(Watermarks::class)->clamp(Carbon::parse('2026-05-10'))->toDateTimeString())->toBe('2026-03-01 00:00:00')
+        ->and(app(Watermarks::class)->afterFolding()->clamp(Carbon::parse('2026-05-10'))->toDateTimeString())->toBe('2026-05-01 00:00:00');
+});
+
+it('keeps a tier folded further than a run would fold it now', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['month' => null]);
+
+    $this->travelTo(Carbon::parse('2026-05-15 12:00:00'));
+    app(FoldViews::class)->handle();
+    $this->travelTo(Carbon::parse('2026-03-31 12:00:00'));
+
+    expect(app(Watermarks::class)->afterFolding()->clamp(Carbon::parse('2026-06-01'))->toDateTimeString())->toBe('2026-05-01 00:00:00');
+});

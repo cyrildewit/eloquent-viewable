@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
@@ -119,6 +121,15 @@ final readonly class RollupPolicy
         }
 
         return null;
+    }
+
+    /**
+     * A run folds a tier up to here: the start of the bucket that has not
+     * settled yet.
+     */
+    public function closedUntil(Tier $tier, CarbonInterface $now): CarbonImmutable
+    {
+        return $tier->floor($this->settle?->before($now) ?? $now, $this->timezone);
     }
 
     public function for(ViewsQuery $query): ?RollupDefinition

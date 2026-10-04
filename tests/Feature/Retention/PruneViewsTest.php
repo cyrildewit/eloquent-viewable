@@ -88,6 +88,11 @@ it('stops where the rollups have captured the views', function (): void {
         {
             return Carbon::parse('2026-01-15 00:00:00');
         }
+
+        public function afterFolding(): Watermarks
+        {
+            return $this;
+        }
     });
 
     viewedOn($this->post, '2026-01-01', '2026-02-01');
