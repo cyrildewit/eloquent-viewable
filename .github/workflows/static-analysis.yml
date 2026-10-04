@@ -2,8 +2,6 @@ name: Static Analysis
 
 on:
   workflow_dispatch:
-  # Pushes to the long-lived branches only. A feature branch is checked
-  # through its pull request, so it does not run twice.
   push:
     branches:
       - main
