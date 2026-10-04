@@ -34,7 +34,7 @@ final readonly class RollupState
         $names = [StateStore::ANONYMISED, StateStore::PRUNED, $this->origin($rollup)];
 
         foreach (Tier::cases() as $tier) {
-            $names[] = self::folded($rollup, $tier);
+            $names[] = $this->folded($rollup, $tier);
             $names[] = $this->since($rollup, $tier);
         }
 
@@ -44,7 +44,7 @@ final readonly class RollupState
         $since = [];
 
         foreach (Tier::cases() as $tier) {
-            $folded[$tier->value] = $moment(self::folded($rollup, $tier));
+            $folded[$tier->value] = $moment($this->folded($rollup, $tier));
             $since[$tier->value] = $moment($this->since($rollup, $tier));
         }
 
@@ -59,7 +59,7 @@ final readonly class RollupState
 
     public function putFolded(string $rollup, Tier $tier, CarbonInterface $until): void
     {
-        $this->store->put(self::folded($rollup, $tier), $until->format(StateStore::FORMAT));
+        $this->store->put($this->folded($rollup, $tier), $until->format(StateStore::FORMAT));
     }
 
     public function putSince(string $rollup, Tier $tier, CarbonInterface $since): void
@@ -88,14 +88,14 @@ final readonly class RollupState
         $this->store->put(self::LAST_ID, (string) $id);
     }
 
-    private static function folded(string $rollup, Tier $tier): string
+    private function folded(string $rollup, Tier $tier): string
     {
         return "rollup:{$rollup}:{$tier->value}";
     }
 
     private function since(string $rollup, Tier $tier): string
     {
-        return self::folded($rollup, $tier).':since';
+        return $this->folded($rollup, $tier).':since';
     }
 
     private function origin(string $rollup): string

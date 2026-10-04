@@ -114,6 +114,11 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.retention.prune.after` config value must be longer than one `{$tier}` plus `retention.rollups.settle`, `{$prune}` and `{$settle}` given. A `{$tier}` bucket can only be folded while its views still exist.");
     }
 
+    public static function mustBeCounters(string $key, mixed $value): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period` and `collection`, ".self::describe($value).' given.');
+    }
+
     public static function invalidMiddlewareOption(string $option): self
     {
         return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");
