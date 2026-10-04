@@ -205,6 +205,11 @@ it('stops where the rollups have captured the views', function (): void {
         {
             return Carbon::parse('2026-03-05 06:00:00');
         }
+
+        public function afterFolding(): Watermarks
+        {
+            return $this;
+        }
     });
 
     $captured = retainedView($this->post, '2026-03-01 10:00:00');

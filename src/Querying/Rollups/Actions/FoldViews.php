@@ -49,7 +49,6 @@ final readonly class FoldViews
         $this->ensureInstalled();
 
         $now = CarbonImmutable::now();
-        $closed = CarbonImmutable::instance($this->policy->settle?->before($now) ?? $now);
         $lastId = $this->state->lastId();
         $maxId = $this->maxId();
         $runs = [];
@@ -67,7 +66,7 @@ final readonly class FoldViews
                     continue;
                 }
 
-                $run = $this->foldTier($definition, $tier, $snapshot, $closed, $from, $lastId, $maxId, $dryRun, $origin);
+                $run = $this->foldTier($definition, $tier, $snapshot, $now, $from, $lastId, $maxId, $dryRun, $origin);
 
                 if ($run->buckets > 0 && ! $dryRun) {
                     $this->events->dispatch($run);
@@ -93,10 +92,10 @@ final readonly class FoldViews
      *
      * @param-out CarbonImmutable $origin
      */
-    private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $closed, ?CarbonInterface $from, ?int $lastId, ?int $maxId, bool $dryRun, ?CarbonImmutable &$origin): ViewsRolledUp
+    private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $now, ?CarbonInterface $from, ?int $lastId, ?int $maxId, bool $dryRun, ?CarbonImmutable &$origin): ViewsRolledUp
     {
         $zone = $this->policy->timezone;
-        $until = $tier->floor($closed, $zone);
+        $until = $this->policy->closedUntil($tier, $now);
         $folded = $snapshot->folded($tier);
         $buckets = 0;
         $dirty = $this->dirtyBuckets($tier, $snapshot, $lastId, $maxId);
