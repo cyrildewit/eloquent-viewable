@@ -87,7 +87,7 @@ make bench-seed SIZE=medium ARGS="--seed=7"
 
 ## Optional indexes
 
-The README suggests two indexes for apps that need them. The migration does not create them, so a seeded dataset starts
+The README suggests three indexes for apps that need them. The migration does not create them, so a seeded dataset starts
 without. `make bench-indexes` adds or drops them in place, which is far quicker than seeding again, and the same
 benchmarks measure the difference.
 
@@ -95,6 +95,7 @@ benchmarks measure the difference.
 |------------------|-------------------------------------------------------------------------------------|----------------------------------------------|
 | `visitor`        | `(viewable_type, viewable_id, viewed_at, visitor)`, `INCLUDE (visitor)` on Postgres | `unique()` counts without touching the table |
 | `type-viewed-at` | `(viewable_type, viewed_at)`                                                        | counts over a whole type within a period     |
+| `visitor-history` | `(visitor, viewed_at, viewable_type, viewable_id)`                                 | `alsoViewed()` pairing through the visitors  |
 
 ```bash
 make bench-baseline TAG=plain
@@ -141,6 +142,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 
 | Group    | Benchmark                     | Measures                                                                                                                                                                                                                                                          |
 |----------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `read`   | `AlsoViewedBench`             | `alsoViewed()`, the ten models the visitors of the hot and the cold article also viewed, reading their thousand most recent visitors and every visitor, over the same periods as `CountViewsBench` |
 | `read`   | `CountViewsBench`             | `count()` and `unique()->count()`, for the hot article, the cold article and the whole type, over all time, a year, 30 days and a day                                                                                                                             |
 | `read`   | `CountViewsByCollectionBench` | `countByCollection()`, plain and unique, for the same targets and periods as `CountViewsBench`, so the two show what the grouping adds                                                                                                                            |
 | `read`   | `CountViewsByIntervalBench`   | `countByInterval()`, plain and unique, from a week of hours to two years of months, and the plain form again in Europe/Amsterdam, across up to four daylight saving transitions                                                                                   |
