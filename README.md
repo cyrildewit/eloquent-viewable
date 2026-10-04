@@ -735,6 +735,15 @@ Two optional indexes, added in a migration of your own:
 The `views` table keeps every row, with the visitor id, the viewer and the context of each view. A retention policy
 anonymises views once they reach one age and deletes them at another. Nothing is set out of the box.
 
+```mermaid
+flowchart LR
+    recorded["Recorded<br/>visitor, viewer and context"]
+    anonymised["Anonymised<br/>a visitor id per day,<br/>no viewer or context"]
+    deleted["Deleted"]
+    recorded -->|"older than anonymise.after"| anonymised
+    anonymised -->|"older than prune.after"| deleted
+```
+
 Publish and run the migration, which adds an index on `viewed_at` and a small state table:
 
 ```bash
@@ -755,9 +764,30 @@ Set the ages in the period shorthand and schedule one command:
 Schedule::command('views:maintain')->hourly()->onOneServer();
 ```
 
+Each run takes the steps below in order and skips the ones that are not configured. The [rollups](#rollups) are folded
+first, because anonymising and pruning never go past the last bucket they have folded.
+
+```mermaid
+flowchart LR
+    rollup["1. views:rollup<br/>fold closed buckets"]
+    anonymise["2. views:anonymise<br/>views older than<br/>anonymise.after"]
+    prune["3. views:prune<br/>views older than<br/>prune.after"]
+    recount["4. views:recount<br/>counter columns"]
+    rollup -->|"up to the last folded bucket"| anonymise --> prune --> recount
+```
+
 `views:anonymise` and `views:prune` run one step, and take `--older-than=90d` in place of the configured age. Every
 command takes `--dry-run` and `--chunk`. A dry run of `views:maintain` folds nothing, but counts the views to anonymise and delete
 as if its rollups had been folded first, so it reports what the real run would change.
+
+Anonymising re-hashes `visitor` under a salt per day. The same visitor keeps one id within a day and gets a new one the
+next day:
+
+| `viewed_at`    | `visitor` before | `visitor` after | `viewer` and `context` |
+|----------------|------------------|-----------------|------------------------|
+| 3 March, 09:12 | `5f2a…`          | `a:7f3c…`       | `null`                 |
+| 3 March, 17:40 | `5f2a…`          | `a:7f3c…`       | `null`                 |
+| 4 March, 08:05 | `5f2a…`          | `a:e19b…`       | `null`                 |
 
 What to know:
 
