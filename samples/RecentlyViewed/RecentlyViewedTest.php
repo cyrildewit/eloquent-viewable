@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Samples\RecentlyViewed\Course;
 use CyrildeWit\EloquentViewable\Samples\RecentlyViewed\Learner;
@@ -106,13 +107,14 @@ it('tells the learner when they last opened the course before', function (): voi
     $course = Course::create(['title' => 'Intro to SQL']);
     $this->actingAs($learner);
 
+    // On a whole second, because MySQL rounds the fraction of one away.
+    $this->travelTo(Carbon::parse('2026-10-01 10:00:00'));
     $this->get("/courses/{$course->id}")->assertJson(['last_opened_at' => null]);
 
-    $firstVisit = now()->toIso8601String();
-    $this->travel(2)->days();
+    $this->travelTo(Carbon::parse('2026-10-03 09:00:00'));
     session()->flush();
 
-    $this->get("/courses/{$course->id}")->assertJson(['last_opened_at' => $firstVisit]);
+    $this->get("/courses/{$course->id}")->assertJson(['last_opened_at' => '2026-10-01T10:00:00+00:00']);
 });
 
 it('counts a learner on two devices as one visitor', function (): void {
