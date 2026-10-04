@@ -70,6 +70,11 @@ describe('assertions', function (): void {
             ->toThrow(AssertionFailedError::class, 'No view of '.Post::class." {$this->post->getKey()} was recorded.");
     });
 
+    it('names a viewable without a key by its type alone', function (): void {
+        expect(fn () => $this->fake->assertRecorded(new Post))
+            ->toThrow(AssertionFailedError::class, 'No view of '.Post::class.' was recorded.');
+    });
+
     it('asserts an exact number of views', function (): void {
         views($this->post)->record();
         views($this->post)->record();
