@@ -112,7 +112,9 @@ final class Seeder
         $schema->dropIfExists('videos');
 
         // The package's own migration, so the table and its indexes are
-        // exactly what an application gets.
+        // what an application gets, apart from the index on `viewed_at`:
+        // it is dropped with the other secondary indexes and not built again,
+        // which would change the plans of every benchmark on this dataset.
         require_once Application::projectPath('database/migrations/create_views_table.php.stub');
 
         new \CreateViewsTable()->up();
@@ -387,6 +389,7 @@ final class Seeder
         $this->connection->getSchemaBuilder()->table($this->table, function (Blueprint $blueprint): void {
             $blueprint->dropIndex('views_viewable_type_viewable_id_index');
             $blueprint->dropIndex('views_viewable_viewed_at_index');
+            $blueprint->dropIndex('views_viewed_at_index');
         });
     }
 

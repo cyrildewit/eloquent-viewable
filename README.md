@@ -708,8 +708,9 @@ every supported database. The optional indexes below were measured with it.
 ### Database indexes
 
 The migration indexes `(viewable_type, viewable_id)` and `(viewable_type, viewable_id, viewed_at)`, so period counts and
-series only read the rows inside the period. If you installed before the second index existed, the
-[upgrade guide](UPGRADING.md#4-add-the-new-columns-and-index) has a migration for it.
+series only read the rows inside the period, and `viewed_at`, so retention and rollups scan by date. If you installed
+before the last two existed, the [upgrade guide](UPGRADING.md#4-add-the-new-columns-and-indexes) has a migration for
+them.
 
 Two optional indexes, added in a migration of your own:
 
@@ -906,7 +907,7 @@ What to know:
   month with `CREATE TABLE views_2026_01 PARTITION OF views FOR VALUES FROM ('2026-01-01') TO ('2026-02-01')`, and drop
   one with `DETACH PARTITION` and `DROP TABLE`.
 - **Leave `prune.after` unset**, so `views:maintain` does not delete rows from months you mean to drop whole.
-- **Publish the retention and rollups migrations as usual.** Both skip the `viewed_at` index when it is there.
+- **Publish the retention and rollups migrations as usual.** Neither touches the `views` table.
 
 ### Storing counts on your own table
 
