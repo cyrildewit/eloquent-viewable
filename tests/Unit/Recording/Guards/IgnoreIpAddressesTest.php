@@ -31,3 +31,12 @@ it('allows everything when the list is empty', function (): void {
 
     expect($guard->allows(ipAttempt('127.20.22.6')))->toBeTrue();
 });
+
+it('refuses every address in a listed range', function (): void {
+    $guard = new IgnoreIpAddresses(new Config(new Repository(['eloquent-viewable' => ['recording' => ['ignored_ip_addresses' => ['10.0.0.0/8', '2001:db8::/32']]]])));
+
+    expect($guard->allows(ipAttempt('10.20.3.4')))->toBeFalse()
+        ->and($guard->allows(ipAttempt('2001:db8:20::1')))->toBeFalse()
+        ->and($guard->allows(ipAttempt('11.0.0.1')))->toBeTrue()
+        ->and($guard->allows(ipAttempt('2001:db9::1')))->toBeTrue();
+});
