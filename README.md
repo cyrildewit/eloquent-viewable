@@ -57,6 +57,7 @@
         <li><a href="#database-indexes">Database indexes</a></li>
         <li><a href="#retention">Retention</a></li>
         <li><a href="#rollups">Rollups</a></li>
+        <li><a href="#purging-bot-views">Purging bot views</a></li>
         <li><a href="#partitioning-the-views-table">Partitioning the views table</a></li>
         <li><a href="#storing-counts-on-your-own-table">Storing counts on your own table</a></li>
         <li><a href="#buffering-views-in-redis">Buffering views in Redis</a></li>
@@ -228,7 +229,8 @@ public function show(Post $post)
 
 `record()` returns `true` when the view was stored or queued and `false` when a guard refused it. The guards are listed
 under `recording.guards` in the config. Out of the box they drop crawlers, requests without a user agent, `HEAD`
-requests, browser prefetches and the addresses in `recording.ignored_ip_addresses`, and enforce cooldowns. See
+requests, browser prefetches, bursts of views from one visitor and the addresses in `recording.ignored_ip_addresses`,
+and enforce cooldowns. See
 [the guards](#adding-a-recording-guard) for the ones you can turn on, or add your own.
 
 > [!NOTE]
@@ -1192,6 +1194,45 @@ What to know:
 - **A source of your own** counts by dimension by implementing `Querying\Contracts\CountsByDimension`, and the fake
   refuses `rollup()`.
 
+### Purging bot views
+
+`IgnoreBursts` stops a burst once it reaches the limit. `views:purge-bots` deletes the views that were recorded
+anyway: the first views of a burst, and the views of tables that filled up before the guard existed.
+
+```bash
+php artisan views:purge-bots --since=30d --dry-run
+php artisan views:purge-bots --since=30d
+```
+
+It reads the views since `--since`, a duration such as `7d` or a date such as `2026-01-01` and `1d` by default, in the
+order they were viewed, and finds every visitor that opened more than `recording.bursts.max` different models within
+`recording.bursts.seconds`. Pass `--max` and `--seconds` to apply another rule.
+
+The command is built to leave real views alone:
+
+- **Only the views inside a burst are deleted.** A visitor's other views stay. A person who opens a handful of search
+  results in tabs and then reads them keeps the reading.
+- **Views of a signed-in viewer are kept**, because an account is almost always a person. Pass `--include-viewers` to
+  delete those as well.
+- **`--whole-visitor` deletes every view of a visitor** with at least `--min-bursts` separate bursts, 3 by default. It
+  refuses to run with the `fingerprint` identity, because people on one network with the same browser share a visitor
+  id there.
+- **It asks before deleting in production.** Pass `--force` to skip the question, for example in the scheduler, and
+  `--dry-run` to count the views first.
+
+What to know:
+
+- **The deleted views leave the rollups too.** Once views are deleted, the [rollups](#rollups) are folded again from the
+  first of them. Views before the point where a rollup can no longer be folded again, because they are pruned, or
+  anonymised for a month or year tier, are left alone, and the command says where it started.
+- **Only the stored visitor id is read.** A bot that drops its cookie looks like many visitors with one view each, so
+  the command cannot find it afterwards. The `network` count of `IgnoreBursts` stops it while it records.
+- **Views still in the [Redis buffer](#buffering-views-in-redis) are not read.** Run `views:flush` first.
+- **Deleting cannot be undone.** Run a dry run, or take a backup, before the first purge of a large table.
+- **A run forgets every remembered count** when it deleted a view, and dispatches `Retention\Events\BotViewsPurged`.
+  [Counter columns](#storing-counts-on-your-own-table) are not updated; the command reminds you to run
+  `views:recount`.
+
 ### Partitioning the views table
 
 Partitioned by `viewed_at`, a month of views goes with one `DROP PARTITION` instead of a delete per row. The package does
@@ -1445,6 +1486,7 @@ drops the view:
 | `IgnoreIpAddresses`          | `recording.ignored_ip_addresses`                | yes           |
 | `IgnoreHeadRequests`         | `HEAD` requests                                 | yes           |
 | `IgnorePrefetch`             | pages the browser prefetches or prerenders      | yes           |
+| `IgnoreBursts`               | a visitor opening many models within seconds    | yes           |
 | `EnforceCooldown`            | a second view inside the cooldown               | yes           |
 | `ThrottleVisitors`           | views over `recording.throttle.max_per_minute`  | no            |
 | `IgnoreDoNotTrack`           | visitors sending `DNT: 1`                       | no            |
@@ -1461,6 +1503,35 @@ The cooldown only stops repeat views of the same model. A scraper that opens 5,0
 views and pushes them up the [rankings](#most-viewed-across-the-app). `ThrottleVisitors` caps how many views one
 visitor records per minute across every model, 60 by default. The counts are kept in the cache, so use a store that
 every server shares.
+
+`IgnoreBursts` catches the scrapers that pass for a browser. A visitor that opens more than 8 different models within 2
+seconds is refused, and so is every view of theirs for the next 2 minutes. People do not read that fast; a bot opening
+ten posts within a second does. Opening the same model again does not count towards a burst, that is the cooldown's
+job. Change the rule under `recording.bursts`:
+
+```php
+'bursts' => [
+    'max' => 8,
+    'seconds' => 2,
+    'block_for' => 120,
+    'by' => ['visitor', 'network'],
+    'store' => null,
+],
+```
+
+- **`by` decides what a burst is counted per.** `visitor` is the stored visitor id. `network` is a hash of the network
+  (the first three parts of an IPv4 address, the first three groups of an IPv6 one) and the user agent, the hash the
+  `fingerprint` identity uses. A bot that drops its cookie gets a new visitor id on every request, so only `network`
+  catches it. The hash lives in the cache for a few seconds and is never stored with a view.
+- **People behind one address share a network.** An office, school or mobile carrier with one browser version shares
+  the `network` count, so nine people opening different pages within the same two seconds trip it together. Set `by`
+  to `['visitor']` if your readers come from such a network.
+- **The views before the limit are recorded.** The guard only refuses from the burst on, so a bot keeps its first 8
+  views. [`views:purge-bots`](#purging-bot-views) deletes those afterwards.
+- **`Recording\Events\BurstDetected`** is dispatched once when a block starts, with the attempt and what it was counted
+  per. The refusals during the block only dispatch `ViewSkipped`.
+- **The counts are kept in the cache** with atomic operations, so parallel requests from one bot cannot slip under the
+  limit together. Use a store that every server shares.
 
 To add one, implement `Recording\Contracts\RecordingGuard` and add the class to the list. Guards are resolved from the
 container.

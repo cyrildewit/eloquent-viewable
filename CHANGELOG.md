@@ -19,6 +19,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added recording guards: the `recording.guards` config list, the `Recording\Contracts\RecordingGuard` contract for your own, and the new `IgnorePrefetch` guard, on by default, and `IgnoreGlobalPrivacyControl` guard, which honours `Sec-GPC: 1`
 - Added the `IgnoreMissingUserAgent` and `IgnoreHeadRequests` guards, on by default, which drop requests without a user agent and `HEAD` requests
 - Added the `ThrottleVisitors` guard, off by default, which caps the views one visitor records per minute across every model. Configure it under `recording.throttle`
+- Added the `IgnoreBursts` guard, on by default, which refuses a visitor that opens more than 8 different models within 2 seconds, and blocks them for 2 minutes. It counts per visitor id and per network and user agent, so a bot that drops its cookie is caught too. Configure it under `recording.bursts`. `Recording\Events\BurstDetected` is dispatched when a block starts
 - `recording.ignored_ip_addresses` accepts CIDR ranges such as `10.0.0.0/8`
 - Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` saying whether the view was stored or queued, or which guard skipped it. `Recording\Events\ViewSkipped` is dispatched when a guard refuses a view
 - Added `Recording\Events\ViewAttempted`, dispatched for every view the guards have judged with its `RecordResult`, in the request that made it, also when the write is queued. It is only built when something listens. `RecordResult` serialises to JSON with the guard named by its class
@@ -61,6 +62,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added custom rollups, classes that extend `Querying\Rollups\Rollup` with a filter, tiers, groupings and one dimension, listed under `retention.rollups.custom`. `Views::rollup()` reads one and `Views::countByDimension()` counts per value of its dimension, through the new `Contracts\FiltersViews` and `Querying\Contracts\CountsByDimension` contracts
 - Added counter columns: `querying.counters` lists columns on your own tables that `views:recount` fills with a view count, and `views:maintain` runs it
 - Added `--before` to `views:prune`, for an application that drops partitions of the `views` table itself
+- Added `views:purge-bots`, which deletes the views inside a burst, the views `IgnoreBursts` would have refused, and folds the rollups again. Views of a signed-in viewer are kept unless `--include-viewers` is passed, and `--whole-visitor` deletes every view of a visitor with several bursts. Dispatches `Retention\Events\BotViewsPurged`. Rollups expose the new `Querying\Rollups\Contracts\Refolder` contract for it
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
 #### Models and testing
