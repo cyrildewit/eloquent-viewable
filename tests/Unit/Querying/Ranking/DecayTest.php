@@ -123,11 +123,12 @@ it('has no steps over a period that has not started', function (): void {
 
 it('is identified without now', function (): void {
     $identity = decay()->identity();
+    $pastWeek = decay(Period::pastDays(7))->identity();
 
     CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-04 15:45:00', 'UTC'));
 
     expect(decay()->identity())->toBe($identity)
+        ->and(decay(Period::pastDays(7))->identity())->toBe($pastWeek)
         ->and(decay(step: Granularity::Day)->identity())->not->toBe($identity)
-        ->and(decay(curve: new ExponentialDecay(CarbonInterval::week()), maxSteps: 2_000)->identity())->not->toBe($identity)
-        ->and(decay(Period::create('2026-09-01', '2026-10-01'))->identity())->not->toBe($identity);
+        ->and(decay(curve: new ExponentialDecay(CarbonInterval::week()), maxSteps: 2_000)->identity())->not->toBe($identity);
 });

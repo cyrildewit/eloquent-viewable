@@ -32,7 +32,7 @@ function decays(array $trending = [], ?string $rollupTimezone = null, ?Container
 }
 
 it('halves the weight every configured half-life by default', function (): void {
-    expect(decays()->make(new ViewsQuery)->identity())->toBe(new ExponentialDecay(CarbonInterval::day())->identity().':hour:691200')
+    expect(decays()->make(new ViewsQuery)->identity())->toBe(new ExponentialDecay(CarbonInterval::day())->identity().':hour')
         ->and(decays(['half_life' => '6h'])->make(new ViewsQuery)->steps()[6]->weight)->toBe(500_000);
 });
 

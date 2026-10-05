@@ -176,6 +176,23 @@ describe('remember', function (): void {
             ->and(trendingEntries(views(Post::class)->trending())[0][0])->toBe($this->queues->getKey());
     });
 
+    it('serves a remembered ranking over a period without an end after the clock moves on', function (): void {
+        $first = trendingEntries(views(Post::class)->period(Period::pastDays(7))->remember(600)->trending());
+
+        $this->travel(2)->seconds();
+        trendingViews($this->queues, '2026-10-04 12:00:00', 20);
+
+        expect(trendingEntries(views(Post::class)->period(Period::pastDays(7))->remember(600)->trending()))->toBe($first);
+    });
+
+    it('keeps the rankings of two periods apart', function (): void {
+        views(Post::class)->period(Period::pastDays(7))->remember(600)->trending();
+        trendingViews($this->queues, '2026-10-04 12:00:00', 20);
+
+        expect(trendingEntries(views(Post::class)->period(Period::pastDays(3))->remember(600)->trending())[0][0])
+            ->toBe($this->queues->getKey());
+    });
+
     it('keeps the rankings of two curves apart', function (): void {
         views(Post::class)->remember(600)->trending();
 
