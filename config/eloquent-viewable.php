@@ -1,5 +1,6 @@
 <?php
 
+use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
@@ -625,6 +626,7 @@ return [
          * class of your own that implements `Doctor\Contracts\Check`.
          */
         'checks' => [
+            SchemaCheck::class,
         ],
 
     ],
