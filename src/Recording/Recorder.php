@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewAttempted;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
@@ -53,7 +54,7 @@ final readonly class Recorder
             if (! $guard->allows($attempt)) {
                 $this->events->dispatch(new ViewSkipped($attempt, $guard));
 
-                return RecordResult::skipped($guard);
+                return $this->attempted($attempt, RecordResult::skipped($guard));
             }
         }
 
@@ -74,6 +75,19 @@ final readonly class Recorder
             if ($guard instanceof RemembersRecordedViews) {
                 $guard->remember($attempt);
             }
+        }
+
+        return $this->attempted($attempt, $result);
+    }
+
+    /**
+     * Every view passes through here, so the event is only built when
+     * something listens, such as the Debugbar collector.
+     */
+    private function attempted(ViewAttempt $attempt, RecordResult $result): RecordResult
+    {
+        if ($this->events->hasListeners(ViewAttempted::class)) {
+            $this->events->dispatch(new ViewAttempted($attempt, $result));
         }
 
         return $result;

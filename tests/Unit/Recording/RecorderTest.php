@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewAttempted;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
@@ -72,7 +73,18 @@ function recordingAction(Closure $matches): RecordsViews
 function silentEvents(): EventDispatcher
 {
     $events = Mockery::mock(EventDispatcher::class);
+    $events->allows('hasListeners')->with(ViewAttempted::class)->andReturn(false);
     $events->shouldNotReceive('dispatch');
+
+    return $events;
+}
+
+function listeningEvents(Closure $matches): EventDispatcher
+{
+    $events = Mockery::mock(EventDispatcher::class);
+    $events->allows('hasListeners')->with(ViewAttempted::class)->andReturn(true);
+    $events->allows('dispatch')->with(Mockery::type(ViewSkipped::class));
+    $events->expects('dispatch')->with(Mockery::on(fn (object $event): bool => $event instanceof ViewAttempted && $matches($event)));
 
     return $events;
 }
@@ -176,6 +188,7 @@ it('stops at the first guard that refuses and says which one', function (): void
     $action->shouldNotReceive('handle');
 
     $events = Mockery::mock(EventDispatcher::class);
+    $events->allows('hasListeners')->andReturn(false);
     $events->expects('dispatch')->with(Mockery::on(fn (ViewSkipped $event): bool => $event->attempt === $attempt && $event->guard === $refusing));
 
     $result = recorder([guardThat(true), $refusing, neverRuns()], Mockery::mock(BusDispatcher::class), $action, events: $events)->record($attempt);
@@ -243,9 +256,59 @@ it('does not remember a view a later guard refuses', function (): void {
     $attempt = attempt();
 
     $events = Mockery::mock(EventDispatcher::class);
+    $events->allows('hasListeners')->andReturn(false);
     $events->allows('dispatch');
 
     expect(recorder([rememberingGuard(false), guardThat(false)], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events)->record($attempt)->recorded)->toBeFalse();
+});
+
+describe('attempted', function (): void {
+    it('dispatches the stored view to whoever listens', function (): void {
+        $attempt = attempt(queue: false);
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        $events = listeningEvents(fn (ViewAttempted $event): bool => $event->attempt === $attempt
+            && $event->result->recorded
+            && ! $event->result->queued);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, events: $events)->record($attempt);
+    });
+
+    it('dispatches the queued view in the request that queued it', function (): void {
+        $attempt = attempt(queue: true);
+
+        $bus = Mockery::mock(BusDispatcher::class);
+        $bus->allows('dispatch');
+
+        $events = listeningEvents(fn (ViewAttempted $event): bool => $event->result->queued);
+
+        recorder([], $bus, Mockery::mock(RecordsViews::class), events: $events)->record($attempt);
+    });
+
+    it('dispatches the skipped view with the guard that refused it', function (): void {
+        $attempt = attempt();
+        $refusing = guardThat(false);
+
+        $events = listeningEvents(fn (ViewAttempted $event): bool => $event->attempt === $attempt
+            && ! $event->result->recorded
+            && $event->result->skippedBy === $refusing);
+
+        recorder([$refusing], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events)->record($attempt);
+    });
+
+    it('hands the listener the attempt with the viewer resolved', function (): void {
+        $viewer = new Apartment(['id' => 3]);
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor($viewer));
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        $events = listeningEvents(fn (ViewAttempted $event): bool => $event->attempt->viewer === $viewer);
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, events: $events, viewerEnabled: true)->record($attempt);
+    });
 });
 
 describe('viewer', function (): void {
