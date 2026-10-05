@@ -228,6 +228,23 @@ it('forgets the buffered and the landed views of a viewable', function (string $
         ->and($other)->toHaveViewsCount(2);
 })->with('redis clients');
 
+it('lands the buffered views a filter keeps ahead of the flush', function (string $client): void {
+    $store = useRedisStore($client);
+    $other = Post::factory()->create();
+
+    views($this->post)->record();
+    views($other)->record();
+    views($this->post)->record();
+
+    expect($store->land(fn (ViewRecord $record): bool => $record->belongsTo($this->post)))->toBe(2)
+        ->and($this->post)->toHaveViewsCount(2)
+        ->and($other)->toHaveViewsCount(0)
+        ->and(streamLength())->toBe(1)
+        ->and($store->land(fn (ViewRecord $record): bool => false))->toBe(0)
+        ->and($store->flush())->toBe(1)
+        ->and($this->post)->toHaveViewsCount(2);
+})->with('redis clients');
+
 it('forgets the buffered views when the viewable is deleted', function (string $client): void {
     useRedisStore($client);
 
