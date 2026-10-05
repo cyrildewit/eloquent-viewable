@@ -6,7 +6,9 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Querying;
 
 use CyrildeWit\EloquentViewable\Benchmarks\Models\Article;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\BenchCase;
+use CyrildeWit\EloquentViewable\Benchmarks\Support\Dataset;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Rollups;
+use CyrildeWit\EloquentViewable\Support\Period;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Groups;
 use PhpBench\Attributes\Iterations;
@@ -15,10 +17,11 @@ use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
 /**
- * The reads of `CountViewsBench`, `OrderByViewsBench` and `TopViewedBench`
- * through the `rollup` source, with every view folded into day and month
- * rollups. Compare a subject with its counterpart in those classes to see
- * what the rollups save. Unique counts still read the views table, which
+ * The reads of `CountViewsBench`, `OrderByViewsBench`, `TopViewedBench` and
+ * `TrendingBench` through the `rollup` source, with every view folded into
+ * day and month rollups. Compare a subject with its counterpart in those
+ * classes to see what the rollups save. Trending over the past day is weighed
+ * per hour, which no day tier fits, so it reads the views table. Unique counts still read the views table, which
  * holds them exactly while nothing is anonymised or pruned.
  */
 #[Groups(['rollup'])]
@@ -65,5 +68,14 @@ final class RollupReadsBench extends BenchCase
     public function benchTop(array $params): void
     {
         views(Article::class)->period($this->period($params))->top(10);
+    }
+
+    /**
+     * @param  array{days: int|null}  $params
+     */
+    #[ParamProviders('providePeriods')]
+    public function benchTrending(array $params): void
+    {
+        views(Article::class)->period($this->period($params) ?? Period::upto(Dataset::anchor()))->trending(10);
     }
 }
