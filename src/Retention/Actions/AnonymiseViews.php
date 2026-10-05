@@ -36,6 +36,8 @@ final readonly class AnonymiseViews
 
     private const string Salt = 'anonymise:salt:';
 
+    private const int VisitorsPerStatement = 100;
+
     public function __construct(
         private View $view,
         private RetentionState $state,
@@ -108,6 +110,9 @@ final readonly class AnonymiseViews
     }
 
     /**
+     * Each chunk starts after the last id of the one before, so a day is read
+     * once instead of once per chunk.
+     *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      *
      * @throws InvalidConfiguration
@@ -120,8 +125,11 @@ final readonly class AnonymiseViews
         $end = $this->nextMidnight($day);
         $views = 0;
 
+        $last = null;
+
         do {
             $visitors = $this->pending($day, $end, $columns)
+                ->when($last, fn (Builder $query, int|string $last): Builder => $query->where('id', '>', $last))
                 ->orderBy('id')
                 ->limit($chunk)
                 ->pluck('visitor', 'id')
@@ -129,6 +137,7 @@ final readonly class AnonymiseViews
 
             if ($visitors !== []) {
                 $this->update($visitors, $columns, $salt);
+                $last = array_key_last($visitors);
             }
 
             $views += count($visitors);
@@ -199,19 +208,76 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * Each visitor gets a hash of its own, so one statement sets them all
-     * through a `case` on the old value.
+     * Each visitor gets a hash of its own, set through a `case` on the old
+     * value. A database tries the branches of a `case` one by one for every
+     * row, so one statement for a whole chunk would cost the rows times the
+     * visitors. The chunk is split into statements of at most
+     * `VisitorsPerStatement` visitors each instead, which keeps that cost
+     * linear in the size of the chunk. The visitors are keyed by the id of
+     * their view.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors  keyed by the id of the view
+     * @param  non-empty-array<int|string, mixed>  $visitors
      * @param  list<'visitor'|'viewer'|'context'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
+    {
+        $hashes = in_array('visitor', $columns, true) ? $this->hashes($visitors, $salt) : [];
+
+        foreach ($this->statements($visitors, $hashes) as [$ids, $group]) {
+            $this->updateViews($ids, $group, $columns);
+        }
+    }
+
+    /**
+     * Each statement is a list of view ids and the hashes of their visitors.
+     * The views whose visitor is not re-hashed, such as those without one, go
+     * with the first statement.
+     *
+     * @param  non-empty-array<int|string, mixed>  $visitors
+     * @param  array<string, string>  $hashes
+     * @return list<array{non-empty-list<int|string>, array<string, string>}>
+     */
+    private function statements(array $visitors, array $hashes): array
+    {
+        $groups = $hashes === []
+            ? [[]]
+            : array_chunk($hashes, self::VisitorsPerStatement, preserve_keys: true);
+        $groupOf = [];
+
+        foreach ($groups as $index => $group) {
+            foreach (array_keys($group) as $visitor) {
+                $groupOf[$visitor] = $index;
+            }
+        }
+
+        $ids = [];
+
+        foreach ($visitors as $id => $visitor) {
+            $index = is_string($visitor) ? $groupOf[$visitor] ?? 0 : 0;
+
+            $ids[$index][] = $id;
+        }
+
+        $statements = [];
+
+        foreach ($ids as $index => $group) {
+            $statements[] = [$group, $groups[$index] ?? []];
+        }
+
+        return $statements;
+    }
+
+    /**
+     * @param  non-empty-list<int|string>  $ids
+     * @param  array<string, string>  $hashes
+     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     */
+    private function updateViews(array $ids, array $hashes, array $columns): void
     {
         $connection = $this->view->getConnection();
         $grammar = $connection->getQueryGrammar();
         $sets = [];
         $bindings = [];
-        $hashes = in_array('visitor', $columns, true) ? $this->hashes($visitors, $salt) : [];
 
         if ($hashes !== []) {
             $visitor = $grammar->wrap('visitor');
@@ -233,7 +299,6 @@ final readonly class AnonymiseViews
             $sets[] = "{$grammar->wrap('context')} = null";
         }
 
-        $ids = array_keys($visitors);
         $table = $grammar->wrapTable($this->view->getTable());
         $assignments = implode(', ', $sets);
 

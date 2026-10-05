@@ -13,7 +13,9 @@ use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
@@ -240,3 +242,54 @@ it('throws when the retention migration has not run', function (): void {
 
     anonymiseBefore('2026-03-15');
 })->throws(RetentionNotInstalled::class, 'The `view_retention_state` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-retention` and run `php artisan migrate`.');
+
+it('anonymises a day in chunks that each start after the last', function (): void {
+    foreach (range(1, 5) as $number) {
+        retainedView($this->post, "2026-03-01 1{$number}:00:00", visitor: "visitor-{$number}");
+    }
+
+    $statements = [];
+    DB::listen(function (QueryExecuted $query) use (&$statements): void {
+        if (! str_starts_with($query->sql, 'select')) {
+            return;
+        }
+
+        if (! str_contains($query->sql, 'order by')) {
+            return;
+        }
+
+        $statements[] = $query->sql;
+    });
+
+    $run = anonymiseBefore('2026-03-15 00:00:00', chunk: 2);
+
+    expect($run->views)->toBe(5)
+        ->and(View::query()->where('visitor', 'like', 'a:%')->count())->toBe(5)
+        ->and($statements)->toHaveCount(3)
+        ->and(preg_match('/id[`"]? > \\?/', $statements[0]))->toBe(0)
+        ->and($statements[1])->toMatch('/id[`"]? > \\?/')
+        ->and($statements[2])->toMatch('/id[`"]? > \\?/');
+});
+
+it('splits a chunk with many visitors into statements of a hundred visitors', function (): void {
+    foreach (range(1, 150) as $number) {
+        retainedView($this->post, '2026-03-01 10:00:00', visitor: "visitor-{$number}");
+    }
+
+    $withoutVisitor = retainedView($this->post, '2026-03-01 11:00:00', visitor: null, viewer: $this->user);
+    $updates = 0;
+
+    DB::listen(function (QueryExecuted $query) use (&$updates): void {
+        if (str_starts_with($query->sql, 'update')) {
+            $updates++;
+        }
+    });
+
+    $run = anonymiseBefore('2026-03-15 00:00:00', chunk: 500);
+
+    expect($run->views)->toBe(151)
+        ->and($updates)->toBe(2)
+        ->and(View::query()->where('visitor', 'like', 'a:%')->distinct()->count('visitor'))->toBe(150)
+        ->and($withoutVisitor->refresh()->visitor)->toBeNull()
+        ->and($withoutVisitor->viewer_id)->toBeNull();
+});
