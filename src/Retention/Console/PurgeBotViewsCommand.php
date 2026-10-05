@@ -66,13 +66,13 @@ final class PurgeBotViewsCommand extends RetentionCommand
 
         $wholeVisitor = (bool) $this->option('whole-visitor');
 
-        if ($wholeVisitor && $config->visitorIdentity() === 'fingerprint') {
+        if ($this->sharesVisitorIds($wholeVisitor, $config)) {
             $this->components->error('The --whole-visitor option cannot be used with the `fingerprint` identity, because people on one network with the same browser share a visitor id.');
 
             return self::FAILURE;
         }
 
-        if (! $this->isDryRun() && ! $this->confirmToProceed()) {
+        if (! $this->confirmed()) {
             return self::FAILURE;
         }
 
@@ -129,8 +129,47 @@ final class PurgeBotViewsCommand extends RetentionCommand
             $this->components->warn("Started at {$run->from->toDateTimeString()}, because the rollups cannot be folded again before it.");
         }
 
-        if ($run->views > 0 && ! $run->dryRun && $config->counters() !== []) {
+        if ($this->leftCountersBehind($run, $config)) {
             $this->components->warn('Run `views:recount` to bring the counter columns up to date.');
         }
+    }
+
+    /**
+     * Under the `fingerprint` identity people on one network with the same
+     * browser share a visitor id, so deleting every view of one would delete
+     * theirs too.
+     *
+     * @throws InvalidConfiguration
+     */
+    private function sharesVisitorIds(bool $wholeVisitor, Config $config): bool
+    {
+        if (! $wholeVisitor) {
+            return false;
+        }
+
+        return $config->visitorIdentity() === 'fingerprint';
+    }
+
+    private function confirmed(): bool
+    {
+        if ($this->isDryRun()) {
+            return true;
+        }
+
+        return $this->confirmToProceed();
+    }
+
+    /** @throws InvalidConfiguration */
+    private function leftCountersBehind(PurgeRun $run, Config $config): bool
+    {
+        if ($run->dryRun) {
+            return false;
+        }
+
+        if ($run->views === 0) {
+            return false;
+        }
+
+        return $config->counters() !== [];
     }
 }

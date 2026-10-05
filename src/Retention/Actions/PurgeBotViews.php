@@ -61,12 +61,19 @@ final readonly class PurgeBotViews
 
         $visitors = count($detector->visitorsWithBursts($minBursts ?? 1));
 
-        if (! $dryRun && $earliest instanceof CarbonInterface) {
-            $this->refolder->refold($earliest);
-            $this->events->dispatch(new BotViewsPurged($from, $until, $views, $visitors));
+        if ($dryRun) {
+            return new PurgeRun($from, $until, $views, $visitors, $clamped, true);
         }
 
-        return new PurgeRun($from, $until, $views, $visitors, $clamped, $dryRun);
+        if (! $earliest instanceof CarbonInterface) {
+            return new PurgeRun($from, $until, $views, $visitors, $clamped, false);
+        }
+
+        $this->refolder->refold($earliest);
+
+        $this->events->dispatch(new BotViewsPurged($from, $until, $views, $visitors));
+
+        return new PurgeRun($from, $until, $views, $visitors, $clamped, false);
     }
 
     /** @return array{int, ?CarbonInterface} */
