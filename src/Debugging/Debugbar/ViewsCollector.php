@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Debugging\Debugbar;
 
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewAttempted;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewerKey;
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\Model;
  * Debugbar resets the messages at the start of every Octane request, so a
  * worker never shows the views of the request before.
  */
-final class ViewsCollector extends MessagesCollector
+class ViewsCollector extends MessagesCollector
 {
     public const string Name = 'eloquent_viewable';
 
@@ -30,21 +32,18 @@ final class ViewsCollector extends MessagesCollector
     public function addAttempt(ViewAttempted $event): void
     {
         $attempt = $event->attempt;
-        $result = $event->result;
-        $guard = $result->skippedBy;
+        $guard = $event->result->skippedBy;
 
-        [$outcome, $label] = match (true) {
-            $guard instanceof RecordingGuard => ['skipped by '.class_basename($guard), 'warning'],
-            $result->queued => ['queued', 'info'],
-            default => ['stored', 'success'],
-        };
+        [$outcome, $label] = $this->outcomeOf($event->result);
 
         $this->addMessage('{viewable} {outcome}', $label, [
-            'viewable' => $attempt->viewable->getMorphClass().'('.ViewableKey::of($attempt->viewable).')',
+            'viewable' => $this->describeViewable($attempt->viewable),
             'outcome' => $outcome,
-            'guard' => $guard instanceof RecordingGuard ? $guard::class : null,
+            'guard' => $guard instanceof RecordingGuard
+                ? $guard::class
+                : null,
             'collection' => $attempt->collection,
-            'viewer' => $attempt->viewer instanceof Model ? $attempt->viewer->getMorphClass().'('.ViewerKey::of($attempt->viewer).')' : null,
+            'viewer' => $this->describeViewer($attempt->viewer),
             'cooldown' => $attempt->cooldown?->toIso8601String(),
             'context' => $attempt->context,
         ]);
@@ -54,18 +53,56 @@ final class ViewsCollector extends MessagesCollector
     #[\Override]
     public function getWidgets(): array
     {
+        $name = self::Name;
+
         return [
-            self::Name => [
+            $name => [
                 'title' => 'Viewable',
                 'icon' => 'list',
                 'widget' => 'PhpDebugBar.Widgets.MessagesWidget',
-                'map' => self::Name.'.messages',
+                'map' => "{$name}.messages",
                 'default' => '[]',
             ],
-            self::Name.':badge' => [
-                'map' => self::Name.'.count',
+            "{$name}:badge" => [
+                'map' => "{$name}.count",
                 'default' => 'null',
             ],
         ];
+    }
+
+    /** @return array{string, string} */
+    protected function outcomeOf(RecordResult $result): array
+    {
+        if ($result->skippedBy instanceof RecordingGuard) {
+            $guard = class_basename($result->skippedBy);
+
+            return ["skipped by {$guard}", 'warning'];
+        }
+
+        if ($result->queued) {
+            return ['queued', 'info'];
+        }
+
+        return ['stored', 'success'];
+    }
+
+    protected function describeViewable(Viewable $viewable): string
+    {
+        $type = $viewable->getMorphClass();
+        $key = ViewableKey::of($viewable);
+
+        return "{$type}({$key})";
+    }
+
+    protected function describeViewer(?Model $viewer): ?string
+    {
+        if (! $viewer instanceof Model) {
+            return null;
+        }
+
+        $type = $viewer->getMorphClass();
+        $key = ViewerKey::of($viewer);
+
+        return "{$type}({$key})";
     }
 }

@@ -42,10 +42,16 @@ it('tells whether a given guard class skipped the view', function (): void {
 });
 
 it('names the guard that skipped the view by its class in JSON', function (): void {
-    expect(json_encode(RecordResult::skipped(new RefuseAll)))->toBe(json_encode([
-        'recorded' => false,
-        'queued' => false,
-        'skipped_by' => RefuseAll::class,
-    ]))
-        ->and(RecordResult::queued()->jsonSerialize())->toBe(['recorded' => true, 'queued' => true, 'skipped_by' => null]);
+    expect(RecordResult::skipped(new RefuseAll)->jsonSerialize())
+        ->toBe([
+            'recorded' => false,
+            'queued' => false,
+            'skipped_by' => RefuseAll::class,
+        ])
+        ->and(RecordResult::queued()->jsonSerialize())
+        ->toBe([
+            'recorded' => true,
+            'queued' => true,
+            'skipped_by' => null,
+        ]);
 });

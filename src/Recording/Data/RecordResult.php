@@ -37,8 +37,8 @@ final readonly class RecordResult implements JsonSerializable
     }
 
     /**
-     * The guard by its class, so a log line or a Telescope entry says which
-     * guard skipped the view rather than an empty object.
+     * Names the guard by its class, so a log line or a Telescope entry shows
+     * which guard skipped the view.
      *
      * @return array{recorded: bool, queued: bool, skipped_by: ?class-string<RecordingGuard>}
      */
@@ -47,7 +47,9 @@ final readonly class RecordResult implements JsonSerializable
         return [
             'recorded' => $this->recorded,
             'queued' => $this->queued,
-            'skipped_by' => $this->skippedBy instanceof RecordingGuard ? $this->skippedBy::class : null,
+            'skipped_by' => $this->skippedBy instanceof RecordingGuard
+                ? $this->skippedBy::class
+                : null,
         ];
     }
 }
