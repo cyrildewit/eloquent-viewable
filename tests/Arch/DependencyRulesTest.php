@@ -33,6 +33,7 @@ const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Querying\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
     'CyrildeWit\EloquentViewable\Cooldowns\Contracts',
+    'CyrildeWit\EloquentViewable\Doctor\Contracts',
 ];
 
 const MODULES = [
@@ -45,6 +46,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Debugging',
     'CyrildeWit\EloquentViewable\Maintenance',
     'CyrildeWit\EloquentViewable\Erasure',
+    'CyrildeWit\EloquentViewable\Doctor',
 ];
 
 const ENTRY_POINTS = [
@@ -185,6 +187,13 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         AnonymiseViews::class,
         'Carbon',
         'Illuminate',
+    ]);
+
+arch('nothing but the entry points knows the doctor')
+    ->expect('CyrildeWit\EloquentViewable\Doctor')
+    ->toOnlyBeUsedIn([
+        'CyrildeWit\EloquentViewable\Doctor',
+        EloquentViewableServiceProvider::class,
     ]);
 
 arch('only the entry points join the two sides')
