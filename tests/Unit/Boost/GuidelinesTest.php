@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Testing\Concerns\MakesHttpRequests;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Arr;
 
 const BoostPath = __DIR__.'/../../../resources/boost';
 
@@ -74,4 +75,12 @@ it('only calls methods that exist', function (string $file): void {
     ) === []);
 
     expect($missing)->toBeEmpty();
+})->with(fn (): array => boostFiles());
+
+it('only names config keys that exist', function (string $file): void {
+    $config = require __DIR__.'/../../../config/eloquent-viewable.php';
+
+    preg_match_all('/`([a-z_]+(?:\.[a-z_]+)+)`/', (string) file_get_contents($file), $keys);
+
+    expect(array_values(array_filter($keys[1], fn (string $key): bool => ! Arr::has($config, $key))))->toBeEmpty();
 })->with(fn (): array => boostFiles());
