@@ -16,9 +16,9 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Application;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Dataset;
-use CyrildeWit\EloquentViewable\Benchmarks\Support\OptionalIndex;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Output;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\OptionalIndex;
 use Illuminate\Support\Facades\DB;
 
 require __DIR__.'/../vendor/autoload.php';

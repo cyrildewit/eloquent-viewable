@@ -2,16 +2,19 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
+namespace CyrildeWit\EloquentViewable\Support;
 
-use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 use InvalidArgumentException;
 
 /**
  * The optional indexes the README suggests for apps that need them. The
- * migration stub does not create these, so `make bench-indexes` adds them to
- * a seeded dataset and the same benchmarks run with and without.
+ * migration stub does not create these: `views:doctor` recommends them, and
+ * `make bench-indexes` adds them to a seeded dataset so the same benchmarks
+ * run with and without.
+ *
+ * @internal
  */
 enum OptionalIndex: string
 {
@@ -76,7 +79,7 @@ enum OptionalIndex: string
         };
     }
 
-    public function create(ConnectionInterface $connection, string $table): void
+    public function create(Connection $connection, string $table): void
     {
         if ($this === self::Visitor && $connection->getDriverName() === 'pgsql') {
             $connection->statement(
@@ -91,7 +94,7 @@ enum OptionalIndex: string
         });
     }
 
-    public function drop(ConnectionInterface $connection, string $table): void
+    public function drop(Connection $connection, string $table): void
     {
         $connection->getSchemaBuilder()->table($table, function (Blueprint $blueprint): void {
             $blueprint->dropIndex($this->name());
@@ -101,7 +104,7 @@ enum OptionalIndex: string
     /**
      * @return list<string>
      */
-    private function columns(): array
+    public function columns(): array
     {
         return match ($this) {
             self::Visitor => ['viewable_type', 'viewable_id', 'viewed_at', 'visitor'],

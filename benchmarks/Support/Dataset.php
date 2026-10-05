@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 
 use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Benchmarks\Models\Article;
+use CyrildeWit\EloquentViewable\Support\OptionalIndex;
 use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Schema\Blueprint;
