@@ -158,6 +158,13 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must name a class implementing `{$interface}`, `{$class}` does not.");
     }
 
+    public static function mustBeShare(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must be a number above 0 and at most 1, {$given} given.");
+    }
+
     private static function describe(mixed $value): string
     {
         if (! is_scalar($value)) {
