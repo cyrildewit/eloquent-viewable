@@ -28,6 +28,7 @@
       <ul>
         <li><a href="#version-compatibility">Version Compatibility</a></li>
         <li><a href="#installation">Installation</a></li>
+        <li><a href="#ai-coding-assistants">AI coding assistants</a></li>
       </ul>
     </li>
     <li><a href="#usage">Usage</a>
@@ -184,6 +185,16 @@ $table->nullableUuidMorphs('viewer');   // or nullableUlidMorphs('viewer'), to m
 ```
 
 All viewable models share one `viewable_id` column, so they need the same key type.
+
+### AI coding assistants
+
+The package ships guidelines and an `eloquent-viewable-development` skill for [Laravel Boost](https://laravel.com/docs/boost),
+so coding agents record and count views the way this README describes. Pick the package when `boost:install` asks, or
+add it to an existing setup:
+
+```bash
+php artisan boost:update --discover
+```
 
 ## Usage
 
