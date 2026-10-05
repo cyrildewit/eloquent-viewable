@@ -359,7 +359,7 @@ final readonly class DatabaseSource implements CountsByDimension, IdentifiesSour
     /**
      * The rows of a trending ranking, the integer score scaled back.
      *
-     * @param  iterable<mixed>  $rows
+     * @param  iterable<int, mixed>  $rows
      * @return list<array{type: string, id: int|string, count: int, score: float}>
      *
      * @internal
