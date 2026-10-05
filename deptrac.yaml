@@ -9,6 +9,8 @@
 #   Views         the builder that ties recording and counting together
 #   Retention     anonymises and prunes old views, above querying for the
 #                 rollup watermarks it clamps to
+#   Debugging     shows what recording did in Debugbar, above recording for
+#                 the events it listens to
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
@@ -58,6 +60,11 @@ deptrac:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Retention\\.*
 
+    - name: Debugging
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Debugging\\.*
+
     # The builder behind the facade. It records views as well as counting them,
     # so it sits above both.
     - name: Views
@@ -86,6 +93,11 @@ deptrac:
         - type: classLike
           value: ^Jaybizzle\\.*
 
+    - name: Debugbar
+      collectors:
+        - type: classLike
+          value: ^(Fruitcake\\LaravelDebugbar|DebugBar)\\.*
+
   ruleset:
     Foundation: ~
     # "Is this a bot": a verdict on a user agent string. A leaf.
@@ -111,6 +123,12 @@ deptrac:
     Retention:
       - Foundation
       - Querying
+    # Listens to the recording events and hands them to Debugbar. Only this
+    # layer knows Debugbar.
+    Debugging:
+      - Foundation
+      - Recording
+      - Debugbar
     Views:
       - +Recording
       - +Querying
@@ -121,6 +139,7 @@ deptrac:
       - +Views
       - Testing
       - +Retention
+      - Debugging
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.
       - CrawlerDetect
@@ -129,6 +148,7 @@ deptrac:
     graphviz:
       groups:
         Modules:
+          - Debugging
           - Recording
           - Querying
           - Retention

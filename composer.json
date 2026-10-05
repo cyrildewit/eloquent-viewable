@@ -39,6 +39,7 @@
     },
     "require-dev": {
         "deptrac/deptrac": "^4.7",
+        "fruitcake/laravel-debugbar": "^4.4",
         "illuminate/config": "^13.0",
         "illuminate/redis": "^13.0",
         "larastan/larastan": "^3.0",
@@ -57,6 +58,7 @@
         "rector/rector": "^2.3"
     },
     "suggest": {
+        "fruitcake/laravel-debugbar": "Lists the views recorded and skipped in each request in a Debugbar tab (^4.4).",
         "illuminate/redis": "Required by the redis store driver (^13.0). Part of laravel/framework.",
         "predis/predis": "A Redis client for the redis store driver (^3.3), when the phpredis extension is not installed."
     },
