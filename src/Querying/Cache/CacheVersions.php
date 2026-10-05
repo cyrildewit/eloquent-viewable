@@ -76,9 +76,15 @@ final readonly class CacheVersions
 
     public function forgetCache(Viewable $viewable): void
     {
-        $type = $viewable->getMorphClass();
-        $key = ViewableKey::of($viewable);
+        $this->forgetModel($viewable->getMorphClass(), ViewableKey::of($viewable));
+    }
 
+    /**
+     * The same as forgetCache(), for a viewable known only by its morph type
+     * and key. Without a key it forgets the whole type.
+     */
+    public function forgetModel(string $type, int|string|null $key = null): void
+    {
         $this->bump($key === null
             ? ["models:{$type}", 'ranking']
             : ["model:{$type}:{$key}", "type:{$type}", 'ranking']);
