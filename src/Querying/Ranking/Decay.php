@@ -45,8 +45,8 @@ final readonly class Decay
      * Resolves the `auto` step and the window from the query's period. The
      * window is the period, or the curve's horizon when the period has no
      * start. Ages are measured from the anchor, the end of the period or now.
+     * The step is an hour or a day, or null to pick one.
      *
-     * @param  ?Granularity  $step  an hour or a day, null to pick one
      *
      * @throws InvalidDecay
      */
