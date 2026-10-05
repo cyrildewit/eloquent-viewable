@@ -24,11 +24,14 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
+use CyrildeWit\EloquentViewable\Querying\Rollups\NullRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
@@ -43,6 +46,8 @@ use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Retention\Console\AnonymiseViewsCommand;
 use CyrildeWit\EloquentViewable\Retention\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Retention\Console\PruneViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\PurgeBotViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
@@ -82,6 +87,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 RecountViewsCommand::class,
                 AnonymiseViewsCommand::class,
                 PruneViewsCommand::class,
+                PurgeBotViewsCommand::class,
                 MaintainViewsCommand::class,
             ]);
 
@@ -166,7 +172,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function flushCountsAfterRetentionRuns(): void
     {
         $this->app->make(EventDispatcher::class)->listen(
-            [ViewsRolledUp::class, ViewsAnonymised::class, ViewsPruned::class],
+            [ViewsRolledUp::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
             fn () => $this->app->make(CacheVersions::class)->flushCache(),
         );
     }
@@ -325,6 +331,14 @@ class EloquentViewableServiceProvider extends ServiceProvider
             }
 
             return $app->make(RollupWatermarks::class);
+        });
+
+        $this->app->bind(Refolder::class, function (Application $app): Refolder {
+            if (! $app->make(RollupPolicy::class)->isEnabled()) {
+                return new NullRefolder;
+            }
+
+            return $app->make(RollupRefolder::class);
         });
 
         $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {
