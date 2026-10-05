@@ -60,8 +60,15 @@ final readonly class VisitorIdentity
      */
     public function ofViewer(Model $viewer): string
     {
-        $key = ViewerKey::of($viewer);
+        return $this->ofViewerKey($viewer->getMorphClass(), ViewerKey::of($viewer));
+    }
 
-        return hash_hmac('sha256', "{$viewer->getMorphClass()}|{$key}", $this->encrypter->getKey());
+    /**
+     * The same id for a viewer known only by its morph type and key, such as
+     * one that was deleted.
+     */
+    public function ofViewerKey(string $type, int|string $key): string
+    {
+        return hash_hmac('sha256', "{$type}|{$key}", $this->encrypter->getKey());
     }
 }
