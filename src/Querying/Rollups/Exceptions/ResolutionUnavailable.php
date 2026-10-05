@@ -23,4 +23,9 @@ final class ResolutionUnavailable extends Exception implements EloquentViewableE
     {
         return new self("A series in `{$series}` cannot be built exactly from rollup buckets aligned to `{$rollups}`. Count by interval in `{$rollups}`, or turn `retention.rollups.strict` off to place a bucket by its start.");
     }
+
+    public static function trendingStep(string $step): self
+    {
+        return new self("No rollup tier is as fine as the trending step of one {$step}, so the ranking cannot be read from the rollups. Keep an `{$step}` tier as long as the trending window, set `querying.trending.step` to match a tier, or turn `retention.rollups.strict` off to read the views table instead.");
+    }
 }

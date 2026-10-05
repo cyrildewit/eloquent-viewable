@@ -10,8 +10,11 @@ use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Step;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -25,7 +28,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
-final class ViewsFake implements RanksAlsoViewed, ViewSource, ViewStore
+final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -136,6 +139,42 @@ final class ViewsFake implements RanksAlsoViewed, ViewSource, ViewStore
         usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);
 
         return array_slice($rows, 0, $limit);
+    }
+
+    /**
+     * Applies the steps of the decay to the recorded views, as the database
+     * source does in SQL.
+     *
+     * @return list<array{type: string, id: int|string, count: int, score: float}>
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array
+    {
+        $type = $viewable?->getMorphClass();
+        $steps = $decay->steps();
+
+        $grouped = $this->matchingRecords($decay->narrow($query), fn (ViewRecord $record): bool => $type === null || $record->viewableType === $type)
+            ->groupBy(fn (ViewRecord $record): string => "{$record->viewableType}:{$record->viewableId}");
+
+        $rows = [];
+
+        foreach ($grouped as $views) {
+            /** @var ViewRecord $first */
+            $first = $views->first();
+            $count = 0;
+            $score = 0;
+
+            foreach ($views->groupBy(fn (ViewRecord $record): string => (string) $this->stepOf($record, $steps)) as $index => $inStep) {
+                $aggregate = $this->aggregate($inStep, $query);
+                $count += $aggregate;
+                $score += ($steps[$index]->weight ?? 0) * $aggregate;
+            }
+
+            $rows[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'count' => $count, 'score' => $score];
+        }
+
+        usort($rows, static fn (array $a, array $b): int => [$b['score'], $a['type'], $a['id']] <=> [$a['score'], $b['type'], $b['id']]);
+
+        return array_map(static fn (array $row): array => [...$row, 'score' => $row['score'] / Decay::Scale], array_slice($rows, 0, $limit));
     }
 
     /** @return list<array{type: string, id: int|string, count: int}> */
@@ -272,6 +311,23 @@ final class ViewsFake implements RanksAlsoViewed, ViewSource, ViewStore
             ->filter(fn (ViewRecord $record): bool => $this->inCollection($record, $query->collection))
             ->filter(fn (ViewRecord $record): bool => $this->byViewer($record, $query->viewer, $viewerKey))
             ->values();
+    }
+
+    /**
+     * The position of the newest step the view falls in, or an empty string
+     * when it is older than every step.
+     *
+     * @param  list<Step>  $steps
+     */
+    private function stepOf(ViewRecord $record, array $steps): int|string
+    {
+        foreach ($steps as $index => $step) {
+            if ($record->viewedAt->greaterThanOrEqualTo($step->start)) {
+                return $index;
+            }
+        }
+
+        return '';
     }
 
     private function withinPeriod(ViewRecord $record, ?Period $period): bool

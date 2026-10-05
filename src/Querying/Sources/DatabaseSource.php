@@ -7,15 +7,20 @@ namespace CyrildeWit\EloquentViewable\Querying\Sources;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
+use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -26,7 +31,7 @@ use Illuminate\Support\Collection;
 use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, SubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -224,6 +229,153 @@ final readonly class DatabaseSource implements CountsByDimension, IdentifiesSour
         /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
         foreach ($rows as $row) {
             $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
+        }
+
+        return $ranking;
+    }
+
+    /**
+     * @return list<array{type: string, id: int|string, count: int, score: float}>
+     *
+     * @throws InvalidPeriod
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array
+    {
+        $rows = $this->view->getConnection()->query()
+            ->fromSub($this->trendingRows($viewable?->getMorphClass(), $decay->narrow($query), $decay), 'ranked')
+            ->orderByDesc('score')
+            ->orderBy('viewable_type')
+            ->orderBy('viewable_id')
+            ->limit($limit)
+            ->get();
+
+        return self::scored($rows);
+    }
+
+    /**
+     * The views of each viewable in the window, as `viewable_type`,
+     * `viewable_id`, `aggregate` and the integer `score`. With `unique`, the
+     * visitors are counted per step in a derived table first, because a
+     * weighted distinct count has no meaning across steps.
+     *
+     * @internal
+     */
+    public function trendingRows(?string $type, ViewsQuery $query, Decay $decay): Builder
+    {
+        $builder = $this->view->newQuery()->matching($query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        $viewableType = $this->view->qualifyColumn('viewable_type');
+        $viewableId = $this->view->qualifyColumn('viewable_id');
+        $viewedAt = $grammar->wrap($this->view->qualifyColumn('viewed_at'));
+
+        if ($type !== null) {
+            $builder->where($viewableType, $type);
+        }
+
+        $columns = "{$grammar->wrap($viewableType)} as viewable_type, {$grammar->wrap($viewableId)} as viewable_id";
+
+        if (! $query->unique) {
+            [$weight, $bindings] = StepCases::weight($decay, $viewedAt);
+
+            return $builder
+                ->selectRaw("{$columns}, count(*) as aggregate, sum({$weight}) as score", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+                ->groupBy($viewableType, $viewableId);
+        }
+
+        [$index, $bindings] = StepCases::index($decay, $viewedAt);
+
+        $stepped = $builder
+            ->selectRaw("{$columns}, {$index} as step, {$this->aggregate($query, $grammar)} as visitors", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+            ->groupBy($viewableType, $viewableId, 'step');
+
+        return $this->view->getConnection()->query()
+            ->fromSub($stepped, 'stepped')
+            ->selectRaw('viewable_type, viewable_id, sum(visitors) as aggregate, sum('.StepCases::weightOfIndex($decay, 'step').' * visitors) as score') // @phpstan-ignore argument.type (integer literals, not user input)
+            ->groupBy('viewable_type', 'viewable_id');
+    }
+
+    /**
+     * @throws InvalidPeriod
+     */
+    public function trendingSubquery(Viewable $viewable, ViewsQuery $query, Decay $decay): Builder
+    {
+        $weighted = $this->weightedSubquery($viewable, $decay->narrow($query), $decay);
+
+        return self::scaled($this->view->getConnection()->query(), "({$weighted->toSql()})", $weighted->getBindings());
+    }
+
+    /**
+     * Selects an integer score scaled back. The divisor is a floating point
+     * literal: SQLite and Postgres truncate integer division, and MySQL keeps
+     * only four decimals when dividing by a decimal.
+     *
+     * @param  list<mixed>  $bindings
+     *
+     * @internal
+     */
+    public static function scaled(Builder $builder, string $score, array $bindings): Builder
+    {
+        return $builder->selectRaw("{$score} / 1e6", $bindings); // @phpstan-ignore argument.type (subqueries built by the sources, their values are bound)
+    }
+
+    /**
+     * The integer score of the row of the outer query, 0 without views. With
+     * `unique`, the derived table is compared with the outer key outside it,
+     * because MariaDB refuses an outer reference inside a derived table.
+     *
+     * @internal
+     */
+    public function weightedSubquery(Viewable $viewable, ViewsQuery $query, Decay $decay): Builder
+    {
+        $builder = $this->view->newQuery()->matching($query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        $viewableId = $this->view->qualifyColumn('viewable_id');
+        $viewedAt = $grammar->wrap($this->view->qualifyColumn('viewed_at'));
+
+        $builder->where($this->view->qualifyColumn('viewable_type'), $viewable->getMorphClass());
+
+        if (! $query->unique) {
+            [$weight, $bindings] = StepCases::weight($decay, $viewedAt);
+
+            return $builder
+                ->whereColumn($viewableId, $viewable->getQualifiedKeyName())
+                ->selectRaw("coalesce(sum({$weight}), 0)", $bindings); // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+        }
+
+        [$index, $bindings] = StepCases::index($decay, $viewedAt);
+
+        $stepped = $builder
+            ->selectRaw("{$grammar->wrap($viewableId)} as viewable_id, {$index} as step, {$this->aggregate($query, $grammar)} as visitors", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+            ->groupBy($viewableId, 'step');
+
+        return $this->view->getConnection()->query()
+            ->fromSub($stepped, 'stepped')
+            ->whereColumn('stepped.viewable_id', $viewable->getQualifiedKeyName())
+            ->selectRaw('coalesce(sum('.StepCases::weightOfIndex($decay, 'step').' * visitors), 0)'); // @phpstan-ignore argument.type (integer literals, not user input)
+    }
+
+    /**
+     * The rows of a trending ranking, the integer score scaled back.
+     *
+     * @param  iterable<mixed>  $rows
+     * @return list<array{type: string, id: int|string, count: int, score: float}>
+     *
+     * @internal
+     */
+    public static function scored(iterable $rows): array
+    {
+        $ranking = [];
+
+        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string, score: int|string|float} $row */
+        foreach ($rows as $row) {
+            $ranking[] = [
+                'type' => $row->viewable_type,
+                'id' => $row->viewable_id,
+                'count' => (int) $row->aggregate,
+                'score' => (float) $row->score / Decay::Scale,
+            ];
         }
 
         return $ranking;

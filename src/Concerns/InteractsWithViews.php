@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Concerns;
 
+use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
+use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByTrending;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByViews;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewed;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewsCount;
+use CyrildeWit\EloquentViewable\Querying\Scopes\WithTrendingScore;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WithViewsCount;
 use CyrildeWit\EloquentViewable\Recording\Observers\ViewableObserver;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -25,6 +32,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @method static Builder<static> orderByViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
  * @method static Builder<static> orderByUniqueViews(string $direction = 'desc', ?Period $period = null, ?string $collection = null, string $as = 'unique_views_count')
  * @method static Builder<static> withViewsCount(?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count')
+ * @method static Builder<static> orderByTrending(string $direction = 'desc', ?Period $period = null, ?string $collection = null, bool $unique = false, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, string $as = 'trending_score')
+ * @method static Builder<static> withTrendingScore(?Period $period = null, ?string $collection = null, bool $unique = false, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, string $as = 'trending_score')
  * @method static Builder<static> whereViewsCount(string $operator, int $count, ?Period $period = null, ?string $collection = null, bool $unique = false)
  * @method static Builder<static> whereUniqueViewsCount(string $operator, int $count, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
@@ -93,6 +102,49 @@ trait InteractsWithViews
     public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
     {
         return $query->tap(new WithViewsCount($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $as));
+    }
+
+    /**
+     * Order by views weighed by their age, so recent views count more. A
+     * model without views in the window scores 0.
+     *
+     * @param  Builder<static>  $query
+     * @param  'asc'|'desc'  $direction
+     * @return Builder<static>
+     */
+    public function scopeOrderByTrending(
+        Builder $query,
+        string $direction = 'desc',
+        ?Period $period = null,
+        ?string $collection = null,
+        bool $unique = false,
+        ?CarbonInterval $halfLife = null,
+        ?DecayCurve $curve = null,
+        string $as = 'trending_score'
+    ): Builder {
+        $viewsQuery = new ViewsQuery($period, $collection, $unique);
+
+        return $query->tap(new OrderByTrending($this->trendingSubquerySource(), $viewsQuery, $this->decay($viewsQuery, $halfLife, $curve), $direction, $as));
+    }
+
+    /**
+     * Select the trending score as a column, the views weighed by their age.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWithTrendingScore(
+        Builder $query,
+        ?Period $period = null,
+        ?string $collection = null,
+        bool $unique = false,
+        ?CarbonInterval $halfLife = null,
+        ?DecayCurve $curve = null,
+        string $as = 'trending_score'
+    ): Builder {
+        $viewsQuery = new ViewsQuery($period, $collection, $unique);
+
+        return $query->tap(new WithTrendingScore($this->trendingSubquerySource(), $viewsQuery, $this->decay($viewsQuery, $halfLife, $curve), $as));
     }
 
     /**
@@ -165,5 +217,22 @@ trait InteractsWithViews
         }
 
         return $source;
+    }
+
+    /** @throws UnsupportedBySource */
+    protected function trendingSubquerySource(): TrendingSubquerySource
+    {
+        $source = Container::getInstance()->make(ViewSource::class);
+
+        if (! $source instanceof TrendingSubquerySource) {
+            throw UnsupportedBySource::trendingScopes($source);
+        }
+
+        return $source;
+    }
+
+    protected function decay(ViewsQuery $query, ?CarbonInterval $halfLife, ?DecayCurve $curve): Decay
+    {
+        return Container::getInstance()->make(DecayFactory::class)->make($query, $halfLife, $curve);
     }
 }

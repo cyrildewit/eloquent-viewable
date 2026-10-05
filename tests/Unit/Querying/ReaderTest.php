@@ -14,6 +14,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Reader;
@@ -28,6 +29,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Config\Repository;
+use Illuminate\Container\Container;
 
 function readerViewable(int|string|null $key = 7): Viewable
 {
@@ -47,6 +49,7 @@ function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxInte
         new VersionedCache($cache, new CacheVersions($cache, readerConfig())),
         readerConfig($maxIntervals),
         new ViewableLoader,
+        new DecayFactory(readerConfig($maxIntervals), new Container),
     );
 }
 

@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
@@ -14,9 +15,11 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\UnknownRollup;
@@ -157,6 +160,22 @@ class Views
     public function top(int $limit = 10): Ranking
     {
         return $this->reader->top($this->viewable, $this->query(), $limit, $this->cacheLifetime);
+    }
+
+    /**
+     * Ranked by views weighed by their age, so something taking off now ranks
+     * above something that was busy last week. Pass a half-life or a curve to
+     * override the configured one for this call.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function trending(int $limit = 10, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null): Ranking
+    {
+        return $this->reader->trending($this->viewable, $this->query(), $limit, $halfLife, $curve, $this->cacheLifetime);
     }
 
     /**

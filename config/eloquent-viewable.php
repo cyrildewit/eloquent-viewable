@@ -335,6 +335,27 @@ return [
 
         ],
 
+        /*
+         * `trending()` and `orderByTrending()` weigh each view by its age,
+         * so recent views count more. `curve` is how a view loses weight:
+         * `null` halves it every `half_life`, or name a class implementing
+         * `Querying\Ranking\DecayCurve`, resolved from the container.
+         *
+         * Views are weighed per `step`. `auto` weighs per hour, or per day
+         * when hours would exceed `max_steps`.
+         */
+        'trending' => [
+
+            'curve' => null,
+
+            'half_life' => '1d',
+
+            'step' => 'auto',
+
+            'max_steps' => 500,
+
+        ],
+
     ],
 
     /*

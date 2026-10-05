@@ -41,8 +41,8 @@ it('serializes each viewable through its own toArray()', function (): void {
     $this->post->setHidden(['title']);
 
     expect($this->ranking->toArray())->toBe([
-        ['rank' => 1, 'count' => 5, 'viewable' => []],
-        ['rank' => 2, 'count' => 2, 'viewable' => ['name' => 'Second']],
+        ['rank' => 1, 'count' => 5, 'score' => null, 'viewable' => []],
+        ['rank' => 2, 'count' => 2, 'score' => null, 'viewable' => ['name' => 'Second']],
     ])
         ->and(json_encode($this->ranking))->toBe(json_encode($this->ranking->toArray()));
 });
