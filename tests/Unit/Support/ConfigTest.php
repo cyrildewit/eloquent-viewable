@@ -106,6 +106,27 @@ it('reads the throttle settings', function (): void {
         ->and(packageConfig())->throttleCacheStore()->toBeNull();
 });
 
+it('reads the burst settings', function (): void {
+    expect(packageConfig(['recording' => ['bursts' => ['max' => '4', 'seconds' => '3', 'block_for' => '60', 'by' => ['network'], 'key' => 'bursts', 'store' => 'redis']]]))
+        ->burstMax()->toBe(4)
+        ->burstSeconds()->toBe(3)
+        ->burstBlockFor()->toBe(60)
+        ->burstKeys()->toBe(['network'])
+        ->burstKey()->toBe('bursts')
+        ->burstCacheStore()->toBe('redis')
+        ->and(packageConfig())->burstKeys()->toBe(['visitor', 'network'])
+        ->and(packageConfig())->burstCacheStore()->toBeNull();
+});
+
+it('rejects burst keys that are not visitor or network', function (mixed $value, string $described): void {
+    expect(fn (): array => packageConfig(['recording' => ['bursts' => ['by' => $value]]])->burstKeys())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.recording.bursts.by` config value must be a list of `visitor`, `network`, {$described} given.");
+})->with([
+    'string' => ['visitor', '`"visitor"`'],
+    'empty' => [[], 'array'],
+    'unknown key' => [['visitor', 'ip'], '`"ip"`'],
+]);
+
 it('reads the visitor cookie settings', function (): void {
     expect(packageConfig(['visitor' => ['cookie' => ['name' => 'who', 'lifetime' => '120']]]))
         ->visitorCookieName()->toBe('who')
@@ -152,6 +173,9 @@ it('rejects a positive integer key that is not one', function (string $method, s
     'interval cap' => ['maxIntervals', 'querying.max_intervals'],
     'cookie lifetime' => ['visitorCookieLifetime', 'visitor.cookie.lifetime'],
     'throttle maximum' => ['throttleMaxPerMinute', 'recording.throttle.max_per_minute'],
+    'burst maximum' => ['burstMax', 'recording.bursts.max'],
+    'burst seconds' => ['burstSeconds', 'recording.bursts.seconds'],
+    'burst block' => ['burstBlockFor', 'recording.bursts.block_for'],
 ])->with([
     'zero' => [0, '`0`'],
     'negative' => [-1, '`-1`'],
@@ -177,6 +201,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'cooldown cache store' => ['cooldownCacheStore', 'cooldown.cache.store'],
     'fingerprint cache store' => ['fingerprintCacheStore', 'visitor.fingerprint.store'],
     'throttle cache store' => ['throttleCacheStore', 'recording.throttle.store'],
+    'burst cache store' => ['burstCacheStore', 'recording.bursts.store'],
 ]);
 
 it('rejects an empty key', function (string $method, string $key): void {
@@ -192,6 +217,7 @@ it('rejects an empty key', function (string $method, string $key): void {
     'cooldown store' => ['cooldownStore', 'cooldown.store'],
     'cooldown key' => ['cooldownKey', 'cooldown.key'],
     'throttle key' => ['throttleKey', 'recording.throttle.key'],
+    'burst key' => ['burstKey', 'recording.bursts.key'],
     'visitor cookie name' => ['visitorCookieName', 'visitor.cookie.name'],
     'fingerprint key' => ['fingerprintKey', 'visitor.fingerprint.key'],
     'store driver' => ['storeDriver', 'recording.store.driver'],

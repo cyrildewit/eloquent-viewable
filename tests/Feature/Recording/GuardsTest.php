@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
@@ -39,13 +40,14 @@ function alwaysCrawler(): CrawlerDetector
     };
 }
 
-it('ships with the crawler, user agent, IP address, HEAD, prefetch and cooldown guards listed', function (): void {
+it('ships with the crawler, user agent, IP address, HEAD, prefetch, burst and cooldown guards listed', function (): void {
     expect($this->app->make(PackageConfig::class)->guards())->toBe([
         IgnoreCrawlers::class,
         IgnoreMissingUserAgent::class,
         IgnoreIpAddresses::class,
         IgnoreHeadRequests::class,
         IgnorePrefetch::class,
+        IgnoreBursts::class,
         EnforceCooldown::class,
     ]);
 });
@@ -161,6 +163,17 @@ it('throttles a visitor across viewables once ThrottleVisitors is listed', funct
         ->and(views($other)->record())->toBeTrue()
         ->and(views($this->post)->record())->toBeFalse()
         ->and(View::count())->toBe(2);
+});
+
+it('drops a burst of views of different models with the default guards', function (): void {
+    $posts = Post::factory()->count(9)->create();
+
+    $recorded = $posts->map(fn (Post $post): bool => views($post)->record());
+
+    expect($recorded->take(8)->every(fn (bool $stored): bool => $stored))->toBeTrue()
+        ->and($recorded->last())->toBeFalse()
+        ->and(views($this->post)->record())->toBeFalse()
+        ->and(View::count())->toBe(8);
 });
 
 it('rejects a guard class that does not implement the contract', function (): void {
