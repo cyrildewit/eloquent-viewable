@@ -41,6 +41,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Cooldowns',
     'CyrildeWit\EloquentViewable\Retention',
     'CyrildeWit\EloquentViewable\Debugging',
+    'CyrildeWit\EloquentViewable\Maintenance',
 ];
 
 const ENTRY_POINTS = [
@@ -151,6 +152,21 @@ arch('debugging only reads what recording reports')
 arch('only debugging knows Debugbar')
     ->expect(['DebugBar', 'Fruitcake\LaravelDebugbar'])
     ->toOnlyBeUsedIn('CyrildeWit\EloquentViewable\Debugging');
+
+arch('maintenance runs querying and retention and nothing else')
+    ->expect('CyrildeWit\EloquentViewable\Maintenance')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Maintenance',
+        'CyrildeWit\EloquentViewable\Querying',
+        'CyrildeWit\EloquentViewable\Retention',
+        'Carbon',
+        'Illuminate',
+    ]);
+
+arch('nothing below maintenance depends on it')
+    ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying', 'CyrildeWit\EloquentViewable\Retention'])
+    ->not->toUse('CyrildeWit\EloquentViewable\Maintenance');
 
 arch('only the entry points join the two sides')
     ->expect(MODULES)

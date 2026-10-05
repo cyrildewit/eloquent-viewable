@@ -7,6 +7,8 @@
 #   EntryPoints   service provider, facade, trait, helpers, middleware
 #   Testing       the fake behind Views::fake(), stands in for both sides
 #   Views         the builder that ties recording and counting together
+#   Maintenance   the scheduled work: rolls up, anonymises, prunes and
+#                 recounts in order, under one lock and one deadline
 #   Retention     anonymises and prunes old views, above querying for the
 #                 rollup watermarks it clamps to
 #   Debugging     shows what recording did in Debugbar, above recording for
@@ -64,6 +66,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Debugging\\.*
+    - name: Maintenance
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Maintenance\\.*
 
     # The builder behind the facade. It records views as well as counting them,
     # so it sits above both.
@@ -129,6 +135,11 @@ deptrac:
       - Foundation
       - Recording
       - Debugbar
+    # Runs the steps of querying and retention in the order that keeps them
+    # safe, and keeps the counter columns in step with both.
+    Maintenance:
+      - +Retention
+      - Querying
     Views:
       - +Recording
       - +Querying
@@ -138,7 +149,7 @@ deptrac:
     EntryPoints:
       - +Views
       - Testing
-      - +Retention
+      - +Maintenance
       - Debugging
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.
@@ -152,6 +163,7 @@ deptrac:
           - Recording
           - Querying
           - Retention
+          - Maintenance
           - Cooldowns
           - Visitors
           - Crawlers

@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Snapshot;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Database\Query\Builder;
 
@@ -18,6 +19,9 @@ use Illuminate\Database\Query\Builder;
  * This action drops the buckets of a tier once they are older than it is
  * kept. Only whole buckets of the next coarser tier go, and only once that
  * tier has folded them, so history loses resolution but never counts.
+ *
+ * Once the deadline passes, the run stops before the next chunk and leaves
+ * the rest of the tier for the next run.
  */
 final readonly class ExpireTiers
 {
@@ -27,9 +31,10 @@ final readonly class ExpireTiers
         private RollupState $state,
     ) {}
 
-    /** @return list<array{rollup: string, tier: Tier, rows: int}> */
-    public function handle(int $chunk, bool $dryRun = false): array
+    /** @return list<array{rollup: string, tier: Tier, rows: int, stopped: bool}> */
+    public function handle(int $chunk, bool $dryRun = false, ?Deadline $deadline = null): array
     {
+        $deadline ??= Deadline::none();
         $now = CarbonImmutable::now();
         $dropped = [];
 
@@ -56,12 +61,18 @@ final readonly class ExpireTiers
                 }
 
                 if ($dryRun) {
-                    $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $this->expired($definition->name, $tier, $cutoff)->count()];
+                    $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $this->expired($definition->name, $tier, $cutoff)->count(), 'stopped' => false];
 
                     continue;
                 }
 
-                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $this->drop($definition->name, $tier, $cutoff, $chunk)];
+                $result = $this->drop($definition->name, $tier, $cutoff, $chunk, $deadline);
+
+                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, ...$result];
+
+                if ($result['stopped']) {
+                    return $dropped;
+                }
 
                 $this->state->putSince($definition->name, $tier, $cutoff);
             }
@@ -88,11 +99,16 @@ final readonly class ExpireTiers
         return $coarser->floor($cutoff->min($folded), $zone);
     }
 
-    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk): int
+    /** @return array{rows: int, stopped: bool} */
+    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk, Deadline $deadline): array
     {
         $dropped = 0;
 
         do {
+            if ($deadline->passed()) {
+                return ['rows' => $dropped, 'stopped' => true];
+            }
+
             $ids = $this->expired($rollup, $tier, $cutoff)->limit($chunk)->pluck('id')->all();
 
             if ($ids !== []) {
@@ -100,7 +116,7 @@ final readonly class ExpireTiers
             }
         } while (count($ids) === $chunk);
 
-        return $dropped;
+        return ['rows' => $dropped, 'stopped' => false];
     }
 
     private function expired(string $rollup, Tier $tier, CarbonImmutable $cutoff): Builder

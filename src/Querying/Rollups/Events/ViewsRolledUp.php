@@ -10,7 +10,8 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 /**
  * Dispatched once a tier of the named rollup is folded up to `until`, `from`
  * being where it stood before, null on the first run. The buckets count those
- * folded again for views that landed late.
+ * folded again for views that landed late. A run that reached its deadline is
+ * stopped, and `until` is as far as it got.
  */
 class ViewsRolledUp
 {
@@ -20,5 +21,6 @@ class ViewsRolledUp
         public ?CarbonImmutable $from,
         public CarbonImmutable $until,
         public int $buckets,
+        public bool $stopped = false,
     ) {}
 }

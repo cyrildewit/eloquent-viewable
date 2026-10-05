@@ -15,6 +15,7 @@ use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
@@ -27,6 +28,9 @@ use Illuminate\Support\Carbon;
  * day, so the views of one visitor on one day keep sharing an id but no id
  * links two days, and once the salt is forgotten nothing leads back.
  * `viewer` and `context` become null.
+ *
+ * Once the deadline passes, the run stops before the next chunk. The salt of
+ * a day it left halfway is kept, so the next run finishes that day with it.
  */
 final readonly class AnonymiseViews
 {
@@ -56,10 +60,11 @@ final readonly class AnonymiseViews
      * @throws InvalidTimezone
      * @throws RetentionNotInstalled
      */
-    public function handle(CarbonInterface $cutoff, array $columns, int $chunk, bool $dryRun = false): RetentionRun
+    public function handle(CarbonInterface $cutoff, array $columns, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
     {
         $this->state->ensureInstalled();
 
+        $deadline ??= Deadline::none();
         $requested = $this->midnight($cutoff);
         $until = $this->midnight($this->watermarks->clamp($requested));
         $from = $this->state->moment(self::Mark);
@@ -77,7 +82,13 @@ final readonly class AnonymiseViews
         $cursor = $from;
 
         while (($day = $this->nextDay($cursor, $until, $columns)) instanceof CarbonInterface) {
-            $views += $this->anonymiseDay($day, $columns, $chunk);
+            $result = $this->anonymiseDay($day, $columns, $chunk, $deadline);
+            $views += $result['views'];
+
+            if (! $result['finished']) {
+                return $this->stopped($from, $day, $views, $clamped);
+            }
+
             $cursor = $this->nextMidnight($day);
 
             $this->state->putMoment(self::Mark, $cursor);
@@ -90,6 +101,19 @@ final readonly class AnonymiseViews
         }
 
         return new RetentionRun($from, $until, $views, $clamped, false);
+    }
+
+    /**
+     * The mark stays at the start of the day in progress, which is as far as
+     * every view is anonymised.
+     */
+    private function stopped(?CarbonInterface $from, Carbon $day, int $views, bool $clamped): RetentionRun
+    {
+        if ($views > 0) {
+            $this->events->dispatch(new ViewsAnonymised($from, $day, $views));
+        }
+
+        return new RetentionRun($from, $day, $views, $clamped, false, stopped: true);
     }
 
     /**
@@ -111,23 +135,28 @@ final readonly class AnonymiseViews
 
     /**
      * Each chunk starts after the last id of the one before, so a day is read
-     * once instead of once per chunk.
+     * once instead of once per chunk. The day is not finished when the
+     * deadline stopped it halfway.
      *
      * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @return array{views: int, finished: bool}
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
-    private function anonymiseDay(Carbon $day, array $columns, int $chunk): int
+    private function anonymiseDay(Carbon $day, array $columns, int $chunk, Deadline $deadline): array
     {
         $name = self::Salt.$day->avoidMutation()->setTimezone($this->zone())->toDateString();
         $salt = $this->saltOfDayInProgress($name);
         $end = $this->nextMidnight($day);
         $views = 0;
-
         $last = null;
 
         do {
+            if ($deadline->passed()) {
+                return ['views' => $views, 'finished' => false];
+            }
+
             $visitors = $this->pending($day, $end, $columns)
                 ->when($last, fn (Builder $query, int|string $last): Builder => $query->where('id', '>', $last))
                 ->orderBy('id')
@@ -145,7 +174,7 @@ final readonly class AnonymiseViews
 
         $this->state->forget($name);
 
-        return $views;
+        return ['views' => $views, 'finished' => true];
     }
 
     /**

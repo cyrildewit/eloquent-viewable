@@ -8,6 +8,7 @@ use Carbon\CarbonInterface;
 use Carbon\Exceptions\InvalidFormatException;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Support\Carbon;
 
@@ -18,6 +19,7 @@ final class PruneViewsCommand extends RetentionCommand
         {--older-than= : Delete views older than this, such as 90d, instead of retention.prune.after}
         {--before= : Delete views viewed before this date, such as the start of a dropped partition}
         {--chunk= : How many views to delete per statement}
+        {--max-seconds= : Stop starting new chunks after this many seconds, the next run carries on}
         {--dry-run : Count the views that would be deleted without deleting them}';
 
     #[\Override]
@@ -28,8 +30,13 @@ final class PruneViewsCommand extends RetentionCommand
         $chunk = $this->chunk($policy);
         $after = $this->olderThan($policy->pruneAfter);
         $before = $this->before();
+        $deadline = $this->deadline();
 
         if ($chunk === null) {
+            return self::FAILURE;
+        }
+
+        if ($deadline === false) {
             return self::FAILURE;
         }
 
@@ -49,11 +56,11 @@ final class PruneViewsCommand extends RetentionCommand
             return self::SUCCESS;
         }
 
-        return $this->exclusively(function () use ($prune, $cutoff, $chunk): int {
-            $this->report('deleted', $prune->handle($cutoff, $chunk, $this->isDryRun()));
+        return $this->exclusively(function (Deadline $deadline) use ($prune, $cutoff, $chunk): int {
+            $this->report('deleted', $prune->handle($cutoff, $chunk, $this->isDryRun(), $deadline));
 
             return self::SUCCESS;
-        });
+        }, $deadline);
     }
 
     private function olderThanCutoff(?Duration $after): ?CarbonInterface

@@ -353,3 +353,52 @@ it('throws when the state table is missing', function (): void {
 
     fold();
 })->throws(RollupsNotInstalled::class, 'The `view_retention_state` table does not exist.');
+
+it('stops before the next bucket at the deadline and carries on from there', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-01-11 10:00:00');
+    viewAt($this->other, '2026-01-12 10:00:00');
+
+    $runs = app(FoldViews::class)->handle(deadline: deadlineAfter(2));
+
+    expect($runs)->toHaveCount(2)
+        ->and($runs[0]->tier)->toBe(Tier::Month)
+        ->and($runs[0]->stopped)->toBeFalse()
+        ->and($runs[1]->tier)->toBe(Tier::Day)
+        ->and($runs[1]->stopped)->toBeTrue()
+        ->and($runs[1]->buckets)->toBe(1)
+        ->and($runs[1]->until->toDateTimeString())->toBe('2026-01-11 00:00:00')
+        ->and(app(RollupState::class)->snapshot('views')->folded(Tier::Day)?->toDateTimeString())->toBe('2026-01-11 00:00:00')
+        ->and(app(RollupState::class)->lastId())->toBeNull();
+
+    $rest = fold();
+
+    expect(array_map(fn (ViewsRolledUp $run): bool => $run->stopped, $rest))->toBe([false, false])
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-01-11', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-01-12', 'viewable', $this->other))->toBe([1, 1])
+        ->and(bucket('month', '2026-01-01', 'type'))->toBe([3, 1])
+        ->and(app(RollupState::class)->lastId())->not->toBeNull();
+});
+
+it('leaves a late view for the next run when the deadline passes first', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    fold();
+
+    $lastId = app(RollupState::class)->lastId();
+    viewAt($this->post, '2026-01-10 11:00:00');
+
+    $runs = app(FoldViews::class)->handle(deadline: deadlineAfter(0));
+
+    expect($runs)->toHaveCount(1)
+        ->and($runs[0]->tier)->toBe(Tier::Month)
+        ->and($runs[0]->stopped)->toBeTrue()
+        ->and($runs[0]->buckets)->toBe(0)
+        ->and($runs[0]->until->toDateTimeString())->toBe('2026-03-01 00:00:00')
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([1, 1])
+        ->and(app(RollupState::class)->lastId())->toBe($lastId);
+
+    fold();
+
+    expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 1]);
+});

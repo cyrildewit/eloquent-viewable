@@ -9,6 +9,8 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\LockUnavailable;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Console\LimitsRunTime;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Console\Command;
@@ -17,6 +19,8 @@ use Illuminate\Support\Str;
 /** @internal */
 abstract class RetentionCommand extends Command
 {
+    use LimitsRunTime;
+
     /**
      * It returns null once the error is reported.
      */
@@ -83,14 +87,14 @@ abstract class RetentionCommand extends Command
     }
 
     /**
-     * @param  Closure(): int  $callback
+     * @param  Closure(Deadline): int  $callback
      *
      * @throws InvalidConfiguration
      * @throws LockUnavailable
      */
-    protected function exclusively(Closure $callback): int
+    protected function exclusively(Closure $callback, ?Deadline $deadline = null): int
     {
-        $result = $this->laravel->make(RunLock::class)->run($callback);
+        $result = $this->laravel->make(RunLock::class)->run($callback, $deadline);
 
         if ($result === null) {
             $this->components->warn('Another run is in progress, so this one was skipped.');
@@ -108,6 +112,12 @@ abstract class RetentionCommand extends Command
         $summary = "{$verb} {$run->views} {$noun} viewed before {$until}.";
 
         $this->components->info($run->dryRun ? "Would have {$summary}" : ucfirst($summary));
+
+        if ($run->stopped) {
+            $this->reportStopped();
+
+            return;
+        }
 
         if ($run->clamped) {
             $this->components->warn("Stopped at {$until}, because the rollups have not captured the views after it yet.");

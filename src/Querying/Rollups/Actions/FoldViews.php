@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Snapshot;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 
@@ -28,6 +29,9 @@ use Illuminate\Database\Query\Builder;
  * A bucket closes once `settle` has passed since its end. A view that lands
  * after its bucket was folded is found by its id, above the highest id the
  * last run saw, and its bucket is folded again.
+ *
+ * Once the deadline passes, the run stops before the next bucket. Every tier
+ * is marked as far as it got, so the next run carries on from there.
  */
 final readonly class FoldViews
 {
@@ -50,14 +54,16 @@ final readonly class FoldViews
      *
      * @throws RollupsNotInstalled
      */
-    public function handle(?Tier $only = null, ?CarbonInterface $from = null, bool $dryRun = false, ?string $rollup = null): array
+    public function handle(?Tier $only = null, ?CarbonInterface $from = null, bool $dryRun = false, ?string $rollup = null, ?Deadline $deadline = null): array
     {
         $this->ensureInstalled();
 
+        $deadline ??= Deadline::none();
         $now = CarbonImmutable::now();
         $lastId = $this->state->lastId();
         $maxId = $this->maxId();
         $runs = [];
+        $stopped = false;
 
         foreach ($this->policy->definitions() as $definition) {
             if ($rollup !== null && $definition->name !== $rollup) {
@@ -72,17 +78,26 @@ final readonly class FoldViews
                     continue;
                 }
 
-                $run = $this->foldTier($definition, $tier, $snapshot, $now, $from, $lastId, $maxId, $dryRun, $origin);
+                $run = $this->foldTier($definition, $tier, $snapshot, $now, $from, $lastId, $maxId, $dryRun, $deadline, $origin);
 
                 if ($run->buckets > 0 && ! $dryRun) {
                     $this->events->dispatch($run);
                 }
 
                 $runs[] = $run;
+                $stopped = $run->stopped;
+
+                if ($stopped) {
+                    break;
+                }
             }
 
             if (! $dryRun && $origin instanceof CarbonImmutable) {
                 $this->state->putOrigin($definition->name, $origin);
+            }
+
+            if ($stopped) {
+                return $runs;
             }
         }
 
@@ -131,17 +146,13 @@ final readonly class FoldViews
      *
      * @param-out CarbonImmutable $origin
      */
-    private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $now, ?CarbonInterface $from, ?int $lastId, ?int $maxId, bool $dryRun, ?CarbonImmutable &$origin): ViewsRolledUp
+    private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $now, ?CarbonInterface $from, ?int $lastId, ?int $maxId, bool $dryRun, Deadline $deadline, ?CarbonImmutable &$origin): ViewsRolledUp
     {
         $zone = $this->policy->timezone;
         $until = $this->policy->closedUntil($tier, $now);
         $folded = $snapshot->folded($tier);
         $buckets = 0;
         $dirty = $this->dirtyBuckets($tier, $snapshot, $lastId, $maxId);
-
-        foreach ($dirty as $bucket) {
-            $buckets += $this->foldBucket($definition, $tier, $bucket, $dryRun);
-        }
 
         $cursor = $this->cursor($tier, $snapshot, $from, $until);
         $lowest = $dirty === [] ? $cursor : $dirty[0]->min($cursor);
@@ -151,7 +162,19 @@ final readonly class FoldViews
             $this->markSince($definition, $tier, $snapshot->since($tier), $lowest);
         }
 
+        foreach ($dirty as $bucket) {
+            if ($deadline->passed()) {
+                return new ViewsRolledUp($definition->name, $tier, $folded, $folded ?? $cursor, $buckets, stopped: true);
+            }
+
+            $buckets += $this->foldBucket($definition, $tier, $bucket, $dryRun);
+        }
+
         while (($first = $this->firstViewedAt($cursor, $until)) instanceof CarbonImmutable) {
+            if ($deadline->passed()) {
+                return new ViewsRolledUp($definition->name, $tier, $folded, $cursor->max($folded ?? $cursor), $buckets, stopped: true);
+            }
+
             $bucket = $tier->floor($first, $zone);
             $buckets += $this->foldBucket($definition, $tier, $bucket, $dryRun);
             $cursor = $tier->next($bucket, $zone);

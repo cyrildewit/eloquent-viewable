@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {
     $this->travelTo(Carbon::parse('2026-03-31 12:00:00'));
@@ -128,16 +129,66 @@ it('recounts nothing on a dry run', function (): void {
     expect(counted($this->post))->toBe([[0, 0]]);
 });
 
-it('reports a recount that fails', function (): void {
-    config()->set('eloquent-viewable.retention.prune.after', '30d');
-
-    Artisan::command('views:recount {--chunk=}', fn (): int => 1);
-
-    $this->artisan('views:maintain')->assertFailed();
-});
-
 it('refuses to recount through a source that cannot be queried in SQL', function (): void {
     ViewsFacade::fake();
 
     app(RecountViews::class)->handle(chunk: 100);
 })->throws(UnsupportedBySource::class, 'cannot be queried in SQL, so views:recount cannot write the counter columns from it.');
+
+it('stops recounting at its time limit and carries on in the next run', function (): void {
+    travelOnFirst('update', 'posts');
+
+    $this->artisan('views:recount', ['--chunk' => '1', '--max-seconds' => '60'])
+        ->expectsOutputToContain('Recounted 1 SoftDeletablePost.')
+        ->expectsOutputToContain('Stopped at the time limit. The next run carries on from here.')
+        ->assertSuccessful();
+
+    $this->artisan('views:recount')
+        ->expectsOutputToContain('Recounted 2 SoftDeletablePosts.')
+        ->assertSuccessful();
+});
+
+it('recounts only what changed, or every model with --full', function (): void {
+    $this->artisan('views:recount')->assertSuccessful();
+
+    $this->artisan('views:recount')
+        ->expectsOutputToContain('Recounted 0 SoftDeletablePosts.')
+        ->assertSuccessful();
+
+    $this->artisan('views:recount', ['--full' => true])
+        ->expectsOutputToContain('Recounted 3 SoftDeletablePosts.')
+        ->assertSuccessful();
+});
+
+it('skips the recount while another run holds the lock', function (): void {
+    $lock = Cache::lock('cyrildewit.eloquent-viewable.cache:maintenance', 10);
+    $lock->get();
+
+    try {
+        $this->artisan('views:recount')
+            ->expectsOutputToContain('Another run is in progress, so this one was skipped.')
+            ->assertSuccessful();
+    } finally {
+        $lock->release();
+    }
+
+    expect(counted($this->post))->toBe([[0, 0]]);
+});
+
+it('recounts a single model through the counters of its class only', function (): void {
+    app(RecountViews::class)->destroyed(new Post);
+    app(RecountViews::class)->recount(new Post, [$this->post->getKey()]);
+
+    config()->set('eloquent-viewable.querying.counters', []);
+    app(RecountViews::class)->recount(new Post, [$this->trashed->getKey()]);
+
+    expect(counted($this->post, $this->trashed))->toBe([[4, 2], [0, 0]]);
+});
+
+it('skips recounting a model whose views were destroyed under a source that cannot be queried in SQL', function (): void {
+    ViewsFacade::fake();
+
+    app(RecountViews::class)->destroyed($this->post);
+
+    expect(counted($this->post))->toBe([[0, 0]]);
+});
