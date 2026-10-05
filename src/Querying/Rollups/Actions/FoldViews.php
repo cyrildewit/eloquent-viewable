@@ -119,9 +119,7 @@ final readonly class FoldViews
 
                 $floor = $tier->ceil($floor, $this->policy->timezone);
 
-                if (! $latest instanceof CarbonImmutable || $floor > $latest) {
-                    $latest = $floor;
-                }
+                $latest = $latest?->max($floor) ?? $floor;
             }
         }
 

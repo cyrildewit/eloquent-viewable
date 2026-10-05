@@ -52,7 +52,8 @@ final readonly class IgnoreBursts implements RecordingGuard
             }
         }
 
-        $viewable = hash('xxh128', "{$attempt->viewable->getMorphClass()}|".ViewableKey::of($attempt->viewable));
+        $viewableKey = ViewableKey::of($attempt->viewable);
+        $viewable = hash('xxh128', "{$attempt->viewable->getMorphClass()}|{$viewableKey}");
         $allowed = true;
 
         foreach ($keys as $by => $key) {
@@ -105,8 +106,10 @@ final readonly class IgnoreBursts implements RecordingGuard
 
         $this->cache->add("{$key}:{$bucket}", 0, $ttl);
 
+        $previousBucket = $bucket - 1;
+
         $current = (int) $this->cache->increment("{$key}:{$bucket}");
-        $previous = $this->cache->get("{$key}:".($bucket - 1), 0);
+        $previous = $this->cache->get("{$key}:{$previousBucket}", 0);
         $overlap = 1 - (($now % $window) / $window);
 
         return $current + (is_numeric($previous) ? (int) $previous : 0) * $overlap;
