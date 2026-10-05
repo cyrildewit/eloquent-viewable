@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Maintenance\Actions\MaintainViews;
 use CyrildeWit\EloquentViewable\Maintenance\Data\MaintenanceRun;
+use CyrildeWit\EloquentViewable\Maintenance\Jobs\MaintainViewsJob;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {
@@ -167,6 +170,64 @@ it('rejects a time limit that is not a positive integer', function (string $comm
         ->expectsOutputToContain('The --max-seconds option must be a positive integer.')
         ->assertFailed();
 })->with(['views:maintain', 'views:rollup', 'views:anonymise', 'views:prune', 'views:recount'])->with(['0', 'soon']);
+
+it('queues itself again when its run stopped at the time limit', function (): void {
+    config()->set('eloquent-viewable.retention.prune.after', '30d');
+    travelOnFirst('delete', 'views');
+    Bus::fake();
+
+    app()->call([new MaintainViewsJob(maxSeconds: 60, chunk: 1)->onConnection('redis')->onQueue('maintenance'), 'handle']);
+
+    expect(View::query()->count())->toBe(3);
+
+    Bus::assertDispatched(MaintainViewsJob::class, fn (MaintainViewsJob $job): bool => $job->maxSeconds === 60
+        && $job->chunk === 1
+        && $job->connection === 'redis'
+        && $job->queue === 'maintenance');
+});
+
+it('does not queue itself again once the work is done', function (): void {
+    config()->set('eloquent-viewable.retention.prune.after', '30d');
+    Bus::fake();
+
+    app()->call([new MaintainViewsJob, 'handle']);
+
+    expect(View::query()->count())->toBe(1);
+
+    Bus::assertNotDispatched(MaintainViewsJob::class);
+});
+
+it('does nothing when nothing is configured', function (): void {
+    Bus::fake();
+
+    app()->call([new MaintainViewsJob, 'handle']);
+
+    expect(View::query()->count())->toBe(4);
+
+    Bus::assertNotDispatched(MaintainViewsJob::class);
+});
+
+it('leaves the work to the run that holds the lock', function (): void {
+    config()->set('eloquent-viewable.retention.prune.after', '30d');
+    Bus::fake();
+
+    $lock = Cache::lock('cyrildewit.eloquent-viewable.cache:maintenance', 10);
+    $lock->get();
+
+    try {
+        app()->call([new MaintainViewsJob, 'handle']);
+    } finally {
+        $lock->release();
+    }
+
+    expect(View::query()->count())->toBe(4);
+
+    Bus::assertNotDispatched(MaintainViewsJob::class);
+});
+
+it('stays unique in the queue until it starts', function (): void {
+    expect(new MaintainViewsJob)->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class);
+});
 
 it('reports every step it ran', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
