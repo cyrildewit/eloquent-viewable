@@ -1,7 +1,7 @@
 # Trending articles
 
-A blog shows a "Trending this week" sidebar on every page: the ten articles with the most views over the past seven
-days, each with its view count.
+A blog shows a "Trending this week" sidebar on every page: the ten articles readers are turning to right now, each
+with its views over the past seven days.
 
 ## The pieces
 
@@ -9,7 +9,7 @@ days, each with its view count.
 |------------------------------------------------------------------------------|----------------------------------------------------|
 | [`Article.php`](Article.php)                                                 | The viewable model                                 |
 | [`ShowArticle.php`](ShowArticle.php)                                         | The controller that shows the article              |
-| [`TrendingArticles.php`](TrendingArticles.php)                               | Ranks the articles and caches the ranking          |
+| [`TrendingArticles.php`](TrendingArticles.php)                               | Ranks the articles and remembers the ranking       |
 | [`create_articles_table.php`](database/migrations/create_articles_table.php) | The `articles` table                               |
 | [`TrendingArticlesTest.php`](TrendingArticlesTest.php)                       | The behaviour below, as tests                      |
 
@@ -23,8 +23,8 @@ Route::get('/articles/{article}', ShowArticle::class)
 ```
 
 ```blade
-@foreach (app(TrendingArticles::class)->get() as $article)
-    <a href="/articles/{{ $article->id }}">{{ $article->title }}</a> · {{ $article->views_count }} views
+@foreach (app(TrendingArticles::class)->get() as $entry)
+    <a href="/articles/{{ $entry->viewable->id }}">{{ $entry->viewable->title }}</a> · {{ $entry->count }} views this week
 @endforeach
 ```
 
@@ -36,23 +36,29 @@ half hour. `unique()` would be the alternative, but a cooldown keeps the counts 
 stops the views table from growing with every refresh. The middleware records only a successful `GET`, so a mistyped
 article id that ends in a 404 counts for nothing, and the controller has no tracking code to forget.
 
-**Rank inside the database.** `orderByViews('desc', Period::pastDays(7))` adds a `views_count` subquery limited to the
-period and sorts on it, so only the top ten rows come back. Views older than the window drop out on their own; there is
-no counter to reset. Articles with no views in the window are left out rather than padding the list.
+**Rank by decay, not by count.** `views(Article::class)->period(Period::pastDays(7))->trending()` weighs every view by
+its age: a view from now counts fully, and one loses half its weight every day. An article that took off this morning
+ranks above one that was busy five days ago, even with fewer views, and a spike fades out gradually instead of
+dropping off the list all at once when it leaves the window. `orderByViews()` over the same week would count every
+view the same and keep last week's hit on top until the window passed it. The period still caps the window at a
+week, so the "views this week" label next to each article is `$entry->count`, and articles with no views in the week
+are left out rather than padding the list. Keep `$entry->score` for sorting or thresholds; it reads as "worth this
+many views right now", not as a view count.
 
-**Cache the ranking, not the models.** `remember()` only caches `count()` and `countByInterval()`, not the
-`orderByViews()` scope, and the scope counts every view in the window on each call. With the sidebar on every page that
-query runs on every request, so `TrendingArticles` caches the result for ten minutes. It caches the ids and counts only
-and loads the models fresh, so an edited title or a deleted article shows straight away. The counts are up to ten
-minutes behind, which is fine for a sidebar.
+**Remember the ranking for ten minutes.** `trending()` reads every view in the window, and with the sidebar on every
+page that query would run on every request. `remember(10)` keeps the ranking for ten minutes, which is fine for a
+sidebar. It remembers the ids, counts and scores only, and loads the articles fresh, so an edited title or a deleted
+article shows straight away. Give `remember()` a lifetime: a ranking remembered forever never changes.
 
-**Index the views table.** The ranking counts each article's views by `viewable_type`, `viewable_id` and `viewed_at`,
+**Index the views table.** The ranking reads each article's views by `viewable_type`, `viewable_id` and `viewed_at`,
 which is exactly the `views_viewable_viewed_at_index` composite index from the migration. See
 [database indexes](../../README.md#database-indexes).
 
 ## Where to take it next
 
-- Use `orderByUniqueViews()` instead to rank by distinct readers.
+- Rank by distinct readers with `unique()`, which counts a reader once per hour.
+- Make a slower list, such as "popular this month", with a longer half-life: `trending(halfLife: CarbonInterval::week())`.
+- Paginate the full list with `Article::orderByTrending(period: Period::pastDays(7))->paginate()`.
 - Rank per section with a [view collection](../../README.md#view-collections), recording with
   `RecordViews::using('article', collection: 'sidebar', cooldown: 30)`.
 - On a high-traffic site, [queue the recording](../../README.md#queueing-view-recording) with `queue: true` so the

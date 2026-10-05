@@ -5,7 +5,7 @@ sample combines several of them to solve one problem, and explains why it is put
 
 | Sample                                           | Shows                                                                                                                                                                        |
 |--------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Trending articles](TrendingArticles)            | A "trending this week" list: the `views` route middleware with a cooldown, `orderByViews()` over a period, and caching a ranking that `remember()` cannot cache              |
+| [Trending articles](TrendingArticles)            | A "trending this week" list: the `views` route middleware with a cooldown, `trending()` weighing views by their age, and `remember()` on the ranking                         |
 | [Listing stats](ListingStats)                    | A seller's stats page: `countByInterval()` for a daily chart, `unique()` visitors, `compare()` with the 30 days before, and periods that `remember()` can cache              |
 | [Popular products](PopularProducts)              | A "most viewed" catalog sort: queued recording and a `views_count` column kept up to date by `ViewRecorded`                                                                  |
 | [Breaking news](BreakingNews)                    | Story pages under a traffic spike: the `redis` store, a scheduled flush through `Flusher`, and a dashboard that says how fresh its counts are                                |

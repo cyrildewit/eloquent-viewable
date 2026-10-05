@@ -31,6 +31,22 @@ function readArticle(Article $article, int $count = 1): void
     }
 }
 
+/**
+ * The titles of the trending articles with their views this week.
+ *
+ * @return list<array{string, int}>
+ */
+function trendingArticles(): array
+{
+    $entries = [];
+
+    foreach (app(TrendingArticles::class)->get() as $entry) {
+        $entries[] = [$entry->viewable->title, $entry->count];
+    }
+
+    return $entries;
+}
+
 it('ranks the articles by their views over the past week', function (): void {
     $quiet = Article::create(['title' => 'Quiet']);
     $popular = Article::create(['title' => 'Popular']);
@@ -38,10 +54,20 @@ it('ranks the articles by their views over the past week', function (): void {
     readArticle($quiet);
     readArticle($popular, 3);
 
-    $trending = app(TrendingArticles::class)->get();
+    expect(trendingArticles())->toBe([['Popular', 3], ['Quiet', 1]]);
+});
 
-    expect($trending->pluck('title')->all())->toBe(['Popular', 'Quiet'])
-        ->and($trending->pluck('views_count')->all())->toBe([3, 1]);
+it('ranks a fresh spike above older, larger traffic', function (): void {
+    $evergreen = Article::create(['title' => 'Evergreen']);
+    $fresh = Article::create(['title' => 'Fresh']);
+
+    $this->travel(-4)->days();
+    readArticle($evergreen, 5);
+    $this->travelBack();
+
+    readArticle($fresh, 2);
+
+    expect(trendingArticles())->toBe([['Fresh', 2], ['Evergreen', 5]]);
 });
 
 it('leaves out views older than a week', function (): void {
@@ -54,7 +80,7 @@ it('leaves out views older than a week', function (): void {
 
     readArticle($fresh);
 
-    expect(app(TrendingArticles::class)->get()->pluck('title')->all())->toBe(['Fresh']);
+    expect(trendingArticles())->toBe([['Fresh', 1]]);
 });
 
 it('counts a reader who comes back within the cooldown once', function (): void {
@@ -74,7 +100,7 @@ it('records nothing for an article that does not exist', function (): void {
     expect(View::count())->toBe(0);
 });
 
-it('keeps serving the cached ranking until it expires', function (): void {
+it('keeps serving the remembered ranking until it expires', function (): void {
     $first = Article::create(['title' => 'First']);
     $second = Article::create(['title' => 'Second']);
 
@@ -84,11 +110,11 @@ it('keeps serving the cached ranking until it expires', function (): void {
 
     readArticle($second, 5);
 
-    expect(app(TrendingArticles::class)->get()->pluck('title')->all())->toBe(['First', 'Second']);
+    expect(trendingArticles())->toBe([['First', 2], ['Second', 1]]);
 
     $this->travel(11)->minutes();
 
-    expect(app(TrendingArticles::class)->get()->pluck('title')->all())->toBe(['Second', 'First']);
+    expect(trendingArticles())->toBe([['Second', 6], ['First', 2]]);
 });
 
 it('shows an edited title without waiting for the cache', function (): void {
@@ -98,5 +124,5 @@ it('shows an edited title without waiting for the cache', function (): void {
 
     $article->update(['title' => 'Final title']);
 
-    expect(app(TrendingArticles::class)->get()->pluck('title')->all())->toBe(['Final title']);
+    expect(trendingArticles())->toBe([['Final title', 1]]);
 });
