@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Stores;
 
+use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Contracts\BufferedViewStore;
@@ -45,6 +46,36 @@ final readonly class RedisStreamStore implements BufferedViewStore
         $this->stream->delete($ids);
 
         $this->landing->forget($viewable);
+    }
+
+    /**
+     * The entries are found by scanning what has not landed yet, like
+     * forget() does. They are inserted before they are deleted, so a crash in
+     * between lands them twice rather than not at all.
+     *
+     * @param  Closure(ViewRecord): bool  $filter
+     */
+    public function land(Closure $filter): int
+    {
+        $ids = [];
+        $records = [];
+
+        foreach ($this->stream->entries() as $entry) {
+            $record = $entry->isEmpty() ? null : $entry->record();
+
+            if ($record instanceof ViewRecord && $filter($record)) {
+                $ids[] = $entry->id;
+                $records[] = $record;
+            }
+        }
+
+        if ($records !== []) {
+            $this->landing->storeMany($records);
+        }
+
+        $this->stream->delete($ids);
+
+        return count($records);
     }
 
     /**
