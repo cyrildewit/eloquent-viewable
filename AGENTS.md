@@ -82,6 +82,19 @@ The [results repository](https://github.com/cyrildewit/eloquent-viewable-benchma
 benchmark, subject or parameter set, change those targets' variables, or remove a key from `Dataset::toArray()` as a
 side effect of other work; `benchmarks/README.md` has the contract.
 
+## Boost guidelines
+
+`resources/boost` ships to users of Laravel Boost: `guidelines/core.md` is loaded into every prompt of their agent, and
+`skills/eloquent-viewable-development/SKILL.md` only when the task matches it. Update them in the same change when a
+public method, class path or default they mention changes, or when a new feature is easy to get wrong.
+
+- Keep `core.md` to a handful of bullets: what the package does, the rules that are easy to break, and when to load the
+  skill. Everything else goes in the skill.
+- Keep the skill to imperatives and short `php` blocks, with no reasons a user would only find in the README.
+- Plain Markdown, no Blade. Keep the skill's frontmatter `name` equal to its directory name.
+- `tests/Unit/Boost/GuidelinesTest.php` fails on a method in a `php` block that no longer exists. When it fails on a
+  method from a class it does not know yet, add the class to its list.
+
 ## Where a test belongs
 
 Put a test in `tests/Unit` unless it needs something only a booted application provides: the
