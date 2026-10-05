@@ -1,5 +1,6 @@
 <?php
 
+use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
@@ -627,6 +628,7 @@ return [
          */
         'checks' => [
             SchemaCheck::class,
+            IndexAdviceCheck::class,
         ],
 
     ],
