@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
@@ -17,10 +18,14 @@ use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
@@ -45,6 +50,7 @@ final readonly class Reader
         private VersionedCache $cache,
         private Config $config,
         private ViewableLoader $loader,
+        private DecayFactory $decays,
     ) {}
 
     public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
@@ -158,6 +164,37 @@ final readonly class Reader
         }
 
         return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
+    }
+
+    /**
+     * Ranked by views weighed by their age, so recent views count more. The
+     * half-life is a shorthand for exponential decay, so only one of the two
+     * may be given; without either, the configured curve is used.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'trending()');
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        $decay = $this->decays->make($query, $halfLife, $curve);
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksTrending) {
+            throw UnsupportedBySource::trending($source);
+        }
+
+        return $this->loader->load($source->trending($viewable, $query, $decay, $limit));
     }
 
     /**

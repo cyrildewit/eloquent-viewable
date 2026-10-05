@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 final readonly class ViewableLoader
 {
-    /** @param  list<array{type: string, id: int|string, count: int}>  $rows */
+    /** @param  list<array{type: string, id: int|string, count: int, score?: float}>  $rows */
     public function load(array $rows): Ranking
     {
         $models = [];
@@ -39,7 +39,7 @@ final readonly class ViewableLoader
             $viewable = $models[$row['type']][(string) $row['id']] ?? null;
 
             if ($viewable instanceof Model) {
-                $entries->push(new Entry($viewable, $row['count'], $entries->count() + 1));
+                $entries->push(new Entry($viewable, $row['count'], $entries->count() + 1, $row['score'] ?? null));
             }
         }
 

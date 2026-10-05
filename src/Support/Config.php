@@ -242,6 +242,65 @@ final readonly class Config
         return $integer;
     }
 
+    /**
+     * The class of the trending curve, or null for exponential decay with
+     * the configured half-life.
+     *
+     * @return ?class-string
+     *
+     * @throws InvalidConfiguration
+     */
+    public function trendingCurve(): ?string
+    {
+        $value = $this->get('querying.trending.curve');
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (! is_string($value) || ! class_exists($value)) {
+            throw InvalidConfiguration::mustBeClassOrNull('querying.trending.curve', $value);
+        }
+
+        return $value;
+    }
+
+    /** @throws InvalidConfiguration */
+    public function trendingHalfLife(): Duration
+    {
+        $value = $this->get('querying.trending.half_life');
+
+        if (! is_string($value)) {
+            throw InvalidConfiguration::mustBeDuration('querying.trending.half_life', $value, nullable: false);
+        }
+
+        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration('querying.trending.half_life', $value, nullable: false);
+    }
+
+    /**
+     * Null for `auto`, which weighs per hour while the window fits under
+     * `max_steps` and per day otherwise.
+     *
+     * @throws InvalidConfiguration
+     */
+    public function trendingStep(): ?Granularity
+    {
+        $value = $this->get('querying.trending.step', 'auto');
+
+        return match ($value) {
+            'auto' => null,
+            '1h' => Granularity::Hour,
+            '1d' => Granularity::Day,
+            default => throw InvalidConfiguration::mustBeOneOf('querying.trending.step', ['auto', '1h', '1d'], $value),
+        };
+    }
+
+    /** @throws InvalidConfiguration */
+    public function trendingMaxSteps(): int
+    {
+        return $this->positiveInteger('querying.trending.max_steps');
+    }
+
     /** @throws InvalidConfiguration */
     public function visitorCookieName(): string
     {

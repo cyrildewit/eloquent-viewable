@@ -12,9 +12,13 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
+use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailable;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Plan;
@@ -37,7 +41,7 @@ use stdClass;
  * the rollups, through every read and scope. A read the rollups cannot answer,
  * such as one narrowed to a viewer, reads the views table alone.
  */
-final readonly class RollupSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, SubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -349,20 +353,98 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         return $ranking;
     }
 
+    /**
+     * Rollup rows are weighed by their bucket start, the views table by
+     * `viewed_at`. Only tiers no coarser than the step answer, so a bucket
+     * lies inside one step, and the scores match the views table's.
+     *
+     * @return list<array{type: string, id: int|string, count: int, score: float}>
+     *
+     * @throws InvalidPeriod
+     * @throws ResolutionUnavailable
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array
+    {
+        $query = $decay->narrow($query);
+        $grouping = Grouping::for(null, $query->collection !== null);
+        $plan = $this->trendingPlan($grouping, $query, $decay);
+
+        if (! $plan instanceof Plan) {
+            return $this->raw->trending($viewable, $query, $decay, $limit);
+        }
+
+        $type = $viewable?->getMorphClass();
+        $branches = array_map(fn (Segment $segment): Builder => $this->raw->trendingRows($type, $this->narrow($query, $segment), $decay), $plan->raw());
+
+        $rollupType = $this->rollup->qualifyColumn('viewable_type');
+        $rollupId = $this->rollup->qualifyColumn('viewable_id');
+        $column = $this->wrap($this->rollup->qualifyColumn($this->column($query)));
+        [$weight, $bindings] = StepCases::weight($decay, $this->wrap($this->rollup->qualifyColumn('bucket_start')));
+
+        $branches[] = $this->rollups($type, null, $grouping, $plan, $query)
+            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$column}) as aggregate, sum({$weight} * {$column}) as score", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+            ->groupBy($rollupType, $rollupId);
+
+        $union = array_shift($branches);
+
+        foreach ($branches as $branch) {
+            $union->unionAll($branch);
+        }
+
+        $rows = $this->view->getConnection()->query()
+            ->fromSub($union, 'ranked')
+            ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate, sum(score) as score')
+            ->groupBy('viewable_type', 'viewable_id')
+            ->orderByDesc('score')
+            ->orderBy('viewable_type')
+            ->orderBy('viewable_id')
+            ->limit($limit)
+            ->get();
+
+        return DatabaseSource::scored($rows);
+    }
+
+    /**
+     * @throws InvalidPeriod
+     * @throws ResolutionUnavailable
+     */
+    public function trendingSubquery(Viewable $viewable, ViewsQuery $query, Decay $decay): Builder
+    {
+        $query = $decay->narrow($query);
+        $grouping = Grouping::for(null, $query->collection !== null);
+        $plan = $this->trendingPlan($grouping, $query, $decay);
+
+        if (! $plan instanceof Plan) {
+            return $this->raw->trendingSubquery($viewable, $query, $decay);
+        }
+
+        $parts = [];
+        $bindings = [];
+
+        foreach ($plan->raw() as $segment) {
+            $raw = $this->raw->weightedSubquery($viewable, $this->narrow($query, $segment), $decay);
+            $parts[] = "({$raw->toSql()})";
+            $bindings = [...$bindings, ...$raw->getBindings()];
+        }
+
+        $column = $this->wrap($this->rollup->qualifyColumn($this->column($query)));
+        [$weight, $weightBindings] = StepCases::weight($decay, $this->wrap($this->rollup->qualifyColumn('bucket_start')));
+
+        $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $plan, $query)
+            ->whereColumn($this->rollup->qualifyColumn('viewable_id'), $viewable->getQualifiedKeyName())
+            ->selectRaw("coalesce(sum({$weight} * {$column}), 0)", $weightBindings); // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
+
+        $parts[] = "({$rollups->toSql()})";
+
+        return DatabaseSource::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
+    }
+
     /** @throws ResolutionUnavailable */
     private function plan(Grouping $grouping, ViewsQuery $query, ?Granularity $granularity = null): ?Plan
     {
-        $definition = $this->policy->for($query);
+        $definition = $this->definition($grouping, $query);
 
         if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        if ($query->viewer instanceof Model) {
-            return null;
-        }
-
-        if (! $definition->keeps($grouping)) {
             return null;
         }
 
@@ -394,6 +476,81 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
         }
 
         return $plan;
+    }
+
+    /**
+     * Only the tiers no coarser than the step answer, and for unique visitors
+     * only the tier of the step itself, so no visitor is counted twice in a
+     * step. With none left the views table answers, or strict refuses.
+     *
+     * @throws ResolutionUnavailable
+     */
+    private function trendingPlan(Grouping $grouping, ViewsQuery $query, Decay $decay): ?Plan
+    {
+        $definition = $this->definition($grouping, $query);
+
+        if (! $definition instanceof RollupDefinition) {
+            return null;
+        }
+
+        $step = $decay->step();
+        $tiers = array_values(array_filter(
+            $definition->tiers(),
+            static fn (Tier $tier): bool => $query->unique ? $tier->granularity() === $step : $tier->fits($step),
+        ));
+
+        if ($tiers === []) {
+            if ($this->policy->strict) {
+                throw ResolutionUnavailable::trendingStep($step->value);
+            }
+
+            return null;
+        }
+
+        $zone = $this->policy->timezone;
+
+        $plan = new Planner($zone)->plan(
+            $this->state->snapshot($definition->name),
+            $tiers,
+            $query->period?->getStartDateTime(),
+            $query->period?->getEndDateTime(),
+            $query->unique,
+            static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($step->floor($moment->setTimezone($zone)))
+                ->setTimezone($moment->getTimezone()),
+        );
+
+        if ($plan->isRawOnly()) {
+            return null;
+        }
+
+        if ($this->policy->strict && ! $plan->isExact()) {
+            throw ResolutionUnavailable::partialBucket();
+        }
+
+        return $plan;
+    }
+
+    /**
+     * The rollup the query reads through, unless the rollups cannot answer
+     * it: a read narrowed to a viewer, or one by a grouping not kept.
+     */
+    private function definition(Grouping $grouping, ViewsQuery $query): ?RollupDefinition
+    {
+        $definition = $this->policy->for($query);
+
+        if (! $definition instanceof RollupDefinition) {
+            return null;
+        }
+
+        if ($query->viewer instanceof Model) {
+            return null;
+        }
+
+        if (! $definition->keeps($grouping)) {
+            return null;
+        }
+
+        return $definition;
     }
 
     /**

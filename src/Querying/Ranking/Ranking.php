@@ -15,7 +15,7 @@ use JsonSerializable;
 use Traversable;
 
 /**
- * @implements Arrayable<int, array{rank: int, count: int, viewable: array<mixed>}>
+ * @implements Arrayable<int, array{rank: int, count: int, score: ?float, viewable: array<mixed>}>
  * @implements IteratorAggregate<int, Entry>
  */
 final readonly class Ranking implements Arrayable, Countable, IteratorAggregate, JsonSerializable
@@ -41,17 +41,18 @@ final readonly class Ranking implements Arrayable, Countable, IteratorAggregate,
         return $this->entries->count();
     }
 
-    /** @return list<array{rank: int, count: int, viewable: array<mixed>}> */
+    /** @return list<array{rank: int, count: int, score: ?float, viewable: array<mixed>}> */
     public function toArray(): array
     {
         return array_values($this->entries->map(static fn (Entry $entry): array => [
             'rank' => $entry->rank,
             'count' => $entry->count,
+            'score' => $entry->score,
             'viewable' => $entry->viewable->toArray(),
         ])->all());
     }
 
-    /** @return list<array{rank: int, count: int, viewable: array<mixed>}> */
+    /** @return list<array{rank: int, count: int, score: ?float, viewable: array<mixed>}> */
     public function jsonSerialize(): array
     {
         return $this->toArray();

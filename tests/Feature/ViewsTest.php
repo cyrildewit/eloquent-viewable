@@ -1479,7 +1479,7 @@ describe('ranking', function (): void {
         View::factory()->for($this->post, 'viewable')->count(2)->create();
 
         expect(ViewsFacade::top()->jsonSerialize())->toBe([
-            ['rank' => 1, 'count' => 2, 'viewable' => $this->post->fresh()->toArray()],
+            ['rank' => 1, 'count' => 2, 'score' => null, 'viewable' => $this->post->fresh()->toArray()],
         ]);
     });
 

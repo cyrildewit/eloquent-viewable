@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
 use Illuminate\Config\Repository;
@@ -352,3 +353,48 @@ it('rejects counters that are not viewable models mapped to columns', function (
     'period not a string' => [[Post::class => ['views_count' => ['period' => 7]]]],
     'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],
 ]);
+
+describe('trending', function (): void {
+    it('reads the trending settings', function (): void {
+        $config = packageConfig(['querying' => ['trending' => [
+            'curve' => Post::class,
+            'half_life' => '6h',
+            'step' => '1d',
+            'max_steps' => 200,
+        ]]]);
+
+        expect($config->trendingCurve())->toBe(Post::class)
+            ->and($config->trendingHalfLife()->shorthand())->toBe('6h')
+            ->and($config->trendingStep())->toBe(Granularity::Day)
+            ->and($config->trendingMaxSteps())->toBe(200);
+    });
+
+    it('reads no curve, an hourly step and an automatic step', function (): void {
+        expect(packageConfig())->trendingCurve()->toBeNull()->trendingStep()->toBeNull()
+            ->and(packageConfig(['querying' => ['trending' => ['step' => 'auto']]]))->trendingStep()->toBeNull()
+            ->and(packageConfig(['querying' => ['trending' => ['step' => '1h']]]))->trendingStep()->toBe(Granularity::Hour);
+    });
+
+    it('refuses a curve that is not a class', function (mixed $curve): void {
+        packageConfig(['querying' => ['trending' => ['curve' => $curve]]])->trendingCurve();
+    })->throws(InvalidConfiguration::class, 'querying.trending.curve` config value must be the name of a class')->with([
+        'a missing class' => 'App\Curves\Missing',
+        'a number' => 7,
+    ]);
+
+    it('refuses a half-life that is not a duration', function (mixed $halfLife): void {
+        packageConfig(['querying' => ['trending' => ['half_life' => $halfLife]]])->trendingHalfLife();
+    })->throws(InvalidConfiguration::class, 'querying.trending.half_life` config value must be a duration such as `30d` or `2y`, ')->with([
+        'null' => null,
+        'a number' => 24,
+        'an unknown unit' => '1 day',
+    ]);
+
+    it('refuses a step other than auto, an hour or a day', function (): void {
+        packageConfig(['querying' => ['trending' => ['step' => '1w']]])->trendingStep();
+    })->throws(InvalidConfiguration::class, 'querying.trending.step` config value must be one of `auto`, `1h`, `1d`, `"1w"` given.');
+
+    it('refuses a maximum number of steps below one', function (): void {
+        packageConfig(['querying' => ['trending' => ['max_steps' => 0]]])->trendingMaxSteps();
+    })->throws(InvalidConfiguration::class, 'querying.trending.max_steps');
+});
