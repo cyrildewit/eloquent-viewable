@@ -73,3 +73,9 @@ it('adds the visitor as an included column on Postgres', function (): void {
 
     OptionalIndex::Visitor->create($connection, 'views');
 });
+
+it('writes the line that adds an index in a migration', function (): void {
+    expect(OptionalIndex::TypeViewedAt->migration('views', 'mysql'))->toBe("\$table->index(['viewable_type', 'viewed_at']);")
+        ->and(OptionalIndex::Visitor->migration('views', 'sqlite'))->toBe("\$table->index(['viewable_type', 'viewable_id', 'viewed_at', 'visitor']);")
+        ->and(OptionalIndex::Visitor->migration('page_views', 'pgsql'))->toBe('create index on page_views (viewable_type, viewable_id, viewed_at) include (visitor)');
+});

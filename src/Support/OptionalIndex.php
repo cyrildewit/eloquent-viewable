@@ -94,6 +94,21 @@ enum OptionalIndex: string
         });
     }
 
+    /**
+     * The line that adds the index in a migration, or the statement on
+     * Postgres, which the schema builder cannot give an included column.
+     */
+    public function migration(string $table, string $driver): string
+    {
+        if ($this === self::Visitor && $driver === 'pgsql') {
+            return "create index on {$table} (viewable_type, viewable_id, viewed_at) include (visitor)";
+        }
+
+        $columns = implode("', '", $this->columns());
+
+        return "\$table->index(['{$columns}']);";
+    }
+
     public function drop(Connection $connection, string $table): void
     {
         $connection->getSchemaBuilder()->table($table, function (Blueprint $blueprint): void {
