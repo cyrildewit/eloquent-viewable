@@ -22,27 +22,37 @@ abstract class RetentionCommand extends Command
      */
     protected function chunk(RetentionPolicy $policy): ?int
     {
-        $option = $this->option('chunk');
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
+
+        return $chunk === false ? null : $chunk;
+    }
+
+    /**
+     * It returns false once the error is reported.
+     */
+    protected function positiveInteger(string $name, int $default): int|false
+    {
+        $option = $this->option($name);
 
         if ($option === null) {
-            return $policy->chunk;
+            return $default;
         }
 
-        $chunk = filter_var($option, FILTER_VALIDATE_INT);
+        $value = filter_var($option, FILTER_VALIDATE_INT);
 
-        if ($chunk === false) {
-            $this->components->error('The --chunk option must be a positive integer.');
+        if ($value === false) {
+            $this->components->error("The --{$name} option must be a positive integer.");
 
-            return null;
+            return false;
         }
 
-        if ($chunk < 1) {
-            $this->components->error('The --chunk option must be a positive integer.');
+        if ($value < 1) {
+            $this->components->error("The --{$name} option must be a positive integer.");
 
-            return null;
+            return false;
         }
 
-        return $chunk;
+        return $value;
     }
 
     /**
