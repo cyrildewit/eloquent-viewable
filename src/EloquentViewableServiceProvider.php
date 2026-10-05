@@ -13,11 +13,13 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
+use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
+use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
-use CyrildeWit\EloquentViewable\Querying\Counters\Console\RecountViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
@@ -44,7 +46,6 @@ use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Retention\Console\AnonymiseViewsCommand;
-use CyrildeWit\EloquentViewable\Retention\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Retention\Console\PruneViewsCommand;
 use CyrildeWit\EloquentViewable\Retention\Console\PurgeBotViewsCommand;
 use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
@@ -165,6 +166,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             function (ViewsDestroyed $event): void {
                 $this->app->make(ForgetRollups::class)->handle($event->viewable);
                 $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
+                $this->app->make(RecountChangedViews::class)->destroyed($event->viewable);
             },
         );
     }

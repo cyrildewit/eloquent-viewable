@@ -5,6 +5,8 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\RollupsNotInstalled;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
@@ -139,15 +141,15 @@ it('only rolls up when no retention is configured', function (): void {
         ->assertSuccessful();
 });
 
-it('stops when rolling up fails', function (): void {
+it('prunes nothing when rolling up fails', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null]);
     config()->set('eloquent-viewable.retention.prune.after', '7d');
 
-    Artisan::command('views:rollup {--chunk=} {--dry-run}', fn (): int => 1);
+    config()->set('eloquent-viewable.retention.rollups.table', 'missing_rollups');
 
-    $this->artisan('views:maintain')->assertFailed();
-
-    expect(View::query()->count())->toBe(3);
+    expect(fn () => $this->withoutMockingConsoleOutput()->artisan('views:maintain'))
+        ->toThrow(RollupsNotInstalled::class)
+        ->and(View::query()->count())->toBe(3);
 });
 
 it('checks the rollup config at boot', function (): void {
@@ -161,4 +163,25 @@ it('publishes the rollups migration under a tag of its own', function (): void {
 
     expect($rollups)->toHaveCount(1)
         ->and($rollups[0])->toEndWith('create_view_rollups_table.php.stub');
+});
+
+it('stops folding at its time limit', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null]);
+    travelOnFirst('insert', 'view_rollups');
+
+    $this->artisan('views:rollup', ['--max-seconds' => '60'])
+        ->expectsOutputToContain('Folded 1 bucket of the day tier')
+        ->expectsOutputToContain('Stopped at the time limit. The next run carries on from here.')
+        ->assertSuccessful();
+});
+
+it('stops expiring at its time limit', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+    app(FoldViews::class)->handle();
+    travelOnFirst('delete', 'view_rollups');
+
+    $this->artisan('views:rollup', ['--max-seconds' => '60', '--chunk' => '1'])
+        ->expectsOutputToContain('Dropped 1 expired row of the day tier.')
+        ->expectsOutputToContain('Stopped at the time limit. The next run carries on from here.')
+        ->assertSuccessful();
 });
