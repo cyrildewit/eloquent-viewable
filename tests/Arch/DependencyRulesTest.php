@@ -9,7 +9,10 @@ use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use Symfony\Component\HttpFoundation\Cookie;
 
@@ -42,6 +45,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Retention',
     'CyrildeWit\EloquentViewable\Debugging',
     'CyrildeWit\EloquentViewable\Maintenance',
+    'CyrildeWit\EloquentViewable\Erasure',
 ];
 
 const ENTRY_POINTS = [
@@ -167,6 +171,23 @@ arch('maintenance runs querying and retention and nothing else')
 arch('nothing below maintenance depends on it')
     ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying', 'CyrildeWit\EloquentViewable\Retention'])
     ->not->toUse('CyrildeWit\EloquentViewable\Maintenance');
+
+arch('no module depends on erasure')
+    ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying', 'CyrildeWit\EloquentViewable\Retention'])
+    ->not->toUse('CyrildeWit\EloquentViewable\Erasure');
+
+arch('erasure reaches the other modules through their contracts and a few seams')
+    ->expect('CyrildeWit\EloquentViewable\Erasure')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Erasure',
+        'CyrildeWit\EloquentViewable\Recording\Contracts',
+        VisitorIdentity::class,
+        CacheVersions::class,
+        AnonymiseViews::class,
+        'Carbon',
+        'Illuminate',
+    ]);
 
 arch('only the entry points join the two sides')
     ->expect(MODULES)

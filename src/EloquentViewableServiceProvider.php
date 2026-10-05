@@ -9,6 +9,8 @@ use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
+use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
+use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
@@ -91,6 +93,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 PruneViewsCommand::class,
                 PurgeBotViewsCommand::class,
                 MaintainViewsCommand::class,
+                ForgetViewerCommand::class,
+                ForgetVisitorCommand::class,
             ]);
 
             $this->publishes([

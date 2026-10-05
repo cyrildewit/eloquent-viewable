@@ -245,6 +245,29 @@ it('lands the buffered views a filter keeps ahead of the flush', function (strin
         ->and($this->post)->toHaveViewsCount(2);
 })->with('redis clients');
 
+it('reaches the buffered views of a viewer when erasing its history', function (string $client): void {
+    useRedisStore($client);
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    views($this->post)->viewedBy($user)->record();
+    views($this->post)->viewedBy($other)->record();
+
+    expect($user->exportViewHistory()->count())->toBe(1)
+        ->and(streamLength())->toBe(1);
+
+    views($this->post)->viewedBy($user)->record();
+
+    expect($user->anonymiseViewHistory())->toBe(2);
+
+    views($this->post)->viewedBy($user)->record();
+
+    expect($user->forgetViewHistory())->toBe(1)
+        ->and(View::count())->toBe(2)
+        ->and(View::query()->whereNull('viewer_id')->count())->toBe(2)
+        ->and(streamLength())->toBe(1);
+})->with('redis clients');
+
 it('forgets the buffered views when the viewable is deleted', function (string $client): void {
     useRedisStore($client);
 

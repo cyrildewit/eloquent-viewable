@@ -13,6 +13,9 @@
 #                 rollup watermarks it clamps to
 #   Debugging     shows what recording did in Debugbar, above recording for
 #                 the events it listens to
+#   Erasure       forgets, anonymises and exports one person's views, above
+#                 recording, querying and retention for the buffer, the cache
+#                 and the anonymised prefix
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
@@ -70,6 +73,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Maintenance\\.*
+
+    - name: Erasure
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Erasure\\.*
 
     # The builder behind the facade. It records views as well as counting them,
     # so it sits above both.
@@ -140,6 +148,15 @@ deptrac:
     Maintenance:
       - +Retention
       - Querying
+    # Lands the buffer through the recording contracts, matches viewers by
+    # their visitor id, forgets remembered counts and shares the anonymised
+    # prefix with retention.
+    Erasure:
+      - Foundation
+      - Recording
+      - Visitors
+      - Querying
+      - Retention
     Views:
       - +Recording
       - +Querying
@@ -151,6 +168,7 @@ deptrac:
       - Testing
       - +Maintenance
       - Debugging
+      - +Erasure
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.
       - CrawlerDetect
@@ -164,6 +182,7 @@ deptrac:
           - Querying
           - Retention
           - Maintenance
+          - Erasure
           - Cooldowns
           - Visitors
           - Crawlers
