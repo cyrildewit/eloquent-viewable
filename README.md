@@ -306,6 +306,27 @@ $result->wasSkippedBy(EnforceCooldown::class);
 Each refusal also dispatches `Recording\Events\ViewSkipped` with the attempt and the guard, so you can log skipped views
 without touching the code that records them.
 
+Every attempt, stored, queued or skipped, also dispatches `Recording\Events\ViewAttempted` with the attempt and its
+`RecordResult`. It fires in the request that made the attempt, also when the write is queued. The package only builds
+the event when something listens to it, so it costs nothing otherwise.
+
+#### Seeing it in Debugbar and Telescope
+
+With [Laravel Debugbar](https://github.com/fruitcake/laravel-debugbar) 4.4 or newer installed, a **Viewable** tab lists
+every view of the request: the ones stored, the ones queued and the ones skipped, with the guard that refused each,
+the collection, the viewer and the context. Nothing to set up: the tab appears whenever Debugbar is collecting. To
+leave it out, turn it off in `config/debugbar.php`:
+
+```php
+'collectors' => [
+    // ...
+    'eloquent_viewable' => false,
+],
+```
+
+[Laravel Telescope](https://laravel.com/docs/telescope) needs nothing either. Its events watcher records
+`ViewAttempted` and `ViewSkipped` like any other event of your application, with the guard named by its class.
+
 ### Queueing view recording
 
 Move the insert to a queue worker to keep busy pages fast. Queue a single view, or every view from the config:

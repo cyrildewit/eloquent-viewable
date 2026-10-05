@@ -21,6 +21,8 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `ThrottleVisitors` guard, off by default, which caps the views one visitor records per minute across every model. Configure it under `recording.throttle`
 - `recording.ignored_ip_addresses` accepts CIDR ranges such as `10.0.0.0/8`
 - Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` saying whether the view was stored or queued, or which guard skipped it. `Recording\Events\ViewSkipped` is dispatched when a guard refuses a view
+- Added `Recording\Events\ViewAttempted`, dispatched for every view the guards have judged with its `RecordResult`, in the request that made it, also when the write is queued. It is only built when something listens. `RecordResult` serialises to JSON with the guard named by its class
+- Added a Debugbar collector: with `fruitcake/laravel-debugbar` 4.4 or newer installed, a **Viewable** tab lists the views stored, queued and skipped in the request, with the guard that refused each. Turn it off with `debugbar.collectors.eloquent_viewable`
 - Added `Views::context(?array $context)` and a nullable `context` JSON column to store extra data with a view
 - Added store drivers, picked by `recording.store.driver`: `database`, the default, `redis`, `array` and `null`. Add your own `Recording\Contracts\ViewStore` with `StoreManager::extend()`
 - Added the `redis` store driver, which buffers views in a Redis stream and lands them in the views table in batches through the `views:flush` command or `Recording\Jobs\FlushBufferedViewsJob`. Needs Redis 7 or newer and phpredis or Predis 3.3 or newer
