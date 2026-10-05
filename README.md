@@ -40,6 +40,7 @@
         <li><a href="#retrieving-view-counts">Retrieving view counts</a></li>
         <li><a href="#ordering-and-filtering-models-by-view-count">Ordering and filtering models by view count</a></li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
+        <li><a href="#trending-right-now">Trending right now</a></li>
         <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
@@ -68,6 +69,7 @@
         <li><a href="#choosing-where-views-are-stored">Choosing where views are stored</a></li>
         <li><a href="#adding-a-recording-guard">Adding a recording guard</a></li>
         <li><a href="#customizing-how-views-are-counted">Customizing how views are counted</a></li>
+        <li><a href="#writing-a-trending-curve">Writing a trending curve</a></li>
         <li><a href="#adding-a-bucket-grammar-for-another-database-driver">Adding a bucket grammar for another database driver</a></li>
         <li><a href="#using-a-custom-crawler-detector">Using a custom crawler detector</a></li>
         <li><a href="#adding-macros-to-the-views-class">Adding macros to the Views class</a></li>
@@ -111,7 +113,8 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 - Track **total** and **unique** views for any Eloquent model, from a controller, a route middleware or the browser
   when the page comes from a full-page cache
 - Query views by custom periods, compare with the previous period and group them **per hour, day, week, month or year**
-- Order and filter models by views, and rank the **most viewed content** across every model
+- Order and filter models by views, rank the **most viewed content** across every model, and find what's **trending
+  right now**
 - Know **who viewed what** by linking views to the signed-in user
 - Prevent duplicate views with a configurable **cooldown system**
 - Count unique visitors **without a cookie**, with a daily rotating fingerprint
@@ -526,7 +529,131 @@ views(Post::class)->top(10);  // within one model
 
 The models are loaded with one query per type and never cached, so a `remember()`ed ranking shows fresh attributes. A
 model that can no longer be loaded, for example because it was deleted, is left out, so a ranking can hold fewer
-entries than the limit. The ranking serializes to JSON as `rank`, `count` and `viewable`.
+entries than the limit. The ranking serializes to JSON as `rank`, `count` and `viewable`, and `score` for
+[trending](#trending-right-now) rankings.
+
+### Trending right now
+
+`top()` ranks by how many views something got in a period, and every view in that period counts the same.
+`trending()` ranks by how many views something is getting *now*: a recent view counts fully and an older one counts
+less the older it gets. Something that's taking off this hour ranks above something that was busy last week.
+
+```php
+$trending = views(Post::class)->trending(10);
+
+foreach ($trending as $entry) {
+    $entry->rank;      // 1, 2, 3, ...
+    $entry->viewable;  // the post
+    $entry->count;     // its views in the window, for a "1,234 views" label
+    $entry->score;     // its views weighed by age, see below
+}
+
+Views::trending(10);   // across every model type
+```
+
+#### How the ranking is made
+
+Every view gets a weight between 1 and 0, depending on its age, and a model's score is the sum of those weights. By
+default a view loses half its weight every day. A view from now counts as 1, one from yesterday as 0.5, and one from a
+week ago as less than 0.01.
+
+Say three posts got these views:
+
+| Post          | Views              | `top()` over 7 days | `trending()` score |
+|---------------|--------------------|---------------------|--------------------|
+| Queues guide  | 1,000, 6 days ago  | 1st, 1,000          | 3rd, about 16      |
+| Release notes | 800, the past hour | 2nd, 800            | 1st, about 800     |
+| Redis tips    | 400, yesterday     | 3rd, 400            | 2nd, about 200     |
+
+`top()` still puts the Queues guide first, a week after everyone stopped reading it. `trending()` puts the release
+notes first, the moment they take off, and lets the Queues guide fade out gradually instead of dropping off at the end
+of the window.
+
+Read the score as "worth this many views right now". Use it to sort, chart or set a threshold, such as showing a badge
+above 50, but don't show it as a view count. That's what `count` is for.
+
+#### Choosing how fast views fade
+
+The half-life is how long a view takes to lose half its weight. A short one reacts fast and forgets fast. A long one
+favours steady traffic. Set it once in the config:
+
+```php
+'querying' => [
+    'trending' => [
+        'half_life' => '1d', // news, social: what's hot today
+        // 'half_life' => '1w', // a shop or catalogue: what's in demand lately
+    ],
+],
+```
+
+or for one call with `trending(halfLife: CarbonInterval::hours(6))`.
+
+The half-life is a setting of exponential decay, the default curve. Two other curves ship with the package:
+
+| A view of this age weighs  | now | 1 day | 3 days | 6 days | 7 days |
+|----------------------------|-----|-------|--------|--------|--------|
+| `ExponentialDecay`, 1 day  | 1   | 0.5   | 0.13   | 0.02   | 0.01   |
+| `ExponentialDecay`, 1 week | 1   | 0.91  | 0.74   | 0.55   | 0.5    |
+| `LinearDecay`, 7 days      | 1   | 0.86  | 0.57   | 0.14   | 0      |
+| `Window`, 7 days           | 1   | 1     | 1      | 1      | 0      |
+
+- **`ExponentialDecay`**, the default, suits most lists. It never drops anything abruptly.
+- **`LinearDecay`** fades evenly to zero at the end of its window, for "this week" lists that should forget the
+  previous week completely.
+- **`Window`** counts every view in the window the same. That's `top()`, but with a `score`, for when one list should
+  switch between the two.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\LinearDecay;
+
+views(Post::class)->trending(curve: new LinearDecay(CarbonInterval::days(7)));
+```
+
+To use another curve everywhere, set `querying.trending.curve` to its class. To write your own, see
+[Writing a trending curve](#writing-a-trending-curve).
+
+#### Ordering models by trending
+
+To paginate, filter or eager load, use the scopes:
+
+```php
+Post::where('published', true)->orderByTrending()->paginate(20);
+Post::withTrendingScore()->get();                       // adds `trending_score`
+Post::orderByTrending(halfLife: CarbonInterval::days(7), collection: 'amp')->get();
+```
+
+They take the same `period`, `collection`, `unique` and `as` arguments as `orderByViews()`, plus `halfLife` and
+`curve`. A post without recent views scores 0.
+
+#### Narrowing it down
+
+```php
+views(Post::class)->period(Period::pastDays(3))->trending();    // only views of the past 3 days
+views(Post::class)->period(Period::create('2026-09-01', '2026-10-01'))->trending(); // trending in September
+views(Post::class)->collection('amp')->trending();
+views(Post::class)->unique()->trending();                       // visitors instead of views
+```
+
+Without a period, views count until they weigh almost nothing: eight half-lives, so eight days by default. The end of
+the period is the "now" that ages are measured from.
+
+#### Good to know
+
+- **Give `remember()` a lifetime.** A ranking remembered forever never changes. Ten minutes is plenty for a sidebar:
+  `remember(10)`.
+- **The ranking moves once an hour.** Views are weighed per hour, or per day for a window too long for hours. A view
+  from 10:05 and one from 10:55 weigh the same.
+- **`unique()` counts a visitor once per hour**, or once per day when views are weighed per day. A reader who comes
+  back the next day counts again, which is what makes something trending.
+- **Scores compare only under the same curve.** A one-day and a one-week half-life give different scores for the same
+  views.
+
+#### On large tables
+
+`trending()` reads the same rows as `top()` over the same window, so the `(viewable_type, viewable_id, viewed_at)`
+index from the migration covers it. With the [`rollup` source](#rollups), the hourly tier is used when you keep one. A
+day tier alone can't tell hours apart, so with hourly weighing those reads come from the `views` table. Keep an `hour`
+tier for as long as your trending window, or set `querying.trending.step` to `'1d'`.
 
 ### People who viewed this also viewed
 
@@ -771,8 +898,8 @@ This works on every cache store, including those without tags. For fresher count
 The sections above document each feature on its own. The [`samples`](samples) directory shows what they add up to:
 complete features you would build in a real application, each one a few files you can read top to bottom and copy.
 
-- [**Trending articles**](samples/TrendingArticles): a "Trending this week" sidebar with the ten most viewed
-  articles, recorded by middleware and ranked from cache.
+- [**Trending articles**](samples/TrendingArticles): a "Trending this week" sidebar with the ten articles taking off
+  right now, recorded by middleware and ranked by views weighed by their age.
 - [**Listing stats**](samples/ListingStats): a seller's stats page with a daily chart, unique visitors and the change
   against the 30 days before.
 - [**Popular products**](samples/PopularProducts): a "Most viewed" sort that stays fast over millions of views,
@@ -1350,9 +1477,66 @@ implements `Querying\Contracts\SubquerySource`: `countSubquery()` for the counts
 source implements both, and a rollup can hand `viewsSubquery()` on to it so the existence checks keep reading the
 `views` table.
 
+`trending()` needs a source that also implements `Querying\Contracts\RanksTrending`, and the trending scopes one that
+implements `Querying\Contracts\TrendingSubquerySource`. Without them, they throw `UnsupportedBySource`. Both receive a
+`Decay` whose `steps()` already hold every weight, so a source only has to sort views into steps.
+
 `remember()` keeps the entries of two sources apart by the driver name. A source whose counts depend on settings of its
 own, such as the name of the rollup table, implements `Querying\Contracts\IdentifiesSource` and returns them from
 `cacheIdentity()`, so changing them starts fresh entries.
+
+### Writing a trending curve
+
+A curve decides how much a view of a given age is worth. Implement `Querying\Ranking\DecayCurve`, for example to give
+every view full weight for its first six hours before it starts to fade:
+
+```php
+use Carbon\CarbonInterval;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
+
+final readonly class PlateauDecay implements DecayCurve
+{
+    public function __construct(
+        private CarbonInterval $plateau,
+        private CarbonInterval $halfLife,
+    ) {}
+
+    public function weight(CarbonInterval $age): float
+    {
+        $faded = max(0, $age->totalSeconds - $this->plateau->totalSeconds);
+
+        return 0.5 ** ($faded / $this->halfLife->totalSeconds);
+    }
+
+    public function horizon(): CarbonInterval
+    {
+        return $this->plateau->copy()->add($this->halfLife->copy()->times(8));
+    }
+
+    public function identity(): string
+    {
+        return "plateau:{$this->plateau->totalSeconds}:{$this->halfLife->totalSeconds}";
+    }
+}
+```
+
+Pass it to a call with `trending(curve: new PlateauDecay(...))`, or set `querying.trending.curve` to its class and bind
+its arguments in a service provider:
+
+```php
+$this->app->bind(PlateauDecay::class, fn (): PlateauDecay => new PlateauDecay(
+    CarbonInterval::hours(6),
+    CarbonInterval::day(),
+));
+```
+
+- `weight()` returns a number from 0 to 1. Anything else throws `InvalidDecay`.
+- `horizon()` is how far back to read when the period has no start. Pick the age where the weight is close to 0.
+- `identity()` keeps remembered rankings of two curves apart. Include every parameter.
+
+The curve is all you write. The package turns its weights into SQL for every database driver and source, and for
+`Views::fake()`. A score that isn't a sum of weights by age, such as views divided by the age of the post, can't be a
+curve. Write that with `withViewsCount()` and `orderByRaw()` on your own query.
 
 ### Adding a bucket grammar for another database driver
 

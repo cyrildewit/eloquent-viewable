@@ -48,6 +48,9 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added count sources, picked by `querying.source.driver`. Add your own `Querying\Contracts\ViewSource` with `SourceManager::extend()`, and a bucket grammar for another database driver with `Querying\Grammars\GrammarRegistry`
 - Added the `Querying\Contracts\SubquerySource` contract, which a source implements so the scopes can read from it. A source that does not throws `Querying\Exceptions\UnsupportedBySource` from a scope
 - Added the `Querying\Contracts\IdentifiesSource` contract, whose `cacheIdentity()` keeps the remembered counts of a source apart per setting
+- Added `Views::trending()` and the `orderByTrending()` and `withTrendingScore()` scopes, which rank models by views weighed by their age, so recent views count more. `Entry` has a `score`. Configure them under `querying.trending`
+- Added the `Querying\Ranking\DecayCurve` contract with the `ExponentialDecay`, `LinearDecay` and `Window` curves, to choose or write how a view loses weight
+- Added the `Querying\Contracts\RanksTrending` and `TrendingSubquerySource` contracts, which a source of your own implements to support `trending()` and the trending scopes
 
 #### Retention
 
