@@ -14,7 +14,7 @@ metadata:
 - A model uses `InteractsWithViews` or `HasViewHistory`, or a query uses `orderByViews()`, `withViewsCount()`, `orderByTrending()` or `whereViewedBy()`.
 - A test asserts on recorded views.
 
-Everything lives under `CyrildeWit\EloquentViewable\`. Read the package README in `vendor/cyrildewit/eloquent-viewable` for config keys and scaling options.
+Everything lives under `CyrildeWit\EloquentViewable\`. Read the package README in `vendor/cyrildewit/eloquent-viewable` for the trade-offs behind each config key.
 
 ## Model Setup
 
@@ -90,6 +90,19 @@ views($post)->forgetCache();
 ```
 
 Always give `remember()` a lifetime. Recording a view does not refresh a remembered count.
+
+## When the App Grows
+
+Suggest these only once the problem shows up. Each is a config change, and querying stays the same.
+
+- Repeated counts slow a page: `remember($lifetime)` on the read.
+- The insert slows requests: `recording.queue.enabled`, or `recording.store.driver` set to `redis` with `views:flush` scheduled. Never both.
+- Sorting long lists by views is slow: `querying.counters` columns on the model's own table, kept current by `views:maintain`.
+- `unique()`, whole-type or `alsoViewed()` queries are slow: the optional indexes under "Database indexes" in the README.
+- The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
+- Cooldowns on stateless API routes: `cooldown.store` set to `cache`.
+- No visitor cookie wanted: `visitor.identity` set to `fingerprint`. To count a signed-in user once across devices: `viewer`.
+- Opt-in guards in `recording.guards`: `ThrottleVisitors` for a per-visitor rate limit, `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl`. Write your own with `Recording\Contracts\RecordingGuard`.
 
 ## Testing
 
