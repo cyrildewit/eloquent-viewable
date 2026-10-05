@@ -23,6 +23,8 @@ after them cover behaviour changes to be aware of and what to change if you exte
 - **Scale when you need to:** buffer views in Redis and land them in batches, count a page of models in one query, and
   forget cached counts on demand.
 - **Privacy:** count unique visitors without a cookie, honour Global Privacy Control and skip prefetched pages.
+- **Bots:** refuse bursts of views from one visitor, and delete the bot views already in your table with
+  `views:purge-bots`.
 - **Testing:** `Views::fake()` with assertions, and a factory for the `View` model.
 - **Extension points:** your own recording guards, stores, count sources and cooldown stores.
 
@@ -181,6 +183,16 @@ Three new guards are on by default. `IgnorePrefetch` drops pages the browser onl
 prefetching or speculation rules see lower counts. `IgnoreHeadRequests` drops `HEAD` requests, such as uptime monitors.
 `IgnoreMissingUserAgent` drops requests without a user agent, such as scripts and health checks; if you record views
 from a client that sends none, remove it from `recording.guards`.
+
+#### Bursts of views are not counted
+
+`IgnoreBursts` is on by default. A visitor that opens more than 8 different models within 2 seconds is refused, and so
+is every view of theirs for the next 2 minutes. Scrapers that pass for a browser stop counting, so sites with a lot of
+bot traffic see lower counts. The count is also kept per network and user agent, which people behind one office or
+carrier address share. If your readers come from such a network, set `recording.bursts.by` to `['visitor']`; to turn
+the guard off, remove it from `recording.guards`. If you record views in bulk from your own code, such as an import,
+remove the guard for that run or use `View::factory()`. Run `views:purge-bots --dry-run` to see how many bot views your
+table already holds.
 
 #### Every facade call starts a fresh builder
 
