@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
+use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
@@ -72,6 +73,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->forgetCountsOfDestroyedViews();
         $this->flushCountsAfterRetentionRuns();
         $this->validateRetentionPolicies();
+        $this->registerDebugbarCollector();
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -182,6 +184,15 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         RetentionPolicy::fromConfig($config);
         RollupPolicy::fromConfig($config);
+    }
+
+    /**
+     * Debugbar is optional. The collector reads the instance off the container
+     * only when Debugbar has resolved one, which never happens without it.
+     */
+    protected function registerDebugbarCollector(): void
+    {
+        $this->app->booted(fn () => $this->app->make(RegisterViewsCollector::class)());
     }
 
     #[\Override]

@@ -40,6 +40,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Crawlers',
     'CyrildeWit\EloquentViewable\Cooldowns',
     'CyrildeWit\EloquentViewable\Retention',
+    'CyrildeWit\EloquentViewable\Debugging',
 ];
 
 const ENTRY_POINTS = [
@@ -132,6 +133,24 @@ arch('retention knows querying only through the rollup contracts')
         'Carbon',
         'Illuminate',
     ]);
+
+arch('debugging only reads what recording reports')
+    ->expect('CyrildeWit\EloquentViewable\Debugging')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Debugging',
+        'CyrildeWit\EloquentViewable\Recording\Contracts',
+        'CyrildeWit\EloquentViewable\Recording\Events',
+        'CyrildeWit\EloquentViewable\Recording\Data',
+        'DebugBar',
+        'Fruitcake\LaravelDebugbar',
+        'Illuminate',
+        'class_basename',
+    ]);
+
+arch('only debugging knows Debugbar')
+    ->expect(['DebugBar', 'Fruitcake\LaravelDebugbar'])
+    ->toOnlyBeUsedIn('CyrildeWit\EloquentViewable\Debugging');
 
 arch('only the entry points join the two sides')
     ->expect(MODULES)
