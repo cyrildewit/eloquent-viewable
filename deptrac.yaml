@@ -7,6 +7,8 @@
 #   EntryPoints   service provider, facade, trait, helpers, middleware
 #   Testing       the fake behind Views::fake(), stands in for both sides
 #   Views         the builder that ties recording and counting together
+#   Doctor        checks the setup of every module below it and says what
+#                 to fix
 #   Maintenance   the scheduled work: rolls up, anonymises, prunes and
 #                 recounts in order, under one lock and one deadline
 #   Retention     anonymises and prunes old views, above querying for the
@@ -73,6 +75,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Maintenance\\.*
+    - name: Doctor
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Doctor\\.*
 
     - name: Erasure
       collectors:
@@ -156,6 +162,11 @@ deptrac:
       - Recording
       - Visitors
       - Retention
+    # Reads the config, schema and state every module relies on, and nothing
+    # below it knows the doctor exists.
+    Doctor:
+      - +Maintenance
+      - +Recording
     Views:
       - +Recording
       - +Querying
@@ -168,6 +179,7 @@ deptrac:
       - +Maintenance
       - Debugging
       - +Erasure
+      - +Doctor
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.
       - CrawlerDetect
@@ -182,6 +194,7 @@ deptrac:
           - Retention
           - Maintenance
           - Erasure
+          - Doctor
           - Cooldowns
           - Visitors
           - Crawlers

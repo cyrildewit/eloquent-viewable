@@ -610,4 +610,23 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Doctor
+    |--------------------------------------------------------------------------
+    |
+    | `views:doctor` runs these checks and says what to fix.
+    |
+    */
+    'doctor' => [
+
+        /*
+         * The checks to run, in order. Remove one to skip it, or list a
+         * class of your own that implements `Doctor\Contracts\Check`.
+         */
+        'checks' => [
+        ],
+
+    ],
+
 ];

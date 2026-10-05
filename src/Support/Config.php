@@ -552,6 +552,70 @@ final readonly class Config
         return (bool) $this->get('retention.rollups.strict', false);
     }
 
+    /**
+     * @return list<class-string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function doctorChecks(): array
+    {
+        $value = $this->get('doctor.checks', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $value);
+        }
+
+        foreach ($value as $check) {
+            if (! is_string($check)) {
+                throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $check);
+            }
+
+            if (! class_exists($check)) {
+                throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $check);
+            }
+        }
+
+        /** @var list<class-string> */
+        return array_values($value);
+    }
+
+    public function sampleEnabled(): bool
+    {
+        return (bool) $this->get('doctor.sample.enabled', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function sampleCacheStore(): ?string
+    {
+        return $this->string('doctor.sample.store');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function sampleKey(): string
+    {
+        return $this->nonEmptyString('doctor.sample.key');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function sampleCrawlerShare(): float
+    {
+        $value = $this->get('doctor.sample.crawler_share');
+
+        if (! is_int($value) && ! is_float($value)) {
+            throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
+        }
+
+        if ($value <= 0) {
+            throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
+        }
+
+        if ($value > 1) {
+            throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
+        }
+
+        return (float) $value;
+    }
+
     private function get(string $key, mixed $default = null): mixed
     {
         return $this->config->get("eloquent-viewable.{$key}", $default);

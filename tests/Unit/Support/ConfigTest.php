@@ -424,3 +424,38 @@ describe('trending', function (): void {
         packageConfig(['querying' => ['trending' => ['max_steps' => 0]]])->trendingMaxSteps();
     })->throws(InvalidConfiguration::class, 'querying.trending.max_steps');
 });
+
+it('reads the doctor checks', function (): void {
+    expect(packageConfig(['doctor' => ['checks' => [Post::class]]]))->doctorChecks()->toBe([Post::class])
+        ->and(packageConfig())->doctorChecks()->toBe([]);
+});
+
+it('rejects doctor checks that are not a list of classes', function (mixed $value, string $described): void {
+    expect(fn (): array => packageConfig(['doctor' => ['checks' => $value]])->doctorChecks())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.doctor.checks` config value must be a list of class names, {$described} given.");
+})->with([
+    'a string' => ['App\\Check', '`"App\\\\Check"`'],
+    'a number in the list' => [[1], '`1`'],
+    'a class that does not exist' => [['App\\Missing'], '`"App\\\\Missing"`'],
+]);
+
+it('reads the sample settings', function (): void {
+    expect(packageConfig(['doctor' => ['sample' => ['enabled' => true, 'store' => 'redis', 'key' => 'samples', 'crawler_share' => 0.25]]]))
+        ->sampleEnabled()->toBeTrue()
+        ->sampleCacheStore()->toBe('redis')
+        ->sampleKey()->toBe('samples')
+        ->sampleCrawlerShare()->toBe(0.25)
+        ->and(packageConfig(['doctor' => ['sample' => ['crawler_share' => 1]]]))
+        ->sampleEnabled()->toBeFalse()
+        ->sampleCacheStore()->toBeNull()
+        ->sampleCrawlerShare()->toBe(1.0);
+});
+
+it('rejects a crawler share outside of 0 and 1', function (mixed $value, string $described): void {
+    expect(fn (): float => packageConfig(['doctor' => ['sample' => ['crawler_share' => $value]]])->sampleCrawlerShare())
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.doctor.sample.crawler_share` config value must be a number above 0 and at most 1, {$described} given.");
+})->with([
+    'a string' => ['half', '`"half"`'],
+    'zero' => [0, '`0`'],
+    'above one' => [1.5, '`1.5`'],
+]);
