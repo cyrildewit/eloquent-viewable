@@ -147,7 +147,7 @@ final readonly class RememberingSource implements CountsByDimension, RanksAlsoVi
     /**
      * Remembered under the identity of the decay, which leaves out now, so
      * the ranking is served until the moment `remember()` names even as the
-     * clock moves on. Another curve, step or window starts a fresh entry.
+     * clock moves on. Another curve, step or period starts a fresh entry.
      *
      * @return list<array{type: string, id: int|string, count: int, score: float}>
      *

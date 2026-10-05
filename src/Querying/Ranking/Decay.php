@@ -38,7 +38,6 @@ final readonly class Decay
         private CarbonImmutable $start,
         private ?CarbonImmutable $end,
         private array $steps,
-        private int $window,
     ) {}
 
     /**
@@ -64,15 +63,13 @@ final readonly class Decay
         }
 
         $steps = self::weigh($curve, $step, $end, $count, $timezone);
-        $window = (int) $start->diffInSeconds($end, absolute: true);
-
         if (! $periodStart instanceof CarbonInterface) {
             $start = $steps === [] ? $end : array_last($steps)->start;
         }
 
         $periodEnd = $query->period?->getEndDateTime();
 
-        return new self($curve, $step, $start, $periodEnd instanceof CarbonInterface ? $end : null, $steps, $window);
+        return new self($curve, $step, $start, $periodEnd instanceof CarbonInterface ? $end : null, $steps);
     }
 
     /**
@@ -103,13 +100,13 @@ final readonly class Decay
     }
 
     /**
-     * The window is measured before it is aligned to the steps, so the
-     * identity never includes now, and a remembered ranking survives the
-     * clock moving.
+     * The curve and the step, and never the window: the window follows from
+     * the period, which the cache key already holds, and from now, which
+     * would start a fresh entry every second.
      */
     public function identity(): string
     {
-        return "{$this->curve->identity()}:{$this->step->value}:{$this->window}";
+        return "{$this->curve->identity()}:{$this->step->value}";
     }
 
     private static function auto(CarbonImmutable $start, CarbonImmutable $end, int $maxSteps, DateTimeZone $timezone): Granularity
