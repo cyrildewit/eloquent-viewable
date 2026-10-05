@@ -13,7 +13,7 @@ use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
  * also when the write is queued, so a listener sees every view of the request
  * without waiting for a worker. Only dispatched when something listens.
  */
-final readonly class ViewAttempted
+class ViewAttempted
 {
     public function __construct(
         public ViewAttempt $attempt,

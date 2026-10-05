@@ -14,7 +14,9 @@ use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
 
 function attemptedView(RecordResult $result, ?ViewAttempt $attempt = null): ViewAttempted
 {
-    return new ViewAttempted($attempt ?? new ViewAttempt(new Post(['id' => 7]), Mockery::mock(Visitor::class)), $result);
+    $attempt ??= new ViewAttempt(new Post(['id' => 7]), Mockery::mock(Visitor::class));
+
+    return new ViewAttempted($attempt, $result);
 }
 
 /** @return array<string, mixed> */
@@ -29,39 +31,51 @@ function onlyMessage(ViewsCollector $collector): array
 
 it('lists a stored view', function (): void {
     $collector = new ViewsCollector;
+    $type = Post::class;
 
     $collector->addAttempt(attemptedView(RecordResult::stored()));
 
     expect(onlyMessage($collector))
-        ->message->toBe(Post::class.'(7) stored')
-        ->label->toBe('success');
+        ->message
+        ->toBe("{$type}(7) stored")
+        ->label
+        ->toBe('success');
 });
 
 it('lists a queued view', function (): void {
     $collector = new ViewsCollector;
+    $type = Post::class;
 
     $collector->addAttempt(attemptedView(RecordResult::queued()));
 
     expect(onlyMessage($collector))
-        ->message->toBe(Post::class.'(7) queued')
-        ->label->toBe('info');
+        ->message
+        ->toBe("{$type}(7) queued")
+        ->label
+        ->toBe('info');
 });
 
 it('lists a skipped view with the guard that refused it', function (): void {
     $collector = new ViewsCollector;
+    $type = Post::class;
 
     $collector->addAttempt(attemptedView(RecordResult::skipped(new RefuseAll)));
 
     $message = onlyMessage($collector);
 
     expect($message)
-        ->message->toBe(Post::class.'(7) skipped by RefuseAll')
-        ->label->toBe('warning')
-        ->and($message['context']['guard'])->toContain(RefuseAll::class);
+        ->message
+        ->toBe("{$type}(7) skipped by RefuseAll")
+        ->label
+        ->toBe('warning')
+        ->and($message['context']['guard'])
+        ->toContain(RefuseAll::class);
 });
 
 it('shows what the attempt asked for', function (): void {
     $collector = new ViewsCollector;
+    $viewer = Apartment::class;
+
     $attempt = new ViewAttempt(
         new Post(['id' => 7]),
         Mockery::mock(Visitor::class),
@@ -74,14 +88,19 @@ it('shows what the attempt asked for', function (): void {
     $collector->addAttempt(attemptedView(RecordResult::stored(), $attempt));
 
     expect(onlyMessage($collector)['context'])
-        ->collection->toContain('amp')
-        ->viewer->toContain(Apartment::class.'(3)')
-        ->cooldown->toContain('2026-10-05T12:00:00+00:00')
-        ->context->toContain('newsletter');
+        ->collection
+        ->toContain('amp')
+        ->viewer
+        ->toContain("{$viewer}(3)")
+        ->cooldown
+        ->toContain('2026-10-05T12:00:00+00:00')
+        ->context
+        ->toContain('newsletter');
 });
 
 it('starts empty again once Debugbar resets it', function (): void {
     $collector = new ViewsCollector;
+
     $collector->addAttempt(attemptedView(RecordResult::stored()));
 
     $collector->reset();
@@ -92,8 +111,10 @@ it('starts empty again once Debugbar resets it', function (): void {
 it('renders the views in a tab of its own with a count', function (): void {
     $collector = new ViewsCollector;
 
-    expect($collector->getName())->toBe(ViewsCollector::Name)
-        ->and($collector->getWidgets())->toMatchArray([
+    expect($collector->getName())
+        ->toBe(ViewsCollector::Name)
+        ->and($collector->getWidgets())
+        ->toMatchArray([
             'eloquent_viewable' => [
                 'title' => 'Viewable',
                 'icon' => 'list',

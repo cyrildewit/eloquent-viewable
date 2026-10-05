@@ -17,11 +17,11 @@ use Illuminate\Contracts\Events\Dispatcher;
  *
  * Set `debugbar.collectors.eloquent_viewable` to false to leave it out.
  */
-final readonly class RegisterViewsCollector
+class RegisterViewsCollector
 {
     public function __construct(
-        private Container $container,
-        private Dispatcher $events,
+        protected Container $container,
+        protected Dispatcher $events,
     ) {}
 
     public function __invoke(): void
@@ -32,9 +32,15 @@ final readonly class RegisterViewsCollector
 
         $debugbar = $this->container->make(LaravelDebugbar::class);
 
-        if (! $debugbar->isCollecting()
-            || ! $debugbar->shouldCollect(ViewsCollector::Name)
-            || $debugbar->hasCollector(ViewsCollector::Name)) {
+        if (! $debugbar->isCollecting()) {
+            return;
+        }
+
+        if (! $debugbar->shouldCollect(ViewsCollector::Name)) {
+            return;
+        }
+
+        if ($debugbar->hasCollector(ViewsCollector::Name)) {
             return;
         }
 

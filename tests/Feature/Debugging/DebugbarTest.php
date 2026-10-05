@@ -62,11 +62,12 @@ it('lists the views stored and skipped during the request', function (): void {
 
     views($this->post)->record();
 
+    $type = $this->post->getMorphClass();
     $key = $this->post->getKey();
 
     expect(listedViews($debugbar))->toBe([
-        Post::class."({$key}) stored",
-        Post::class."({$key}) skipped by RefuseAll",
+        "{$type}({$key}) stored",
+        "{$type}({$key}) skipped by RefuseAll",
     ]);
 });
 
@@ -79,14 +80,19 @@ it('lists a queued view before a worker has stored it', function (): void {
 
     views($this->post)->queue()->record();
 
-    expect(listedViews($debugbar))->toBe([Post::class."({$this->post->getKey()}) queued"]);
+    $type = $this->post->getMorphClass();
+    $key = $this->post->getKey();
+
+    expect(listedViews($debugbar))->toBe(["{$type}({$key}) queued"]);
 });
 
 it('adds nothing when Debugbar is not there', function (): void {
     $this->app->make(RegisterViewsCollector::class)();
 
-    expect($this->app->resolved(LaravelDebugbar::class))->toBeFalse()
-        ->and(Event::hasListeners(ViewAttempted::class))->toBeFalse();
+    expect($this->app->resolved(LaravelDebugbar::class))
+        ->toBeFalse()
+        ->and(Event::hasListeners(ViewAttempted::class))
+        ->toBeFalse();
 });
 
 it('adds nothing when Debugbar is not collecting', function (): void {
@@ -94,19 +100,23 @@ it('adds nothing when Debugbar is not collecting', function (): void {
 
     $this->app->make(RegisterViewsCollector::class)();
 
-    expect($debugbar->hasCollector(ViewsCollector::Name))->toBeFalse()
-        ->and(Event::hasListeners(ViewAttempted::class))->toBeFalse();
+    expect($debugbar->hasCollector(ViewsCollector::Name))
+        ->toBeFalse()
+        ->and(Event::hasListeners(ViewAttempted::class))
+        ->toBeFalse();
 });
 
 it('adds nothing when the collector is turned off in the Debugbar config', function (): void {
-    Config::set('debugbar.collectors.'.ViewsCollector::Name, false);
+    Config::set('debugbar.collectors.eloquent_viewable', false);
 
     $debugbar = fakeDebugbar($this->app);
 
     $this->app->make(RegisterViewsCollector::class)();
 
-    expect($debugbar->hasCollector(ViewsCollector::Name))->toBeFalse()
-        ->and(Event::hasListeners(ViewAttempted::class))->toBeFalse();
+    expect($debugbar->hasCollector(ViewsCollector::Name))
+        ->toBeFalse()
+        ->and(Event::hasListeners(ViewAttempted::class))
+        ->toBeFalse();
 });
 
 it('adds the collector once', function (): void {
