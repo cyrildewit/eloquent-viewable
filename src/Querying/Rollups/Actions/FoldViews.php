@@ -94,6 +94,41 @@ final readonly class FoldViews
     }
 
     /**
+     * It returns the moment before which some tier of some rollup cannot be
+     * folded again, the latest across every rollup, or null when every view
+     * can be. It is a bucket boundary of that tier, because a bucket is only
+     * folded whole.
+     *
+     * @throws RollupsNotInstalled
+     */
+    public function refoldableFrom(): ?CarbonImmutable
+    {
+        $this->ensureInstalled();
+
+        $latest = null;
+
+        foreach ($this->policy->definitions() as $definition) {
+            $snapshot = $this->state->snapshot($definition->name);
+
+            foreach ($definition->tiers() as $tier) {
+                $floor = $this->refoldFloor($tier, $snapshot);
+
+                if (! $floor instanceof CarbonImmutable) {
+                    continue;
+                }
+
+                $floor = $tier->ceil($floor, $this->policy->timezone);
+
+                if (! $latest instanceof CarbonImmutable || $floor > $latest) {
+                    $latest = $floor;
+                }
+            }
+        }
+
+        return $latest;
+    }
+
+    /**
      * @param  ?CarbonImmutable  $origin  moved back to the lowest bucket this tier folds
      *
      * @param-out CarbonImmutable $origin
