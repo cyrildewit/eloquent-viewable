@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 
@@ -19,6 +20,9 @@ use Illuminate\Database\Query\Builder;
  * This action deletes the views viewed before the cutoff. Every view before
  * it goes, not only those after the last run, so a view that landed late is
  * not left behind.
+ *
+ * Once the deadline passes, the run stops before the next chunk and the mark
+ * stays where it was, so the next run deletes the rest.
  */
 final readonly class PruneViews
 {
@@ -32,10 +36,11 @@ final readonly class PruneViews
     ) {}
 
     /** @throws RetentionNotInstalled */
-    public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false): RetentionRun
+    public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
     {
         $this->state->ensureInstalled();
 
+        $deadline ??= Deadline::none();
         $until = $this->watermarks->clamp($cutoff);
         $from = $this->state->moment(self::Mark);
         $clamped = $until < $cutoff;
@@ -47,6 +52,10 @@ final readonly class PruneViews
         $views = 0;
 
         do {
+            if ($deadline->passed()) {
+                return $this->stopped($from, $until, $views, $clamped);
+            }
+
             $ids = $this->expiredIds($until, $chunk);
 
             if ($ids !== []) {
@@ -61,6 +70,15 @@ final readonly class PruneViews
         }
 
         return new RetentionRun($from, $until, $views, $clamped, false);
+    }
+
+    private function stopped(?CarbonInterface $from, CarbonInterface $until, int $views, bool $clamped): RetentionRun
+    {
+        if ($views > 0) {
+            $this->events->dispatch(new ViewsPruned($from, $until, $views));
+        }
+
+        return new RetentionRun($from, $until, $views, $clamped, false, stopped: true);
     }
 
     /**

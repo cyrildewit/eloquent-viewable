@@ -271,6 +271,45 @@ it('anonymises a day in chunks that each start after the last', function (): voi
         ->and($statements[2])->toMatch('/id[`"]? > \\?/');
 });
 
+it('stops at the deadline and finishes the day with the same salt on the next run', function (): void {
+    Event::fake([ViewsAnonymised::class]);
+    $first = retainedView($this->post, '2026-03-01 10:00:00');
+    $second = retainedView($this->post, '2026-03-01 11:00:00');
+    $later = retainedView($this->post, '2026-03-02 11:00:00');
+
+    $run = app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-15'), ['visitor', 'viewer', 'context'], chunk: 1, deadline: deadlineAfter(1));
+
+    expect($run->views)->toBe(1)
+        ->and($run->stopped)->toBeTrue()
+        ->and($run->until->toDateTimeString())->toBe('2026-03-01 00:00:00')
+        ->and($first->refresh()->visitor)->toStartWith('a:')
+        ->and($second->refresh()->visitor)->toBe('visitor-1')
+        ->and(app(RetentionState::class)->get('anonymised'))->toBeNull()
+        ->and(app(RetentionState::class)->get('anonymise:salt:2026-03-01'))->not->toBeNull();
+
+    Event::assertDispatched(ViewsAnonymised::class, fn (ViewsAnonymised $event): bool => $event->views === 1);
+
+    $rest = anonymiseBefore('2026-03-15 00:00:00', chunk: 1);
+
+    expect($rest->views)->toBe(2)
+        ->and($second->refresh()->visitor)->toBe($first->visitor)
+        ->and($later->refresh()->visitor)->not->toBe($first->visitor)
+        ->and(app(RetentionState::class)->get('anonymise:salt:2026-03-01'))->toBeNull();
+});
+
+it('anonymises nothing once the deadline has passed', function (): void {
+    Event::fake([ViewsAnonymised::class]);
+    $view = retainedView($this->post, '2026-03-01 10:00:00');
+
+    $run = app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-15'), ['visitor'], chunk: 1, deadline: deadlineAfter(0));
+
+    expect($run->views)->toBe(0)
+        ->and($run->stopped)->toBeTrue()
+        ->and($view->refresh()->visitor)->toBe('visitor-1');
+
+    Event::assertNotDispatched(ViewsAnonymised::class);
+});
+
 it('splits a chunk with many visitors into statements of a hundred visitors', function (): void {
     foreach (range(1, 150) as $number) {
         retainedView($this->post, '2026-03-01 10:00:00', visitor: "visitor-{$number}");

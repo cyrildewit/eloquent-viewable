@@ -265,3 +265,16 @@ it('rejects a date it cannot read, or a date and an age together', function (arr
     'not a date' => [['--before' => 'the beginning'], 'The --before option must be a date such as `2026-01-01`.'],
     'both' => [['--before' => '2026-01-01', '--older-than' => '30d'], 'Pass either --before or --older-than, not both.'],
 ]);
+
+it('stops at its time limit', function (string $command, string $verb): void {
+    travelOnFirst($verb === 'Deleted' ? 'delete' : 'update', 'views');
+
+    $this->artisan($command, ['--older-than' => '30d', '--chunk' => '1', '--max-seconds' => '60'])
+        ->expectsOutputToContain("{$verb} 1 view")
+        ->expectsOutputToContain('Stopped at the time limit. The next run carries on from here.')
+        ->doesntExpectOutputToContain('because the rollups have not captured')
+        ->assertSuccessful();
+})->with([
+    ['views:prune', 'Deleted'],
+    ['views:anonymise', 'Anonymised'],
+]);

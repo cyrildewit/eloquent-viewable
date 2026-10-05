@@ -140,3 +140,36 @@ it('throws when the retention migration has not run', function (): void {
 
     pruneBefore('2026-03-01');
 })->throws(RetentionNotInstalled::class);
+
+it('stops at the deadline and leaves the rest and the mark for the next run', function (): void {
+    Event::fake([ViewsPruned::class]);
+    viewedOn($this->post, '2026-01-01 10:00:00', '2026-01-02 10:00:00', '2026-01-03 10:00:00');
+
+    $run = app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), chunk: 1, deadline: deadlineAfter(1));
+
+    expect($run->views)->toBe(1)
+        ->and($run->stopped)->toBeTrue()
+        ->and(View::query()->count())->toBe(2)
+        ->and(app(RetentionState::class)->get('pruned'))->toBeNull();
+
+    Event::assertDispatched(ViewsPruned::class, fn (ViewsPruned $event): bool => $event->views === 1);
+
+    $rest = pruneBefore('2026-03-01', chunk: 1);
+
+    expect($rest->views)->toBe(2)
+        ->and($rest->stopped)->toBeFalse()
+        ->and(app(RetentionState::class)->get('pruned'))->toBe('2026-03-01 00:00:00');
+});
+
+it('deletes nothing once the deadline has passed', function (): void {
+    Event::fake([ViewsPruned::class]);
+    viewedOn($this->post, '2026-01-01 10:00:00');
+
+    $run = app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), chunk: 1, deadline: deadlineAfter(0));
+
+    expect($run->views)->toBe(0)
+        ->and($run->stopped)->toBeTrue()
+        ->and(View::query()->count())->toBe(1);
+
+    Event::assertNotDispatched(ViewsPruned::class);
+});
