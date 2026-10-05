@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\PeriodInterval;
 
@@ -51,3 +52,15 @@ it('is not longer than an equal duration', function (): void {
 
     expect(new Duration(PeriodInterval::Weeks, 1)->isLongerThan(new Duration(PeriodInterval::Days, 7), $now))->toBeFalse();
 });
+
+it('turns {0} into an interval of {1} seconds', function (string $shorthand, int|float $seconds): void {
+    expect(Duration::tryParse($shorthand)?->toInterval()->totalSeconds)->toEqual($seconds);
+})->with([
+    ['30s', 30],
+    ['5min', 300],
+    ['6h', 21_600],
+    ['1d', 86_400],
+    ['2w', 1_209_600],
+    ['1m', CarbonInterval::months(1)->totalSeconds],
+    ['1y', CarbonInterval::years(1)->totalSeconds],
+]);

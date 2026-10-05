@@ -9,8 +9,10 @@ use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -24,7 +26,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, RanksAlsoViewed, ViewSource
+final readonly class RememberingSource implements CountsByDimension, RanksAlsoViewed, RanksTrending, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -143,7 +145,31 @@ final readonly class RememberingSource implements CountsByDimension, RanksAlsoVi
     }
 
     /**
-     * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>
+     * Remembered under the identity of the decay, which leaves out now, so
+     * the ranking is served until the moment `remember()` names even as the
+     * clock moves on. Another curve, step or window starts a fresh entry.
+     *
+     * @return list<array{type: string, id: int|string, count: int, score: float}>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof RanksTrending) {
+            throw UnsupportedBySource::trending($source);
+        }
+
+        return $this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: "trending:{$decay->identity()}", limit: $limit),
+            fn (): array => $source->trending($viewable, $query, $decay, $limit),
+        );
+    }
+
+    /**
+     * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>
      *
      * @param  Closure(): TValue  $resolve
      * @return TValue

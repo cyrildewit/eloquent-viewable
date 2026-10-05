@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Support;
 
 use Carbon\CarbonInterface;
+use Carbon\CarbonInterval;
 
 /**
  * A duration is a length of time in the period shorthand, such as `30d` or
@@ -41,6 +42,19 @@ final readonly class Duration
     public function isLongerThan(self $other, CarbonInterface $from): bool
     {
         return $this->before($from) < $other->before($from);
+    }
+
+    public function toInterval(): CarbonInterval
+    {
+        return match ($this->interval) {
+            PeriodInterval::Seconds => CarbonInterval::seconds($this->value),
+            PeriodInterval::Minutes => CarbonInterval::minutes($this->value),
+            PeriodInterval::Hours => CarbonInterval::hours($this->value),
+            PeriodInterval::Days => CarbonInterval::days($this->value),
+            PeriodInterval::Weeks => CarbonInterval::weeks($this->value),
+            PeriodInterval::Months => CarbonInterval::months($this->value),
+            PeriodInterval::Years => CarbonInterval::years($this->value),
+        };
     }
 
     public function shorthand(): string

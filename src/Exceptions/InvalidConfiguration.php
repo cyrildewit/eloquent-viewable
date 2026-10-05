@@ -85,11 +85,12 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must be one of `{$options}`, {$given} given.");
     }
 
-    public static function mustBeDuration(string $key, mixed $value): self
+    public static function mustBeDuration(string $key, mixed $value, bool $nullable = true): self
     {
         $given = self::describe($value);
+        $null = $nullable ? ', or null' : '';
 
-        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`, or null, {$given} given.");
+        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`{$null}, {$given} given.");
     }
 
     /** @param  list<string>  $allowed */
@@ -143,6 +144,18 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     public static function beaconDisabled(): self
     {
         return new self('The beacon route is not registered. Set `eloquent-viewable.recording.beacon.enabled` to `true` to record views from the browser.');
+    }
+
+    public static function mustBeClassOrNull(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must be the name of a class, or null, {$given} given.");
+    }
+
+    public static function mustNameClassImplementing(string $key, string $interface, string $class): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value must name a class implementing `{$interface}`, `{$class}` does not.");
     }
 
     private static function describe(mixed $value): string
