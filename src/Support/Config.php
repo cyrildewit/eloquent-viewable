@@ -145,6 +145,47 @@ final readonly class Config
         return $this->string('recording.throttle.store');
     }
 
+    /** @throws InvalidConfiguration */
+    public function burstMax(): int
+    {
+        return $this->positiveInteger('recording.bursts.max');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function burstSeconds(): int
+    {
+        return $this->positiveInteger('recording.bursts.seconds');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function burstBlockFor(): int
+    {
+        return $this->positiveInteger('recording.bursts.block_for');
+    }
+
+    /**
+     * @return list<'visitor'|'network'>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function burstKeys(): array
+    {
+        /** @var list<'visitor'|'network'> */
+        return $this->subsetOf('recording.bursts.by', ['visitor', 'network'], ['visitor', 'network']);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function burstKey(): string
+    {
+        return $this->nonEmptyString('recording.bursts.key');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function burstCacheStore(): ?string
+    {
+        return $this->string('recording.bursts.store');
+    }
+
     public function queueEnabled(): bool
     {
         return (bool) $this->get('recording.queue.enabled', false);

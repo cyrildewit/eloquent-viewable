@@ -2,6 +2,7 @@
 
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreDoNotTrack;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
@@ -106,10 +107,10 @@ return [
          * `Recording\Contracts\RecordingGuard`.
          *
          * Out of the box crawlers, requests without a user agent, `HEAD`
-         * requests, `ignored_ip_addresses` and pages the browser only
-         * prefetches are dropped, and `EnforceCooldown` is listed because
-         * `cooldown()` does nothing without it. Uncomment the others to turn
-         * them on:
+         * requests, `ignored_ip_addresses`, pages the browser only prefetches
+         * and bursts of views are dropped, and `EnforceCooldown` is listed
+         * because `cooldown()` does nothing without it. Uncomment the others
+         * to turn them on:
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
@@ -119,6 +120,9 @@ return [
          *   IgnoreHeadRequests          drops `HEAD` requests, such as uptime
          *                               monitors and link checkers
          *   IgnorePrefetch              drops prefetched and prerendered pages
+         *   IgnoreBursts                drops a visitor that opens many
+         *                               different models within seconds, see
+         *                               `bursts`
          *   ThrottleVisitors            caps the views of one visitor per
          *                               minute, see `throttle`
          *   IgnoreDoNotTrack            honours the `DNT: 1` header
@@ -133,6 +137,7 @@ return [
             IgnoreIpAddresses::class,
             IgnoreHeadRequests::class,
             IgnorePrefetch::class,
+            IgnoreBursts::class,
             EnforceCooldown::class,
             // ThrottleVisitors::class,
             // IgnoreDoNotTrack::class,
@@ -170,6 +175,43 @@ return [
              * The cache key prefix the counts are kept under.
              */
             'key' => 'cyrildewit.eloquent-viewable.throttle',
+
+        ],
+
+        'bursts' => [
+
+            /*
+             * A visitor that opens more than `max` different viewables within
+             * `seconds` is refused by `IgnoreBursts`, and so is every view of
+             * theirs for the next `block_for` seconds. People do not read
+             * that fast; scrapers walking through a site do.
+             */
+            'max' => 8,
+
+            'seconds' => 2,
+
+            'block_for' => 120,
+
+            /*
+             * What a burst is counted per. `visitor` is the stored visitor id.
+             * `network` is a hash of the network and the user agent, the same
+             * one the `fingerprint` identity uses, so a bot that drops its
+             * cookie on every request is still caught. The hash lives only in
+             * the cache, for a few seconds, and is never stored with a view.
+             */
+            'by' => ['visitor', 'network'],
+
+            /*
+             * The cache store the counts are kept in. Every server that
+             * records views must share it. When `null`, the application's
+             * default cache store is used.
+             */
+            'store' => null,
+
+            /*
+             * The cache key prefix the counts are kept under.
+             */
+            'key' => 'cyrildewit.eloquent-viewable.bursts',
 
         ],
 
