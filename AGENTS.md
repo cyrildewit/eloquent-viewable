@@ -92,8 +92,8 @@ public method, class path or default they mention changes, or when a new feature
   skill. Everything else goes in the skill.
 - Keep the skill to imperatives and short `php` blocks, with no reasons a user would only find in the README.
 - Plain Markdown, no Blade. Keep the skill's frontmatter `name` equal to its directory name.
-- `tests/Unit/Boost/GuidelinesTest.php` fails on a method in a `php` block that no longer exists. When it fails on a
-  method from a class it does not know yet, add the class to its list.
+- `tests/Unit/Boost/GuidelinesTest.php` fails on a method in a `php` block or a backticked config key that no longer
+  exists. When it fails on a method from a class it does not know yet, add the class to its list.
 
 ## Where a test belongs
 
