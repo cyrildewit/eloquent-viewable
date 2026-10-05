@@ -45,6 +45,7 @@
         <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
+        <li><a href="#erasing-one-persons-views">Erasing one person's views</a></li>
         <li><a href="#storing-context-with-a-view">Storing context with a view</a></li>
         <li><a href="#remove-views-on-delete">Remove views on delete</a></li>
         <li><a href="#caching-view-counts">Caching view counts</a></li>
@@ -866,14 +867,58 @@ $user->lastViewedAt($post);                      // Carbon or null
 
 Each `View` also has a `viewer` relation and `byViewer()` and `byVisitor()` scopes.
 
-#### Deleting a user
+### Erasing one person's views
 
-There is no foreign key, so a deleted user's views keep pointing at a model that is gone. To keep the counts but drop
-the identity, detach them first:
+For a deleted account or a GDPR request, `HasViewHistory` erases or exports everything one viewer recorded:
 
 ```php
-$user->viewed()->update(['viewer_type' => null, 'viewer_id' => null]);
+$user->forgetViewHistory();                          // delete their views
+$user->forgetViewHistory(includeGuestViews: true);   // and the guest views of the browsers they signed in on
+$user->anonymiseViewHistory();                       // keep the counts, take out what ties the views to them
+$user->exportViewHistory();                          // their views, for a data access request
 ```
+
+There is no foreign key, so a deleted user's views keep pointing at a model that is gone. Call one of these before
+deleting the user, or name the viewer afterwards from the command line. A guest is named by their visitor id, the value
+of the visitor cookie:
+
+```bash
+php artisan views:forget-viewer "App\Models\User" 42
+php artisan views:forget-viewer user 42 --with-visitors   # a morph alias works too
+php artisan views:forget-visitor 5f2a…
+```
+
+Both commands take `--chunk` and ask for confirmation in production unless given `--force`. In code,
+`Erasure\Subject::viewerKey($type, $key)` and `Subject::visitor($id)` name the same people for the actions in
+`Erasure\Actions`.
+
+`exportViewHistory()` returns a lazy collection of the views, oldest first, so a long history is read in chunks:
+
+```php
+$user->exportViewHistory()->toJson();
+// [{"viewable_type":"App\\Models\\Post","viewable_id":12,"collection":null,"context":{"source":"newsletter"},"viewed_at":"2026-10-01T09:12:00+00:00"}]
+```
+
+What to know:
+
+- **A viewer is also found by its visitor id.** With `visitor.identity` set to `viewer` or `fingerprint`, the visitor id
+  of a signed-in view is derived from the account. Views whose viewer columns were cleared by hand are still found.
+- **Guest views are kept by default.** With the default cookie identity, a user's views share the cookie id with the
+  views that browser made before they signed in. `includeGuestViews` and `--with-visitors` delete those as well, which
+  on a shared computer can be someone else's.
+- **Anonymising works like [retention](#retention).** `viewer` and `context` become `null`, and `visitor` is re-hashed
+  under a salt per day that is thrown away afterwards. Total views and daily unique visitors stay the same; unique
+  counts across days count the person once per day.
+- **Buffered views are reached too.** With the [Redis buffer](#buffering-views-in-redis), the person's views that have
+  not been flushed yet are landed first. A [queued](#queueing-view-recording) view still in the queue lands afterwards.
+- **Rollups are left alone.** [Rollups](#rollups) hold counts per bucket and no visitor or viewer, so a forgotten
+  person's views stay counted in the history they were folded into. Counts read through the `rollup` source include
+  them for every bucket folded before the erasure.
+- **Remembered counts of the models they viewed are forgotten,** and every count once more than 100 models are touched.
+  [Counter columns](#storing-counts-on-your-own-table) catch up on the next `views:recount`.
+- **Each call dispatches an event** for your audit log, also when the person had no views:
+  `Erasure\Events\ViewHistoryForgotten` and `ViewHistoryAnonymised` with the `subject` and the number of `views`, and
+  `ViewHistoryExported` with the `subject`.
 
 ### Storing context with a view
 
@@ -1491,8 +1536,8 @@ Counts read from the configured [view source](#customizing-how-views-are-counted
 in front of it and implements `Recording\Contracts\BufferedViewStore`, so `views:flush` can drain it.
 
 A store can also keep views somewhere else for good, such as MongoDB, when it is paired with a source that reads them
-back from there. The `views()` and `viewed()` relations, `hasViewed()`, `lastViewedAt()`, retention and rollups keep
-working on the `views` table, and the scopes need a source in the same database as the viewable.
+back from there. The `views()` and `viewed()` relations, `hasViewed()`, `lastViewedAt()`, erasure, retention and
+rollups keep working on the `views` table, and the scopes need a source in the same database as the viewable.
 
 To add a driver, implement `Recording\Contracts\ViewStore` and register it in a service provider:
 
@@ -1506,7 +1551,8 @@ $this->app->make(StoreManager::class)->extend('clickhouse', fn ($app): ViewStore
 ```
 
 A store implements `store()` for one record, `storeMany()` for a batch and `forget()` to remove every view of a
-viewable. Stores bypass Eloquent, so listen for `Recording\Events\ViewRecorded` and not for `View` model events.
+viewable. A buffer also implements `flush()`, and `land()`, which lands the buffered views a filter
+keeps straight away, so [erasing one person's views](#erasing-one-persons-views) reaches them. Stores bypass Eloquent, so listen for `Recording\Events\ViewRecorded` and not for `View` model events.
 
 ### Adding a recording guard
 
