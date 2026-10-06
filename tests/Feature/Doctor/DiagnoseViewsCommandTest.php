@@ -125,3 +125,21 @@ it('prints the findings as JSON', function (): void {
         'summary' => ['pass' => 0, 'advice' => 0, 'warning' => 1, 'failure' => 0, 'skipped' => 0],
     ]);
 });
+
+it('runs the shipped checks in order', function (): void {
+    Artisan::call('views:doctor', ['--json' => true]);
+
+    /** @var array{checks: list<array{check: string, name: string}>} $report */
+    $report = json_decode(Artisan::output(), true);
+
+    expect(array_map(fn (array $check): string => "{$check['check']}: {$check['name']}", $report['checks']))->toBe([
+        'schema: Database schema',
+        'index-advice: Optional indexes',
+        'shared-cache: Shared cache stores',
+        'schedule: Scheduler',
+        'trusted-proxies: Trusted proxies',
+        'redis-stream: Redis stream',
+        'crawler-share: Refused attempts',
+        'configuration: Configuration',
+    ]);
+});
