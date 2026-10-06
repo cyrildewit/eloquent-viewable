@@ -22,6 +22,7 @@ use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -54,6 +55,7 @@ function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxInte
         readerConfig($maxIntervals),
         new ViewableLoader,
         new DecayFactory(readerConfig($maxIntervals), new Container),
+        new RecommendationLoader(new ViewableLoader),
     );
 }
 

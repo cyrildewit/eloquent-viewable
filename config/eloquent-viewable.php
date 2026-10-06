@@ -386,6 +386,55 @@ return [
         ],
 
         /*
+         * `recommended()` and `recommendedFor()` rank what the visitors of
+         * the models one viewer recently viewed also viewed. They share
+         * `also_viewed.minimum_visitors`, so a recommendation never reveals
+         * what one or two people looked at.
+         *
+         * Only the `max_seeds` models the viewer viewed most recently are
+         * read, and of each only the `max_visitors` most recent visitors,
+         * `null` for all of them. A model the viewer viewed one `half_life`
+         * ago counts half as much as one it viewed just now. `similarity` is
+         * `cosine`, which keeps a model nearly everyone views from topping
+         * every list, or `count`, the visitors in common as `alsoViewed()`
+         * counts them.
+         */
+        'recommendations' => [
+
+            'max_seeds' => 20,
+
+            'max_visitors' => 500,
+
+            'half_life' => '7d',
+
+            'similarity' => 'cosine',
+
+        ],
+
+        /*
+         * The pairs table keeps, for every model, the models its visitors
+         * also viewed, so `alsoViewed()` and `recommended()` read a few rows
+         * instead of every view of every visitor. Publish its migration with
+         * the `eloquent-viewable-pairs` tag and schedule `views:pairs`.
+         *
+         * The table holds the views of the last `period` and, of each model,
+         * the `max_pairs` models it shares the most visitors with. It is read
+         * only when a call names no period and no collection, and between two
+         * runs of `views:pairs` it does not see new views.
+         */
+        'pairs' => [
+
+            'enabled' => false,
+
+            'table' => 'view_pairs',
+
+            'period' => '90d',
+
+            'max_pairs' => 100,
+
+        ],
+
+        /*
          * `trending()` and `orderByTrending()` weigh each view by its age,
          * so recent views count more. `curve` is how a view loses weight:
          * `null` halves it every `half_life`, or name a class implementing

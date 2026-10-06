@@ -7,12 +7,14 @@ namespace CyrildeWit\EloquentViewable\Querying\Sources;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
@@ -20,9 +22,11 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+use CyrildeWit\EloquentViewable\Querying\Pairs\PairTable;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -33,13 +37,18 @@ use Illuminate\Support\Collection;
 use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+/**
+ * @phpstan-import-type RecommendationPairs from RanksRecommendations
+ */
+final readonly class DatabaseSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
     public function __construct(
         private View $view,
         private GrammarRegistry $grammars,
+        private CoVisitation $coVisitation,
+        private PairTable $pairs,
     ) {}
 
     public function count(Viewable $viewable, ViewsQuery $query): int
@@ -434,11 +443,19 @@ final readonly class DatabaseSource implements CountsByDimension, CountsVisitFre
      * Joins the views table to the visitors of the viewable, read as a
      * derived table so the cap on the visitors works on every driver: MySQL
      * refuses a limit inside `in (...)`. Views without a visitor never pair.
+     * The pairs table answers instead when it is enabled and the query names
+     * no period and no collection.
      *
      * @return list<array{type: string, id: int|string, count: int}>
+     *
+     * @throws InvalidConfiguration
      */
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
     {
+        if ($this->pairs->serves($query)) {
+            return $this->pairs->alsoViewed($viewable, $among, $limit, $minimum);
+        }
+
         $visitor = $this->view->qualifyColumn('visitor');
         $type = $this->view->qualifyColumn('viewable_type');
         $id = $this->view->qualifyColumn('viewable_id');
@@ -487,6 +504,30 @@ final readonly class DatabaseSource implements CountsByDimension, CountsVisitFre
         }
 
         return $ranking;
+    }
+
+    /**
+     * The seeds always come from the views table. The pairs come from the
+     * pairs table when it is enabled and the query names no period and no
+     * collection.
+     *
+     * @return RecommendationPairs
+     *
+     * @throws InvalidConfiguration
+     */
+    public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
+    {
+        if (! $this->pairs->serves($query)) {
+            return $this->coVisitation->recommendationPairs($request, $query);
+        }
+
+        $seeds = $this->coVisitation->seeds($request, $query);
+
+        if ($seeds === []) {
+            return ['seeds' => [], 'pairs' => [], 'audiences' => []];
+        }
+
+        return ['seeds' => $seeds, ...$this->pairs->recommendationPairs($request, $seeds)];
     }
 
     private function countOne(Viewable $viewable, int|string $key, ViewsQuery $query): Builder

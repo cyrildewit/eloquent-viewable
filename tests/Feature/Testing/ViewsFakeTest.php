@@ -11,6 +11,8 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
@@ -22,6 +24,7 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
+use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\AssertionFailedError;
 
 beforeEach(function (): void {
@@ -195,6 +198,67 @@ describe('counting', function (): void {
             ->and(views($this->post)->returning()->count())->toBe(2)
             ->and(views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->timezone('Australia/Sydney')->countByFrequency()->toArray())
             ->toBe([1 => 1, 2 => 1, '3+' => 1]);
+    });
+
+    it('reads what recommendations are made from, as the database does', function (): void {
+        config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
+        $user = User::factory()->create();
+        $earlier = Post::factory()->create();
+        $next = Post::factory()->create();
+        $apartment = Apartment::factory()->create();
+
+        $record = fn (Model $viewable, ?string $visitor, string $viewedAt, ?User $viewer = null, ?string $collection = null): null => $this->fake->store(new ViewRecord(
+            $viewable->getKey(),
+            $viewable->getMorphClass(),
+            $visitor,
+            $collection,
+            Carbon::parse($viewedAt),
+            $viewer?->getMorphClass(),
+            $viewer?->getKey(),
+        ));
+
+        $record($this->post, 'laptop', '2026-01-10', $user);
+        $record($earlier, 'phone', '2026-01-03', $user);
+        $record($next, 'phone', '2025-01-01', $user);
+        $record($this->post, 'one', '2026-01-09');
+        $record($this->post, 'two', '2026-01-08');
+        $record($this->post, null, '2026-01-08');
+        $record($next, 'one', '2026-01-09');
+        $record($next, 'two', '2026-01-09');
+        $record($next, 'laptop', '2026-01-09');
+        $record($apartment, 'one', '2026-01-09');
+        $record($earlier, 'one', '2026-01-09', collection: 'sidebar');
+
+        $pairs = fn (?Model $among = null, ?int $maxVisitors = null, bool $includeSeen = false, int $seeds = 20, int $minimum = 1, ?Recipient $recipient = null): array => $this->fake->recommendationPairs(
+            new RecommendationRequest($recipient ?? Recipient::viewer($user), $among, $seeds, $minimum, $maxVisitors, $includeSeen),
+            new ViewsQuery(Period::since('2026-01-01')),
+        );
+
+        $all = $pairs(includeSeen: true);
+
+        expect($all['seeds'])->toEqual([
+            ['type' => Post::class, 'id' => $this->post->getKey(), 'viewed_at' => '2026-01-10 00:00:00'],
+            ['type' => Post::class, 'id' => $earlier->getKey(), 'viewed_at' => '2026-01-03 00:00:00'],
+        ])
+            ->and($all['pairs'])->toEqual([
+                ['seed_type' => Post::class, 'seed_id' => $this->post->getKey(), 'type' => Apartment::class, 'id' => $apartment->getKey(), 'visitors' => 1],
+                ['seed_type' => Post::class, 'seed_id' => $this->post->getKey(), 'type' => Post::class, 'id' => $next->getKey(), 'visitors' => 2],
+                ['seed_type' => Post::class, 'seed_id' => $earlier->getKey(), 'type' => Apartment::class, 'id' => $apartment->getKey(), 'visitors' => 1],
+                ['seed_type' => Post::class, 'seed_id' => $earlier->getKey(), 'type' => Post::class, 'id' => $next->getKey(), 'visitors' => 1],
+            ])
+            ->and($all['audiences'])->toEqualCanonicalizing([
+                ['type' => Post::class, 'id' => $this->post->getKey(), 'visitors' => 3],
+                ['type' => Post::class, 'id' => $earlier->getKey(), 'visitors' => 2],
+                ['type' => Post::class, 'id' => $next->getKey(), 'visitors' => 3],
+                ['type' => Apartment::class, 'id' => $apartment->getKey(), 'visitors' => 1],
+            ])
+            ->and(array_column($pairs()['pairs'], 'id'))->toBe([$apartment->getKey(), $apartment->getKey()])
+            ->and(array_column($pairs(among: new Post, includeSeen: true)['pairs'], 'id'))->toBe([$next->getKey(), $next->getKey()])
+            ->and(array_column($pairs(maxVisitors: 1, includeSeen: true)['pairs'], 'visitors'))->toBe([1, 1, 1, 1])
+            ->and(array_column($pairs(seeds: 1)['seeds'], 'id'))->toBe([$this->post->getKey()])
+            ->and($pairs(minimum: 3))->toBe(['seeds' => $pairs()['seeds'], 'pairs' => [], 'audiences' => []])
+            ->and(count($pairs(recipient: Recipient::visitor('one'))['seeds']))->toBe(4)
+            ->and(array_column($pairs(recipient: Recipient::visitor('two'))['pairs'], 'id'))->toBe([$apartment->getKey(), $earlier->getKey(), $apartment->getKey(), $earlier->getKey()]);
     });
 
     it('counts what was recorded', function (): void {

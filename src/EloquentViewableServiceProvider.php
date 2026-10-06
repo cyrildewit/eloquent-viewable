@@ -32,6 +32,8 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
+use CyrildeWit\EloquentViewable\Querying\Pairs\Console\PairViewsCommand;
+use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
@@ -98,6 +100,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             $this->commands([
                 FlushViewsCommand::class,
                 RollupViewsCommand::class,
+                PairViewsCommand::class,
                 RecountViewsCommand::class,
                 AnonymiseViewsCommand::class,
                 PruneViewsCommand::class,
@@ -139,6 +142,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_rollups_table.php"),
         ], 'eloquent-viewable-rollups');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_view_pairs_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_pairs_table.php"),
+        ], 'eloquent-viewable-pairs');
     }
 
     /**
@@ -247,7 +254,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function flushCountsAfterRetentionRuns(): void
     {
         $this->app->make(EventDispatcher::class)->listen(
-            [ViewsRolledUp::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
+            [ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
             fn () => $this->app->make(CacheVersions::class)->flushCache(),
         );
 

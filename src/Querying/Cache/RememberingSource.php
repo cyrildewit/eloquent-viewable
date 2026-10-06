@@ -10,10 +10,12 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -25,9 +27,11 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  * Entries are stored under the `querying.cache.key` prefix, and the identity
  * of the source keeps the entries of two sources apart.
  *
+ * @phpstan-import-type RecommendationPairs from RanksRecommendations
+ *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, CountsVisitFrequency, RanksAlsoViewed, RanksTrending, ViewSource
+final readonly class RememberingSource implements CountsByDimension, CountsVisitFrequency, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -193,7 +197,31 @@ final readonly class RememberingSource implements CountsByDimension, CountsVisit
     }
 
     /**
-     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>
+     * Remembered with no viewable, so only `flushCache()` forgets it before
+     * the moment `remember()` names. The request is part of the key, so two
+     * recipients never share an entry.
+     *
+     * @return RecommendationPairs
+     *
+     * @throws UnsupportedBySource
+     */
+    public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof RanksRecommendations) {
+            throw UnsupportedBySource::recommended($source);
+        }
+
+        return $this->remember(
+            null,
+            $this->key(null)->make($query, grouping: "recommended:{$request->identity()}"),
+            fn (): array => $source->recommendationPairs($request, $query),
+        );
+    }
+
+    /**
+     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>|RecommendationPairs
      *
      * @param  Closure(): TValue  $resolve
      * @return TValue

@@ -33,4 +33,9 @@ final readonly class ViewsQuery
     {
         return new self($period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->filter);
     }
+
+    public function withViewer(?Model $viewer): self
+    {
+        return new self($this->period, $this->collection, $this->unique, $this->timezone, $viewer, $this->filter);
+    }
 }

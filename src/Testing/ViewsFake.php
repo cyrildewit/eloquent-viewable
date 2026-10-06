@@ -18,11 +18,14 @@ use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
 use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Step;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
@@ -37,7 +40,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
-final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
+/**
+ * @phpstan-import-type RecommendationPairs from RanksRecommendations
+ */
+final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -351,6 +357,87 @@ final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoV
     }
 
     /**
+     * Reads the recorded views the way the database source reads the views
+     * table, without the pairs table.
+     *
+     * @return RecommendationPairs
+     */
+    public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
+    {
+        $recipient = $request->recipient;
+        $records = $this->matchingRecords($query, static fn (): bool => true);
+        $own = new Collection($this->store->records())->filter(fn (ViewRecord $record): bool => $this->madeBy($record, $recipient));
+
+        $seeds = [];
+
+        foreach ($records->filter(fn (ViewRecord $record): bool => $this->madeBy($record, $recipient)) as $record) {
+            $key = self::keyOf($record);
+            $viewedAt = $record->viewedAt->toDateTimeString();
+
+            if (! isset($seeds[$key]) || $seeds[$key]['viewed_at'] < $viewedAt) {
+                $seeds[$key] = ['type' => $record->viewableType, 'id' => $record->viewableId, 'viewed_at' => $viewedAt];
+            }
+        }
+
+        $seeds = array_values($seeds);
+
+        usort($seeds, static fn (array $a, array $b): int => [$b['viewed_at'], $a['type'], $a['id']] <=> [$a['viewed_at'], $b['type'], $b['id']]);
+
+        $seeds = array_slice($seeds, 0, $request->seeds);
+        $seedKeys = array_map(static fn (array $seed): string => "{$seed['type']}:{$seed['id']}", $seeds);
+
+        $ownVisitors = [$recipient->visitor];
+
+        if ($recipient->isViewer()) {
+            $ownVisitors = array_values(array_unique($own->map(static fn (ViewRecord $record): ?string => $record->visitor)->filter(static fn (?string $visitor): bool => $visitor !== null)->all()));
+        }
+
+        $seen = array_values(array_unique($own->map(static fn (ViewRecord $record): string => self::keyOf($record))->all()));
+        $visited = $records->filter(static fn (ViewRecord $record): bool => $record->visitor !== null);
+        $amongType = $request->among?->getMorphClass();
+        $pairs = [];
+
+        foreach ($seeds as $seed) {
+            $anchors = $this->anchorsOf($visited, "{$seed['type']}:{$seed['id']}", $ownVisitors, $request->maxVisitors);
+
+            $candidates = $visited
+                ->filter(static fn (ViewRecord $record): bool => in_array($record->visitor, $anchors, true)
+                    && ! in_array(self::keyOf($record), $seedKeys, true)
+                    && ($amongType === null || $record->viewableType === $amongType)
+                    && ($request->includeSeen || ! in_array(self::keyOf($record), $seen, true)))
+                ->groupBy(static fn (ViewRecord $record): string => self::keyOf($record));
+
+            foreach ($candidates as $views) {
+                /** @var ViewRecord $first */
+                $first = $views->first();
+                $count = $views->pluck('visitor')->unique()->count();
+
+                if ($count >= $request->minimum) {
+                    $pairs[] = ['seed_type' => $seed['type'], 'seed_id' => $seed['id'], 'type' => $first->viewableType, 'id' => $first->viewableId, 'visitors' => $count];
+                }
+            }
+        }
+
+        if ($pairs === []) {
+            return ['seeds' => $seeds, 'pairs' => [], 'audiences' => []];
+        }
+
+        usort($pairs, static fn (array $a, array $b): int => [$a['seed_type'], $a['seed_id'], $a['type'], $a['id']] <=> [$b['seed_type'], $b['seed_id'], $b['type'], $b['id']]);
+
+        $involved = [...$seedKeys, ...array_map(static fn (array $pair): string => "{$pair['type']}:{$pair['id']}", $pairs)];
+        $audiences = [];
+
+        foreach ($visited->filter(static fn (ViewRecord $record): bool => in_array(self::keyOf($record), $involved, true))->groupBy(static fn (ViewRecord $record): string => self::keyOf($record)) as $views) {
+            /** @var ViewRecord $first */
+            $first = $views->first();
+
+            $audiences[] = ['type' => $first->viewableType, 'id' => $first->viewableId, 'visitors' => $views->pluck('visitor')->unique()->count()];
+        }
+
+        return ['seeds' => $seeds, 'pairs' => $pairs, 'audiences' => $audiences];
+    }
+
+    /**
      * @param  (Closure(ViewRecord): bool)|null  $filter
      * @return Collection<int, ViewRecord>
      */
@@ -493,6 +580,50 @@ final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoV
         }
 
         return (string) $record->viewerId === $viewerKey;
+    }
+
+    private function madeBy(ViewRecord $record, Recipient $recipient): bool
+    {
+        if (! $recipient->isViewer()) {
+            return $record->visitor === $recipient->visitor;
+        }
+
+        if ($record->viewerType !== $recipient->viewer->getMorphClass()) {
+            return false;
+        }
+
+        return (string) $record->viewerId === (string) $recipient->viewerKey;
+    }
+
+    /**
+     * The visitors of the seed apart from the recipient's own, the most
+     * recent first, capped when a cap is given.
+     *
+     * @param  Collection<int, ViewRecord>  $visited
+     * @param  list<?string>  $ownVisitors
+     * @return list<string>
+     */
+    private function anchorsOf(Collection $visited, string $seed, array $ownVisitors, ?int $maxVisitors): array
+    {
+        $anchors = $visited
+            ->filter(static fn (ViewRecord $record): bool => self::keyOf($record) === $seed && ! in_array($record->visitor, $ownVisitors, true))
+            ->groupBy(static fn (ViewRecord $record): string => (string) $record->visitor)
+            ->map(static fn (Collection $views, string $visitor): array => [$visitor, (float) $views->max(static fn (ViewRecord $record): float => $record->viewedAt->getPreciseTimestamp())])
+            ->values()
+            ->all();
+
+        usort($anchors, static fn (array $a, array $b): int => [$b[1], $a[0]] <=> [$a[1], $b[0]]);
+
+        if ($maxVisitors !== null) {
+            $anchors = array_slice($anchors, 0, $maxVisitors);
+        }
+
+        return array_column($anchors, 0);
+    }
+
+    private static function keyOf(ViewRecord $record): string
+    {
+        return "{$record->viewableType}:{$record->viewableId}";
     }
 
     /** @param  Collection<int, ViewRecord>  $records */

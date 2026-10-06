@@ -26,6 +26,8 @@ use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\UnknownRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Rollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
@@ -288,6 +290,28 @@ class Views
     public function leave(): void
     {
         $this->recorder->leave($this->newAttempt());
+    }
+
+    /**
+     * What the visitors of the models the viewer viewed recently also viewed,
+     * for the viewer `viewedBy()` names or, without one, for the current
+     * visitor. A model type given to `views()` ranks only models of that
+     * type. What the viewer viewed before is left out unless it is included.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws InvalidViewer
+     * @throws UnsupportedBySource
+     */
+    public function recommended(int $limit = 10, bool $includeSeen = false): Recommendations
+    {
+        $recipient = $this->viewer instanceof Model
+            ? Recipient::viewer($this->viewer)
+            : Recipient::visitor($this->visitor->id());
+
+        return $this->reader->recommended($recipient, $this->viewable, $this->query(), $limit, $includeSeen, $this->cacheLifetime);
     }
 
     /** @throws RecordingFailed */

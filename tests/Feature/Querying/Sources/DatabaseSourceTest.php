@@ -10,6 +10,8 @@ use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedDriver;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+use CyrildeWit\EloquentViewable\Querying\Pairs\PairTable;
+use CyrildeWit\EloquentViewable\Querying\Sources\CoVisitation;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -241,7 +243,7 @@ describe('cache identity', function (): void {
         $analytics->setConnection('analytics');
 
         expect(databaseSource()->cacheIdentity())->toBe(json_encode([viewConnection()->getName(), viewConnection()->getDatabaseName()]))
-            ->and(new DatabaseSource($analytics, grammars())->cacheIdentity())->toBe('["analytics",":memory:"]');
+            ->and(new DatabaseSource($analytics, grammars(), new CoVisitation($analytics), Container::getInstance()->make(PairTable::class))->cacheIdentity())->toBe('["analytics",":memory:"]');
     });
 });
 

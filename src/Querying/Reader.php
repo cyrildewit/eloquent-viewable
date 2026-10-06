@@ -19,6 +19,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
@@ -27,10 +28,17 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\ExponentialDecay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Scorer;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Similarity;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -54,6 +62,7 @@ final readonly class Reader
         private Config $config,
         private ViewableLoader $loader,
         private DecayFactory $decays,
+        private RecommendationLoader $recommendations,
     ) {}
 
     public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
@@ -268,6 +277,90 @@ final readonly class Reader
             $this->config->alsoViewedMinimumVisitors(),
             $this->config->alsoViewedMaxVisitors(),
         ));
+    }
+
+    /**
+     * What the visitors of the viewables the recipient viewed recently also
+     * viewed, weighed by how recently the recipient viewed each and how
+     * closely the two follow each other. The query is matched on every side;
+     * a viewer it names is the recipient, not a narrowing.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?CarbonInterface $rememberUntil = null): Recommendations
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'recommended()');
+        }
+
+        return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $rememberUntil));
+    }
+
+    /**
+     * The score of every viewable of the type recommended to the recipient,
+     * highest first, keyed by its key.
+     *
+     * @return array<int|string, float>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function recommendationScores(Recipient $recipient, Viewable $among, ViewsQuery $query, bool $includeSeen = false): array
+    {
+        $scores = [];
+
+        foreach ($this->scoreRecommendations($recipient, $among, $query, $includeSeen) as $row) {
+            $scores[$row['id']] = $row['score'];
+        }
+
+        return $scores;
+    }
+
+    /**
+     * @return list<array{type: string, id: int|string, score: float, because: list<array{type: string, id: int|string}>}>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    private function scoreRecommendations(Recipient $recipient, ?Viewable $among, ViewsQuery $query, bool $includeSeen, ?int $limit = null, ?CarbonInterface $rememberUntil = null): array
+    {
+        if ($among instanceof Viewable && ViewableKey::of($among) !== null) {
+            throw InvalidViewable::cannotRecommendAmongOne($among);
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksRecommendations) {
+            throw UnsupportedBySource::recommended($source);
+        }
+
+        $request = new RecommendationRequest(
+            $recipient,
+            $among,
+            $this->config->recommendationsMaxSeeds(),
+            $this->config->alsoViewedMinimumVisitors(),
+            $this->config->recommendationsMaxVisitors(),
+            $includeSeen,
+        );
+
+        $scorer = new Scorer(
+            new ExponentialDecay($this->config->recommendationsHalfLife()->toInterval()),
+            Similarity::from($this->config->recommendationsSimilarity()),
+        );
+
+        return $scorer->score(
+            $source->recommendationPairs($request, $query->withViewer(null)),
+            $query->period?->getEndDateTime() ?? Carbon::now(),
+            $limit,
+        );
     }
 
     /**
