@@ -40,9 +40,7 @@ final class AnonymiseViewsBench extends BenchCase
         Rollups::install($this->connection());
     }
 
-    /**
-     * @return Generator<string, array{chunk: int}>
-     */
+    /** @return Generator<string, array{chunk: int}> */
     public function provideChunks(): Generator
     {
         yield '1,000 per chunk' => ['chunk' => 1_000];
@@ -67,9 +65,7 @@ final class AnonymiseViewsBench extends BenchCase
         $this->connection()->rollBack();
     }
 
-    /**
-     * @param  array{chunk: int}  $params
-     */
+    /** @param  array{chunk: int}  $params */
     #[ParamProviders('provideChunks')]
     public function benchAnonymiseDay(array $params): void
     {

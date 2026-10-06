@@ -45,9 +45,7 @@ final class PruneViewsBench extends BenchCase
         $this->cutoff = CarbonImmutable::parse($oldest)->startOfDay()->addDay();
     }
 
-    /**
-     * @return Generator<string, array{chunk: int}>
-     */
+    /** @return Generator<string, array{chunk: int}> */
     public function provideChunks(): Generator
     {
         yield '1,000 per chunk' => ['chunk' => 1_000];
@@ -64,9 +62,7 @@ final class PruneViewsBench extends BenchCase
         $this->connection()->rollBack();
     }
 
-    /**
-     * @param  array{chunk: int}  $params
-     */
+    /** @param  array{chunk: int}  $params */
     #[ParamProviders('provideChunks')]
     public function benchPruneDay(array $params): void
     {

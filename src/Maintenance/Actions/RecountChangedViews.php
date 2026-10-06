@@ -211,9 +211,9 @@ final readonly class RecountChangedViews
     }
 
     /**
-     * What a recount sees as it starts: the last view, where the period of
-     * each column starts, and how far views are anonymised and pruned. The
-     * signature says which columns and source it was taken for.
+     * Captures what a recount sees as it starts: the last view, where the
+     * period of each column starts, and how far views are anonymised and
+     * pruned. The signature says which columns and source it was taken for.
      *
      * @param  array<string, ViewsQuery>  $columns
      * @return Snapshot
@@ -274,7 +274,8 @@ final readonly class RecountChangedViews
     }
 
     /**
-     * Sorted the way they are compared, so a recount that stopped halfway
+     * Finds the keys of the models whose counts can have changed. They are
+     * sorted the way they are compared, so a recount that stopped halfway
      * picks up after the last key it wrote.
      *
      * @param  array<string, ViewsQuery>  $columns
@@ -328,8 +329,9 @@ final readonly class RecountChangedViews
     }
 
     /**
-     * The models with views in `[from, until)`. Under the `rollup` source the
-     * views may be gone already, so the buckets that start in it count too.
+     * Finds the models with views in `[from, until)`. Under the `rollup`
+     * source the views may be gone already, so the buckets that start in it
+     * count too.
      *
      * @return list<int|string>
      */

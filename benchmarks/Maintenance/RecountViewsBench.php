@@ -53,9 +53,7 @@ final class RecountViewsBench extends BenchCase
             ->set('eloquent-viewable.querying.counters', [Article::class => ['views_count']]);
     }
 
-    /**
-     * @return Generator<string, array{changed: int}>
-     */
+    /** @return Generator<string, array{changed: int}> */
     public function provideChanges(): Generator
     {
         yield '10 articles viewed' => ['changed' => 10];
@@ -103,9 +101,7 @@ final class RecountViewsBench extends BenchCase
         Container::getInstance()->make(RecountChangedViews::class)->handle(1_000, full: true);
     }
 
-    /**
-     * @param  array{changed: int}  $params
-     */
+    /** @param  array{changed: int}  $params */
     #[ParamProviders('provideChanges')]
     public function benchRecountChanged(array $params): void
     {

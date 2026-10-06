@@ -38,9 +38,9 @@ function keysOf(Model ...$models): Collection
 }
 
 /**
- * A deadline that passes once it has been asked more than this many times, so
- * a test can stop a run after a given number of units of work. Asking it once
- * too often moves the clock past it.
+ * Returns a deadline that passes once it has been asked more than this many
+ * times, so a test can stop a run after a given number of units of work.
+ * Asking it once too often moves the clock past it.
  */
 function deadlineAfter(int $checks): Deadline
 {
