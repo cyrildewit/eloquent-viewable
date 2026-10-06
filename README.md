@@ -42,6 +42,8 @@
         <li><a href="#ordering-and-filtering-models-by-view-count">Ordering and filtering models by view count</a></li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
         <li><a href="#trending-right-now">Trending right now</a></li>
+        <li><a href="#people-who-viewed-this-also-viewed">People who viewed this also viewed</a></li>
+        <li><a href="#recommended-for-you">Recommended for you</a></li>
         <li><a href="#who-is-looking-right-now">Who is looking right now</a></li>
         <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
@@ -60,6 +62,7 @@
         <li><a href="#database-indexes">Database indexes</a></li>
         <li><a href="#retention">Retention</a></li>
         <li><a href="#rollups">Rollups</a></li>
+        <li><a href="#the-pairs-table">The pairs table</a></li>
         <li><a href="#purging-bot-views">Purging bot views</a></li>
         <li><a href="#partitioning-the-views-table">Partitioning the views table</a></li>
         <li><a href="#storing-counts-on-your-own-table">Storing counts on your own table</a></li>
@@ -121,6 +124,8 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 - Query views by custom periods, compare with the previous period and group them **per hour, day, week, month or year**
 - Order and filter models by views, rank the **most viewed content** across every model, and find what's **trending
   right now**
+- Show what **people who viewed this also viewed**, and **recommend** to each viewer what the visitors of the models they
+  viewed recently went on to view, with the reason for every recommendation
 - Know **who viewed what** by linking views to the signed-in user
 - Show **who is looking right now**, "12 people are viewing this", with a live counter on cached pages
 - Prevent duplicate views with a configurable **cooldown system**
@@ -771,8 +776,117 @@ To find the other views, the query reads every view of every visitor of the post
 - **The visitor cap.** Only the 1,000 most recent visitors of the post are read. Change it with
   `querying.also_viewed.max_visitors`, or set it to `null` to read every visitor.
 
-For heavy traffic, compute the rankings from a scheduled command into a table of your own instead of on every request.
-The `rollup` source reads them from the `views` table, so they only cover the views it still holds.
+For heavy traffic, turn on [the pairs table](#the-pairs-table), which a scheduled command fills, so a call reads a few
+rows instead of every view of every visitor. The `rollup` source reads the pairs from the `views` table, so they only
+cover the views it still holds.
+
+### Recommended for you
+
+A "Recommended for you" row on a home page or below an article. `recommended()` takes the models one viewer viewed
+recently, finds what the visitors of each also viewed, and adds those up, so the models that follow from more of their
+recent views, and from the more recent ones, rank higher. What the viewer already viewed is left out:
+
+```php
+$posts = $user->recommended(Post::class, limit: 10);
+```
+
+The user model needs the [`HasViewHistory`](#the-viewer-side) trait, and views need to be
+[linked to the signed-in user](#recording-the-viewer).
+
+Every recommendation says which of the viewer's recent views it came from, so you can show the reason:
+
+```blade
+@foreach ($posts as $recommendation)
+    <a href="{{ route('posts.show', $recommendation->viewable) }}">{{ $recommendation->viewable->title }}</a>
+    <small>Because you read {{ $recommendation->because->first()->title }}</small>
+@endforeach
+```
+
+```php
+foreach ($user->recommended(Post::class) as $recommendation) {
+    $recommendation->rank;      // 1, 2, 3, ...
+    $recommendation->score;     // only comparable within this one list
+    $recommendation->viewable;  // the recommended model
+    $recommendation->because;   // up to 3 models the viewer viewed, the strongest reason first
+}
+```
+
+#### How the ranking is made
+
+Say Alice read a post about Laravel queues today and a post about Docker last week. Of the readers of the queues post,
+four went on to read the Redis guide. Of the readers of the Docker post, five went on to read the Kubernetes intro.
+
+- **Recent views count more.** A view from one `half_life` ago, 7 days by default, counts half as much as a view from
+  today. The Redis guide comes from today's read, so it ranks first even though fewer visitors share it.
+- **Popular content does not win by default.** The number of visitors in common is divided by how many visitors each
+  side has, so a page nearly everyone views does not top every list. Set `similarity` to `count` to rank by the
+  visitors in common alone, as `alsoViewed()` does.
+- **Only the most recent views are read.** The 20 models the viewer viewed most recently, and of each the 500 most
+  recent visitors. Change them with `max_seeds` and `max_visitors`.
+
+These options live under `querying.recommendations`.
+
+#### For guests, and in a query
+
+Without `viewedBy()`, `recommended()` recommends to the current visitor, with the cookie or fingerprint of your
+[visitor identity](#counting-one-account-as-one-visitor):
+
+```php
+views(Post::class)->recommended(10);                     // the current visitor, only posts
+views(Post::class)->viewedBy($user)->recommended(10);    // the same as $user->recommended(Post::class, 10)
+Views::viewedBy($user)->recommended(10);                 // any model type
+```
+
+`recommendedFor()` narrows a query to the models recommended to a viewer or a visitor id, ordered by score with the
+score selected as `recommendation_score`. Your own constraints and pagination apply to every recommended model, not to
+the first few:
+
+```php
+Post::query()
+    ->where('published', true)
+    ->recommendedFor($user)
+    ->paginate();
+```
+
+#### Narrowing it down
+
+```php
+$user->recommended(Post::class, period: Period::pastDays(30));     // only recent views, on every side
+$user->recommended(Post::class, collection: 'articles');           // only one collection
+$user->recommended(Post::class, includeSeen: true);                // keep what the viewer viewed before
+views(Post::class)->viewedBy($user)->remember(now()->addHour())->recommended();  // cached
+```
+
+`includeSeen` suits content that is viewed again, such as products or music. A model the viewer viewed is never
+recommended because of itself.
+
+#### Good to know
+
+- **It shares the privacy floor of `alsoViewed()`.** A model needs `querying.also_viewed.minimum_visitors` visitors in
+  common with one of the viewer's views, 3 by default. The viewer is never one of them, on any browser they were
+  signed in on.
+- **An empty list is a valid answer.** A new viewer, or a site with little traffic, gets nothing. Fall back to
+  something else yourself, so every recommendation you show has a reason:
+
+  ```php
+  $posts = $user->recommended(Post::class);
+
+  if ($posts->isEmpty()) {
+      $posts = views(Post::class)->trending(10);
+  }
+  ```
+
+- **It is built from the viewer's own history.** That makes it personal data: erasing a person's views with
+  [`forgetViewHistory()`](#erasing-one-persons-views) also ends their recommendations, and so does anonymising old
+  views with `retention.anonymise`.
+- **A cached list is forgotten by `flushCache()` only**, or when the moment `remember()` names passes. Keep that moment
+  short.
+
+#### On large tables
+
+`recommended()` runs the work of `alsoViewed()` for every model the viewer viewed recently, so the same advice holds:
+add the visitor index from [Database indexes](#database-indexes), and turn on [the pairs table](#the-pairs-table) for
+heavy traffic. The viewer's own history is read through the `(viewer_type, viewer_id)` index the migration adds.
 
 ### Who is looking right now
 
@@ -1282,8 +1396,8 @@ your config relies on, and all three once the table passes a million rows:
   `returning()` and `countByFrequency()`.
 - `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
   `views(Post::class)->countByInterval()`.
-- `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()` find the views of each visitor it pairs
-  without scanning the table.
+- `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()` and `recommended()` find the views of each
+  visitor they pair without scanning the table.
 
 ### Retention
 
@@ -1493,6 +1607,35 @@ What to know:
 - **Anonymising and pruning wait for every custom rollup.** `views:rollup --rollup=newsletter` folds one rollup.
 - **A source of your own** counts by dimension by implementing `Querying\Contracts\CountsByDimension`, and the fake
   refuses `rollup()`.
+
+### The pairs table
+
+`alsoViewed()` and `recommended()` read every view of every visitor they pair, on every call. With heavy traffic,
+let a scheduled command count the pairs once into a table of their own, so a call reads a few rows. Publish and run its
+migration:
+
+```bash
+php artisan vendor:publish --tag="eloquent-viewable-pairs"
+php artisan migrate
+```
+
+Turn it on with `querying.pairs.enabled` and schedule `views:pairs`, daily or hourly:
+
+```php
+Schedule::command('views:pairs')->daily();
+```
+
+Each run rewrites the table in one transaction from the views of the last `period`, 90 days by default. Of each model it
+keeps the `max_pairs` models it shares the most visitors with, 100 by default, and only pairs that reach
+`querying.also_viewed.minimum_visitors`. Run it again after you change either.
+
+Good to know:
+
+- **The table only answers calls over all time and every collection.** A call with a `period()` or `collection()`
+  reads the `views` table, as before.
+- **Between two runs, new views are not paired.** A post published this morning has no pairs until the next run.
+- **A viewer is not left out of the pairs in the table**, because it does not know who they were. A model the viewer
+  viewed, on any browser, therefore counts one visitor fewer, so the privacy floor holds.
 
 ### Purging bot views
 
