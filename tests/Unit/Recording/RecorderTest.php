@@ -5,6 +5,12 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\Data\Reference;
+use CyrildeWit\EloquentViewable\Presence\Data\Scope;
+use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
+use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
@@ -33,13 +39,15 @@ const RECORDER_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 /**
  * @param  list<RecordingGuard>  $guards
  * @param  array<string, mixed>  $queue
+ * @param  array<string, mixed>  $presenceConfig
  */
-function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie'): Recorder
+function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie', ?PresenceStore $presence = null, array $presenceConfig = []): Recorder
 {
     $config = new Config(new Repository([
         'eloquent-viewable' => [
             'recording' => ['queue' => $queue, 'viewer' => ['enabled' => $viewerEnabled]],
             'visitor' => ['identity' => $identity],
+            'presence' => $presenceConfig,
         ],
     ]));
 
@@ -50,6 +58,7 @@ function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array
         $events ?? silentEvents(),
         $action,
         new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC'), new Fingerprint($config, Mockery::mock(CacheFactory::class))),
+        $presence ?? new ArrayPresenceStore,
     );
 }
 
@@ -452,4 +461,162 @@ it('does not remember a view the action fails to store', function (): void {
 
     expect(fn (): RecordResult => recorder([rememberingGuard(false)], Mockery::mock(BusDispatcher::class), $action)->record($attempt))
         ->toThrow(RuntimeException::class, 'The store is down.');
+});
+
+function limitingGuard(bool $allows): RecordingGuard&LimitsRepeats
+{
+    $guard = Mockery::mock(RecordingGuard::class.', '.LimitsRepeats::class);
+    $guard->shouldReceive('allows')->andReturn($allows);
+
+    return $guard;
+}
+
+/** @return list<int> */
+function presentVisitors(ArrayPresenceStore $store, Scope ...$scopes): array
+{
+    return $store->countVisitors(array_values($scopes), Carbon::now()->subMinute());
+}
+
+describe('presence', function (): void {
+    it('keeps the visitor of a stored view active', function (): void {
+        $presence = new ArrayPresenceStore;
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        $result = recorder([], Mockery::mock(BusDispatcher::class), $action, presence: $presence, presenceConfig: ['enabled' => true])->record(attempt());
+
+        expect($result->present)->toBeTrue()
+            ->and(presentVisitors($presence, new Scope(Post::class, 7), new Scope(Post::class, 7, 'custom')))->toBe([1, 1]);
+    });
+
+    it('keeps nothing while presence is off', function (): void {
+        $presence = Mockery::mock(PresenceStore::class);
+        $presence->shouldNotReceive('touch');
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        expect(recorder([], Mockery::mock(BusDispatcher::class), $action, presence: $presence)->record(attempt())->present)->toBeFalse();
+    });
+
+    it('keeps a visitor active when only a guard that limits repeats refuses', function (): void {
+        $presence = new ArrayPresenceStore;
+        $attempt = attempt();
+        $limiting = limitingGuard(false);
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->shouldNotReceive('handle');
+
+        $events = Mockery::mock(EventDispatcher::class);
+        $events->allows('hasListeners')->andReturn(false);
+        $events->expects('dispatch')->with(Mockery::on(fn (ViewSkipped $event): bool => $event->guard === $limiting));
+
+        $result = recorder([$limiting, guardThat(true)], Mockery::mock(BusDispatcher::class), $action, events: $events, presence: $presence, presenceConfig: ['enabled' => true])->record($attempt);
+
+        expect($result->recorded)->toBeFalse()
+            ->and($result->skippedBy)->toBe($limiting)
+            ->and($result->present)->toBeTrue()
+            ->and(presentVisitors($presence, new Scope(Post::class, 7)))->toBe([1]);
+    });
+
+    it('lets a later guard that judges the visitor overrule a repeat', function (): void {
+        $presence = new ArrayPresenceStore;
+        $refusing = guardThat(false);
+
+        $events = Mockery::mock(EventDispatcher::class);
+        $events->allows('hasListeners')->andReturn(false);
+        $events->expects('dispatch')->with(Mockery::on(fn (ViewSkipped $event): bool => $event->guard === $refusing));
+
+        $result = recorder([limitingGuard(false), $refusing], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), events: $events, presence: $presence, presenceConfig: ['enabled' => true])->record(attempt());
+
+        expect($result->skippedBy)->toBe($refusing)
+            ->and($result->present)->toBeFalse()
+            ->and(presentVisitors($presence, new Scope))->toBe([0]);
+    });
+
+    it('keeps the visitor by a hash of their visitor id', function (): void {
+        $presence = Mockery::mock(PresenceStore::class);
+        $presence->expects('touch')->with(Mockery::on(fn (Sighting $sighting): bool => $sighting->visitor === hash('xxh128', 'visitor_one')
+            && $sighting->type === Post::class
+            && $sighting->key === 7
+            && $sighting->collection === 'custom'
+            && ! $sighting->viewer instanceof Reference
+            && $sighting->seenAt->equalTo(Carbon::now())));
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, presence: $presence, presenceConfig: ['enabled' => true])->record(attempt());
+    });
+
+    it('keeps the signed-in viewer only when asked to', function (bool $viewers, ?string $expected): void {
+        $presence = Mockery::mock(PresenceStore::class);
+        $presence->expects('touch')->with(Mockery::on(fn (Sighting $sighting): bool => $sighting->viewer?->encode() === $expected));
+
+        $attempt = new ViewAttempt(new Post(['id' => 7]), identifyingVisitor(new Apartment(['id' => 3])));
+
+        $action = Mockery::mock(RecordsViews::class);
+        $action->allows('handle');
+
+        recorder([], Mockery::mock(BusDispatcher::class), $action, viewerEnabled: true, presence: $presence, presenceConfig: ['enabled' => true, 'viewers' => $viewers])->record($attempt);
+    })->with([
+        'kept' => [true, rawurlencode(Apartment::class).'|3'],
+        'not kept' => [false, null],
+    ]);
+
+    describe('heartbeat', function (): void {
+        it('keeps the visitor active without recording a view', function (): void {
+            $presence = new ArrayPresenceStore;
+
+            $limiting = Mockery::mock(RecordingGuard::class.', '.LimitsRepeats::class);
+            $limiting->shouldNotReceive('allows');
+
+            $action = Mockery::mock(RecordsViews::class);
+            $action->shouldNotReceive('handle');
+
+            $guard = Mockery::mock(RecordingGuard::class.', '.RemembersRecordedViews::class);
+            $guard->shouldReceive('allows')->andReturn(true);
+            $guard->shouldNotReceive('remember');
+
+            expect(recorder([$limiting, $guard], Mockery::mock(BusDispatcher::class), $action, presence: $presence, presenceConfig: ['enabled' => true])->heartbeat(attempt()))->toBeTrue()
+                ->and(presentVisitors($presence, new Scope(Post::class, 7)))->toBe([1]);
+        });
+
+        it('keeps nothing when a guard refuses the visitor', function (): void {
+            $presence = new ArrayPresenceStore;
+
+            expect(recorder([guardThat(false), neverRuns()], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), presence: $presence, presenceConfig: ['enabled' => true])->heartbeat(attempt()))->toBeFalse()
+                ->and(presentVisitors($presence, new Scope))->toBe([0]);
+        });
+
+        it('asks no guard while presence is off', function (): void {
+            expect(recorder([neverRuns()], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class))->heartbeat(attempt()))->toBeFalse();
+        });
+
+        it('refuses a viewable without a key', function (): void {
+            expect(fn (): bool => recorder([], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), presenceConfig: ['enabled' => true])
+                ->heartbeat(new ViewAttempt(new Post, Mockery::mock(Visitor::class))))
+                ->toThrow(RecordingFailed::class);
+        });
+    });
+
+    describe('leave', function (): void {
+        it('stops counting the visitor on the viewable', function (): void {
+            $presence = new ArrayPresenceStore;
+            $recorder = recorder([], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), presence: $presence, presenceConfig: ['enabled' => true]);
+
+            $recorder->heartbeat(attempt());
+            $recorder->leave(attempt());
+
+            expect(presentVisitors($presence, new Scope(Post::class, 7), new Scope))->toBe([0, 1]);
+        });
+
+        it('does nothing while presence is off', function (): void {
+            $presence = Mockery::mock(PresenceStore::class);
+            $presence->shouldNotReceive('leave');
+
+            recorder([], Mockery::mock(BusDispatcher::class), Mockery::mock(RecordsViews::class), presence: $presence)->leave(attempt());
+        });
+    });
 });

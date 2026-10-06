@@ -331,6 +331,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $app->make(EventDispatcher::class),
                 $app->make(RecordsViewsContract::class),
                 $app->make(VisitorIdentity::class),
+                $app->make(PresenceStore::class),
             );
         });
 

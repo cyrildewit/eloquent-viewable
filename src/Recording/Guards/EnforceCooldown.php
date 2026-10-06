@@ -7,12 +7,13 @@ namespace CyrildeWit\EloquentViewable\Recording\Guards;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Cooldown;
+use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 
-final readonly class EnforceCooldown implements RecordingGuard, RemembersRecordedViews
+final readonly class EnforceCooldown implements LimitsRepeats, RecordingGuard, RemembersRecordedViews
 {
     public function __construct(
         private CooldownStore $cooldowns,

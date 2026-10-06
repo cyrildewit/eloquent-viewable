@@ -6,6 +6,10 @@ namespace CyrildeWit\EloquentViewable\Recording;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\Data\Reference;
+use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
@@ -33,35 +37,53 @@ final readonly class Recorder
         private EventDispatcher $events,
         private RecordsViews $action,
         private VisitorIdentity $identity,
+        private PresenceStore $presence,
     ) {}
 
-    /** @throws RecordingFailed */
+    /**
+     * A guard that limits repeats, such as the cooldown, does not stop the
+     * other guards from being asked, so the view is only skipped by it once
+     * every other guard allowed it. The visitor is then still kept active.
+     *
+     * @throws RecordingFailed
+     */
     public function record(ViewAttempt $attempt): RecordResult
     {
-        $key = ViewableKey::of($attempt->viewable);
-
-        if ($key === null) {
-            throw RecordingFailed::cannotRecordViewForViewableType();
-        }
-
-        $viewer = $this->viewerOf($attempt);
-
-        if ($viewer !== $attempt->viewer) {
-            $attempt = $attempt->withViewer($viewer);
-        }
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+        $limitedBy = null;
 
         foreach ($this->guards as $guard) {
-            if (! $guard->allows($attempt)) {
-                $this->events->dispatch(new ViewSkipped($attempt, $guard));
-
-                return $this->attempted($attempt, RecordResult::skipped($guard));
+            if ($guard->allows($attempt)) {
+                continue;
             }
+
+            if ($guard instanceof LimitsRepeats) {
+                $limitedBy ??= $guard;
+
+                continue;
+            }
+
+            $this->events->dispatch(new ViewSkipped($attempt, $guard));
+
+            return $this->attempted($attempt, RecordResult::skipped($guard));
         }
+
+        if ($limitedBy instanceof RecordingGuard) {
+            $this->events->dispatch(new ViewSkipped($attempt, $limitedBy));
+
+            $present = $this->sight($attempt, $key);
+
+            return $this->attempted($attempt, RecordResult::skipped($limitedBy)->withPresence($present));
+        }
+
+        $viewer = $attempt->viewer;
+        $visitor = $this->identity->of($attempt->visitor, $viewer);
 
         $record = new ViewRecord(
             viewableId: $key,
             viewableType: $attempt->viewable->getMorphClass(),
-            visitor: $this->identity->of($attempt->visitor, $viewer),
+            visitor: $visitor,
             collection: $attempt->collection,
             viewedAt: Carbon::now(),
             viewerType: $viewer?->getMorphClass(),
@@ -77,7 +99,108 @@ final readonly class Recorder
             }
         }
 
-        return $this->attempted($attempt, $result);
+        $present = $this->sight($attempt, $key, $visitor);
+
+        return $this->attempted($attempt, $result->withPresence($present));
+    }
+
+    /**
+     * Keeps the visitor active without recording a view. The guards that
+     * limit repeats are not asked, because a heartbeat is not a new view,
+     * and no guard remembers it.
+     *
+     * @throws RecordingFailed
+     */
+    public function heartbeat(ViewAttempt $attempt): bool
+    {
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+
+        if (! $this->config->presenceEnabled()) {
+            return false;
+        }
+
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof LimitsRepeats) {
+                continue;
+            }
+
+            if (! $guard->allows($attempt)) {
+                return false;
+            }
+        }
+
+        return $this->sight($attempt, $key);
+    }
+
+    /**
+     * Stops counting the visitor on the viewable at once, rather than once
+     * the window has passed.
+     *
+     * @throws RecordingFailed
+     */
+    public function leave(ViewAttempt $attempt): void
+    {
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+
+        if (! $this->config->presenceEnabled()) {
+            return;
+        }
+
+        $this->presence->leave($this->sightingOf($attempt, $key, $this->identity->of($attempt->visitor, $attempt->viewer)));
+    }
+
+    /** @throws RecordingFailed */
+    private function keyOf(ViewAttempt $attempt): int|string
+    {
+        return ViewableKey::of($attempt->viewable) ?? throw RecordingFailed::cannotRecordViewForViewableType();
+    }
+
+    private function withViewer(ViewAttempt $attempt): ViewAttempt
+    {
+        $viewer = $this->viewerOf($attempt);
+
+        if ($viewer === $attempt->viewer) {
+            return $attempt;
+        }
+
+        return $attempt->withViewer($viewer);
+    }
+
+    private function sight(ViewAttempt $attempt, int|string $key, ?string $visitor = null): bool
+    {
+        if (! $this->config->presenceEnabled()) {
+            return false;
+        }
+
+        $visitor ??= $this->identity->of($attempt->visitor, $attempt->viewer);
+
+        $this->presence->touch($this->sightingOf($attempt, $key, $visitor));
+
+        return true;
+    }
+
+    /**
+     * The visitor id is hashed, so presence never keeps the id that the
+     * views table and the cooldowns are keyed on.
+     */
+    private function sightingOf(ViewAttempt $attempt, int|string $key, string $visitor): Sighting
+    {
+        $viewer = $attempt->viewer;
+
+        $reference = $viewer instanceof Model && $this->config->presenceTracksViewers()
+            ? new Reference($viewer->getMorphClass(), ViewerKey::of($viewer))
+            : null;
+
+        return new Sighting(
+            type: $attempt->viewable->getMorphClass(),
+            key: $key,
+            visitor: hash('xxh128', $visitor),
+            seenAt: Carbon::now(),
+            collection: $attempt->collection,
+            viewer: $reference,
+        );
     }
 
     /**

@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
@@ -34,6 +35,7 @@ const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
     'CyrildeWit\EloquentViewable\Cooldowns\Contracts',
     'CyrildeWit\EloquentViewable\Doctor\Contracts',
+    'CyrildeWit\EloquentViewable\Presence\Contracts',
 ];
 
 const MODULES = [
@@ -47,6 +49,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Maintenance',
     'CyrildeWit\EloquentViewable\Erasure',
     'CyrildeWit\EloquentViewable\Doctor',
+    'CyrildeWit\EloquentViewable\Presence',
 ];
 
 const ENTRY_POINTS = [
@@ -65,6 +68,7 @@ const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Querying\Exceptions',
     'CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions',
     'CyrildeWit\EloquentViewable\Retention\Exceptions',
+    'CyrildeWit\EloquentViewable\Presence\Exceptions',
 ];
 
 arch('no debugging statements are left in the codebase')
@@ -125,6 +129,29 @@ arch('the core of querying is unaware of rollups')
     ->expect('CyrildeWit\EloquentViewable\Querying')
     ->not->toUse('CyrildeWit\EloquentViewable\Querying\Rollups')
     ->ignoring('CyrildeWit\EloquentViewable\Querying\Rollups');
+
+arch('presence builds on the foundation and the rankings of querying')
+    ->expect('CyrildeWit\EloquentViewable\Presence')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Presence',
+        'CyrildeWit\EloquentViewable\Querying\Ranking',
+        'CyrildeWit\EloquentViewable\Querying\Exceptions',
+        'Carbon',
+        'Illuminate',
+        Redis::class,
+    ]);
+
+arch('recording keeps presence through its contract and data only')
+    ->expect('CyrildeWit\EloquentViewable\Recording')
+    ->not->toUse([
+        'CyrildeWit\EloquentViewable\Presence\Stores',
+        LiveViews::class,
+    ]);
+
+arch('querying does not depend on presence')
+    ->expect('CyrildeWit\EloquentViewable\Querying')
+    ->not->toUse('CyrildeWit\EloquentViewable\Presence');
 
 arch('recording and querying do not depend on retention')
     ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying'])

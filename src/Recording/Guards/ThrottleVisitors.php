@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Guards;
 
+use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
@@ -17,7 +18,7 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
  * scraper walking through thousands of pages does not skew the rankings.
  * Only views that pass every guard count towards the limit.
  */
-final readonly class ThrottleVisitors implements RecordingGuard, RemembersRecordedViews
+final readonly class ThrottleVisitors implements LimitsRepeats, RecordingGuard, RemembersRecordedViews
 {
     private RateLimiter $limiter;
 
