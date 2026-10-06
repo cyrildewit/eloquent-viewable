@@ -10,7 +10,11 @@ namespace CyrildeWit\EloquentViewable\Doctor\Data;
  */
 class GuardSample
 {
-    /** @param  array<string, int>  $refused  keyed by the class of the guard */
+    /**
+     * The refusals are keyed by the class of the guard.
+     *
+     * @param  array<string, int>  $refused
+     */
     public function __construct(
         public int $days,
         public int $recorded,

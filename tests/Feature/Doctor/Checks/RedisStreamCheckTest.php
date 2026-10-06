@@ -23,7 +23,10 @@ function streamFindings(): array
     return array_map(fn (Finding $finding): array => [$finding->status, $finding->summary], $findings);
 }
 
-/** @param  list<string>  $ids */
+/**
+ * @param  list<string>  $ids
+ * @param  list<string>  $abandoned
+ */
 function bufferedStream(array $ids = [], array $abandoned = []): void
 {
     $client = new FakeStreamClient;
