@@ -43,9 +43,7 @@ enum OptionalIndex: string
      */
     case ViewedAt = 'viewed-at';
 
-    /**
-     * @return list<self>
-     */
+    /** @return list<self> */
     public static function fromList(string $list): array
     {
         if (trim($list) === '' || $list === 'none') {
@@ -61,9 +59,7 @@ enum OptionalIndex: string
         );
     }
 
-    /**
-     * @param  list<self>  $indexes
-     */
+    /** @param  list<self>  $indexes */
     public static function toList(array $indexes): string
     {
         return implode(',', array_map(static fn (self $index): string => $index->value, $indexes));
@@ -116,9 +112,7 @@ enum OptionalIndex: string
         });
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function columns(): array
     {
         return match ($this) {
