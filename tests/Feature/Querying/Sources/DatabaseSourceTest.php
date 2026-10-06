@@ -592,6 +592,99 @@ it('returns the same labels on every driver for {granularity}', function (Granul
     'year' => [Granularity::Year, '2026-03-04 10:37:12', '2026-01-01 00:00:00'],
 ]);
 
+describe('visit frequency', function (): void {
+    /** @param  list<array{string|null, string}>  $views */
+    function visitedOn(Model $viewable, array $views): void
+    {
+        foreach ($views as [$visitor, $viewedAt]) {
+            View::factory()->for($viewable, 'viewable')->state(['visitor' => $visitor])->viewedAt(Carbon::parse($viewedAt))->create();
+        }
+    }
+
+    /** @return array<int, int> */
+    function frequencyOf(Model $viewable, ViewsQuery $query = new ViewsQuery): array
+    {
+        $counts = databaseSource()->visitFrequency($viewable, $query);
+
+        ksort($counts);
+
+        return $counts;
+    }
+
+    it('counts the visitors per number of days they viewed on', function (): void {
+        visitedOn($this->post, [
+            ['one', '2026-01-10 09:00:00'],
+            ['one', '2026-01-10 18:00:00'],
+            ['one', '2026-01-12 09:00:00'],
+            ['one', '2026-01-15 09:00:00'],
+            ['two', '2026-01-10 09:00:00'],
+            ['two', '2026-01-11 09:00:00'],
+            ['three', '2026-01-10 09:00:00'],
+            ['three', '2026-01-10 09:05:00'],
+            ['four', '2026-01-11 09:00:00'],
+        ]);
+
+        expect(frequencyOf($this->post))->toBe([1 => 2, 2 => 1, 3 => 1]);
+    });
+
+    it('is empty without views', function (): void {
+        expect(frequencyOf($this->post))->toBeEmpty();
+    });
+
+    it('leaves out views without a visitor and anonymised views', function (): void {
+        visitedOn($this->post, [
+            [null, '2026-01-10 09:00:00'],
+            [null, '2026-01-11 09:00:00'],
+            ['a:first-day', '2026-01-10 09:00:00'],
+            ['a:first-day', '2026-01-10 10:00:00'],
+            ['one', '2026-01-10 09:00:00'],
+        ]);
+
+        expect(frequencyOf($this->post))->toBe([1 => 1]);
+    });
+
+    it('reads only the views of the viewable', function (): void {
+        visitedOn($this->post, [['one', '2026-01-10 09:00:00']]);
+        visitedOn(Post::factory()->create(), [['one', '2026-01-11 09:00:00']]);
+
+        expect(frequencyOf($this->post))->toBe([1 => 1])
+            ->and(frequencyOf(new Post))->toBe([2 => 1]);
+    });
+
+    it('reads only the days inside the period, the collection and the viewer', function (): void {
+        $user = User::factory()->create();
+
+        visitedOn($this->post, [
+            ['one', '2026-01-10 09:00:00'],
+            ['one', '2026-01-20 09:00:00'],
+        ]);
+        View::factory()->for($this->post, 'viewable')->fromVisitor('one')->inCollection('sidebar')->viewedAt(Carbon::parse('2026-01-21 09:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('two')->by($user)->viewedAt(Carbon::parse('2026-01-21 09:00:00'))->create();
+        View::factory()->for($this->post, 'viewable')->fromVisitor('two')->by($user)->viewedAt(Carbon::parse('2026-01-22 09:00:00'))->create();
+
+        expect(frequencyOf($this->post, new ViewsQuery(Period::since('2026-01-15'))))->toBe([2 => 2])
+            ->and(frequencyOf($this->post, new ViewsQuery(collection: 'sidebar')))->toBe([1 => 1])
+            ->and(frequencyOf($this->post, new ViewsQuery(viewer: $user)))->toBe([2 => 1]);
+    });
+
+    it('counts the days on the clock of the query timezone', function (): void {
+        visitedOn($this->post, [
+            ['one', '2026-01-10 23:30:00'],
+            ['one', '2026-01-11 00:30:00'],
+        ]);
+
+        $period = Period::create('2026-01-01', '2026-02-01');
+
+        expect(frequencyOf($this->post, new ViewsQuery($period)))->toBe([2 => 1])
+            ->and(frequencyOf($this->post, new ViewsQuery($period, timezone: new Timezone('Australia/Sydney'))))->toBe([1 => 1]);
+    });
+
+    it('requires a period to count days in another timezone', function (): void {
+        expect(fn (): array => databaseSource()->visitFrequency($this->post, new ViewsQuery(timezone: new Timezone('Australia/Sydney'))))
+            ->toThrow(InvalidInterval::class);
+    });
+});
+
 describe('count by collection', function (): void {
     it('counts the views of a viewable per collection, the default one as an empty string', function (): void {
         View::factory()->for($this->post, 'viewable')->count(2)->create();

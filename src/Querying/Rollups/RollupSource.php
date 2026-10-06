@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
@@ -41,7 +42,7 @@ use stdClass;
  * the rollups, through every read and scope. A read the rollups cannot answer,
  * such as one narrowed to a viewer, reads the views table alone.
  */
-final readonly class RollupSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -294,6 +295,19 @@ final readonly class RollupSource implements CountsByDimension, IdentifiesSource
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
     {
         return $this->raw->alsoViewed($viewable, $among, $query, $limit, $minimum, $maxVisitors);
+    }
+
+    /**
+     * Rollups keep no visitors, so the days are counted from the views table
+     * alone, over the views it still holds.
+     *
+     * @return array<int, int>
+     *
+     * @throws InvalidInterval
+     */
+    public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
+    {
+        return $this->raw->visitFrequency($viewable, $query);
     }
 
     /** @throws JsonException */
