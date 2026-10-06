@@ -1,6 +1,6 @@
 ---
 name: eloquent-viewable-development
-description: Record, count, chart and rank views of Eloquent models with cyrildewit/eloquent-viewable, including periods, unique visitors, cooldowns, trending and "also viewed" rankings, view-count scopes, caching and testing with Views::fake().
+description: Record, count, chart and rank views of Eloquent models with cyrildewit/eloquent-viewable, including periods, unique visitors, cooldowns, trending and "also viewed" rankings, view-count scopes, caching, erasing one person's views and testing with Views::fake().
 license: MIT
 metadata:
   author: cyrildewit
@@ -13,6 +13,7 @@ metadata:
 - Code calls `views()`, the `Views` facade, `Period` or `Granularity`, or uses the `views` middleware or `@viewsBeacon`.
 - A model uses `InteractsWithViews` or `HasViewHistory`, or a query uses `orderByViews()`, `withViewsCount()`, `orderByTrending()` or `whereViewedBy()`.
 - A test asserts on recorded views.
+- A user is deleted, or a GDPR request asks to erase or export someone's data.
 
 Everything lives under `CyrildeWit\EloquentViewable\`. Read the package README in `vendor/cyrildewit/eloquent-viewable` for the trade-offs behind each config key.
 
@@ -92,6 +93,17 @@ views($post)->forgetCache();
 ```
 
 Always give `remember()` a lifetime. Recording a view does not refresh a remembered count.
+
+## Deleting a User or a GDPR Request
+
+```php
+$user->forgetViewHistory();                         // delete their views, buffered ones too
+$user->forgetViewHistory(includeGuestViews: true);  // also the guest views of the browsers they signed in on
+$user->anonymiseViewHistory();                      // keep the counts, unlink the views
+$user->exportViewHistory();                         // a lazy collection for a data access request
+```
+
+The model needs `Concerns\HasViewHistory`. Call these before deleting the user; once it is gone, run `php artisan views:forget-viewer "App\Models\User" 42`. A guest is erased with `php artisan views:forget-visitor <visitor-id>`. Never set `viewer_type` and `viewer_id` to null yourself: the `visitor` column still identifies them. Listen for `Erasure\Events\ViewHistoryForgotten` to write an audit log.
 
 ## When the App Grows
 
