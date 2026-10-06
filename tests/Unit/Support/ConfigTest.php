@@ -176,6 +176,9 @@ it('rejects a positive integer key that is not one', function (string $method, s
     'burst maximum' => ['burstMax', 'recording.bursts.max'],
     'burst seconds' => ['burstSeconds', 'recording.bursts.seconds'],
     'burst block' => ['burstBlockFor', 'recording.bursts.block_for'],
+    'presence window' => ['presenceWindow', 'presence.window'],
+    'presence heartbeat' => ['presenceHeartbeat', 'presence.heartbeat'],
+    'presence candidates' => ['presenceMaxCandidates', 'presence.max_candidates'],
 ])->with([
     'zero' => [0, '`0`'],
     'negative' => [-1, '`-1`'],
@@ -202,6 +205,7 @@ it('rejects an optional string key that is not a string', function (string $meth
     'fingerprint cache store' => ['fingerprintCacheStore', 'visitor.fingerprint.store'],
     'throttle cache store' => ['throttleCacheStore', 'recording.throttle.store'],
     'burst cache store' => ['burstCacheStore', 'recording.bursts.store'],
+    'presence redis connection' => ['presenceRedisConnection', 'presence.redis.connection'],
 ]);
 
 it('rejects an empty key', function (string $method, string $key): void {
@@ -222,6 +226,8 @@ it('rejects an empty key', function (string $method, string $key): void {
     'fingerprint key' => ['fingerprintKey', 'visitor.fingerprint.key'],
     'store driver' => ['storeDriver', 'recording.store.driver'],
     'source driver' => ['sourceDriver', 'querying.source.driver'],
+    'presence driver' => ['presenceDriver', 'presence.driver'],
+    'presence redis prefix' => ['presenceRedisPrefix', 'presence.redis.prefix'],
 ]);
 
 it('reads the view model class', function (): void {
@@ -459,3 +465,40 @@ it('rejects a crawler share outside of 0 and 1', function (mixed $value, string 
     'zero' => [0, '`0`'],
     'above one' => [1.5, '`1.5`'],
 ]);
+
+it('reads the presence settings', function (): void {
+    $config = packageConfig(['presence' => [
+        'enabled' => true,
+        'driver' => 'array',
+        'window' => 120,
+        'precision' => 'approximate',
+        'heartbeat' => 30,
+        'expose_count' => true,
+        'viewers' => true,
+        'max_candidates' => 50,
+        'redis' => ['connection' => 'live', 'prefix' => 'live'],
+    ]]);
+
+    expect($config)
+        ->presenceEnabled()->toBeTrue()
+        ->presenceDriver()->toBe('array')
+        ->presenceWindow()->toBe(120)
+        ->presencePrecision()->toBe('approximate')
+        ->presenceHeartbeat()->toBe(30)
+        ->presenceExposesCount()->toBeTrue()
+        ->presenceTracksViewers()->toBeTrue()
+        ->presenceMaxCandidates()->toBe(50)
+        ->presenceRedisConnection()->toBe('live')
+        ->presenceRedisPrefix()->toBe('live')
+        ->and(packageConfig())
+        ->presenceEnabled()->toBeFalse()
+        ->presencePrecision()->toBe('exact')
+        ->presenceExposesCount()->toBeFalse()
+        ->presenceTracksViewers()->toBeFalse()
+        ->presenceRedisConnection()->toBeNull();
+});
+
+it('rejects an unknown presence precision', function (): void {
+    expect(fn (): string => packageConfig(['presence' => ['precision' => 'roughly']])->presencePrecision())
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.presence.precision` config value must be one of `exact`, `approximate`, `"roughly"` given.');
+});

@@ -22,6 +22,8 @@ use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -286,6 +288,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->registerCore();
         $this->registerRecording();
+        $this->registerPresence();
         $this->registerQuerying();
         $this->registerRollups();
         $this->registerRetention();
@@ -339,6 +342,13 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->singleton(CrawlerDetect::class);
         $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
+    }
+
+    protected function registerPresence(): void
+    {
+        $this->app->singleton(PresenceManager::class);
+
+        $this->app->bind(PresenceStore::class, fn (Application $app): PresenceStore => $app->make(PresenceManager::class)->driver());
     }
 
     /**

@@ -616,6 +616,73 @@ final readonly class Config
         return (float) $value;
     }
 
+    public function presenceEnabled(): bool
+    {
+        return (bool) $this->get('presence.enabled', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceDriver(): string
+    {
+        return $this->nonEmptyString('presence.driver');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceWindow(): int
+    {
+        return $this->positiveInteger('presence.window');
+    }
+
+    /**
+     * @return 'exact'|'approximate'
+     *
+     * @throws InvalidConfiguration
+     */
+    public function presencePrecision(): string
+    {
+        $value = $this->get('presence.precision', 'exact');
+
+        if (! in_array($value, ['exact', 'approximate'], true)) {
+            throw InvalidConfiguration::mustBeOneOf('presence.precision', ['exact', 'approximate'], $value);
+        }
+
+        return $value;
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceHeartbeat(): int
+    {
+        return $this->positiveInteger('presence.heartbeat');
+    }
+
+    public function presenceExposesCount(): bool
+    {
+        return (bool) $this->get('presence.expose_count', false);
+    }
+
+    public function presenceTracksViewers(): bool
+    {
+        return (bool) $this->get('presence.viewers', false);
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceMaxCandidates(): int
+    {
+        return $this->positiveInteger('presence.max_candidates');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceRedisConnection(): ?string
+    {
+        return $this->string('presence.redis.connection');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function presenceRedisPrefix(): string
+    {
+        return $this->nonEmptyString('presence.redis.prefix');
+    }
+
     private function get(string $key, mixed $default = null): mixed
     {
         return $this->config->get("eloquent-viewable.{$key}", $default);
