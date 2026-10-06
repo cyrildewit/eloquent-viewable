@@ -4,6 +4,7 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\TrustedProxiesCheck;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
@@ -633,6 +634,7 @@ return [
             IndexAdviceCheck::class,
             SharedCacheCheck::class,
             ScheduleCheck::class,
+            TrustedProxiesCheck::class,
         ],
 
     ],
