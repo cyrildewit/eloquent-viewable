@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Facades\Views;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
@@ -390,4 +392,64 @@ describe('counting', function (): void {
 
 it('ships the array store as a driver', function (): void {
     expect($this->app->make(StoreManager::class)->driver('array'))->toBeInstanceOf(ArrayStore::class);
+});
+
+describe('presence', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.presence.enabled', true);
+    });
+
+    it('stands in for the presence store', function (): void {
+        expect($this->app->make(PresenceStore::class))->toBe($this->fake);
+    });
+
+    it('puts visitors on a viewable for a page that shows a live count', function (): void {
+        $this->fake->present($this->post, 3)->present($this->post, 1, 'amp');
+
+        expect(views($this->post)->activeVisitors())->toBe(3)
+            ->and(views($this->post)->collection('amp')->activeVisitors())->toBe(1)
+            ->and(Views::live()->top()->viewables()->modelKeys())->toBe([$this->post->getKey()])
+            ->and(Views::forViewables([$this->post])->live()->counts()->all())->toBe([$this->post->getKey() => 3]);
+    });
+
+    it('needs a saved model to put visitors on', function (): void {
+        $this->fake->present(new Post);
+    })->throws(InvalidViewable::class, 'Visitors are put on a saved model, an unsaved [CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post] was given.');
+
+    it('asserts a visitor was kept active', function (): void {
+        $other = Post::factory()->create();
+
+        views($this->post)->record();
+
+        $this->fake->assertPresent($this->post);
+        $this->fake->assertNotPresent($other);
+
+        expect(fn () => $this->fake->assertPresent($other))
+            ->toThrow(AssertionFailedError::class, "No visitor was kept active on {$other->getMorphClass()} {$other->getKey()}.")
+            ->and(fn () => $this->fake->assertNotPresent($this->post))
+            ->toThrow(AssertionFailedError::class, "A visitor was kept active on {$this->post->getMorphClass()} {$this->post->getKey()}.");
+    });
+
+    it('asserts a visitor left', function (): void {
+        views($this->post)->heartbeat();
+
+        expect(fn () => $this->fake->assertLeft($this->post))
+            ->toThrow(AssertionFailedError::class, "No visitor left {$this->post->getMorphClass()} {$this->post->getKey()}.");
+
+        views($this->post)->leave();
+
+        $this->fake->assertLeft($this->post);
+
+        expect(views($this->post)->activeVisitors())->toBe(0);
+    });
+
+    it('lists the viewers it kept', function (): void {
+        config()->set('eloquent-viewable.presence.viewers', true);
+
+        $user = User::factory()->create();
+
+        views($this->post)->viewedBy($user)->record();
+
+        expect(views($this->post)->live()->viewers()->modelKeys())->toBe([$user->getKey()]);
+    });
 });
