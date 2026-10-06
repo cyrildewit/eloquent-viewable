@@ -43,6 +43,11 @@ final class InvalidViewable extends InvalidArgumentException implements Eloquent
         return new self('No viewables were given. Call forViewables() before counting them.');
     }
 
+    public static function presentWithoutKey(string $class): self
+    {
+        return new self("Visitors are put on a saved model, an unsaved [{$class}] was given.");
+    }
+
     public static function setNeedsCounts(): self
     {
         return new self('A set of viewables is counted one by one. Call counts() instead of count().');

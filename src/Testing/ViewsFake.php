@@ -4,11 +4,18 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Testing;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\Data\Reference;
+use CyrildeWit\EloquentViewable\Presence\Data\Scope;
+use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -28,9 +35,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
-final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
+final class ViewsFake implements PresenceStore, RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
+
+    private readonly ArrayPresenceStore $presence;
+
+    /** @var list<Sighting> */
+    private array $sightings = [];
+
+    /** @var list<Sighting> */
+    private array $departures = [];
 
     /** @var list<array{string, int|string|null}> */
     private array $forgotten = [];
@@ -38,6 +53,7 @@ final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, Vie
     public function __construct()
     {
         $this->store = new ArrayStore;
+        $this->presence = new ArrayPresenceStore;
     }
 
     public static function bind(Container $container): self
@@ -46,6 +62,7 @@ final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, Vie
 
         $container->instance(ViewStore::class, $fake);
         $container->instance(ViewSource::class, $fake);
+        $container->instance(PresenceStore::class, $fake);
 
         return $fake;
     }
@@ -224,6 +241,94 @@ final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, Vie
         return array_slice($rows, 0, $limit);
     }
 
+    public function touch(Sighting $sighting): void
+    {
+        $this->sightings[] = $sighting;
+
+        $this->presence->touch($sighting);
+    }
+
+    public function leave(Sighting $sighting): void
+    {
+        $this->departures[] = $sighting;
+
+        $this->presence->leave($sighting);
+    }
+
+    /**
+     * @param  list<Scope>  $scopes
+     * @return list<int>
+     */
+    public function countVisitors(array $scopes, CarbonInterface $since): array
+    {
+        return $this->presence->countVisitors($scopes, $since);
+    }
+
+    /** @return list<Reference> */
+    public function active(?string $type, CarbonInterface $since, int $limit): array
+    {
+        return $this->presence->active($type, $since, $limit);
+    }
+
+    /** @return list<Reference> */
+    public function viewers(Scope $scope, CarbonInterface $since, int $limit): array
+    {
+        return $this->presence->viewers($scope, $since, $limit);
+    }
+
+    /**
+     * Puts the given number of visitors on the viewable now, so a page that
+     * shows a live count can be tested without sending heartbeats.
+     *
+     * @throws InvalidViewable
+     */
+    public function present(Viewable $viewable, int $visitors = 1, ?string $collection = null): self
+    {
+        $key = ViewableKey::of($viewable) ?? throw InvalidViewable::presentWithoutKey($viewable::class);
+
+        for ($visitor = 1; $visitor <= $visitors; $visitor++) {
+            $this->presence->touch(new Sighting(
+                type: $viewable->getMorphClass(),
+                key: $key,
+                visitor: "fake-visitor-{$visitor}",
+                seenAt: Carbon::now(),
+                collection: $collection,
+            ));
+        }
+
+        return $this;
+    }
+
+    public function assertPresent(Viewable $viewable): void
+    {
+        $name = $this->describe($viewable);
+
+        PHPUnit::assertNotEmpty(
+            $this->sightingsOf($this->sightings, $viewable),
+            "No visitor was kept active on {$name}.",
+        );
+    }
+
+    public function assertNotPresent(Viewable $viewable): void
+    {
+        $name = $this->describe($viewable);
+
+        PHPUnit::assertEmpty(
+            $this->sightingsOf($this->sightings, $viewable),
+            "A visitor was kept active on {$name}.",
+        );
+    }
+
+    public function assertLeft(Viewable $viewable): void
+    {
+        $name = $this->describe($viewable);
+
+        PHPUnit::assertNotEmpty(
+            $this->sightingsOf($this->departures, $viewable),
+            "No visitor left {$name}.",
+        );
+    }
+
     /**
      * @param  (Closure(ViewRecord): bool)|null  $filter
      * @return Collection<int, ViewRecord>
@@ -377,6 +482,21 @@ final class ViewsFake implements RanksAlsoViewed, RanksTrending, ViewSource, Vie
         }
 
         return $records->pluck('visitor')->filter()->unique()->count();
+    }
+
+    /**
+     * @param  list<Sighting>  $sightings
+     * @return list<Sighting>
+     */
+    private function sightingsOf(array $sightings, Viewable $viewable): array
+    {
+        $type = $viewable->getMorphClass();
+        $key = (string) ViewableKey::of($viewable);
+
+        return array_values(array_filter(
+            $sightings,
+            static fn (Sighting $sighting): bool => $sighting->type === $type && (string) $sighting->key === $key,
+        ));
     }
 
     private function describe(Viewable $viewable): string
