@@ -1060,6 +1060,30 @@ flowchart LR
 command takes `--dry-run` and `--chunk`. A dry run of `views:maintain` folds nothing, but counts the views to anonymise and delete
 as if its rollups had been folded first, so it reports what the real run would change.
 
+#### Keeping each run short
+
+The first run after you turn retention or rollups on, or after `views:rollup --from`, catches up on everything at once.
+On a large table that can take longer than the hour until the next scheduled run. Give the run a time limit:
+
+```php
+Schedule::command('views:maintain --max-seconds=1800')->hourly()->onOneServer();
+```
+
+Once the time is up, the run finishes the bucket, day or chunk it is working on and stops. The next run carries on from
+there, in the same order, so a backlog is worked off over a few runs instead of in one very long one. Every maintenance
+command takes `--max-seconds`.
+
+On a host that cuts scheduled commands off after a few minutes, such as a serverless platform, dispatch the job
+instead. It runs the same steps for at most `maxSeconds` and queues itself again while there is work left:
+
+```php
+use CyrildeWit\EloquentViewable\Maintenance\Jobs\MaintainViewsJob;
+
+Schedule::job(new MaintainViewsJob(maxSeconds: 240))->hourly();
+```
+
+Keep `maxSeconds` below the timeout of your queue worker. Only one of these jobs waits in the queue at a time.
+
 Anonymising re-hashes `visitor` under a salt per day. The same visitor keeps one id within a day and gets a new one the
 next day:
 
@@ -1074,7 +1098,8 @@ What to know:
 - **Anonymising keeps daily uniques exact.** `viewer` and `context` become `null`, and `visitor` is re-hashed under a
   salt per day that is destroyed afterwards. One visitor keeps one id within a day but no id links two days, so
   `anonymise.after` is how far back unique counts across days stay exact. It must not be longer than `prune.after`.
-- **A run holds a lock** on the `querying.cache.store` store, so two servers never run at once.
+- **A run holds a lock** on the `querying.cache.store` store, so two servers never run at once. A run that is still
+  working renews the lock, so a long run keeps it, and the lock of a run that died expires after an hour.
 - **A run forgets every remembered count** when it changed a view, and dispatches `Retention\Events\ViewsAnonymised`
   or `ViewsPruned`.
 - **A command throws `Retention\Exceptions\RetentionNotInstalled`** when the migration has not run.
@@ -1311,9 +1336,19 @@ lists, keep the count in a column of your own, default `0`, and sort on that. Li
 ],
 ```
 
-`views:recount` writes every column, trashed models included, and `views:maintain` runs it after rolling up and
+`views:recount` writes the columns, trashed models included, and `views:maintain` runs it after rolling up and
 pruning, so one scheduler line keeps them fresh. A column is as fresh as the last run. Name it apart from
 `views_count` when you also use `withViewsCount()`, whose alias is the same.
+
+With the [retention migration](#retention) installed, a recount only touches the models whose counts can have changed
+since the last one: models with new views, models with views that left the period of a column, and, for unique
+columns, models with views that were anonymised. The rest of the table is left alone, which matters once it holds
+millions of rows. The first run, a run after you change the columns or the source, and `views:recount --full`
+recount every model. So does every run after views were pruned under the `database` source, because a deleted view no
+longer says whose it was. Use the [`rollup` source](#rollups) to avoid that. Without the retention migration every
+run recounts every model.
+
+`views($post)->destroy()` recounts the post's columns right away.
 
 ### Buffering views in Redis
 
