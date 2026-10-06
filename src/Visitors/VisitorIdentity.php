@@ -64,8 +64,8 @@ final readonly class VisitorIdentity
     }
 
     /**
-     * The same id for a viewer known only by its morph type and key, such as
-     * one that was deleted.
+     * It returns the id ofViewer() gives for a viewer known only by its morph
+     * type and key, such as one that was deleted.
      */
     public function ofViewerKey(string $type, int|string $key): string
     {
