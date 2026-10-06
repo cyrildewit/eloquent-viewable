@@ -268,19 +268,64 @@ final readonly class Config
     /** @throws InvalidConfiguration */
     public function alsoViewedMaxVisitors(): ?int
     {
-        $value = $this->get('querying.also_viewed.max_visitors');
+        return $this->positiveIntegerOrNull('querying.also_viewed.max_visitors');
+    }
 
-        if ($value === null) {
-            return null;
+    /** @throws InvalidConfiguration */
+    public function recommendationsMaxSeeds(): int
+    {
+        return $this->positiveInteger('querying.recommendations.max_seeds');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function recommendationsMaxVisitors(): ?int
+    {
+        return $this->positiveIntegerOrNull('querying.recommendations.max_visitors');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function recommendationsHalfLife(): Duration
+    {
+        return $this->requiredDuration('querying.recommendations.half_life');
+    }
+
+    /**
+     * @return 'cosine'|'count'
+     *
+     * @throws InvalidConfiguration
+     */
+    public function recommendationsSimilarity(): string
+    {
+        $value = $this->get('querying.recommendations.similarity', 'cosine');
+
+        if (! in_array($value, ['cosine', 'count'], true)) {
+            throw InvalidConfiguration::mustBeOneOf('querying.recommendations.similarity', ['cosine', 'count'], $value);
         }
 
-        $integer = filter_var($value, FILTER_VALIDATE_INT);
+        return $value;
+    }
 
-        if ($integer === false || $integer < 1) {
-            throw InvalidConfiguration::mustBePositiveIntegerOrNull('querying.also_viewed.max_visitors', $value);
-        }
+    public function pairsEnabled(): bool
+    {
+        return (bool) $this->get('querying.pairs.enabled', false);
+    }
 
-        return $integer;
+    /** @throws InvalidConfiguration */
+    public function pairsTable(): string
+    {
+        return $this->nonEmptyString('querying.pairs.table');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function pairsPeriod(): Duration
+    {
+        return $this->requiredDuration('querying.pairs.period');
+    }
+
+    /** @throws InvalidConfiguration */
+    public function pairsMaxPairs(): int
+    {
+        return $this->positiveInteger('querying.pairs.max_pairs');
     }
 
     /**
@@ -309,13 +354,7 @@ final readonly class Config
     /** @throws InvalidConfiguration */
     public function trendingHalfLife(): Duration
     {
-        $value = $this->get('querying.trending.half_life');
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeDuration('querying.trending.half_life', $value, nullable: false);
-        }
-
-        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration('querying.trending.half_life', $value, nullable: false);
+        return $this->requiredDuration('querying.trending.half_life');
     }
 
     /**
@@ -859,6 +898,40 @@ final readonly class Config
         }
 
         return array_values(array_intersect($allowed, $value));
+    }
+
+    /** @throws InvalidConfiguration */
+    private function requiredDuration(string $key): Duration
+    {
+        $value = $this->get($key);
+
+        if (! is_string($value)) {
+            throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
+        }
+
+        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
+    }
+
+    /** @throws InvalidConfiguration */
+    private function positiveIntegerOrNull(string $key): ?int
+    {
+        $value = $this->get($key);
+
+        if ($value === null) {
+            return null;
+        }
+
+        $integer = filter_var($value, FILTER_VALIDATE_INT);
+
+        if ($integer === false) {
+            throw InvalidConfiguration::mustBePositiveIntegerOrNull($key, $value);
+        }
+
+        if ($integer < 1) {
+            throw InvalidConfiguration::mustBePositiveIntegerOrNull($key, $value);
+        }
+
+        return $integer;
     }
 
     /** @throws InvalidConfiguration */

@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
@@ -20,6 +21,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailable;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Plan;
@@ -41,8 +43,10 @@ use stdClass;
  * This source reads recent views from the views table and older history from
  * the rollups, through every read and scope. A read the rollups cannot answer,
  * such as one narrowed to a viewer, reads the views table alone.
+ *
+ * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class RollupSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -308,6 +312,17 @@ final readonly class RollupSource implements CountsByDimension, CountsVisitFrequ
     public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
     {
         return $this->raw->visitFrequency($viewable, $query);
+    }
+
+    /**
+     * Rollups keep no visitors, so the pairs are read from the views table,
+     * or the pairs table, alone.
+     *
+     * @return RecommendationPairs
+     */
+    public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
+    {
+        return $this->raw->recommendationPairs($request, $query);
     }
 
     /** @throws JsonException */

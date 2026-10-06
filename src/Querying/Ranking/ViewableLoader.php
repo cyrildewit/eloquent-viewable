@@ -15,24 +15,7 @@ final readonly class ViewableLoader
     /** @param  list<array{type: string, id: int|string, count: int, score?: float}>  $rows */
     public function load(array $rows): Ranking
     {
-        $models = [];
-
-        foreach (new Collection($rows)->groupBy('type') as $type => $group) {
-            $instance = $this->instanceFor((string) $type);
-
-            if (! $instance instanceof Model) {
-                continue;
-            }
-
-            $query = $instance->newQuery();
-
-            foreach ($query->whereKey($group->pluck('id')->all())->get() as $model) {
-                if ($model instanceof Viewable) {
-                    $models[(string) $type][(string) ViewableKey::of($model)] = $model;
-                }
-            }
-        }
-
+        $models = $this->models($rows);
         $entries = new Collection;
 
         foreach ($rows as $row) {
@@ -44,6 +27,36 @@ final readonly class ViewableLoader
         }
 
         return new Ranking($entries);
+    }
+
+    /**
+     * Load the models the rows name, one query per type, keyed by morph type
+     * and then by key. A row whose model is gone or not viewable is left out.
+     *
+     * @param  list<array{type: string, id: int|string}>  $rows
+     * @return array<string, array<string, Model&Viewable>>
+     */
+    public function models(array $rows): array
+    {
+        $models = [];
+
+        foreach (new Collection($rows)->groupBy('type') as $type => $group) {
+            $instance = $this->instanceFor((string) $type);
+
+            if (! $instance instanceof Model) {
+                continue;
+            }
+
+            $query = $instance->newQuery();
+
+            foreach ($query->whereKey($group->pluck('id')->unique()->values()->all())->get() as $model) {
+                if ($model instanceof Viewable) {
+                    $models[(string) $type][(string) ViewableKey::of($model)] = $model;
+                }
+            }
+        }
+
+        return $models;
     }
 
     private function instanceFor(string $type): ?Model

@@ -502,3 +502,38 @@ it('rejects an unknown presence precision', function (): void {
     expect(fn (): string => packageConfig(['presence' => ['precision' => 'roughly']])->presencePrecision())
         ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.presence.precision` config value must be one of `exact`, `approximate`, `"roughly"` given.');
 });
+
+it('reads the recommendation settings', function (): void {
+    $config = packageConfig(['querying' => ['recommendations' => ['max_seeds' => '5', 'max_visitors' => null, 'half_life' => '2d', 'similarity' => 'count']]]);
+
+    expect($config)
+        ->recommendationsMaxSeeds()->toBe(5)
+        ->recommendationsMaxVisitors()->toBeNull()
+        ->recommendationsSimilarity()->toBe('count')
+        ->and($config->recommendationsHalfLife()->shorthand())->toBe('2d')
+        ->and(packageConfig(['querying' => ['recommendations' => ['max_visitors' => 50]]])->recommendationsMaxVisitors())->toBe(50)
+        ->and(packageConfig()->recommendationsSimilarity())->toBe('cosine');
+});
+
+it('refuses a recommendation max_visitors that is not a positive integer or null', function (mixed $value): void {
+    packageConfig(['querying' => ['recommendations' => ['max_visitors' => $value]]])->recommendationsMaxVisitors();
+})->with([0, 'many', 1.5])->throws(InvalidConfiguration::class, 'The `eloquent-viewable.querying.recommendations.max_visitors` config value must be a positive integer or null');
+
+it('refuses a recommendation half_life that is not a duration', function (mixed $value): void {
+    packageConfig(['querying' => ['recommendations' => ['half_life' => $value]]])->recommendationsHalfLife();
+})->with([null, 'soon', 7])->throws(InvalidConfiguration::class, 'querying.recommendations.half_life');
+
+it('refuses an unknown similarity', function (): void {
+    packageConfig(['querying' => ['recommendations' => ['similarity' => 'jaccard']]])->recommendationsSimilarity();
+})->throws(InvalidConfiguration::class, 'querying.recommendations.similarity');
+
+it('reads the pairs settings', function (): void {
+    $config = packageConfig(['querying' => ['pairs' => ['enabled' => true, 'table' => 'pairs', 'period' => '30d', 'max_pairs' => '25']]]);
+
+    expect($config)
+        ->pairsEnabled()->toBeTrue()
+        ->pairsTable()->toBe('pairs')
+        ->pairsMaxPairs()->toBe(25)
+        ->and($config->pairsPeriod()->shorthand())->toBe('30d')
+        ->and(packageConfig()->pairsEnabled())->toBeFalse();
+});
