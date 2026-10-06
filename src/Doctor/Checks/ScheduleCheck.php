@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Maintenance\Jobs\MaintainViewsJob;
 use CyrildeWit\EloquentViewable\Recording\Jobs\FlushBufferedViewsJob;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -58,13 +59,17 @@ class ScheduleCheck implements Check
             return Finding::skipped('`views:maintain` has nothing to do: no rollups, retention or counter columns are configured.');
         }
 
-        $event = $this->find(fn (Event $event): bool => $this->runsAnyOf($event, self::MaintenanceCommands));
+        $event = $this->find(fn (Event $event): bool => $this->runsAnyOf($event, self::MaintenanceCommands) || $event->description === MaintainViewsJob::class);
 
         if (! $event instanceof Event) {
             return Finding::warning(
                 '`views:maintain` is not scheduled, so rollups, retention and counter columns are not kept up to date.',
                 "Add `Schedule::command('views:maintain')->hourly()->onOneServer();` to `routes/console.php`, unless a crontab of your own runs it.",
             );
+        }
+
+        if ($event->description === MaintainViewsJob::class) {
+            return Finding::pass('Maintenance is scheduled as a job, which runs one at a time.');
         }
 
         if (! $event->onOneServer) {
