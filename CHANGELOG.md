@@ -46,6 +46,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added `Views::top()`, a ranking of the most viewed models across every type or within one
 - Added `Views::alsoViewed()`, a ranking of what the visitors of one model also viewed, bounded by the `querying.also_viewed.minimum_visitors` and `querying.also_viewed.max_visitors` config options. A view source of your own supports it by implementing `Querying\Contracts\RanksAlsoViewed`
 - Added `Views::forViewables()` and `counts()`, which count a set of models you already have in one query
+- Added `Views::returning()` and `Views::countByFrequency()`, which count the visitors who viewed a model on two days or more within the period, and how many visitors viewed on one day, on two, and so on, as a `Querying\Frequency\VisitFrequency` with `new()`, `returning()`, `total()`, `returningShare()` and JSON output. Views without a visitor and anonymised views are left out. A view source of your own supports them by implementing `Querying\Contracts\CountsVisitFrequency`
 - Added the `whereViewsCount()` and `whereUniqueViewsCount()` scopes
 - Added `Period::parse()`, route model binding for `Period`, and an optional timezone argument on the relative `Period` constructors
 - Added `Views::forgetCache()` and `Views::flushCache()` to forget remembered counts, on every cache store

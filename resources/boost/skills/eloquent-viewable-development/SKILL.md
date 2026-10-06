@@ -65,7 +65,11 @@ views(Post::class)->count();                                     // every post
 views($post)->period(Period::pastDays(7))->compare();            // current, previous, delta, percent
 views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day); // zero-filled, JSON-ready
 Views::forViewables($posts)->counts();                           // one query for a page of models, keyed by id
+views($post)->period(Period::pastDays(30))->returning()->count(); // visitors who viewed on two days or more
+views($post)->period(Period::pastDays(30))->countByFrequency();   // [1 => 820, 2 => 140, '3+' => 60] via toArray()
 ```
+
+`returning()` only works with `count()` and `compare()`; every other read throws. It counts visitors, so do not add `unique()`. With the `fingerprint` identity every guest counts as new.
 
 Periods: `Period::create($start, $end)`, `since()`, `upto()`, `pastDays()`, `subHours()` and the like, and `Period::parse('7d')` for URL input. `Period` also binds as a route parameter.
 
