@@ -25,7 +25,20 @@ jobs:
   static:
     runs-on: ubuntu-latest
 
-    name: Static Analysis
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - name: Style
+            run: composer run test:lint
+          - name: Rector
+            run: composer run rector -- --dry-run
+          - name: Types
+            run: composer run test:types
+          - name: Type Coverage
+            run: composer run test:type-coverage
+
+    name: ${{ matrix.check.name }}
 
     steps:
       - name: Checkout code
@@ -53,14 +66,5 @@ jobs:
       - name: Install composer dependencies
         run: composer update --prefer-stable --no-interaction --ansi
 
-      - name: Style
-        run: composer run test:lint
-
-      - name: Rector
-        run: composer run rector -- --dry-run
-
-      - name: Types
-        run: composer run test:types
-
-      - name: Type Coverage
-        run: composer run test:type-coverage
+      - name: ${{ matrix.check.name }}
+        run: ${{ matrix.check.run }}
