@@ -115,7 +115,7 @@ final readonly class PurgeBotViews
 
             if (is_string($first)) {
                 $first = Carbon::parse($first);
-                $earliest = $earliest === null ? $first : $earliest->min($first);
+                $earliest = $earliest?->min($first) ?? $first;
             }
 
             $views += $dryRun
