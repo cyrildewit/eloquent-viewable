@@ -79,8 +79,8 @@
         }
     },
     "scripts": {
-        "lint": "pint",
-        "test:lint": "pint --test",
+        "lint": "pint --parallel",
+        "test:lint": "pint --test --parallel",
         "test": "pest --parallel",
         "test:serial": "pest",
         "test:arch": "pest --testsuite=Arch",
