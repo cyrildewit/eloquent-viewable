@@ -99,3 +99,10 @@ it('falls back to the file store without a default', function (): void {
 
     expect(array_last(cacheFindings()))->toBe([Status::Advice, 'Remembered counts: the `file` cache store uses the `file` driver, which is not shared between servers.']);
 });
+
+it('judges the store samples are kept in once sampling is on', function (): void {
+    config()->set('eloquent-viewable.doctor.sample.enabled', true);
+    config()->set('eloquent-viewable.doctor.sample.store', 'memory');
+
+    expect(cacheFindings())->toContain([Status::Failure, 'Samples: the `memory` cache store uses the `array` driver, which forgets everything after the request.']);
+});

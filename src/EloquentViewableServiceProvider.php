@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDet
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
 use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
+use CyrildeWit\EloquentViewable\Doctor\Sampling\GuardSamples;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
 use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
@@ -46,7 +47,9 @@ use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews as RecordsViewsContract;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
 use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
 use CyrildeWit\EloquentViewable\Retention\Console\AnonymiseViewsCommand;
@@ -86,6 +89,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->flushCountsAfterRetentionRuns();
         $this->validateRetentionPolicies();
         $this->registerDebugbarCollector();
+        $this->sampleGuardOutcomes();
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -227,6 +231,25 @@ class EloquentViewableServiceProvider extends ServiceProvider
             BotViewsPurged::class,
             fn () => Container::getInstance()->make(RecountChangedViews::class)->recountEveryModelNextRun(),
         );
+    }
+
+    /**
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests,
+     * and the sampler is resolved from the container of the request.
+     */
+    protected function sampleGuardOutcomes(): void
+    {
+        $config = new Config($this->app->make('config'));
+
+        if (! $config->sampleEnabled()) {
+            return;
+        }
+
+        $events = $this->app->make(EventDispatcher::class);
+
+        $events->listen(ViewRecorded::class, fn () => Container::getInstance()->make(GuardSamples::class)->countRecorded());
+        $events->listen(ViewSkipped::class, fn (ViewSkipped $event) => Container::getInstance()->make(GuardSamples::class)->countRefused($event->guard));
     }
 
     /**

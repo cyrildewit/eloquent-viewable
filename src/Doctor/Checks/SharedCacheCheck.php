@@ -52,6 +52,10 @@ class SharedCacheCheck implements Check
             yield $this->store('Fingerprint salt', 'visitor.fingerprint.store', $this->config->fingerprintCacheStore());
         }
 
+        if ($this->config->sampleEnabled()) {
+            yield $this->store('Samples', 'doctor.sample.store', $this->config->sampleCacheStore());
+        }
+
         yield $this->store('Remembered counts', 'querying.cache.store', $this->config->cacheStore(), critical: false);
     }
 

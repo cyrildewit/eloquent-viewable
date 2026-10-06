@@ -1,5 +1,6 @@
 <?php
 
+use CyrildeWit\EloquentViewable\Doctor\Checks\CrawlerShareCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
@@ -637,6 +638,27 @@ return [
             ScheduleCheck::class,
             TrustedProxiesCheck::class,
             RedisStreamCheck::class,
+            CrawlerShareCheck::class,
+        ],
+
+        /*
+         * Counts per day how many attempts are recorded and how many each
+         * guard refuses, so the doctor can tell when `IgnoreCrawlers` refuses
+         * more than `crawler_share` of them, from 0 to 1. Off by default,
+         * because it adds two cache calls to every attempt. The counts are
+         * kept for a week, in a cache store every server must share. When
+         * `store` is `null`, the application's default cache store is used.
+         */
+        'sample' => [
+
+            'enabled' => false,
+
+            'store' => null,
+
+            'key' => 'cyrildewit.eloquent-viewable.samples',
+
+            'crawler_share' => 0.5,
+
         ],
 
     ],
