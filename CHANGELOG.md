@@ -56,6 +56,8 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added `Views::trending()` and the `orderByTrending()` and `withTrendingScore()` scopes, which rank models by views weighed by their age, so recent views count more. `Entry` has a `score`. Configure them under `querying.trending`
 - Added the `Querying\Ranking\DecayCurve` contract with the `ExponentialDecay`, `LinearDecay` and `Window` curves, to choose or write how a view loses weight
 - Added the `Querying\Contracts\RanksTrending` and `TrendingSubquerySource` contracts, which a source of your own implements to support `trending()` and the trending scopes
+- Added personal recommendations: `recommended()` on `Concerns\HasViewHistory` and on `Views`, for the viewer `viewedBy()` names or the current visitor, and the `recommendedFor()` scope, which keeps the recommended models of a query ordered by a selected `recommendation_score`. They rank what the visitors of the viewer's most recent views also viewed, weighed by recency and by cosine similarity, leave out what the viewer viewed unless `includeSeen` is passed, and give each `Querying\Recommendations\Recommendation` the views it came from in `because`. Configure them under `querying.recommendations`. A view source of your own supports them by implementing `Querying\Contracts\RanksRecommendations`
+- Added the pairs table, an opt-in table of the models that share the most visitors, which `alsoViewed()` and `recommended()` read instead of the `views` table when a call names no period or collection. `views:pairs` rewrites it and dispatches `Querying\Pairs\Events\ViewsPaired`. Configure it under `querying.pairs`; the migration is published under the `eloquent-viewable-pairs` tag
 
 #### Presence
 
@@ -92,7 +94,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 
 - Added the `models.view.class` config option to use your own `View` model
 - Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract
-- Added `Views::fake()` with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `UnsupportedBySource` under the fake
+- Added `Views::fake()` with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `UnsupportedBySource` under the fake, apart from `recommendedFor()`, which reads the fake
 - Added `View::factory()` with the `fromVisitor()`, `inCollection()`, `viewedAt()`, `by()` and `withContext()` states
 - Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws, and the `InvalidConfiguration`, `InvalidViewable`, `InvalidViewer` and `InvalidTimezone` exceptions
 - Added Laravel Boost guidelines and the `eloquent-viewable-development` skill in `resources/boost`, which `boost:install` offers to coding agents
