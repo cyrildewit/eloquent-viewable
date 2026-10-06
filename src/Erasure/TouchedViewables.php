@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Erasure;
 
-use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
 
 /**
- * The viewables whose remembered counts an erasure changed. Past the limit
- * forgetting them one by one costs more than forgetting every count, so
- * that is what happens instead.
+ * It collects the viewables whose counts an erasure changed. Past the limit
+ * forgetting and recounting them one by one costs more than doing so for
+ * every count, so that is what happens instead.
  *
  * @internal
  */
@@ -17,8 +17,10 @@ final class TouchedViewables
 {
     public const int Limit = 100;
 
-    /** @var array<string, array{string, int|string}> */
+    /** @var array<string, array<string, int|string>> */
     private array $viewables = [];
+
+    private int $count = 0;
 
     private bool $overflowed = false;
 
@@ -28,24 +30,25 @@ final class TouchedViewables
             return;
         }
 
-        $this->viewables["{$type}|{$key}"] = [$type, $key];
+        if (isset($this->viewables[$type][(string) $key])) {
+            return;
+        }
 
-        if (count($this->viewables) > self::Limit) {
+        $this->viewables[$type][(string) $key] = $key;
+        $this->count++;
+
+        if ($this->count > self::Limit) {
             $this->overflowed = true;
             $this->viewables = [];
         }
     }
 
-    public function forget(CacheVersions $versions): void
+    public function countsChanged(): CountsChanged
     {
         if ($this->overflowed) {
-            $versions->flushCache();
-
-            return;
+            return new CountsChanged(null);
         }
 
-        foreach ($this->viewables as [$type, $key]) {
-            $versions->forgetModel($type, $key);
-        }
+        return new CountsChanged(array_map(array_values(...), $this->viewables));
     }
 }

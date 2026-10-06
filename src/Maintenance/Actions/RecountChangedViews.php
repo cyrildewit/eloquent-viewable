@@ -24,6 +24,7 @@ use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder;
 use JsonException;
 
@@ -139,6 +140,27 @@ final readonly class RecountChangedViews
         }
 
         $this->forget($viewable);
+    }
+
+    /**
+     * The models of a type whose views were erased are recounted right away,
+     * because an erased view no longer says whose it was.
+     *
+     * @param  list<int|string>  $keys
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     * @throws UnsupportedBySource
+     */
+    public function erased(string $type, array $keys): void
+    {
+        $class = Relation::getMorphedModel($type) ?? $type;
+
+        if (! array_key_exists($class, $this->config->counters())) {
+            return;
+        }
+
+        $this->recount->recount(new $class, $keys);
     }
 
     private function forget(Model $model): void

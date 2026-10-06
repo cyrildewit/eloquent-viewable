@@ -9,12 +9,11 @@ use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Erasure\TouchedViewables;
 use CyrildeWit\EloquentViewable\Erasure\ViewHistory;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use Illuminate\Contracts\Events\Dispatcher;
 
 /**
  * This action deletes every view of a subject, buffered or stored, and
- * forgets the remembered counts that included them. Rollups hold no one's
+ * forgets and recounts the counts that included them. Rollups hold no one's
  * identity, so the history they keep is left as it is.
  *
  * With guest views included, the views carrying a visitor id the viewer
@@ -25,7 +24,6 @@ final readonly class ForgetViewHistory
     public function __construct(
         private ViewHistory $history,
         private View $view,
-        private CacheVersions $versions,
         private Dispatcher $events,
     ) {}
 
@@ -62,7 +60,7 @@ final readonly class ForgetViewHistory
             $views += $rows->count();
         } while ($rows->count() === $chunk);
 
-        $touched->forget($this->versions);
+        $this->events->dispatch($touched->countsChanged());
 
         $this->events->dispatch(new ViewHistoryForgotten($subject, $views));
 

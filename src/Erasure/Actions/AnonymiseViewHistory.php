@@ -11,7 +11,6 @@ use CyrildeWit\EloquentViewable\Erasure\ViewHistory;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -31,7 +30,6 @@ final readonly class AnonymiseViewHistory
     public function __construct(
         private ViewHistory $history,
         private View $view,
-        private CacheVersions $versions,
         private Config $config,
         private Dispatcher $events,
     ) {}
@@ -73,7 +71,7 @@ final readonly class AnonymiseViewHistory
             $views += $rows->count();
         } while ($rows->count() === $chunk);
 
-        $touched->forget($this->versions);
+        $this->events->dispatch($touched->countsChanged());
 
         $this->events->dispatch(new ViewHistoryAnonymised($subject, $views));
 

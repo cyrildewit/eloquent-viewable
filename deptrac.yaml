@@ -14,8 +14,8 @@
 #   Debugging     shows what recording did in Debugbar, above recording for
 #                 the events it listens to
 #   Erasure       forgets, anonymises and exports one person's views, above
-#                 recording, querying and retention for the buffer, the cache
-#                 and the anonymised prefix
+#                 recording and retention for the buffer and the anonymised
+#                 prefix
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
@@ -149,13 +149,12 @@ deptrac:
       - +Retention
       - Querying
     # Lands the buffer through the recording contracts, matches viewers by
-    # their visitor id, forgets remembered counts and shares the anonymised
-    # prefix with retention.
+    # their visitor id and shares the anonymised prefix with retention. The
+    # service provider forgets and recounts the counts it changed.
     Erasure:
       - Foundation
       - Recording
       - Visitors
-      - Querying
       - Retention
     Views:
       - +Recording

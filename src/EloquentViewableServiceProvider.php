@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
+use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
@@ -80,6 +81,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->registerBeacon();
         $this->forgetCountsOfDestroyedViews();
+        $this->forgetCountsOfErasedViews();
         $this->flushCountsAfterRetentionRuns();
         $this->validateRetentionPolicies();
         $this->registerDebugbarCollector();
@@ -176,6 +178,36 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $this->app->make(ForgetRollups::class)->handle($event->viewable);
                 $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
                 Container::getInstance()->make(RecountChangedViews::class)->destroyed($event->viewable);
+            },
+        );
+    }
+
+    /**
+     * Erasure names the models whose counts it changed, or none when there
+     * were too many, which forgets and recounts every count instead.
+     */
+    protected function forgetCountsOfErasedViews(): void
+    {
+        $this->app->make(EventDispatcher::class)->listen(
+            CountsChanged::class,
+            function (CountsChanged $event): void {
+                $versions = $this->app->make(CacheVersions::class);
+                $recount = Container::getInstance()->make(RecountChangedViews::class);
+
+                if ($event->viewables === null) {
+                    $versions->flushCache();
+                    $recount->recountEveryModelNextRun();
+
+                    return;
+                }
+
+                foreach ($event->viewables as $type => $keys) {
+                    foreach ($keys as $key) {
+                        $versions->forgetModel($type, $key);
+                    }
+
+                    $recount->erased($type, $keys);
+                }
             },
         );
     }
