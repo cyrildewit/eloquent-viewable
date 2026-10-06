@@ -137,3 +137,49 @@ it('deletes ids as one list', function (): void {
 
     $this->client->delete('views', ['1-0', '2-0']);
 });
+
+it('reads the length of the stream', function (mixed $reply, int $length): void {
+    $this->connection->expects('command')->with('xlen', ['views'])->andReturn($reply);
+
+    expect($this->client->length('views'))->toBe($length);
+})->with([
+    [3, 3],
+    [false, 0],
+]);
+
+it('counts the pending entries from the summary', function (): void {
+    $this->connection->expects('command')->with('xpending', ['views', 'flushers'])->andReturn([2, '1-0', '2-0', [['flusher', '2']]]);
+
+    expect($this->client->pending('views', 'flushers'))->toBe(2);
+});
+
+it('counts nothing pending for a summary without a count', function (): void {
+    $this->connection->expects('command')->andReturn(['junk']);
+
+    expect($this->client->pending('views', 'flushers'))->toBe(0);
+});
+
+it('counts nothing pending and clears the error for a group that does not exist', function (string $method, array $arguments): void {
+    $redis = Mockery::mock(Redis::class);
+    $redis->expects('getLastError')->andReturn('NOGROUP No such key');
+    $redis->expects('clearLastError');
+
+    $this->connection->expects('command')->andReturn(false);
+    $this->connection->expects('client')->andReturn($redis);
+
+    expect($this->client->{$method}(...$arguments))->toBe(0);
+})->with([
+    'pending' => ['pending', ['views', 'flushers']],
+    'stalled' => ['stalled', ['views', 'flushers', 60_000, 10]],
+]);
+
+it('counts the entries pending for longer than the idle time', function (): void {
+    $this->connection->expects('command')->with('xpending', ['views', 'flushers', '-', '+', 10])->andReturn([
+        ['1-0', 'flusher', 75_000, 1],
+        ['2-0', 'flusher', 60_000, 1],
+        ['3-0', 'flusher', 1_000, 1],
+        'junk',
+    ]);
+
+    expect($this->client->stalled('views', 'flushers', 60_000, 10))->toBe(2);
+});

@@ -90,6 +90,59 @@ final readonly class PhpRedisClient implements StreamClient
         $this->connection->command('xdel', [$stream, $ids]);
     }
 
+    public function length(string $stream): int
+    {
+        $length = $this->connection->command('xlen', [$stream]);
+
+        return is_int($length) ? $length : 0;
+    }
+
+    /**
+     * An unknown group is an error reply, which phpredis returns as `false`
+     * and keeps as the last error until it is cleared.
+     */
+    public function pending(string $stream, string $group): int
+    {
+        $summary = $this->connection->command('xpending', [$stream, $group]);
+
+        if (! is_array($summary)) {
+            $this->lastError();
+
+            return 0;
+        }
+
+        $count = $summary[0] ?? 0;
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
+     * The entries are filtered by their idle time here, because phpredis
+     * leaves the connection unusable after an `XPENDING` with `IDLE`.
+     */
+    public function stalled(string $stream, string $group, int $idle, int $count): int
+    {
+        $pending = $this->connection->command('xpending', [$stream, $group, '-', '+', $count]);
+
+        if (! is_array($pending)) {
+            $this->lastError();
+
+            return 0;
+        }
+
+        $stalled = 0;
+
+        foreach ($pending as $row) {
+            $idleFor = is_array($row) ? $row[2] ?? 0 : 0;
+
+            if (is_int($idleFor) && $idleFor >= $idle) {
+                $stalled++;
+            }
+        }
+
+        return $stalled;
+    }
+
     private function lastError(): string
     {
         $client = $this->connection->client();

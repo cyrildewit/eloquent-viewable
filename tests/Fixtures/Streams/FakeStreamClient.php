@@ -109,6 +109,21 @@ final class FakeStreamClient implements StreamClient
         }
     }
 
+    public function length(string $stream): int
+    {
+        return count($this->entries);
+    }
+
+    public function pending(string $stream, string $group): int
+    {
+        return count(array_diff($this->delivered, $this->acknowledged));
+    }
+
+    public function stalled(string $stream, string $group, int $idle, int $count): int
+    {
+        return min(count($this->abandoned), $count);
+    }
+
     /** @return list<string> */
     public function ids(): array
     {

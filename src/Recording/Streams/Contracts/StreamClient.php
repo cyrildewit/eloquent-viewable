@@ -31,4 +31,18 @@ interface StreamClient
 
     /** @param  list<string>  $ids */
     public function delete(string $stream, array $ids): void;
+
+    public function length(string $stream): int;
+
+    /**
+     * How many entries the group has delivered without an acknowledgement,
+     * or 0 when the group does not exist yet.
+     */
+    public function pending(string $stream, string $group): int;
+
+    /**
+     * How many of the pending entries, up to `$count`, have been idle for at
+     * least `$idle` milliseconds.
+     */
+    public function stalled(string $stream, string $group, int $idle, int $count): int;
 }

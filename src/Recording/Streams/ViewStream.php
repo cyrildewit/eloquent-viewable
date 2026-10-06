@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Recording\Streams;
 
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Recording\Data\StreamBacklog;
 use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use Generator;
 
@@ -92,6 +93,23 @@ final class ViewStream
         }
 
         $this->client->delete($this->stream, $ids);
+    }
+
+    /**
+     * Entries are deleted once they land, so the length of the stream is
+     * what has not landed yet. An entry is stalled once a flush has held it
+     * past the point where the next one would claim it.
+     */
+    public function backlog(): StreamBacklog
+    {
+        $oldest = $this->client->range($this->stream, null, 1)[0] ?? null;
+
+        return new StreamBacklog(
+            length: $this->client->length($this->stream),
+            pending: $this->client->pending($this->stream, $this->group),
+            stalled: $this->client->stalled($this->stream, $this->group, $this->claimAfter, $this->pageSize),
+            oldestAt: $oldest?->appendedAt(),
+        );
     }
 
     /**
