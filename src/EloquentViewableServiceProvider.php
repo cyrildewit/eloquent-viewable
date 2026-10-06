@@ -183,8 +183,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * Erasure names the models whose counts it changed, or none when there
-     * were too many, which forgets and recounts every count instead.
+     * Erasure names the models whose counts it changed, so their remembered
+     * counts are forgotten and their counter columns recounted. When it names
+     * none, it touched too many, so every count is forgotten and every model
+     * is recounted on the next run.
      */
     protected function forgetCountsOfErasedViews(): void
     {
