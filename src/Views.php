@@ -17,9 +17,12 @@ use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidReturning;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
@@ -56,6 +59,8 @@ class Views
     protected ?Period $period = null;
 
     protected bool $unique = false;
+
+    protected bool $returning = false;
 
     protected ?CarbonInterface $cooldown = null;
 
@@ -103,48 +108,85 @@ class Views
         return $this;
     }
 
+    /** @throws UnsupportedBySource */
     public function count(): int
     {
+        if ($this->returning) {
+            return $this->reader->returning($this->viewable(), $this->query(), $this->cacheLifetime);
+        }
+
         return $this->reader->count($this->viewable(), $this->query(), $this->cacheLifetime);
     }
 
-    /** @throws InvalidPeriod */
+    /**
+     * @throws InvalidPeriod
+     * @throws UnsupportedBySource
+     */
     public function compare(): ViewComparison
     {
-        return $this->reader->compare($this->viewable(), $this->query(), $this->cacheLifetime);
+        return $this->reader->compare($this->viewable(), $this->query(), $this->cacheLifetime, $this->returning);
+    }
+
+    /**
+     * How many visitors viewed on one day, on two, and so on, up to `$upTo`
+     * days and more. A day is on the clock of `timezone()`.
+     *
+     * @throws InvalidFrequency
+     * @throws UnsupportedBySource
+     */
+    public function countByFrequency(int $upTo = 3): VisitFrequency
+    {
+        return $this->reader->countByFrequency($this->viewable(), $this->query(), $upTo, $this->cacheLifetime);
     }
 
     /**
      * @return Collection<int|string, int>
      *
+     * @throws InvalidReturning
      * @throws InvalidViewable
      */
     public function counts(): Collection
     {
+        $this->guardReturning('counts()');
+
         $viewables = $this->viewables ?? throw InvalidViewable::missingSet();
 
         return new Collection($this->reader->countMany($viewables, $this->query(), $this->cacheLifetime));
     }
 
-    /** @throws InvalidInterval */
+    /**
+     * @throws InvalidInterval
+     * @throws InvalidReturning
+     */
     public function countByInterval(Granularity $granularity): ViewSeries
     {
+        $this->guardReturning('countByInterval()');
+
         return $this->reader->countByInterval($this->viewable(), $this->query(), $granularity, $this->cacheLifetime);
     }
 
-    /** @return array<string, int> */
+    /**
+     * @return array<string, int>
+     *
+     * @throws InvalidReturning
+     */
     public function countByCollection(): array
     {
+        $this->guardReturning('countByCollection()');
+
         return $this->reader->countByCollection($this->viewable(), $this->query(), $this->cacheLifetime);
     }
 
     /**
      * @return array<string, int>
      *
+     * @throws InvalidReturning
      * @throws UnknownRollup
      */
     public function countByDimension(): array
     {
+        $this->guardReturning('countByDimension()');
+
         $dimension = $this->rollup?->dimension();
 
         if ($dimension === null) {
@@ -156,10 +198,13 @@ class Views
 
     /**
      * @throws InvalidLimit
+     * @throws InvalidReturning
      * @throws InvalidViewable
      */
     public function top(int $limit = 10): Ranking
     {
+        $this->guardReturning('top()');
+
         return $this->reader->top($this->viewable, $this->query(), $limit, $this->cacheLifetime);
     }
 
@@ -171,11 +216,14 @@ class Views
      * @throws InvalidConfiguration
      * @throws InvalidDecay
      * @throws InvalidLimit
+     * @throws InvalidReturning
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
     public function trending(int $limit = 10, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null): Ranking
     {
+        $this->guardReturning('trending()');
+
         return $this->reader->trending($this->viewable, $this->query(), $limit, $halfLife, $curve, $this->cacheLifetime);
     }
 
@@ -187,12 +235,15 @@ class Views
      *
      * @throws InvalidConfiguration
      * @throws InvalidLimit
+     * @throws InvalidReturning
      * @throws InvalidViewable
      * @throws InvalidViewer
      * @throws UnsupportedBySource
      */
     public function alsoViewed(int $limit = 10, ?string $among = null): Ranking
     {
+        $this->guardReturning('alsoViewed()');
+
         return $this->reader->alsoViewed($this->viewable(), $this->among($among), $this->query(), $limit, $this->cacheLifetime);
     }
 
@@ -348,6 +399,18 @@ class Views
         return $this;
     }
 
+    /**
+     * Counts the visitors who viewed on two days or more instead of the
+     * views, in `count()` and `compare()`. A day is on the clock of
+     * `timezone()`.
+     */
+    public function returning(bool $state = true): self
+    {
+        $this->returning = $state;
+
+        return $this;
+    }
+
     public function remember(DateTimeInterface|int|null $lifetime = null): self
     {
         $this->cacheLifetime = $lifetime === null ? null : $this->resolveLifetime($lifetime);
@@ -366,6 +429,14 @@ class Views
     protected function viewable(): Viewable
     {
         return $this->viewable ?? throw InvalidViewable::missing();
+    }
+
+    /** @throws InvalidReturning */
+    protected function guardReturning(string $method): void
+    {
+        if ($this->returning) {
+            throw InvalidReturning::onlyCounted($method);
+        }
     }
 
     /** @throws InvalidViewable */
