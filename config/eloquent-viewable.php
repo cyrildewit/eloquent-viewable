@@ -1,6 +1,7 @@
 <?php
 
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -631,6 +632,7 @@ return [
             SchemaCheck::class,
             IndexAdviceCheck::class,
             SharedCacheCheck::class,
+            ScheduleCheck::class,
         ],
 
     ],
