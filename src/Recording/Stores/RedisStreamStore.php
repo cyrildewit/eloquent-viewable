@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Contracts\BufferedViewStore;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Data\StreamBacklog;
 use CyrildeWit\EloquentViewable\Recording\Streams\ViewStream;
 
 final readonly class RedisStreamStore implements BufferedViewStore
@@ -46,6 +47,11 @@ final readonly class RedisStreamStore implements BufferedViewStore
         $this->stream->delete($ids);
 
         $this->landing->forget($viewable);
+    }
+
+    public function backlog(): StreamBacklog
+    {
+        return $this->stream->backlog();
     }
 
     /**

@@ -110,3 +110,26 @@ it('deletes nothing for no ids', function (): void {
 
     $this->stream->delete([]);
 });
+
+it('describes the backlog of the stream', function (): void {
+    $this->client->expects('range')->with('views', null, 1)->andReturn([new StreamEntry('1609504200000-0', [])]);
+    $this->client->expects('length')->with('views')->andReturn(5);
+    $this->client->expects('pending')->with('views', 'flushers')->andReturn(2);
+    $this->client->expects('stalled')->with('views', 'flushers', 30_000, 2)->andReturn(1);
+
+    $backlog = $this->stream->backlog();
+
+    expect($backlog->length)->toBe(5)
+        ->and($backlog->pending)->toBe(2)
+        ->and($backlog->stalled)->toBe(1)
+        ->and($backlog->oldestAt?->toIso8601String())->toBe('2021-01-01T12:30:00+00:00');
+});
+
+it('has no oldest entry when the stream is empty', function (): void {
+    $this->client->expects('range')->andReturn([]);
+    $this->client->expects('length')->andReturn(0);
+    $this->client->expects('pending')->andReturn(0);
+    $this->client->expects('stalled')->andReturn(0);
+
+    expect($this->stream->backlog()->oldestAt)->toBeNull();
+});

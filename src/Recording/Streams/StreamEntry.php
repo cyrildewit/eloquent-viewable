@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Streams;
 
+use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RedisStreamFailed;
 
@@ -57,6 +58,14 @@ final readonly class StreamEntry
     public function isEmpty(): bool
     {
         return $this->fields === [];
+    }
+
+    /**
+     * Redis ids start with the millisecond the entry was appended at.
+     */
+    public function appendedAt(): CarbonImmutable
+    {
+        return CarbonImmutable::createFromTimestampMs((int) strtok($this->id, '-'));
     }
 
     /** @throws RedisStreamFailed */
