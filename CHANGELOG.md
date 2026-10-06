@@ -63,6 +63,11 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added counter columns: `querying.counters` lists columns on your own tables that `views:recount` fills with a view count, and `views:maintain` runs it
 - Added `--before` to `views:prune`, for an application that drops partitions of the `views` table itself
 - Added `views:purge-bots`, which deletes the views inside a burst, the views `IgnoreBursts` would have refused, and folds the rollups again. Views of a signed-in viewer are kept unless `--include-viewers` is passed, and `--whole-visitor` deletes every view of a visitor with several bursts. Dispatches `Retention\Events\BotViewsPurged`. Rollups expose the new `Querying\Rollups\Contracts\Refolder` contract for it
+- Added `--max-seconds` to `views:maintain`, `views:rollup`, `views:anonymise`, `views:prune` and `views:recount`. Once the time is up, a run finishes the bucket, day or chunk in progress and stops, and the next run carries on from there
+- Added `Maintenance\Jobs\MaintainViewsJob`, which runs what `views:maintain` runs for at most `maxSeconds` and queues itself again while there is work left, for hosts that cut long scheduled commands off
+- `views:recount` only recounts the models whose counts can have changed since the last recount when the retention migration is installed. `--full` recounts every model, and `views($post)->destroy()` recounts the post's columns right away
+- A maintenance run renews its lock while it works, so a run longer than an hour no longer lets a second run start beside it
+- Anonymising reads each day once instead of once per chunk, and sets at most a hundred visitors per statement, which made anonymising a day two to six times faster in the benchmarks
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
 #### Models and testing
