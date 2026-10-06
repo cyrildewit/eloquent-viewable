@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Doctor\Checks;
 
-use Closure;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Middleware\TrustProxies;
+use ReflectionMethod;
 
 /**
  * The console sees no request, so the proxies are read from the middleware
@@ -41,12 +42,17 @@ class TrustedProxiesCheck implements Check
         $readers = $this->readersOfTheAddress();
 
         if ($readers === []) {
-            yield Finding::skipped('Nothing reads the IP address of the visitor: neither the `fingerprint` identity nor `IgnoreIpAddresses` with addresses is in use.');
+            yield Finding::skipped('Nothing reads the IP address of the visitor: the `fingerprint` identity, `IgnoreIpAddresses` with addresses and `IgnoreBursts` by network are all off.');
 
             return;
         }
 
-        $readers = implode(' and ', $readers);
+        $last = array_pop($readers);
+        $others = implode(', ', $readers);
+
+        $readers = $others === ''
+            ? $last
+            : "{$others} and {$last}";
         $proxies = $this->trustedProxies();
 
         if (in_array($proxies, [null, [], ''], true)) {
@@ -87,6 +93,10 @@ class TrustedProxiesCheck implements Check
             $readers[] = '`IgnoreIpAddresses`';
         }
 
+        if (in_array(IgnoreBursts::class, $this->config->guards(), true) && in_array('network', $this->config->burstKeys(), true)) {
+            $readers[] = '`IgnoreBursts`';
+        }
+
         return $readers;
     }
 
@@ -102,9 +112,6 @@ class TrustedProxiesCheck implements Check
 
         $middleware = $this->container->make(TrustProxies::class);
 
-        /** @var Closure(): mixed $proxies */
-        $proxies = Closure::bind(fn (): mixed => $this->proxies(), $middleware, TrustProxies::class);
-
-        return $proxies();
+        return new ReflectionMethod(TrustProxies::class, 'proxies')->invoke($middleware);
     }
 }

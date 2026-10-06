@@ -1065,16 +1065,16 @@ php artisan views:doctor
    ERROR  1 failure, 1 warning, 0 suggestions.
 ```
 
-| Check               | Key               | Looks at                                                                                       |
-|---------------------|-------------------|------------------------------------------------------------------------------------------------|
-| Database schema     | `schema`          | the views table, its columns and indexes, and the retention, rollup and counter columns in use |
-| Optional indexes    | `index-advice`    | the [optional indexes](#database-indexes) the config relies on or a large table would use      |
-| Shared cache stores | `shared-cache`    | that cooldowns, the throttle, the fingerprint salt and remembered counts use a shared store    |
-| Scheduler           | `schedule`        | that `views:maintain` and `views:flush` are scheduled when something needs them                |
-| Trusted proxies     | `trusted-proxies` | that a proxy is trusted when the `fingerprint` identity or `IgnoreIpAddresses` reads the IP    |
-| Redis stream        | `redis-stream`    | how long buffered views wait, and views a flush took without acknowledging                     |
-| Refused attempts    | `crawler-share`   | the share of attempts each guard refused, once sampling is on                                  |
-| Configuration       | `configuration`   | settings that undo each other, such as queueing on the `sync` connection                       |
+| Check               | Key               | Looks at                                                                                                     |
+|---------------------|-------------------|--------------------------------------------------------------------------------------------------------------|
+| Database schema     | `schema`          | the views table, its columns and indexes, and the retention, rollup and counter columns in use               |
+| Optional indexes    | `index-advice`    | the [optional indexes](#database-indexes) the config relies on or a large table would use                    |
+| Shared cache stores | `shared-cache`    | that cooldowns, the throttle, the burst guard, the fingerprint salt and remembered counts use a shared store |
+| Scheduler           | `schedule`        | that `views:maintain` or `MaintainViewsJob`, and `views:flush`, are scheduled when something needs them      |
+| Trusted proxies     | `trusted-proxies` | that a proxy is trusted when the `fingerprint` identity, `IgnoreIpAddresses` or `IgnoreBursts` reads the IP  |
+| Redis stream        | `redis-stream`    | how long buffered views wait, and views a flush took without acknowledging                                   |
+| Refused attempts    | `crawler-share`   | the share of attempts each guard refused, once sampling is on                                                |
+| Configuration       | `configuration`   | settings that undo each other, such as queueing on the `sync` connection                                     |
 
 A failure means something does not work, a warning that it breaks under load or on more than one server, and a
 suggestion that it could be better. The command fails on a failure, so it can run in a deploy. `--strict` fails on a

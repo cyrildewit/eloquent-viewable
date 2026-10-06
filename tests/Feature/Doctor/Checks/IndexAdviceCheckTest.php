@@ -105,7 +105,7 @@ it('suggests every index for a large table', function (): void {
 });
 
 it('passes the indexes that are in place', function (): void {
-    viewsTableWith(OptionalIndex::cases(), rows: 1_200_000);
+    viewsTableWith(IndexAdviceCheck::Recommended, rows: 1_200_000);
 
     expect(indexAdviceSummaries())->toBe([
         [Status::Pass, 'The `(viewable_type, viewable_id, viewed_at, visitor)` index is in place.'],

@@ -35,7 +35,7 @@ it('reads a list of indexes', function (): void {
 
 it('rejects an index it does not know', function (): void {
     expect(fn (): array => OptionalIndex::fromList('visitor,unknown'))
-        ->toThrow(InvalidArgumentException::class, 'Unknown index [unknown]. Choose from: visitor, type-viewed-at, visitor-history, or none.');
+        ->toThrow(InvalidArgumentException::class, 'Unknown index [unknown]. Choose from: visitor, type-viewed-at, visitor-history, viewed-at, or none.');
 });
 
 it('writes a list of indexes', function (): void {
@@ -48,6 +48,7 @@ it('names the columns of every index', function (OptionalIndex $index, array $co
     [OptionalIndex::Visitor, ['viewable_type', 'viewable_id', 'viewed_at', 'visitor']],
     [OptionalIndex::TypeViewedAt, ['viewable_type', 'viewed_at']],
     [OptionalIndex::VisitorHistory, ['visitor', 'viewed_at', 'viewable_type', 'viewable_id']],
+    [OptionalIndex::ViewedAt, ['viewed_at']],
 ]);
 
 it('adds and drops an index', function (OptionalIndex $index): void {
