@@ -13,8 +13,11 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
+use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByTrending;
 use CyrildeWit\EloquentViewable\Querying\Scopes\OrderByViews;
+use CyrildeWit\EloquentViewable\Querying\Scopes\RecommendedFor;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewed;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WhereViewsCount;
 use CyrildeWit\EloquentViewable\Querying\Scopes\WithTrendingScore;
@@ -40,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @method static Builder<static> whereNotViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereNotViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
+ * @method static Builder<static> recommendedFor(Model|string $recipient, ?Period $period = null, ?string $collection = null, bool $includeSeen = false, string $as = 'recommendation_score')
  */
 trait InteractsWithViews
 {
@@ -205,6 +209,31 @@ trait InteractsWithViews
     public function scopeWhereNotViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
     {
         return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection), $visitor, not: true));
+    }
+
+    /**
+     * Keep the models recommended to a viewer, or to a visitor id, ordered by
+     * their score, highest first, with the score selected as a column.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeRecommendedFor(
+        Builder $query,
+        Model|string $recipient,
+        ?Period $period = null,
+        ?string $collection = null,
+        bool $includeSeen = false,
+        string $as = 'recommendation_score'
+    ): Builder {
+        $scores = Container::getInstance()->make(Reader::class)->recommendationScores(
+            is_string($recipient) ? Recipient::visitor($recipient) : Recipient::viewer($recipient),
+            $query->getModel()->newInstance(),
+            new ViewsQuery($period, $collection),
+            $includeSeen,
+        );
+
+        return $query->tap(new RecommendedFor($scores, $as));
     }
 
     /** @throws UnsupportedBySource */

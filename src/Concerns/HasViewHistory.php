@@ -13,12 +13,20 @@ use CyrildeWit\EloquentViewable\Erasure\Actions\ForgetViewHistory;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Reader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\LazyCollection;
 
@@ -49,6 +57,31 @@ trait HasViewHistory
             ->max('viewed_at');
 
         return is_string($viewedAt) ? Carbon::parse($viewedAt) : null;
+    }
+
+    /**
+     * Recommend what the visitors of the models this model viewed recently
+     * also viewed, of the given class or of any. What it viewed before is
+     * left out unless it is included.
+     *
+     * @param  ?class-string<Model&Viewable>  $among
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws InvalidViewer
+     * @throws UnsupportedBySource
+     */
+    public function recommended(?string $among = null, int $limit = 10, ?Period $period = null, ?string $collection = null, bool $includeSeen = false): Recommendations
+    {
+        return Container::getInstance()->make(Reader::class)->recommended(
+            Recipient::viewer($this),
+            $this->recommendationsAmong($among),
+            new ViewsQuery($period, $collection),
+            $limit,
+            $includeSeen,
+        );
     }
 
     /**
@@ -85,5 +118,21 @@ trait HasViewHistory
     public function exportViewHistory(): LazyCollection
     {
         return Container::getInstance()->make(ExportViewHistory::class)->handle(Subject::viewer($this));
+    }
+
+    /** @throws InvalidViewable */
+    private function recommendationsAmong(?string $class): ?Viewable
+    {
+        if ($class === null) {
+            return null;
+        }
+
+        $model = Container::getInstance()->make($class);
+
+        if (! $model instanceof Viewable) {
+            throw InvalidViewable::classDoesNotImplementViewable($class);
+        }
+
+        return $model;
     }
 }
