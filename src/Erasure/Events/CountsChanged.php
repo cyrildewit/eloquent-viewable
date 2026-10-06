@@ -6,8 +6,8 @@ namespace CyrildeWit\EloquentViewable\Erasure\Events;
 
 /**
  * It is dispatched once an erasure changed the counts of the viewables it
- * names, keyed by their morph type. No viewables at all stands for too many
- * to name, which changes every count.
+ * names, keyed by their morph type. Null stands for too many to name, which
+ * changes every count.
  *
  * @internal
  */
