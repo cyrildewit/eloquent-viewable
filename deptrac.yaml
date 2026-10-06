@@ -19,6 +19,8 @@
 #                 recording and retention for the buffer and the anonymised
 #                 prefix
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
+#   Presence      who is looking right now, below recording, which keeps it
+#                 up to date, and above querying for the rankings it builds
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
 # The ruleset lets each layer depend on any layer below it. An edge that points
@@ -61,6 +63,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Querying\\.*
+
+    - name: Presence
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Presence\\.*
 
     - name: Retention
       collectors:
@@ -130,14 +137,19 @@ deptrac:
     Cooldowns:
       - Foundation
     # The guards read the visitor's facts, ask the detector for a verdict and
-    # push cooldowns.
+    # push cooldowns. Every view that passes keeps the visitor's presence.
     Recording:
       - Foundation
       - Visitors
       - Crawlers
       - Cooldowns
+      - Presence
     Querying:
       - Foundation
+    # Ranks what is looked at right now with the rankings of querying.
+    Presence:
+      - Foundation
+      - Querying
     # Clamps its cutoffs to the rollup watermarks, so nothing is destroyed
     # before a rollup has captured it.
     Retention:
@@ -190,6 +202,7 @@ deptrac:
         Modules:
           - Debugging
           - Recording
+          - Presence
           - Querying
           - Retention
           - Maintenance

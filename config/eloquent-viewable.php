@@ -590,6 +590,93 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Presence
+    |--------------------------------------------------------------------------
+    |
+    | Who is looking at something right now: `views($post)->activeVisitors()`,
+    | `Views::live()->top()` and the live counter of the beacon. A visitor is
+    | active from the moment a view of theirs passes the guards, and stays
+    | active while the page sends a heartbeat. A cooldown or the throttle does
+    | not stop either. Kept apart from the views, so it works with any store.
+    |
+    */
+    'presence' => [
+
+        /*
+         * Off by default. Reading a live count while it is off throws, so a
+         * forgotten setting is not mistaken for an empty page.
+         */
+        'enabled' => false,
+
+        /*
+         * Where presence is kept: `redis`, `array`, which only lives as long
+         * as the process and suits tests, or `null`. Register your own driver
+         * with `PresenceManager::extend()`.
+         */
+        'driver' => 'redis',
+
+        /*
+         * How long a visitor stays active after they were last seen, in
+         * seconds. `within()` can narrow it for one read, never widen it.
+         */
+        'window' => 300,
+
+        /*
+         * How visitors are counted by the `redis` driver. `exact` keeps every
+         * visitor id in a sorted set and lets a visitor leave at once.
+         * `approximate` keeps a HyperLogLog per minute, which stays at 12 KB
+         * however many visitors there are, at an error of about 0.8%, counts
+         * up to a minute beyond the window, and cannot remove a visitor who
+         * leaves.
+         */
+        'precision' => 'exact',
+
+        /*
+         * How often the beacon's live script tells the server the page is
+         * still open, in seconds. Keep it well below the window.
+         */
+        'heartbeat' => 60,
+
+        /*
+         * Whether the heartbeat answers with the number of active visitors,
+         * which the live script writes into every `[data-views-live]`
+         * element on the page.
+         */
+        'expose_count' => false,
+
+        /*
+         * Whether the signed-in viewers are kept too, by their type and key,
+         * for `live()->viewers()`. Off by default, because it keeps who is
+         * looking rather than an anonymous id.
+         */
+        'viewers' => false,
+
+        /*
+         * The most recently seen viewables `live()->top()` ranks. A busy site
+         * can raise it; it is the number of counts one ranking reads.
+         */
+        'max_candidates' => 1_000,
+
+        'redis' => [
+
+            /*
+             * The Redis connection from `config/database.php`. When `null`,
+             * the default connection is used.
+             */
+            'connection' => null,
+
+            /*
+             * The prefix of every key. It is wrapped in a hash tag, so every
+             * key lands in one slot of a Redis Cluster.
+             */
+            'prefix' => 'eloquent-viewable:live',
+
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Cooldown
     |--------------------------------------------------------------------------
     */
