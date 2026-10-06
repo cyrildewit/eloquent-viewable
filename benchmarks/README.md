@@ -87,8 +87,8 @@ make bench-seed SIZE=medium ARGS="--seed=7"
 
 ## Optional indexes
 
-The README suggests three indexes for apps that need them. The migration does not create them, so a seeded dataset starts
-without. `make bench-indexes` adds or drops them in place, which is far quicker than seeding again, and the same
+The README suggests three indexes for apps that need them, and the migration creates a fourth on `viewed_at` that the
+seeder drops so the read benchmarks keep their plans. A seeded dataset starts without all four. `make bench-indexes` adds or drops them in place, which is far quicker than seeding again, and the same
 benchmarks measure the difference.
 
 | Name             | Index                                                                               | Serves                                       |
@@ -96,6 +96,7 @@ benchmarks measure the difference.
 | `visitor`        | `(viewable_type, viewable_id, viewed_at, visitor)`, `INCLUDE (visitor)` on Postgres | `unique()` counts without touching the table |
 | `type-viewed-at` | `(viewable_type, viewed_at)`                                                        | counts over a whole type within a period     |
 | `visitor-history` | `(visitor, viewed_at, viewable_type, viewable_id)`                                 | `alsoViewed()` pairing through the visitors  |
+| `viewed-at`       | `(viewed_at)`, which the migration creates and the seeder drops                     | anonymising and pruning by date              |
 
 ```bash
 make bench-baseline TAG=plain
@@ -156,6 +157,9 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | `read`   | `WithViewsCountBench`         | `withViewsCount()`, plain and unique, first page of twenty, over the same periods                                                                                                                                                                                 |
 | `rollup` | `FoldViewsBench`              | `views:rollup` folding the last day and the last month before the anchor again, a delete and one `insert … select` per grouping                                                                                                                                   |
 | `rollup` | `RollupReadsBench`            | `count()`, `orderByViews()`, `top()` and `trending()` through the `rollup` source with every view folded into day and month rollups, for the same targets and periods as in `read`                                                                                              |
+| `maintenance` | `AnonymiseViewsBench`     | `views:anonymise` over the last day before the anchor, in chunks of a thousand and of five thousand views, each chunk continuing after the last id of the one before; rolled back after every iteration |
+| `maintenance` | `PruneViewsBench`         | `views:prune` deleting the oldest day of views, in chunks of a thousand and of five thousand; rolled back after every iteration |
+| `maintenance` | `RecountViewsBench`       | `views:recount` writing a `views_count` column on every article, against recounting only the ten or hundred articles viewed since the last recount; rolled back after every iteration |
 | `cache`  | `RememberedCountsBench`       | a `remember()` hit of `count()` for the same targets and of `forViewables()->counts()` over twenty articles, then `forgetCache()` and `flushCache()`, on the `array` store and on Redis                                                                           |
 | `write`  | `RecordViewBench`             | `record()` into the full table, direct and through the sync queue                                                                                                                                                                                                 |
 | `write`  | `BufferViewsBench`            | `record()` through the `redis` store, one `XADD`, and `flush()` landing a hundred, a thousand and ten thousand buffered views                                                                                                                                     |

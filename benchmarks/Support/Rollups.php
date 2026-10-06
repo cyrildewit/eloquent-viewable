@@ -62,7 +62,11 @@ final class Rollups
         $state->put(self::FoldedFrom, $marker);
     }
 
-    private static function install(ConnectionInterface $connection): void
+    /**
+     * The rollups migration also creates the state table that retention and
+     * the counter columns keep their marks in.
+     */
+    public static function install(ConnectionInterface $connection): void
     {
         if ($connection->getSchemaBuilder()->hasTable('view_rollups')) {
             return;

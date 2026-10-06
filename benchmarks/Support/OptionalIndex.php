@@ -34,6 +34,13 @@ enum OptionalIndex: string
     case VisitorHistory = 'visitor-history';
 
     /**
+     * `viewed_at` on its own, which the migration creates and retention reads
+     * by. The seeder drops it with the other secondary indexes, so the
+     * retention benchmarks run with and without it.
+     */
+    case ViewedAt = 'viewed-at';
+
+    /**
      * @return list<self>
      */
     public static function fromList(string $list): array
@@ -65,6 +72,7 @@ enum OptionalIndex: string
             self::Visitor => 'views_viewable_viewed_at_visitor_index',
             self::TypeViewedAt => 'views_viewable_type_viewed_at_index',
             self::VisitorHistory => 'views_visitor_viewed_at_viewable_index',
+            self::ViewedAt => 'views_viewed_at_index',
         };
     }
 
@@ -99,6 +107,7 @@ enum OptionalIndex: string
             self::Visitor => ['viewable_type', 'viewable_id', 'viewed_at', 'visitor'],
             self::TypeViewedAt => ['viewable_type', 'viewed_at'],
             self::VisitorHistory => ['visitor', 'viewed_at', 'viewable_type', 'viewable_id'],
+            self::ViewedAt => ['viewed_at'],
         };
     }
 }
