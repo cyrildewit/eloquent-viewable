@@ -14,9 +14,12 @@ use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidReturning;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Entry;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
@@ -1665,6 +1668,144 @@ describe('also viewed', function (): void {
 
         views($this->post)->remember($remember ? 60 : null)->alsoViewed();
     })->with(['read' => false, 'remembered' => true])->throws(UnsupportedBySource::class, 'cannot rank what visitors also viewed, so alsoViewed() cannot read from it.');
+});
+
+describe('returning visitors', function (): void {
+    beforeEach(function (): void {
+        Carbon::setTestNow('2026-09-10 12:00:00');
+    });
+
+    function visitedBy(Viewable $viewable, string $visitor, string ...$dateTimes): void
+    {
+        foreach ($dateTimes as $dateTime) {
+            View::factory()->for($viewable, 'viewable')->fromVisitor($visitor)->viewedAt(Carbon::parse($dateTime))->create();
+        }
+    }
+
+    it('counts the visitors who viewed on two days or more', function (): void {
+        visitedBy($this->post, 'one', '2026-09-01 10:00:00', '2026-09-01 11:00:00');
+        visitedBy($this->post, 'two', '2026-09-01 10:00:00', '2026-09-04 10:00:00');
+        visitedBy($this->post, 'three', '2026-09-02 10:00:00', '2026-09-05 10:00:00', '2026-09-08 10:00:00');
+
+        expect(views($this->post)->returning()->count())->toBe(2)
+            ->and(views($this->post)->returning(false)->count())->toBe(7)
+            ->and(views($this->post)->period(Period::since('2026-09-03'))->returning()->count())->toBe(1);
+    });
+
+    it('counts visitors whether or not unique() is called', function (): void {
+        visitedBy($this->post, 'one', '2026-09-01 10:00:00', '2026-09-02 10:00:00', '2026-09-02 11:00:00');
+
+        expect(views($this->post)->unique()->returning()->count())->toBe(1)
+            ->and(views($this->post)->returning()->count())->toBe(1);
+    });
+
+    it('tells whether one viewer came back', function (): void {
+        $user = User::factory()->create();
+
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('one')->viewedAt(Carbon::parse('2026-09-01'))->create();
+        View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('one')->viewedAt(Carbon::parse('2026-09-03'))->create();
+        visitedBy($this->post, 'two', '2026-09-01 10:00:00', '2026-09-04 10:00:00');
+
+        expect(views($this->post)->viewedBy($user)->returning()->count())->toBe(1)
+            ->and(views($this->post)->viewedBy(User::factory()->create())->returning()->count())->toBe(0);
+    });
+
+    it('compares the visitors who came back with the period before', function (): void {
+        visitedBy($this->post, 'one', '2026-08-28 10:00:00', '2026-08-29 10:00:00');
+        visitedBy($this->post, 'two', '2026-09-04 10:00:00', '2026-09-05 10:00:00');
+        visitedBy($this->post, 'three', '2026-09-06 10:00:00', '2026-09-08 10:00:00');
+        visitedBy($this->post, 'four', '2026-09-07 10:00:00');
+
+        expect(views($this->post)->period(Period::pastDays(7))->returning()->compare()->toArray())
+            ->toBe(['current' => 2, 'previous' => 1, 'delta' => 1, 'percent' => 100.0]);
+    });
+
+    it('counts the visitors per number of days', function (): void {
+        visitedBy($this->post, 'one', '2026-09-01 10:00:00');
+        visitedBy($this->post, 'two', '2026-09-01 10:00:00', '2026-09-01 11:00:00');
+        visitedBy($this->post, 'three', '2026-09-01 10:00:00', '2026-09-02 10:00:00');
+        visitedBy($this->post, 'four', '2026-09-01 10:00:00', '2026-09-02 10:00:00', '2026-09-03 10:00:00', '2026-09-04 10:00:00');
+
+        $frequency = views($this->post)->countByFrequency();
+
+        expect($frequency)->toBeInstanceOf(VisitFrequency::class)
+            ->and($frequency->toArray())->toBe([1 => 2, 2 => 1, '3+' => 1])
+            ->and($frequency->new())->toBe(2)
+            ->and($frequency->returning())->toBe(2)
+            ->and($frequency->returningShare())->toBe(0.5)
+            ->and(views($this->post)->countByFrequency(5)->toArray())->toBe([1 => 2, 2 => 1, 3 => 0, 4 => 1, '5+' => 0]);
+    });
+
+    it('counts the days on the clock of the timezone', function (): void {
+        visitedBy($this->post, 'one', '2026-09-01 22:00:00', '2026-09-02 01:00:00');
+
+        $period = Period::create('2026-09-01', '2026-09-03');
+
+        expect(views($this->post)->period($period)->returning()->count())->toBe(1)
+            ->and(views($this->post)->period($period)->timezone('Europe/Amsterdam')->returning()->count())->toBe(0);
+    });
+
+    it('refuses a cap below two', function (): void {
+        expect(fn (): VisitFrequency => views($this->post)->countByFrequency(1))
+            ->toThrow(InvalidFrequency::class, 'countByFrequency() needs a cap of at least two, so new and returning visitors stay apart. 1 given.');
+    });
+
+    it('remembers the days per visitor until the lifetime', function (): void {
+        visitedBy($this->post, 'one', '2026-09-01 10:00:00', '2026-09-02 10:00:00');
+
+        expect(views($this->post)->remember(60)->returning()->count())->toBe(1);
+
+        visitedBy($this->post, 'two', '2026-09-01 10:00:00', '2026-09-02 10:00:00');
+
+        expect(views($this->post)->remember(60)->returning()->count())->toBe(1)
+            ->and(views($this->post)->remember(60)->countByFrequency()->returning())->toBe(1)
+            ->and(views($this->post)->returning()->count())->toBe(2);
+    });
+
+    it('refuses to read returning visitors where only count() and compare() can', function (string $method, Closure $read): void {
+        expect(fn (): mixed => $read(views($this->post)->returning()))
+            ->toThrow(InvalidReturning::class, "returning() narrows count() and compare() to visitors who came back on another day, so {$method} cannot read it.");
+    })->with([
+        'counts' => ['counts()', fn (Views $views): mixed => $views->forViewables(Post::all())->counts()],
+        'countByInterval' => ['countByInterval()', fn (Views $views): mixed => $views->countByInterval(Granularity::Day)],
+        'countByCollection' => ['countByCollection()', fn (Views $views): mixed => $views->countByCollection()],
+        'countByDimension' => ['countByDimension()', fn (Views $views): mixed => $views->countByDimension()],
+        'top' => ['top()', fn (Views $views): mixed => $views->top()],
+        'trending' => ['trending()', fn (Views $views): mixed => $views->trending()],
+        'alsoViewed' => ['alsoViewed()', fn (Views $views): mixed => $views->alsoViewed()],
+    ]);
+
+    it('refuses a source that cannot count the days per visitor', function (bool $remember): void {
+        $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource
+        {
+            public function count(Viewable $viewable, ViewsQuery $query): int
+            {
+                return 0;
+            }
+
+            public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
+            {
+                return [];
+            }
+
+            public function countByCollection(Viewable $viewable, ViewsQuery $query): array
+            {
+                return [];
+            }
+
+            public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
+            {
+                return [];
+            }
+
+            public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
+            {
+                return [];
+            }
+        });
+
+        views($this->post)->remember($remember ? 60 : null)->returning()->count();
+    })->with(['read' => false, 'remembered' => true])->throws(UnsupportedBySource::class, 'cannot count how often visitors came back, so returning() and countByFrequency() cannot read from it.');
 });
 
 describe('destroying', function (): void {
