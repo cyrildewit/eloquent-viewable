@@ -146,6 +146,16 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self('The beacon route is not registered. Set `eloquent-viewable.recording.beacon.enabled` to `true` to record views from the browser.');
     }
 
+    public static function presenceDisabled(): self
+    {
+        return new self('Presence is not kept. Set `eloquent-viewable.presence.enabled` to `true` to count the visitors who are looking right now.');
+    }
+
+    public static function presenceViewersDisabled(): self
+    {
+        return new self('The signed-in viewers are not kept. Set `eloquent-viewable.presence.viewers` to `true` to list who is looking right now.');
+    }
+
     public static function mustBeClassOrNull(string $key, mixed $value): self
     {
         $given = self::describe($value);
