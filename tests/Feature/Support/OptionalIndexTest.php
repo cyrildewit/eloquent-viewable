@@ -29,8 +29,8 @@ function indexConnection(): Connection
 
 it('reads a list of indexes', function (): void {
     expect(OptionalIndex::fromList('visitor, type-viewed-at'))->toBe([OptionalIndex::Visitor, OptionalIndex::TypeViewedAt])
-        ->and(OptionalIndex::fromList('none'))->toBe([])
-        ->and(OptionalIndex::fromList(' '))->toBe([]);
+        ->and(OptionalIndex::fromList('none'))->toBeEmpty()
+        ->and(OptionalIndex::fromList(' '))->toBeEmpty();
 });
 
 it('rejects an index it does not know', function (): void {
