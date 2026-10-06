@@ -128,3 +128,13 @@ it('renders the views in a tab of its own with a count', function (): void {
             ],
         ]);
 });
+
+it('shows whether the visitor was kept active', function (): void {
+    $collector = new ViewsCollector;
+
+    $collector->addAttempt(attemptedView(RecordResult::skipped(new RefuseAll)->withPresence(true)));
+
+    expect(onlyMessage($collector)['context'])
+        ->present
+        ->toContain('true');
+});
