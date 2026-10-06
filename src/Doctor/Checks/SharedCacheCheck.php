@@ -7,13 +7,14 @@ namespace CyrildeWit\EloquentViewable\Doctor\Checks;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
 use Illuminate\Contracts\Config\Repository;
 
 /**
- * Cooldowns, the throttle and the fingerprint salt only work when every
+ * Cooldowns, the throttle, the burst guard and the fingerprint salt only work when every
  * server that records views reads the same cache, and the counts `remember()`
  * keeps are only flushed everywhere when the servers share it.
  */
@@ -48,7 +49,11 @@ class SharedCacheCheck implements Check
             yield $this->store('Throttle', 'recording.throttle.store', $this->config->throttleCacheStore());
         }
 
-        if ($this->config->visitorIdentity() === 'fingerprint') {
+        if (in_array(IgnoreBursts::class, $this->config->guards(), true)) {
+            yield $this->store('Burst guard', 'recording.bursts.store', $this->config->burstCacheStore());
+        }
+
+        if ($this->hashesFingerprints()) {
             yield $this->store('Fingerprint salt', 'visitor.fingerprint.store', $this->config->fingerprintCacheStore());
         }
 
@@ -94,6 +99,25 @@ class SharedCacheCheck implements Check
         }
 
         yield Finding::pass("Cooldowns: kept in the `{$driver}` session.");
+    }
+
+    /**
+     * The fingerprint identity hashes under the daily salt, and so does the
+     * burst guard when it keys on the network.
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function hashesFingerprints(): bool
+    {
+        if ($this->config->visitorIdentity() === 'fingerprint') {
+            return true;
+        }
+
+        if (! in_array(IgnoreBursts::class, $this->config->guards(), true)) {
+            return false;
+        }
+
+        return in_array('network', $this->config->burstKeys(), true);
     }
 
     /**

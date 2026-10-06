@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 
 /** @return list<array{Status, string}> */
@@ -21,6 +22,7 @@ beforeEach(function (): void {
     config()->set('cache.stores.local', ['driver' => 'file']);
     config()->set('cache.stores.memory', ['driver' => 'array']);
     config()->set('session.driver', 'database');
+    config()->set('eloquent-viewable.recording.guards', []);
 });
 
 it('passes the stores the default config relies on', function (): void {
@@ -74,6 +76,22 @@ it('judges the fingerprint salt store under the fingerprint identity', function 
     config()->set('eloquent-viewable.visitor.fingerprint.store', 'memory');
 
     expect(cacheFindings())->toContain([Status::Failure, 'Fingerprint salt: the `memory` cache store uses the `array` driver, which forgets everything after the request.']);
+});
+
+it('judges the burst store and the fingerprint salt once the burst guard keys on the network', function (): void {
+    config()->set('eloquent-viewable.recording.guards', [IgnoreBursts::class]);
+    config()->set('eloquent-viewable.recording.bursts.store', 'local');
+    config()->set('eloquent-viewable.visitor.fingerprint.store', 'memory');
+
+    expect(cacheFindings())->toContain([Status::Warning, 'Burst guard: the `local` cache store uses the `file` driver, which is not shared between servers.'])
+        ->toContain([Status::Failure, 'Fingerprint salt: the `memory` cache store uses the `array` driver, which forgets everything after the request.']);
+});
+
+it('leaves the fingerprint salt alone when the burst guard keys on the visitor only', function (): void {
+    config()->set('eloquent-viewable.recording.guards', [IgnoreBursts::class]);
+    config()->set('eloquent-viewable.recording.bursts.by', ['visitor']);
+
+    expect(array_column(cacheFindings(), 1))->each->not->toStartWith('Fingerprint salt');
 });
 
 it('only warns or advises about the store remembered counts are kept in', function (string $store, Status $status): void {

@@ -23,6 +23,18 @@ class IndexAdviceCheck implements Check
 {
     public const int LargeTable = 1_000_000;
 
+    /**
+     * The indexes the migration leaves out. `viewed_at` on its own is
+     * created by the migration, so the schema check covers it.
+     *
+     * @var list<OptionalIndex>
+     */
+    public const array Recommended = [
+        OptionalIndex::Visitor,
+        OptionalIndex::TypeViewedAt,
+        OptionalIndex::VisitorHistory,
+    ];
+
     public function __construct(
         protected View $view,
         protected Config $config,
@@ -56,7 +68,7 @@ class IndexAdviceCheck implements Check
         $large = $rows >= self::LargeTable;
         $reported = false;
 
-        foreach (OptionalIndex::cases() as $index) {
+        foreach (self::Recommended as $index) {
             $columns = implode(', ', $index->columns());
 
             if ($indexes->cover($index->columns())) {
@@ -135,6 +147,7 @@ class IndexAdviceCheck implements Check
             OptionalIndex::Visitor => '`unique()` counts',
             OptionalIndex::TypeViewedAt => 'counts over a whole model type, such as `views(Post::class)->count()` and `orderByTrending()`',
             OptionalIndex::VisitorHistory => '`alsoViewed()`',
+            OptionalIndex::ViewedAt => 'retention and rollups',
         };
     }
 }

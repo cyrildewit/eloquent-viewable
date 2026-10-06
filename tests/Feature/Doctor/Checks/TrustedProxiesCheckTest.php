@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Doctor\Checks\TrustedProxiesCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -15,6 +16,10 @@ function proxyFindings(): array
     return iterator_to_array(app()->make(TrustedProxiesCheck::class)->run(), preserve_keys: false);
 }
 
+beforeEach(function (): void {
+    config()->set('eloquent-viewable.recording.guards', []);
+});
+
 afterEach(function (): void {
     TrustProxies::flushState();
 });
@@ -24,6 +29,7 @@ it('skips when nothing reads the address', function (): void {
 });
 
 it('skips IgnoreIpAddresses without addresses', function (): void {
+    config()->set('eloquent-viewable.recording.guards', [IgnoreIpAddresses::class]);
     config()->set('eloquent-viewable.recording.ignored_ip_addresses', []);
 
     expect(proxyFindings()[0]->status)->toBe(Status::Skipped);
@@ -41,13 +47,21 @@ it('warns when the fingerprint reads the address and no proxy is trusted', funct
 
 it('names every reader of the address', function (): void {
     config()->set('eloquent-viewable.visitor.identity', 'fingerprint');
-    config()->set('eloquent-viewable.recording.guards', [IgnoreIpAddresses::class]);
+    config()->set('eloquent-viewable.recording.guards', [IgnoreIpAddresses::class, IgnoreBursts::class]);
     config()->set('eloquent-viewable.recording.ignored_ip_addresses', ['10.0.0.0/8']);
 
-    expect(proxyFindings()[0]->summary)->toStartWith('The IP address of the visitor is read by the `fingerprint` identity and `IgnoreIpAddresses`,');
+    expect(proxyFindings()[0]->summary)->toStartWith('The IP address of the visitor is read by the `fingerprint` identity, `IgnoreIpAddresses` and `IgnoreBursts`,');
+});
+
+it('leaves the burst guard out when it keys on the visitor only', function (): void {
+    config()->set('eloquent-viewable.recording.guards', [IgnoreBursts::class]);
+    config()->set('eloquent-viewable.recording.bursts.by', ['visitor']);
+
+    expect(proxyFindings()[0]->status)->toBe(Status::Skipped);
 });
 
 it('passes when the proxies are trusted', function (): void {
+    config()->set('eloquent-viewable.recording.guards', [IgnoreIpAddresses::class]);
     config()->set('eloquent-viewable.recording.ignored_ip_addresses', ['10.0.0.1']);
 
     TrustProxies::at(['10.0.0.2']);

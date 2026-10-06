@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
+use CyrildeWit\EloquentViewable\Maintenance\Jobs\MaintainViewsJob;
 use CyrildeWit\EloquentViewable\Recording\Jobs\FlushBufferedViewsJob;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Rollups\NewsletterViews;
@@ -56,6 +57,14 @@ it('accepts the maintenance commands scheduled one by one', function (): void {
     schedule()->command('views:prune --chunk=1000')->daily()->onOneServer();
 
     expect(scheduleFindings()[0][0])->toBe(Status::Pass);
+});
+
+it('accepts the maintenance job, which runs one at a time', function (): void {
+    config()->set('eloquent-viewable.retention.prune.after', '1y');
+
+    schedule()->job(new MaintainViewsJob)->hourly();
+
+    expect(scheduleFindings()[0])->toBe([Status::Pass, 'Maintenance is scheduled as a job, which runs one at a time.']);
 });
 
 it('advises to run maintenance on one server', function (): void {

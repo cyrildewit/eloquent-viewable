@@ -73,7 +73,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 
 #### Doctor
 
-- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle and the fingerprint salt, the scheduler running `views:maintain` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
+- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
 - Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
