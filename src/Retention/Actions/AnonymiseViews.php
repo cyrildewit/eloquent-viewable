@@ -14,6 +14,7 @@ use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -36,7 +37,7 @@ final readonly class AnonymiseViews
 {
     public const string Mark = StateStore::Anonymised;
 
-    public const string Prefix = 'a:';
+    public const string Prefix = AnonymisedVisitor::Prefix;
 
     private const string Salt = 'anonymise:salt:';
 
