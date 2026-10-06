@@ -914,8 +914,9 @@ What to know:
 - **Rollups are left alone.** [Rollups](#rollups) hold counts per bucket and no visitor or viewer, so a forgotten
   person's views stay counted in the history they were folded into. Counts read through the `rollup` source include
   them for every bucket folded before the erasure.
-- **Remembered counts of the models they viewed are forgotten,** and every count once more than 100 models are touched.
-  [Counter columns](#storing-counts-on-your-own-table) catch up on the next `views:recount`.
+- **The counts of the models they viewed are brought up to date.** Their remembered counts are forgotten and their
+  [counter columns](#storing-counts-on-your-own-table) recounted right away. Past 100 models, every remembered count
+  is forgotten and the next `views:recount` recounts every model.
 - **Each call dispatches an event** for your audit log, also when the person had no views:
   `Erasure\Events\ViewHistoryForgotten` and `ViewHistoryAnonymised` with the `subject` and the number of `views`, and
   `ViewHistoryExported` with the `subject`.
