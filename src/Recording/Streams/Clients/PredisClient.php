@@ -108,6 +108,48 @@ final readonly class PredisClient implements StreamClient
         $this->connection->command('xdel', [$stream, ...$ids]);
     }
 
+    public function length(string $stream): int
+    {
+        $length = $this->connection->command('xlen', [$stream]);
+
+        return is_int($length) ? $length : 0;
+    }
+
+    public function pending(string $stream, string $group): int
+    {
+        $summary = $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group]));
+
+        $count = is_array($summary) ? $summary[0] ?? 0 : 0;
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    public function stalled(string $stream, string $group, int $idle, int $count): int
+    {
+        $pending = $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group, $idle, '-', '+', $count]));
+
+        return is_array($pending) ? count($pending) : 0;
+    }
+
+    /**
+     * A group that does not exist yet has nothing pending, where Redis
+     * replies with a `NOGROUP` error.
+     *
+     * @param  callable(): mixed  $command
+     */
+    private function withoutGroup(callable $command): mixed
+    {
+        try {
+            return $command();
+        } catch (ServerException $exception) {
+            if (! str_contains($exception->getMessage(), 'NOGROUP')) {
+                throw $exception;
+            }
+
+            return null;
+        }
+    }
+
     /**
      * @param  mixed  $map  `[id => [field => value]]`
      * @return list<StreamEntry>

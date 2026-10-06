@@ -277,3 +277,43 @@ it('forgets the buffered views when the viewable is deleted', function (string $
 
     expect(streamLength())->toBe(0);
 })->with('redis clients');
+
+it('describes an empty stream before the group exists', function (string $client): void {
+    $backlog = useRedisStore($client)->backlog();
+
+    expect($backlog->length)->toBe(0)
+        ->and($backlog->pending)->toBe(0)
+        ->and($backlog->stalled)->toBe(0)
+        ->and($backlog->oldestAt)->toBeNull();
+})->with('redis clients');
+
+it('describes the views that wait in the stream', function (string $client): void {
+    $store = useRedisStore($client);
+
+    views($this->post)->record();
+    views($this->post)->record();
+
+    $backlog = $store->backlog();
+
+    expect($backlog->length)->toBe(2)
+        ->and($backlog->pending)->toBe(0)
+        ->and($backlog->oldestAt)->not->toBeNull();
+})->with('redis clients');
+
+it('counts the entries a consumer took without acknowledging them', function (string $client): void {
+    useRedisStore($client);
+
+    views($this->post)->record();
+    views($this->post)->record();
+
+    $stream = ClientFactory::make(redisConnection());
+    $stream->createGroup(REDIS_STREAM, REDIS_GROUP);
+    $stream->read(REDIS_STREAM, REDIS_GROUP, 'crashed', 10);
+
+    expect($stream->pending(REDIS_STREAM, REDIS_GROUP))->toBe(2)
+        ->and($stream->stalled(REDIS_STREAM, REDIS_GROUP, 0, 10))->toBe(2)
+        ->and($stream->stalled(REDIS_STREAM, REDIS_GROUP, 60_000, 10))->toBe(0)
+        ->and($stream->length(REDIS_STREAM))->toBe(2);
+
+    redisConnection()->command('xgroup', ['DESTROY', REDIS_STREAM, REDIS_GROUP]);
+})->with('redis clients');

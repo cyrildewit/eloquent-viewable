@@ -151,3 +151,50 @@ it('deletes ids as separate arguments', function (): void {
 
     $this->client->delete('views', ['1-0', '2-0']);
 });
+
+it('reads the length of the stream', function (mixed $reply, int $length): void {
+    $this->connection->expects('command')->with('xlen', ['views'])->andReturn($reply);
+
+    expect($this->client->length('views'))->toBe($length);
+})->with([
+    [3, 3],
+    [null, 0],
+]);
+
+it('counts the pending entries from the summary', function (): void {
+    $this->connection->expects('command')->with('xpending', ['views', 'flushers'])->andReturn([2, '1-0', '2-0', [['flusher', '2']]]);
+
+    expect($this->client->pending('views', 'flushers'))->toBe(2);
+});
+
+it('counts nothing pending for a summary without a count', function (mixed $reply): void {
+    $this->connection->expects('command')->andReturn($reply);
+
+    expect($this->client->pending('views', 'flushers'))->toBe(0);
+})->with([
+    'a list without a count' => [['junk']],
+    'no list' => [null],
+]);
+
+it('counts nothing for a group that does not exist', function (string $method, array $arguments): void {
+    $this->connection->expects('command')->andThrow(new ServerException("NOGROUP No such key 'views' or consumer group 'flushers'"));
+
+    expect($this->client->{$method}(...$arguments))->toBe(0);
+})->with([
+    'pending' => ['pending', ['views', 'flushers']],
+    'stalled' => ['stalled', ['views', 'flushers', 60_000, 10]],
+]);
+
+it('reports any other error while counting', function (): void {
+    $this->connection->expects('command')->andThrow(new ServerException('WRONGTYPE Operation against a key holding the wrong kind of value'));
+
+    expect(fn (): int => $this->client->pending('views', 'flushers'))->toThrow(ServerException::class, 'WRONGTYPE');
+});
+
+it('counts the entries pending for longer than the idle time', function (): void {
+    $this->connection->expects('command')->with('xpending', ['views', 'flushers', 60_000, '-', '+', 10])->andReturn([
+        ['1-0', 'flusher', 75_000, 1],
+    ]);
+
+    expect($this->client->stalled('views', 'flushers', 60_000, 10))->toBe(1);
+});

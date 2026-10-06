@@ -126,3 +126,7 @@ it('is empty when the client hands back no fields', function (mixed $fields): vo
 it('is not empty when it has fields', function (): void {
     expect(new StreamEntry('1-0', ['viewable_id' => '7'])->isEmpty())->toBeFalse();
 });
+
+it('reads when it was appended from its id', function (): void {
+    expect(new StreamEntry('1609504200123-4', [])->appendedAt()->format('Y-m-d H:i:s.v'))->toBe('2021-01-01 12:30:00.123');
+});
