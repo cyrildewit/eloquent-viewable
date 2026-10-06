@@ -92,6 +92,24 @@ final readonly class RecountChangedViews
     }
 
     /**
+     * Purging bot views deletes views without saying whose they were, so the
+     * next run recounts every model of every class.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    public function recountEveryModelNextRun(): void
+    {
+        if (! $this->state->installed()) {
+            return;
+        }
+
+        foreach (array_keys($this->config->counters()) as $class) {
+            $this->forget(new $class);
+        }
+    }
+
+    /**
      * A model's columns are recounted right away. Views destroyed across a
      * whole type make the next run recount every model of it.
      *
@@ -120,8 +138,13 @@ final readonly class RecountChangedViews
             return;
         }
 
-        $this->state->forget($this->name($viewable));
-        $this->state->forget($this->name($viewable).self::Pending);
+        $this->forget($viewable);
+    }
+
+    private function forget(Model $model): void
+    {
+        $this->state->forget($this->name($model));
+        $this->state->forget($this->name($model).self::Pending);
     }
 
     /**

@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
+use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -156,6 +157,14 @@ it('recounts every model once the columns change', function (): void {
     expect(recountChanged()->models)->toBe([Post::class => 3]);
 });
 
+it('recounts every model after bot views were purged', function (): void {
+    recountChanged();
+
+    event(new BotViewsPurged(Carbon::parse('2026-03-30'), Carbon::parse('2026-03-31'), 1, 1));
+
+    expect(recountChanged()->models)->toBe([Post::class => 3]);
+});
+
 it('recounts every model on request', function (): void {
     recountChanged();
 
@@ -221,6 +230,7 @@ it('recounts every model and ignores the deadline without the state table', func
         ->and(columnsOf($this->post))->toBe([[4, 2]]);
 
     views(Post::class)->destroy();
+    event(new BotViewsPurged(Carbon::parse('2026-03-30'), Carbon::parse('2026-03-31'), 1, 1));
 
     expect(recountChanged()->models)->toBe([Post::class => 3]);
 });
