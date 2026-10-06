@@ -15,6 +15,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsInCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\FoldViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\RecommendedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RollupReadsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
@@ -77,6 +78,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsInCollectionBench::class,
         FoldViewsBench::class,
         OrderByViewsBench::class,
+        RecommendedBench::class,
         RememberedCountsBench::class,
         RollupReadsBench::class,
         TopViewedBench::class,
@@ -96,7 +98,7 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['AlsoViewedBench', 'CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'TopViewedBench', 'TrendingBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
+    expect($names('read'))->toBe(['AlsoViewedBench', 'CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'RecommendedBench', 'TopViewedBench', 'TrendingBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
