@@ -153,11 +153,10 @@ time. None of these changes how you query.
 | [8.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#8.x-dev) | 13.x       | 8.5+ |
 | [7.x](https://packagist.org/packages/cyrildewit/eloquent-viewable#7.x-dev) | 6.x – 13.x | 7.4+ |
 
-Support for Lumen is not maintained.
+The package supports [Laravel Octane](https://laravel.com/docs/octane). Nothing about one request, such as its
+visitor, viewer, cooldowns or config, carries over to the next request a worker handles.
 
-The package runs on [Laravel Octane](https://laravel.com/docs/octane). Nothing it resolves while booting outlives a
-request, so the visitor, viewer, user agent, cooldowns and config of one request never reach the next. The tests in
-`tests/Feature/Octane` send several requests through one Octane worker to keep it that way.
+Lumen is not supported. Its last release is built on Laravel 11, and the package needs Laravel 13.
 
 ### Installation
 
