@@ -36,6 +36,6 @@ class Indexes
      */
     public function cover(array $columns): bool
     {
-        return array_any($this->indexes, fn ($index): bool => array_slice($index, 0, count($columns)) === $columns);
+        return array_any($this->indexes, fn (array $index): bool => array_slice($index, 0, count($columns)) === $columns);
     }
 }
