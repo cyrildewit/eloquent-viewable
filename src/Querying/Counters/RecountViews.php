@@ -81,8 +81,8 @@ final readonly class RecountViews
     }
 
     /**
-     * The next chunk of keys in the model's table, in the order the database
-     * sorts them.
+     * Returns the next chunk of keys in the model's table, in the order the
+     * database sorts them.
      *
      * @return list<int|string>
      */

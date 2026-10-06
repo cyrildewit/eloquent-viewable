@@ -18,7 +18,7 @@ beforeEach(function (): void {
 });
 
 /**
- * A cache store whose locks are the given one.
+ * Binds a cache store whose locks are the given one.
  */
 function storeLocking(LockContract $lock): void
 {
