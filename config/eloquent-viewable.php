@@ -2,6 +2,7 @@
 
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreBursts;
@@ -629,6 +630,7 @@ return [
         'checks' => [
             SchemaCheck::class,
             IndexAdviceCheck::class,
+            SharedCacheCheck::class,
         ],
 
     ],
