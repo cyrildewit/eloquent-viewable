@@ -57,6 +57,7 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -159,6 +160,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
         ]);
     }
 
+    /**
+     * The recount is resolved from the container of the request, so under
+     * Octane the view source it builds does not stay behind in the worker.
+     */
     protected function forgetCountsOfDestroyedViews(): void
     {
         $this->app->make(EventDispatcher::class)->listen(
@@ -166,7 +171,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             function (ViewsDestroyed $event): void {
                 $this->app->make(ForgetRollups::class)->handle($event->viewable);
                 $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
-                $this->app->make(RecountChangedViews::class)->destroyed($event->viewable);
+                Container::getInstance()->make(RecountChangedViews::class)->destroyed($event->viewable);
             },
         );
     }
@@ -180,7 +185,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $this->app->make(EventDispatcher::class)->listen(
             BotViewsPurged::class,
-            fn () => $this->app->make(RecountChangedViews::class)->recountEveryModelNextRun(),
+            fn () => Container::getInstance()->make(RecountChangedViews::class)->recountEveryModelNextRun(),
         );
     }
 
