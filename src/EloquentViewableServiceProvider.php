@@ -177,6 +177,11 @@ class EloquentViewableServiceProvider extends ServiceProvider
             [ViewsRolledUp::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
             fn () => $this->app->make(CacheVersions::class)->flushCache(),
         );
+
+        $this->app->make(EventDispatcher::class)->listen(
+            BotViewsPurged::class,
+            fn () => $this->app->make(RecountChangedViews::class)->recountEveryModelNextRun(),
+        );
     }
 
     /**

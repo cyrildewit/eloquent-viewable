@@ -102,6 +102,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - Sorting long lists by views is slow: `querying.counters` columns on the model's own table, kept current by `views:maintain`.
 - `unique()`, whole-type or `alsoViewed()` queries are slow: the optional indexes under "Database indexes" in the README.
 - The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
+- A `views:maintain` run outlasts its schedule, such as the first run on a large table: add `--max-seconds`, and the next run carries on. On a host that cuts commands off, schedule `Maintenance\Jobs\MaintainViewsJob` instead.
 - Bots that pass for a browser inflate counts: `views:purge-bots --dry-run`, then `views:purge-bots`, which deletes only the views inside a burst.
 - Cooldowns on stateless API routes: `cooldown.store` set to `cache`.
 - No visitor cookie wanted: `visitor.identity` set to `fingerprint`. To count a signed-in user once across devices: `viewer`.
