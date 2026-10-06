@@ -17,6 +17,7 @@ use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
+use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
@@ -143,6 +144,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     /**
      * The directive is there whenever Blade is, so a page that prints it while
      * the beacon is off fails with the reason rather than a missing directive.
+     * The presence routes sit next to the beacon's and need both turned on.
      *
      * The config is read through an instance of its own, so nothing is left
      * in the container that an Octane worker would share between requests.
@@ -167,9 +169,29 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $prefix = trim($config->beaconPrefix(), '/');
 
-        $this->app->make(Router::class)->post("{$prefix}/{type}/{key}", [
+        $router = $this->app->make(Router::class);
+
+        $router->post("{$prefix}/{type}/{key}", [
             'uses' => BeaconController::class,
             'as' => Beacon::RouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
+
+        if (! $config->presenceEnabled()) {
+            return;
+        }
+
+        $presence = PresenceController::class;
+
+        $router->post("{$prefix}/presence/{type}/{key}", [
+            'uses' => "{$presence}@store",
+            'as' => Beacon::PresenceRouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
+
+        $router->post("{$prefix}/presence/{type}/{key}/leave", [
+            'uses' => "{$presence}@destroy",
+            'as' => Beacon::LeaveRouteName,
             'middleware' => $config->beaconMiddleware(),
         ]);
     }
