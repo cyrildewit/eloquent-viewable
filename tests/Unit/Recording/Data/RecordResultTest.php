@@ -47,11 +47,22 @@ it('names the guard that skipped the view by its class in JSON', function (): vo
             'recorded' => false,
             'queued' => false,
             'skipped_by' => RefuseAll::class,
+            'present' => false,
         ])
         ->and(RecordResult::queued()->jsonSerialize())
         ->toBe([
             'recorded' => true,
             'queued' => true,
             'skipped_by' => null,
+            'present' => false,
         ]);
+});
+
+it('says whether the attempt kept the visitor active', function (): void {
+    $result = RecordResult::skipped(new RefuseAll)->withPresence(true);
+
+    expect($result->present)->toBeTrue()
+        ->and($result->skippedBy)->toBeInstanceOf(RefuseAll::class)
+        ->and($result->jsonSerialize()['present'])->toBeTrue()
+        ->and(RecordResult::stored()->present)->toBeFalse();
 });

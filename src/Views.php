@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
+use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
@@ -195,6 +196,49 @@ class Views
         return $this->reader->alsoViewed($this->viewable(), $this->among($among), $this->query(), $limit, $this->cacheLifetime);
     }
 
+    /**
+     * Who is looking right now. A model reads that model, a model class its
+     * type, and no viewable, as on the facade, the whole site.
+     */
+    public function live(): LiveViews
+    {
+        return Container::getInstance()->make(LiveViews::class, [
+            'viewable' => $this->viewable,
+            'viewables' => $this->viewables,
+            'collection' => $this->collection,
+        ]);
+    }
+
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidViewable
+     */
+    public function activeVisitors(): int
+    {
+        return $this->live()->count();
+    }
+
+    /**
+     * Keeps the visitor active on the viewable without recording a view.
+     * Returns false when a guard refused the visitor or presence is off.
+     *
+     * @throws RecordingFailed
+     */
+    public function heartbeat(): bool
+    {
+        return $this->recorder->heartbeat($this->newAttempt());
+    }
+
+    /**
+     * Stops counting the visitor on the viewable at once.
+     *
+     * @throws RecordingFailed
+     */
+    public function leave(): void
+    {
+        $this->recorder->leave($this->newAttempt());
+    }
+
     /** @throws RecordingFailed */
     public function record(): bool
     {
@@ -204,15 +248,7 @@ class Views
     /** @throws RecordingFailed */
     public function attempt(): RecordResult
     {
-        return $this->recorder->record(new ViewAttempt(
-            viewable: $this->viewable(),
-            visitor: $this->visitor,
-            collection: $this->collection,
-            cooldown: $this->cooldown,
-            queue: $this->queue,
-            viewer: $this->viewer,
-            context: $this->context,
-        ));
+        return $this->recorder->record($this->newAttempt());
     }
 
     public function destroy(): void
@@ -330,6 +366,20 @@ class Views
     protected function viewable(): Viewable
     {
         return $this->viewable ?? throw InvalidViewable::missing();
+    }
+
+    /** @throws InvalidViewable */
+    protected function newAttempt(): ViewAttempt
+    {
+        return new ViewAttempt(
+            viewable: $this->viewable(),
+            visitor: $this->visitor,
+            collection: $this->collection,
+            cooldown: $this->cooldown,
+            queue: $this->queue,
+            viewer: $this->viewer,
+            context: $this->context,
+        );
     }
 
     /** @throws InvalidViewable */
