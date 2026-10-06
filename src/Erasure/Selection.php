@@ -9,15 +9,17 @@ use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The views of a subject: those it made as a viewer and those carrying one
- * of its visitor ids. It is never empty, because a constraint without a
- * condition would match every view.
+ * A selection matches the views of a subject: those it made as a viewer and
+ * those carrying one of its visitor ids. It is never empty, because a
+ * constraint without a condition would match every view.
  *
  * @internal
  */
 final readonly class Selection
 {
-    /** @param  list<string>  $visitors */
+    /**
+     * @param  list<string>  $visitors
+     */
     private function __construct(
         public ?string $viewerType,
         public int|string|null $viewerKey,

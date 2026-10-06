@@ -50,8 +50,9 @@ final readonly class RedisStreamStore implements BufferedViewStore
 
     /**
      * The entries are found by scanning what has not landed yet, like
-     * forget() does. They are inserted before they are deleted, so a crash in
-     * between lands them twice rather than not at all.
+     * forget() does. A range only returns entries that still hold their
+     * fields. They are inserted before they are deleted, so a crash in between
+     * lands them twice rather than not at all.
      *
      * @param  Closure(ViewRecord): bool  $filter
      */
@@ -61,12 +62,14 @@ final readonly class RedisStreamStore implements BufferedViewStore
         $records = [];
 
         foreach ($this->stream->entries() as $entry) {
-            $record = $entry->isEmpty() ? null : $entry->record();
+            $record = $entry->record();
 
-            if ($record instanceof ViewRecord && $filter($record)) {
-                $ids[] = $entry->id;
-                $records[] = $record;
+            if (! $filter($record)) {
+                continue;
             }
+
+            $ids[] = $entry->id;
+            $records[] = $record;
         }
 
         if ($records !== []) {

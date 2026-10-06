@@ -9,9 +9,9 @@ use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The person whose view history is forgotten, anonymised or exported: a
- * viewer, or a visitor id for a guest. A viewer is held by its morph type and
- * key, so one that was already deleted can be named as well.
+ * A subject names the person whose view history is forgotten, anonymised or
+ * exported: a viewer, or a visitor id for a guest. A viewer is held by its
+ * morph type and key, so one that was already deleted can be named as well.
  */
 final readonly class Subject
 {
@@ -35,5 +35,18 @@ final readonly class Subject
     public static function visitor(string $visitor): self
     {
         return new self(null, null, $visitor);
+    }
+
+    /**
+     * A subject holds either a viewer with its key or a visitor id, never both.
+     *
+     * @phpstan-assert-if-true !null $this->viewerType
+     * @phpstan-assert-if-true !null $this->viewerKey
+     *
+     * @phpstan-assert-if-false !null $this->visitor
+     */
+    public function isViewer(): bool
+    {
+        return $this->viewerType !== null;
     }
 }

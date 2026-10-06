@@ -80,7 +80,7 @@ final readonly class CacheVersions
     }
 
     /**
-     * The same as forgetCache(), for a viewable known only by its morph type
+     * It works like forgetCache() for a viewable known only by its morph type
      * and key. Without a key it forgets the whole type.
      */
     public function forgetModel(string $type, int|string|null $key = null): void

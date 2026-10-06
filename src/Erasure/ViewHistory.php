@@ -12,7 +12,7 @@ use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The views of a subject, whichever store they wait in.
+ * It finds the views of a subject, whichever store they wait in.
  *
  * @internal
  */
@@ -31,15 +31,15 @@ final readonly class ViewHistory
      */
     public function select(Subject $subject): Selection
     {
-        if ($subject->viewerType !== null && $subject->viewerKey !== null) {
-            return Selection::viewer(
-                $subject->viewerType,
-                $subject->viewerKey,
-                $this->identity->ofViewerKey($subject->viewerType, $subject->viewerKey),
-            );
+        if (! $subject->isViewer()) {
+            return Selection::visitor($subject->visitor);
         }
 
-        return Selection::visitor((string) $subject->visitor);
+        return Selection::viewer(
+            $subject->viewerType,
+            $subject->viewerKey,
+            $this->identity->ofViewerKey($subject->viewerType, $subject->viewerKey),
+        );
     }
 
     /**
@@ -62,8 +62,8 @@ final readonly class ViewHistory
     }
 
     /**
-     * The visitor ids a viewer recorded its views under, which its views as
-     * a guest share. Anonymised ids lead to no one and are left out.
+     * It returns the visitor ids a viewer recorded its views under, which its
+     * views as a guest share. Anonymised ids lead to no one and are left out.
      *
      * @return list<string>
      */
