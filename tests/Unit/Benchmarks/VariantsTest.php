@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\AnonymiseViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\PruneViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\RecountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Php\CooldownManagerBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Php\ViewSeriesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\AlsoViewedBench;
@@ -61,6 +64,9 @@ it('finds every benchmark class in path order', function (): void {
     $classes = array_map(fn (Benchmark $benchmark): string => $benchmark->class, Variants::discover()->all());
 
     expect($classes)->toBe([
+        AnonymiseViewsBench::class,
+        PruneViewsBench::class,
+        RecountViewsBench::class,
         CooldownManagerBench::class,
         ViewSeriesBench::class,
         AlsoViewedBench::class,
@@ -95,6 +101,7 @@ it('filters the benchmarks on their group', function (): void {
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
         ->and($names('rollup'))->toBe(['FoldViewsBench', 'RollupReadsBench'])
+        ->and($names('maintenance'))->toBe(['AnonymiseViewsBench', 'PruneViewsBench', 'RecountViewsBench'])
         ->and($names('missing'))->toBeEmpty();
 });
 
@@ -319,4 +326,11 @@ it('merges the parameters of the providers in provider order', function (): void
 it('names the parameter sets of the flush benchmark', function (): void {
     expect(setsOf(BufferViewsBench::class, 'benchFlush'))->toBe(['100 views', '1,000 views', '10,000 views'])
         ->and(setsOf(BufferViewsBench::class, 'benchRecord'))->toBe(['']);
+});
+
+it('names the parameter sets of the maintenance benchmarks', function (): void {
+    expect(setsOf(AnonymiseViewsBench::class, 'benchAnonymiseDay'))->toBe(['1,000 per chunk', '5,000 per chunk'])
+        ->and(setsOf(PruneViewsBench::class, 'benchPruneDay'))->toBe(['1,000 per chunk', '5,000 per chunk'])
+        ->and(setsOf(RecountViewsBench::class, 'benchRecountChanged'))->toBe(['10 articles viewed', '100 articles viewed'])
+        ->and(benchmark(RecountViewsBench::class)->beforeMethods)->toBe(['setUp', 'begin']);
 });
