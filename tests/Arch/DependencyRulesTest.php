@@ -9,7 +9,6 @@ use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
-use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
@@ -183,7 +182,6 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         'CyrildeWit\EloquentViewable\Erasure',
         'CyrildeWit\EloquentViewable\Recording\Contracts',
         VisitorIdentity::class,
-        CacheVersions::class,
         AnonymiseViews::class,
         'Carbon',
         'Illuminate',
