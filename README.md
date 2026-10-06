@@ -1344,9 +1344,9 @@ With the [retention migration](#retention) installed, a recount only touches the
 since the last one: models with new views, models with views that left the period of a column, and, for unique
 columns, models with views that were anonymised. The rest of the table is left alone, which matters once it holds
 millions of rows. The first run, a run after you change the columns or the source, and `views:recount --full`
-recount every model. So does every run after views were pruned under the `database` source, because a deleted view no
-longer says whose it was. Use the [`rollup` source](#rollups) to avoid that. Without the retention migration every
-run recounts every model.
+recount every model. So do the run after `views:purge-bots` and every run after views were pruned under the
+`database` source, because a deleted view no longer says whose it was. Use the [`rollup` source](#rollups) to avoid
+the second. Without the retention migration every run recounts every model.
 
 `views($post)->destroy()` recounts the post's columns right away.
 
