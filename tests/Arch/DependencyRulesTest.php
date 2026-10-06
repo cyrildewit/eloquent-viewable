@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
+use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
@@ -60,6 +61,7 @@ const ENTRY_POINTS = [
     RecordViews::class,
     Beacon::class,
     BeaconController::class,
+    PresenceController::class,
 ];
 
 const EXCEPTIONS = [

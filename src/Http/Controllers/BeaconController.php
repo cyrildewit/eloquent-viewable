@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Http\Controllers;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\UrlGenerator;
@@ -24,6 +23,8 @@ use Illuminate\Routing\UrlGenerator;
  */
 final readonly class BeaconController
 {
+    use FindsViewables;
+
     public function __construct(
         private Container $container,
         private UrlGenerator $urls,
@@ -49,27 +50,6 @@ final readonly class BeaconController
         $this->views($request)->forViewable($viewable)->attempt();
 
         return $this->respond(Response::HTTP_NO_CONTENT);
-    }
-
-    private function find(string $type, string $key): ?Viewable
-    {
-        $class = Relation::getMorphedModel($type) ?? $type;
-
-        if (! class_exists($class)) {
-            return null;
-        }
-
-        if (! is_a($class, Model::class, true)) {
-            return null;
-        }
-
-        $model = $class::query()->whereKey($key)->first();
-
-        if (! $model instanceof Viewable) {
-            return null;
-        }
-
-        return $model;
     }
 
     /**
