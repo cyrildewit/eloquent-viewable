@@ -8,6 +8,7 @@ use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -26,7 +27,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, RanksAlsoViewed, RanksTrending, ViewSource
+final readonly class RememberingSource implements CountsByDimension, CountsVisitFrequency, RanksAlsoViewed, RanksTrending, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -78,6 +79,29 @@ final readonly class RememberingSource implements CountsByDimension, RanksAlsoVi
             $viewable,
             $this->key($viewable)->make($query, grouping: "dimension:{$dimension}"),
             fn (): array => $source->countByDimension($viewable, $query, $dimension),
+        );
+    }
+
+    /**
+     * One entry serves every cap of `countByFrequency()` and `returning()`,
+     * because the reader folds the days after the cache.
+     *
+     * @return array<int, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof CountsVisitFrequency) {
+            throw UnsupportedBySource::visitFrequency($source);
+        }
+
+        return $this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: 'visit-frequency'),
+            fn (): array => $source->visitFrequency($viewable, $query),
         );
     }
 
@@ -169,7 +193,7 @@ final readonly class RememberingSource implements CountsByDimension, RanksAlsoVi
     }
 
     /**
-     * @template TValue of int|array<string, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>
+     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>
      *
      * @param  Closure(): TValue  $resolve
      * @return TValue

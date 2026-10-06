@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Exceptions;
 
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
@@ -45,6 +46,14 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
         $contract = RanksAlsoViewed::class;
 
         return new self("The view source [{$class}] cannot rank what visitors also viewed, so alsoViewed() cannot read from it. Implement `{$contract}` on it.");
+    }
+
+    public static function visitFrequency(ViewSource $source): self
+    {
+        $class = $source::class;
+        $contract = CountsVisitFrequency::class;
+
+        return new self("The view source [{$class}] cannot count how often visitors came back, so returning() and countByFrequency() cannot read from it. Implement `{$contract}` on it.");
     }
 
     public static function trending(ViewSource $source): self

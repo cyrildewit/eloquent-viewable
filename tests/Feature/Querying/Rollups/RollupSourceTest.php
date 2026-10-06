@@ -90,6 +90,17 @@ function reads(Post $post, Post $other): array
     ];
 }
 
+it('counts how often visitors came back from the views it still holds', function (): void {
+    readFrom('rollup');
+
+    expect(views($this->post)->countByFrequency()->toArray())->toBe([1 => 3, 2 => 0, '3+' => 1]);
+
+    foldAndPrune();
+
+    expect(views($this->post)->countByFrequency()->toArray())->toBe([1 => 2, 2 => 0, '3+' => 0])
+        ->and(views($this->post)->returning()->count())->toBe(0);
+});
+
 it('ranks what visitors also viewed from the views it still holds', function (): void {
     config()->set('eloquent-viewable.querying.also_viewed.minimum_visitors', 1);
     readFrom('rollup');
