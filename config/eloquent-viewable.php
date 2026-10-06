@@ -1,5 +1,6 @@
 <?php
 
+use CyrildeWit\EloquentViewable\Doctor\Checks\ConfigurationCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\CrawlerShareCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
@@ -639,6 +640,7 @@ return [
             TrustedProxiesCheck::class,
             RedisStreamCheck::class,
             CrawlerShareCheck::class,
+            ConfigurationCheck::class,
         ],
 
         /*
