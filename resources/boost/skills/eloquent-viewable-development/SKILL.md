@@ -85,6 +85,20 @@ Post::whereNotViewedBy($user)->get();
 
 A ranking yields entries with `rank`, `count` and `viewable`. Show `count` to users, never the trending `score`.
 
+## Who Is Looking Right Now
+
+For "12 people are viewing this", use presence, never a count of recent rows. Enable `presence.enabled`; the `redis` driver is the one for production.
+
+```php
+views($product)->activeVisitors();                // visitors in the last `presence.window` seconds
+views(Product::class)->live()->count();           // across the type
+Views::live()->top(10);                           // what is being looked at now
+Views::forViewables($products)->live()->counts(); // one round trip for a page of models
+views($product)->live()->within(60)->count();     // narrow the window, never widen it
+```
+
+Print `@viewsBeacon($product, live: true)` so the page keeps its visitor active with a heartbeat and lets them go when it closes. With `presence.expose_count` on, the script fills every `[data-views-live]` element. A cooldown skips the view but keeps the visitor active; every other guard keeps them out. In tests, `Views::fake()->present($product, 12)` puts visitors on a model.
+
 ## Caching
 
 ```php

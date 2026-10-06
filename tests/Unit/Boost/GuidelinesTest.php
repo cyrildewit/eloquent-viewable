@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
@@ -65,7 +66,7 @@ it('points the guideline at a skill that exists', function (): void {
 it('only calls methods that exist', function (string $file): void {
     $classes = [
         Views::class, ViewsFacade::class, ViewsFake::class, Period::class, RecordResult::class, RecordViews::class,
-        InteractsWithViews::class, HasViewHistory::class, View::class,
+        InteractsWithViews::class, HasViewHistory::class, View::class, LiveViews::class,
         Builder::class, Factory::class, Route::class, Router::class, MakesHttpRequests::class,
     ];
 

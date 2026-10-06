@@ -42,6 +42,7 @@
         <li><a href="#ordering-and-filtering-models-by-view-count">Ordering and filtering models by view count</a></li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
         <li><a href="#trending-right-now">Trending right now</a></li>
+        <li><a href="#who-is-looking-right-now">Who is looking right now</a></li>
         <li><a href="#get-view-counts-of-models-you-already-have">Get view counts of models you already have</a></li>
         <li><a href="#view-collections">View collections</a></li>
         <li><a href="#who-viewed-what">Who viewed what</a></li>
@@ -121,6 +122,7 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 - Order and filter models by views, rank the **most viewed content** across every model, and find what's **trending
   right now**
 - Know **who viewed what** by linking views to the signed-in user
+- Show **who is looking right now**, "12 people are viewing this", with a live counter on cached pages
 - Prevent duplicate views with a configurable **cooldown system**
 - Count unique visitors **without a cookie**, with a daily rotating fingerprint
 - Ignore views from **crawlers, blocked IPs, prefetches, and visitors who opt out** with Do Not Track or Global Privacy
@@ -299,6 +301,8 @@ to cache with the page and behind a proxy.
   `/track`. Change `prefix` if it collides with a route of your own, and `middleware` to run other middleware.
 - **Quiet answers.** A changed URL gets a `403`, a deleted model a `404` and everything else a `204`, also when a guard
   skips the view.
+- **Live counts.** `@viewsBeacon($post, live: true)` also keeps the visitor active while the page is open, see
+  [who is looking right now](#who-is-looking-right-now).
 - **Your own script.** For a single-page app, build the URL with
   `app(\CyrildeWit\EloquentViewable\Http\Beacon::class)->url($post, collection: 'amp')`.
 - **Morph map.** The URL names the model by its morph class. Call `Relation::enforceMorphMap()` to show `post` instead
@@ -770,6 +774,109 @@ To find the other views, the query reads every view of every visitor of the post
 For heavy traffic, compute the rankings from a scheduled command into a table of your own instead of on every request.
 The `rollup` source reads them from the `views` table, so they only cover the views it still holds.
 
+### Who is looking right now
+
+"12 people are looking at this right now" needs the visitors of the last few minutes, not a count of rows. Presence
+keeps them apart from the views, in Redis, so it works whichever store records the views. Turn it on:
+
+```php
+// config/eloquent-viewable.php
+'presence' => [
+    'enabled' => true,
+    'driver' => 'redis',
+],
+```
+
+Every view that passes the guards now also marks its visitor as active for `presence.window` seconds, five minutes by
+default:
+
+```php
+use CyrildeWit\EloquentViewable\Facades\Views;
+
+views($product)->activeVisitors();                 // the visitors of this product in the last 5 minutes
+views($product)->live()->count();                  // the same
+views($product)->collection('checkout')->live()->count();
+views($product)->live()->within(60)->count();      // only the last minute
+views(Product::class)->live()->count();            // distinct visitors across every product
+Views::live()->count();                            // the whole site
+
+Views::forViewables($products)->live()->counts();  // [key => visitors] for a page of products, in one round trip
+
+Views::live()->top(10);                            // what is being looked at right now, as a ranking
+views(Product::class)->live()->top(10);            // within one model
+```
+
+`top()` returns the same `Ranking` as [`Views::top()`](#most-viewed-across-the-app), with the active visitors as each
+entry's `count`. It ranks the `presence.max_candidates` viewables seen most recently, 1000 by default, and leaves out the
+ones nobody is looking at any more.
+
+#### Staying active
+
+A visitor reading for ten minutes should not drop out after five. Pass `live: true` to the [beacon](#recording-from-the-browser):
+
+```blade
+@viewsBeacon($product, live: true)
+
+<span data-views-live></span> people are looking at this right now
+```
+
+Once the view is posted, the script sends a heartbeat every `presence.heartbeat` seconds, 60 by default, while the page
+is visible. It pauses while the tab is hidden, so a forgotten background tab does not count, and when the page is
+closed it tells the server the visitor left, so the count drops at once instead of after the window. Set
+`presence.expose_count` to `true` and each heartbeat answers with the number of active visitors, which the script
+writes into every `[data-views-live]` element and dispatches as a `views:live` event on the document:
+
+```js
+document.addEventListener('views:live', (event) => console.log(event.detail.active));
+```
+
+The heartbeat and leave URLs are signed like the beacon's and cached with the page. Build them yourself with
+`app(\CyrildeWit\EloquentViewable\Http\Beacon::class)->presenceUrl($product)` and `leaveUrl($product)`, or keep a
+visitor active from your own code:
+
+```php
+views($product)->heartbeat(); // keeps the visitor active, records no view
+views($product)->leave();     // stops counting them on this product
+```
+
+#### Cooldowns and guards
+
+A cooldown or the throttle limits how often a visitor is *counted*, not whether they are *there*. A view either of them
+skips still keeps its visitor active, and `RecordResult::$present` says whether an attempt did. Every other guard
+applies to presence as well: crawlers, ignored IP addresses, bursts, prefetches, Do Not Track and Global Privacy
+Control keep a visitor out of the live counts too. A heartbeat passes the same guards, except the cooldown and the
+throttle, and is never counted as a view. A guard of your own that limits repeats implements the
+`Recording\Contracts\LimitsRepeats` marker interface to be treated the same way.
+
+#### Who is it
+
+With `presence.viewers` on, presence also keeps the signed-in [viewer](#who-viewed-what) of each view, for a
+"Alice and 2 others are editing this" warning:
+
+```php
+views($document)->live()->viewers();     // the signed-in models looking right now, most recent first
+views($document)->live()->viewers(5);
+```
+
+It is off by default, because it keeps who is looking rather than an anonymous id.
+
+#### Good to know
+
+- **Exact or approximate.** `presence.precision` is `exact` by default: a sorted set of visitor hashes per scope,
+  trimmed on every write. For very large audiences, `approximate` keeps a HyperLogLog per minute instead, which stays
+  at 12 KB however many visitors there are, at an error of about 0.8%. It counts whole minutes, so up to a minute more
+  than the window, and cannot remove a visitor who leaves.
+- **Redis.** The `redis` driver runs on phpredis and Predis and picks its connection with `presence.redis.connection`.
+  Every key shares one hash tag, so it works on a Redis Cluster, where all of presence lives on one shard. Keys expire
+  on their own once nobody has been seen for twice the window. A write Redis refuses is reported, not thrown, so it
+  never stops a view from being recorded.
+- **Privacy.** Presence keeps a hash of the visitor id and nothing of the request, and forgets it within twice the
+  window. With `presence.viewers` on it also keeps the viewer's type and key, for as long.
+- **Cookies.** With the `cookie` [identity](#recording-without-a-cookie), a browser that refuses cookies gets a new
+  visitor id on every heartbeat. The `fingerprint` identity counts it once.
+- **Off means off.** While `presence.enabled` is `false`, recording costs nothing extra and reading a live count throws
+  `InvalidConfiguration`, so a missing setting is not mistaken for an empty page.
+
 ### Get view counts of models you already have
 
 For a page of results you already loaded, `forViewables()` counts them all in one query instead of one per model:
@@ -1019,6 +1126,18 @@ it('records a view of the post', function (): void {
     $fake->assertNothingRecorded();
     $fake->assertForgotten($post);
 });
+```
+
+It stands in for [presence](#who-is-looking-right-now) too, with `presence.enabled` on. Put visitors on a model to test a
+page with a live count, and assert who was kept active:
+
+```php
+$fake->present($product, 12);              // 12 visitors looking right now
+$fake->present($product, 3, 'checkout');   // in one collection
+
+$fake->assertPresent($product);
+$fake->assertNotPresent($otherProduct);
+$fake->assertLeft($product);
 ```
 
 The guards still run. Every count reads from the fake, but the scopes, `withViewsCount()`, `orderByViews()`,
