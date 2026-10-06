@@ -71,6 +71,13 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Anonymising reads each day once instead of once per chunk, and sets at most a hundred visitors per statement, which made anonymising a day two to six times faster in the benchmarks
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
+#### Doctor
+
+- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle and the fingerprint salt, the scheduler running `views:maintain` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
+- Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
+- Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
+- Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
+
 #### Models and testing
 
 - Added the `models.view.class` config option to use your own `View` model
