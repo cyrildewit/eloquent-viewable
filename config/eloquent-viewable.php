@@ -1,6 +1,7 @@
 <?php
 
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
@@ -635,6 +636,7 @@ return [
             SharedCacheCheck::class,
             ScheduleCheck::class,
             TrustedProxiesCheck::class,
+            RedisStreamCheck::class,
         ],
 
     ],
