@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Scope;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
 use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
@@ -24,6 +25,7 @@ use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Step;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
+use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -35,7 +37,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 
-final class ViewsFake implements PresenceStore, RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
+final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -114,6 +116,25 @@ final class ViewsFake implements PresenceStore, RanksAlsoViewed, RanksTrending, 
             ->all();
 
         /** @var array<string, int> $counts */
+        return $counts;
+    }
+
+    /** @return array<int, int> */
+    public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
+    {
+        $timezone = $query->timezone ?? Timezone::application();
+
+        $days = $this->matching($viewable, $query)
+            ->filter(static fn (ViewRecord $record): bool => $record->visitor !== null && ! str_starts_with($record->visitor, AnonymisedVisitor::Prefix))
+            ->groupBy(static fn (ViewRecord $record): string => (string) $record->visitor)
+            ->map(static fn (Collection $views): int => $views->map(static fn (ViewRecord $record): string => $record->viewedAt->avoidMutation()->setTimezone($timezone)->format('Y-m-d'))->unique()->count());
+
+        $counts = [];
+
+        foreach ($days as $visited) {
+            $counts[$visited] = ($counts[$visited] ?? 0) + 1;
+        }
+
         return $counts;
     }
 

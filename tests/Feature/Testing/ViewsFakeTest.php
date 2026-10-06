@@ -179,6 +179,24 @@ describe('counting', function (): void {
         expect($ranked())->toBe([[$other->getKey(), 2]]);
     });
 
+    it('counts how many days each visitor viewed on', function (): void {
+        $this->fake->storeMany([
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'one', null, Carbon::parse('2026-09-01 10:00:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'one', null, Carbon::parse('2026-09-01 18:00:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'one', null, Carbon::parse('2026-09-03 23:30:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'two', null, Carbon::parse('2026-09-02 10:00:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'three', null, Carbon::parse('2026-09-03 10:00:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'three', null, Carbon::parse('2026-09-04 00:30:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), null, null, Carbon::parse('2026-09-02 10:00:00')),
+            new ViewRecord($this->post->getKey(), $this->post->getMorphClass(), 'a:anonymised', null, Carbon::parse('2026-09-02 10:00:00')),
+        ]);
+
+        expect(views($this->post)->countByFrequency()->toArray())->toBe([1 => 1, 2 => 2, '3+' => 0])
+            ->and(views($this->post)->returning()->count())->toBe(2)
+            ->and(views($this->post)->period(Period::create('2026-09-01', '2026-09-05'))->timezone('Australia/Sydney')->countByFrequency()->toArray())
+            ->toBe([1 => 1, 2 => 1, '3+' => 1]);
+    });
+
     it('counts what was recorded', function (): void {
         views($this->post)->record();
         views($this->post)->record();
