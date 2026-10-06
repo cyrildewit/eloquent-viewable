@@ -19,6 +19,8 @@ after them cover behaviour changes to be aware of and what to change if you exte
   the previous period with `compare()`, and periods read from a URL with `Period::parse()`.
 - **Rankings** of the most viewed content across every model with `Views::top()`, and `whereViewsCount()` to filter by
   views.
+- **Who is looking right now:** live visitor counts and a ranking of what is being read, kept in Redis and refreshed by
+  a heartbeat from the page.
 - **Who viewed what:** link views to the signed-in user and ask what they have or have not seen.
 - **Scale when you need to:** buffer views in Redis and land them in batches, count a page of models in one query, and
   forget cached counts on demand.
