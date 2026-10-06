@@ -14,9 +14,7 @@ abstract class ErasureCommand extends Command
 
     private const int Chunk = 1000;
 
-    /**
-     * It returns null once the error is reported.
-     */
+    /** It returns null once the error is reported. */
     protected function chunk(): ?int
     {
         $option = $this->option('chunk');
