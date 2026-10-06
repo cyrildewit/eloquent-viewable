@@ -16,14 +16,17 @@ use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
@@ -60,21 +63,50 @@ final readonly class Reader
 
     /**
      * Two counts, one over the period and one over `Period::previous()`,
-     * each remembered under its own key.
+     * each remembered under its own key. With `$returning`, both count the
+     * visitors who came back instead of the views.
      *
      * @throws InvalidPeriod
+     * @throws UnsupportedBySource
      */
-    public function compare(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): ViewComparison
+    public function compare(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null, bool $returning = false): ViewComparison
     {
         $period = $query->period ?? throw InvalidPeriod::comparedWithoutPeriod();
         $previous = $period->previous();
 
+        $count = $returning
+            ? fn (ViewsQuery $query): int => $this->returning($viewable, $query, $rememberUntil)
+            : fn (ViewsQuery $query): int => $this->count($viewable, $query, $rememberUntil);
+
         return ViewComparison::between(
-            $this->count($viewable, $query, $rememberUntil),
-            $this->count($viewable, $query->withPeriod($previous), $rememberUntil),
+            $count($query),
+            $count($query->withPeriod($previous)),
             $period,
             $previous,
         );
+    }
+
+    /**
+     * The visitors who viewed on two days or more.
+     *
+     * @throws UnsupportedBySource
+     */
+    public function returning(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
+    {
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), 2)->returning();
+    }
+
+    /**
+     * @throws InvalidFrequency
+     * @throws UnsupportedBySource
+     */
+    public function countByFrequency(Viewable $viewable, ViewsQuery $query, int $upTo, ?CarbonInterface $rememberUntil = null): VisitFrequency
+    {
+        if ($upTo < 2) {
+            throw InvalidFrequency::capBelowTwo($upTo);
+        }
+
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), $upTo);
     }
 
     /** @return array<int|string, int> */
@@ -236,6 +268,22 @@ final readonly class Reader
             $this->config->alsoViewedMinimumVisitors(),
             $this->config->alsoViewedMaxVisitors(),
         ));
+    }
+
+    /**
+     * @return array<int, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil): array
+    {
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsVisitFrequency) {
+            throw UnsupportedBySource::visitFrequency($source);
+        }
+
+        return $source->visitFrequency($viewable, $query);
     }
 
     /**

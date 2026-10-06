@@ -10,10 +10,14 @@ use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
@@ -256,6 +260,20 @@ describe('compare', function (): void {
             ->and($reader->count($this->viewable, $this->query->withPeriod($this->query->period->previous()), $until))->toBe(2);
     });
 
+    it('compares the visitors who came back', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+        $source->shouldNotReceive('count');
+        $source->expects('visitFrequency')
+            ->with($this->viewable, Mockery::on(fn (ViewsQuery $query): bool => $query->period->getRouteKey() === '2026-09-01..2026-09-03'))
+            ->andReturn([1 => 9, 2 => 3, 4 => 1]);
+        $source->expects('visitFrequency')
+            ->with($this->viewable, Mockery::on(fn (ViewsQuery $query): bool => $query->period->getRouteKey() === '2026-08-30..2026-09-01'))
+            ->andReturn([1 => 5, 2 => 2]);
+
+        expect(reader($source)->compare($this->viewable, $this->query, returning: true)->toArray())
+            ->toBe(['current' => 4, 'previous' => 2, 'delta' => 2, 'percent' => 100.0]);
+    });
+
     it('requires a period', function (): void {
         $source = Mockery::mock(ViewSource::class);
         $source->shouldNotReceive('count');
@@ -270,6 +288,52 @@ describe('compare', function (): void {
 
         expect(fn (): ViewComparison => reader($source)->compare($this->viewable, new ViewsQuery(Period::since('2026-09-01'))))
             ->toThrow(InvalidPeriod::class, '`2026-09-01..` has no previous period.');
+    });
+});
+
+describe('visit frequency', function (): void {
+    it('folds the days per visitor up to the cap', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+        $source->expects('visitFrequency')->with($this->viewable, $this->query)->andReturn([1 => 6, 2 => 3, 3 => 2, 9 => 1]);
+
+        $frequency = reader($source)->countByFrequency($this->viewable, $this->query, 3);
+
+        expect($frequency)->toBeInstanceOf(VisitFrequency::class)
+            ->and($frequency->toArray())->toBe([1 => 6, 2 => 3, '3+' => 3]);
+    });
+
+    it('counts the visitors who viewed on two days or more as returning', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+        $source->expects('visitFrequency')->andReturn([1 => 6, 2 => 3, 9 => 1]);
+
+        expect(reader($source)->returning($this->viewable, $this->query))->toBe(4);
+    });
+
+    it('serves every cap and the returning count from one remembered entry', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+        $source->expects('visitFrequency')->once()->andReturn([1 => 6, 2 => 3, 3 => 1]);
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        expect($reader->countByFrequency($this->viewable, $this->query, 3, $until)->toArray())->toBe([1 => 6, 2 => 3, '3+' => 1])
+            ->and($reader->countByFrequency($this->viewable, $this->query, 2, $until)->toArray())->toBe([1 => 6, '2+' => 4])
+            ->and($reader->returning($this->viewable, $this->query, $until))->toBe(4)
+            ->and(cachedEntries($cache))->toHaveCount(1);
+    });
+
+    it('refuses a cap below two before reading', function (int $upTo): void {
+        $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+        $source->shouldNotReceive('visitFrequency');
+
+        expect(fn (): VisitFrequency => reader($source)->countByFrequency($this->viewable, $this->query, $upTo))
+            ->toThrow(InvalidFrequency::class, "countByFrequency() needs a cap of at least two, so new and returning visitors stay apart. {$upTo} given.");
+    })->with([1, 0, -3]);
+
+    it('refuses a source that cannot count the days per visitor', function (): void {
+        expect(fn (): int => reader(Mockery::mock(ViewSource::class))->returning($this->viewable, $this->query))
+            ->toThrow(UnsupportedBySource::class, 'cannot count how often visitors came back, so returning() and countByFrequency() cannot read from it. Implement `'.CountsVisitFrequency::class.'` on it.');
     });
 });
 
