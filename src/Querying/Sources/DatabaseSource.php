@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
@@ -21,6 +22,7 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
+use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -31,7 +33,7 @@ use Illuminate\Support\Collection;
 use JsonException;
 use stdClass;
 
-final readonly class DatabaseSource implements CountsByDimension, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -133,6 +135,53 @@ final readonly class DatabaseSource implements CountsByDimension, IdentifiesSour
 
         foreach ($rows as $value => $count) {
             $counts[(string) $value] = (int) $count;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Counts the days each visitor viewed on in a derived table, then the
+     * visitors per number of days. The day is truncated on the clock of the
+     * query's timezone, like a bucket of `countByInterval()`.
+     *
+     * @return array<int, int>
+     *
+     * @throws InvalidInterval
+     */
+    public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
+    {
+        $builder = $this->view->newQueryFor($viewable, $query)->toBase();
+        $grammar = $builder->getGrammar();
+        $bucketGrammar = $this->grammars->for($this->view->getConnection()->getDriverName());
+
+        $visitor = $this->view->qualifyColumn('visitor');
+        $column = $grammar->wrap($this->view->qualifyColumn('viewed_at'));
+        $conversion = $this->conversion($query);
+
+        if ($conversion instanceof TimezoneConversion) {
+            $column = $bucketGrammar->convertTimezone($column, $conversion);
+        }
+
+        $day = $bucketGrammar->truncate($column, Granularity::Day);
+
+        $visitors = $builder
+            ->whereNotNull($visitor)
+            ->where($visitor, 'not like', AnonymisedVisitor::Prefix.'%')
+            ->selectRaw("count(distinct {$day}) as days") // @phpstan-ignore argument.type (built from wrapped identifiers and package-formatted literals, not user input)
+            ->groupBy($visitor);
+
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $this->view->getConnection()->query()
+            ->fromSub($visitors, 'visitors')
+            ->selectRaw('days, count(*) as aggregate')
+            ->groupBy('days')
+            ->pluck('aggregate', 'days');
+
+        $counts = [];
+
+        foreach ($rows as $days => $count) {
+            $counts[(int) $days] = (int) $count;
         }
 
         return $counts;

@@ -8,9 +8,12 @@ use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
@@ -110,3 +113,18 @@ it('remembers what the visitors of a viewable also viewed, apart for every minim
         ->and($read(null, 3, null))->toBe($ranking)
         ->and($read(rememberingType(), 3, 1_000))->toBe($ranking);
 });
+
+it('remembers the visit frequency of a viewable, apart for every query', function (): void {
+    $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+    $source->expects('visitFrequency')->twice()->andReturn([1 => 4, 2 => 1]);
+
+    $read = fn (ViewsQuery $query): array => ($this->remembering)($source)->visitFrequency(rememberingType(), $query);
+
+    expect($read(new ViewsQuery))->toBe([1 => 4, 2 => 1])
+        ->and($read(new ViewsQuery))->toBe([1 => 4, 2 => 1])
+        ->and($read(new ViewsQuery(Period::since('2026-09-01'))))->toBe([1 => 4, 2 => 1]);
+});
+
+it('refuses to remember the visit frequency of a source that cannot count it', function (): void {
+    ($this->remembering)(Mockery::mock(ViewSource::class))->visitFrequency(rememberingType(), new ViewsQuery);
+})->throws(UnsupportedBySource::class, 'cannot count how often visitors came back, so returning() and countByFrequency() cannot read from it.');
