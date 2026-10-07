@@ -622,12 +622,12 @@ return [
         'window' => 300,
 
         /*
-         * How visitors are counted by the `redis` driver. `exact` keeps every
-         * visitor id in a sorted set and lets a visitor leave at once.
-         * `approximate` keeps a HyperLogLog per minute, which stays at 12 KB
-         * however many visitors there are, at an error of about 0.8%, counts
-         * up to a minute beyond the window, and cannot remove a visitor who
-         * leaves.
+         * How the `redis` driver counts visitors. `exact` stores every active
+         * visitor, so the count is exact and `leave()` works. `approximate`
+         * lets Redis estimate the count per minute, which keeps memory flat
+         * on very busy sites. The estimate is typically off by less than 1%,
+         * it can include visitors from up to a minute before the window, and
+         * `leave()` does nothing.
          */
         'precision' => 'exact',
 
@@ -666,8 +666,8 @@ return [
             'connection' => null,
 
             /*
-             * The prefix of every key. It is wrapped in a hash tag, so every
-             * key lands in one slot of a Redis Cluster.
+             * The prefix of every key. It is wrapped in a hash tag, so on a
+             * Redis Cluster every key lives on the same node.
              */
             'prefix' => 'eloquent-viewable:live',
 

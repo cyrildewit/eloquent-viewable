@@ -776,8 +776,9 @@ The `rollup` source reads them from the `views` table, so they only cover the vi
 
 ### Who is looking right now
 
-"12 people are looking at this right now" needs the visitors of the last few minutes, not a count of rows. Presence
-keeps them apart from the views, in Redis, so it works whichever store records the views. Turn it on:
+To show "12 people are looking at this right now", you need the visitors of the last few minutes, not a count of
+stored views. Presence keeps track of them in Redis, separately from the views, so it works whichever store records
+your views. Turn it on:
 
 ```php
 // config/eloquent-viewable.php
@@ -787,32 +788,33 @@ keeps them apart from the views, in Redis, so it works whichever store records t
 ],
 ```
 
-Every view that passes the guards now also marks its visitor as active for `presence.window` seconds, five minutes by
-default:
+From then on, every view that passes the guards marks its visitor as active for `presence.window` seconds, five minutes
+by default:
 
 ```php
 use CyrildeWit\EloquentViewable\Facades\Views;
 
-views($product)->activeVisitors();                 // the visitors of this product in the last 5 minutes
+views($product)->activeVisitors();                 // visitors of this product in the last 5 minutes
 views($product)->live()->count();                  // the same
 views($product)->collection('checkout')->live()->count();
 views($product)->live()->within(60)->count();      // only the last minute
-views(Product::class)->live()->count();            // distinct visitors across every product
-Views::live()->count();                            // the whole site
+views(Product::class)->live()->count();            // visitors across all products
+Views::live()->count();                            // visitors across the whole site
 
-Views::forViewables($products)->live()->counts();  // [key => visitors] for a page of products, in one round trip
+Views::forViewables($products)->live()->counts();  // [key => visitors] for a page of products
 
-Views::live()->top(10);                            // what is being looked at right now, as a ranking
-views(Product::class)->live()->top(10);            // within one model
+Views::live()->top(10);                            // what is being looked at right now
+views(Product::class)->live()->top(10);            // the same, for products only
 ```
 
-`top()` returns the same `Ranking` as [`Views::top()`](#most-viewed-across-the-app), with the active visitors as each
-entry's `count`. It ranks the `presence.max_candidates` viewables seen most recently, 1000 by default, and leaves out the
-ones nobody is looking at any more.
+`top()` returns the same `Ranking` as [`Views::top()`](#most-viewed-across-the-app), with the number of active
+visitors as each entry's `count`. It only considers the models seen most recently, 1000 by default
+(`presence.max_candidates`).
 
 #### Staying active
 
-A visitor reading for ten minutes should not drop out after five. Pass `live: true` to the [beacon](#recording-from-the-browser):
+Someone who reads a page for ten minutes should still count after five. Pass `live: true` to the
+[beacon](#recording-from-the-browser):
 
 ```blade
 @viewsBeacon($product, live: true)
@@ -820,62 +822,66 @@ A visitor reading for ten minutes should not drop out after five. Pass `live: tr
 <span data-views-live></span> people are looking at this right now
 ```
 
-Once the view is posted, the script sends a heartbeat every `presence.heartbeat` seconds, 60 by default, while the page
-is visible. It pauses while the tab is hidden, so a forgotten background tab does not count, and when the page is
-closed it tells the server the visitor left, so the count drops at once instead of after the window. Set
-`presence.expose_count` to `true` and each heartbeat answers with the number of active visitors, which the script
-writes into every `[data-views-live]` element and dispatches as a `views:live` event on the document:
+The script then tells the server every `presence.heartbeat` seconds (60 by default) that the page is still open. It
+pauses while the tab is in the background, and when the page closes it asks the server to stop counting the visitor.
+If the browser does not send that last request, the visitor drops out once the window has passed.
+
+Set `presence.expose_count` to `true` to show the count on the page. Each heartbeat then returns the number of active
+visitors, which the script writes into every `[data-views-live]` element and also sends as a `views:live` event:
 
 ```js
 document.addEventListener('views:live', (event) => console.log(event.detail.active));
 ```
 
-The heartbeat and leave URLs are signed like the beacon's and cached with the page. Build them yourself with
-`app(\CyrildeWit\EloquentViewable\Http\Beacon::class)->presenceUrl($product)` and `leaveUrl($product)`, or keep a
-visitor active from your own code:
+The heartbeat and leave URLs are signed like the beacon's, so they can be cached with the page. Build them yourself with
+`app(\CyrildeWit\EloquentViewable\Http\Beacon::class)->presenceUrl($product)` and `leaveUrl($product)`, or do the
+same from PHP:
 
 ```php
-views($product)->heartbeat(); // keeps the visitor active, records no view
-views($product)->leave();     // stops counting them on this product
+views($product)->heartbeat(); // keep the visitor active without recording a view
+views($product)->leave();     // stop counting them on this product
 ```
 
 #### Cooldowns and guards
 
-A cooldown or the throttle limits how often a visitor is *counted*, not whether they are *there*. A view either of them
-skips still keeps its visitor active, and `RecordResult::$present` says whether an attempt did. Every other guard
-applies to presence as well: crawlers, ignored IP addresses, bursts, prefetches, Do Not Track and Global Privacy
-Control keep a visitor out of the live counts too. A heartbeat passes the same guards, except the cooldown and the
-throttle, and is never counted as a view. A guard of your own that limits repeats implements the
-`Recording\Contracts\LimitsRepeats` marker interface to be treated the same way.
+A cooldown or the throttle stops a visitor from being *counted* twice, but they are still *there*. So a view skipped by
+either one still keeps its visitor active. `RecordResult::$present` tells you whether an attempt did.
 
-#### Who is it
+The other guards do apply: crawlers, ignored IP addresses, bursts, prefetches, Do Not Track and Global Privacy Control
+keep a visitor out of the live counts as well. A heartbeat passes the same guards, except the cooldown and the
+throttle, and is never recorded as a view. To give a guard of your own the same treatment as the cooldown, implement
+the `Recording\Contracts\LimitsRepeats` interface.
 
-With `presence.viewers` on, presence also keeps the signed-in [viewer](#who-viewed-what) of each view, for a
-"Alice and 2 others are editing this" warning:
+#### Who is looking
+
+With `presence.viewers` on, presence also remembers the signed-in [viewer](#who-viewed-what) of each view, for a
+warning like "Alice and 2 others are editing this":
 
 ```php
-views($document)->live()->viewers();     // the signed-in models looking right now, most recent first
+views($document)->live()->viewers();     // signed-in users looking right now, most recent first
 views($document)->live()->viewers(5);
 ```
 
-It is off by default, because it keeps who is looking rather than an anonymous id.
+It is off by default, because it stores who is looking instead of an anonymous id.
 
 #### Good to know
 
-- **Exact or approximate.** `presence.precision` is `exact` by default: a sorted set of visitor hashes per scope,
-  trimmed on every write. For very large audiences, `approximate` keeps a HyperLogLog per minute instead, which stays
-  at 12 KB however many visitors there are, at an error of about 0.8%. It counts whole minutes, so up to a minute more
-  than the window, and cannot remove a visitor who leaves.
-- **Redis.** The `redis` driver runs on phpredis and Predis and picks its connection with `presence.redis.connection`.
-  Every key shares one hash tag, so it works on a Redis Cluster, where all of presence lives on one shard. Keys expire
-  on their own once nobody has been seen for twice the window. A write Redis refuses is reported, not thrown, so it
-  never stops a view from being recorded.
-- **Privacy.** Presence keeps a hash of the visitor id and nothing of the request, and forgets it within twice the
-  window. With `presence.viewers` on it also keeps the viewer's type and key, for as long.
-- **Cookies.** With the `cookie` [identity](#recording-without-a-cookie), a browser that refuses cookies gets a new
-  visitor id on every heartbeat. The `fingerprint` identity counts it once.
-- **Off means off.** While `presence.enabled` is `false`, recording costs nothing extra and reading a live count throws
-  `InvalidConfiguration`, so a missing setting is not mistaken for an empty page.
+- **Exact or approximate.** By default (`presence.precision` set to `exact`) every active visitor is stored, so the
+  count is exact. With `approximate`, Redis estimates the count with a
+  [HyperLogLog](https://redis.io/docs/latest/develop/data-types/probabilistic/hyperloglogs/) per minute instead. Its
+  memory does not grow with the number of visitors, but the count is an estimate, typically off by less than 1%. It
+  works in whole minutes, so it can include visitors from up to a minute before the window, and `leave()` has no
+  effect.
+- **Redis.** Works with phpredis and Predis. Pick a connection with `presence.redis.connection`. All keys share one
+  [hash tag](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/#hash-tags), so on a Redis
+  Cluster they all live on the same node. Keys expire on their own once nobody has been seen for a while. If Redis
+  rejects a write, the error is reported and the view is still recorded.
+- **Privacy.** Presence stores a hash of the visitor id, and with `presence.viewers` on also the viewer's type and
+  key. Nothing is kept for long: entries expire a few minutes after the window.
+- **Cookies.** With the `cookie` [identity](#recording-without-a-cookie), a browser that blocks cookies gets a new
+  visitor id on every heartbeat and is counted more than once. The `fingerprint` identity avoids this.
+- **When it is off.** While `presence.enabled` is `false`, recording skips presence entirely and reading a live count
+  throws `InvalidConfiguration`, so a forgotten setting does not look like an empty page.
 
 ### Get view counts of models you already have
 
