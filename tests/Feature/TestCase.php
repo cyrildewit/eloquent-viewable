@@ -73,6 +73,10 @@ abstract class TestCase extends OrchestraTestCase
         require_once __DIR__.'/../../database/migrations/create_view_pairs_table.php.stub';
 
         new \CreateViewPairsTable()->up();
+
+        require_once __DIR__.'/../../database/migrations/create_view_milestones_table.php.stub';
+
+        new \CreateViewMilestonesTable()->up();
         new \CreatePostsTable()->up();
         new \CreateApartmentsTable()->up();
         new \CreateUsersTable()->up();

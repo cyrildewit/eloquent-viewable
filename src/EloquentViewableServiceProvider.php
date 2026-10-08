@@ -22,12 +22,15 @@ use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
+use CyrildeWit\EloquentViewable\Milestones\Actions\CheckMilestones;
+use CyrildeWit\EloquentViewable\Milestones\Console\SeedMilestonesCommand;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
@@ -91,6 +94,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->registerBeacon();
         $this->forgetCountsOfDestroyedViews();
         $this->forgetCountsOfErasedViews();
+        $this->checkMilestonesAfterRecounts();
         $this->flushCountsAfterRetentionRuns();
         $this->validateRetentionPolicies();
         $this->registerDebugbarCollector();
@@ -109,6 +113,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 ForgetViewerCommand::class,
                 ForgetVisitorCommand::class,
                 DiagnoseViewsCommand::class,
+                SeedMilestonesCommand::class,
             ]);
 
             $this->publishes([
@@ -146,6 +151,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../database/migrations/create_view_pairs_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_pairs_table.php"),
         ], 'eloquent-viewable-pairs');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_view_milestones_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_milestones_table.php"),
+        ], 'eloquent-viewable-milestones');
     }
 
     /**
@@ -248,6 +257,20 @@ class EloquentViewableServiceProvider extends ServiceProvider
                     $recount->erased($type, $keys);
                 }
             },
+        );
+    }
+
+    /**
+     * Every recount names the models whose counter columns it wrote, so their
+     * milestones are checked right after. The action is resolved from the
+     * container of the request, so under Octane it does not stay behind in
+     * the worker.
+     */
+    protected function checkMilestonesAfterRecounts(): void
+    {
+        $this->app->make(EventDispatcher::class)->listen(
+            CountersRecounted::class,
+            fn (CountersRecounted $event) => Container::getInstance()->make(CheckMilestones::class)->recounted($event->class, $event->keys),
         );
     }
 
