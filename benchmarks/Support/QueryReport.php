@@ -13,6 +13,11 @@ use stdClass;
  * the SQL on each benchmark's page, so a key is only ever added, never
  * renamed or removed; bump `SCHEMA_VERSION` when one changes meaning.
  *
+ * A query holds its SQL and plan and nothing else, because readers of the
+ * first version refuse any other key there. What `--execute` measures goes
+ * beside it: `executed` in the header, and per variant `timings_ms`, the
+ * time of each statement in the order of `queries`, only when it ran.
+ *
  * @phpstan-type Plan array{columns: list<string>, rows: list<list<string|null>>}
  * @phpstan-type Query array{sql: string, plan: Plan}
  */
@@ -21,7 +26,7 @@ final class QueryReport
     public const int SchemaVersion = 1;
 
     /**
-     * @var list<array{class: string, subject: string, set: string, params: array<string, mixed>, queries: list<Query>}>
+     * @var list<array{class: string, subject: string, set: string, params: array<string, mixed>|stdClass, queries: list<Query>, timings_ms?: list<float>}>
      */
     private array $subjects = [];
 
@@ -29,14 +34,16 @@ final class QueryReport
         private readonly string $driver,
         private readonly bool $analyzed,
         private readonly string $group,
+        private readonly bool $executed = false,
     ) {}
 
     /**
      * @param  list<Query>  $queries  every statement the variant ran, in order
+     * @param  list<float>  $timings  the time each of them took, in milliseconds, when the variant was executed
      */
-    public function add(Variant $variant, array $queries): void
+    public function add(Variant $variant, array $queries, array $timings = []): void
     {
-        $this->subjects[] = [
+        $subject = [
             'class' => $variant->class,
             'subject' => $variant->subject,
             'set' => $variant->set,
@@ -44,6 +51,12 @@ final class QueryReport
             'params' => $variant->params === [] ? new stdClass : $variant->params,
             'queries' => $queries,
         ];
+
+        if ($this->executed) {
+            $subject['timings_ms'] = $timings;
+        }
+
+        $this->subjects[] = $subject;
     }
 
     /**
@@ -71,7 +84,7 @@ final class QueryReport
     }
 
     /**
-     * @return array{schema_version: int, driver: string, analyzed: bool, group: string, subjects: list<array{class: string, subject: string, set: string, params: array<string, mixed>, queries: list<Query>}>}
+     * @return array{schema_version: int, driver: string, analyzed: bool, executed: bool, group: string, subjects: list<array{class: string, subject: string, set: string, params: array<string, mixed>|stdClass, queries: list<Query>, timings_ms?: list<float>}>}
      */
     public function toArray(): array
     {
@@ -79,6 +92,7 @@ final class QueryReport
             'schema_version' => self::SchemaVersion,
             'driver' => $this->driver,
             'analyzed' => $this->analyzed,
+            'executed' => $this->executed,
             'group' => $this->group,
             'subjects' => $this->subjects,
         ];

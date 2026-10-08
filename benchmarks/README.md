@@ -119,9 +119,15 @@ printing it: the driver, whether the queries were analyzed, the group, and per v
 set name, parameters and every statement it ran with its plan. The results repository stores this file with every
 run and shows the SQL on each benchmark's page.
 
+The subjects run under `pretend()`, which returns no rows, so a subject whose later statements depend on the rows of
+an earlier one, such as `recommended()`, only shows its first. `ARGS=--execute` runs each subject for real inside a
+transaction that is rolled back, and prints every statement with the time it took. `ARGS=--filter=<text>` keeps the
+variants whose name contains the text.
+
 ```bash
 make bench-explain DRIVER=pgsql ARGS=--analyze
 make bench-explain DRIVER=mysql ARGS="--output=build/queries.json"
+make bench-explain ARGS="--execute --filter=RecommendedBench"
 ```
 
 ## Describing the dataset
@@ -182,7 +188,9 @@ ARGS=--output=<file>`. Two things in this directory are therefore a contract wit
 - **The Make interface.** `make build`, `make install`, `make bench-seed`, `make bench-describe`, `make bench-explain`
   and `make bench`, with `DRIVER`, `SIZE` and `ARGS` as documented above, and the JSON keys of `bench-describe` and
   `bench-explain --output`, which are only ever added to. A change to either needs a matching change in the results
-  repository.
+  repository. A query in `bench-explain --output` holds `sql` and `plan` and nothing else, because the results
+  repository refuses any other key there; `--execute` adds `executed` to the header and `timings_ms` beside each
+  variant's `queries` instead.
 
 ## How it is put together
 

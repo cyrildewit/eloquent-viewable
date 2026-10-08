@@ -49,6 +49,7 @@ describe('the report', function (): void {
             'schema_version' => 1,
             'driver' => 'sqlite',
             'analyzed' => false,
+            'executed' => false,
             'group' => 'read',
             'subjects' => [
                 [
@@ -74,6 +75,32 @@ describe('the report', function (): void {
         ]);
     });
 
+    it('puts the time of every statement beside the queries when the variants were executed', function (): void {
+        $report = new QueryReport('sqlite', false, 'read', executed: true);
+        $plan = ['columns' => ['detail'], 'rows' => [['SCAN views']]];
+
+        $report->add(new Variant(CountViewsBench::class, 'benchCount', ['hot article', 'all time'], ['target' => 'hot', 'days' => null]), [
+            ['sql' => 'select 1', 'plan' => $plan],
+            ['sql' => 'select 2', 'plan' => $plan],
+        ], [1.25, 30.5]);
+        $report->add(new Variant(CountViewsBench::class, 'benchCount', ['cold article', 'all time'], ['target' => 'cold', 'days' => null]), []);
+
+        $array = $report->toArray();
+
+        expect($array['executed'])->toBeTrue()
+            ->and($array['subjects'][0]['queries'])->toBe([['sql' => 'select 1', 'plan' => $plan], ['sql' => 'select 2', 'plan' => $plan]])
+            ->and($array['subjects'][0]['timings_ms'] ?? null)->toBe([1.25, 30.5])
+            ->and($array['subjects'][1]['timings_ms'] ?? null)->toBe([]);
+    });
+
+    it('leaves the timings out when the variants were not executed', function (): void {
+        $report = new QueryReport('sqlite', false, 'read');
+
+        $report->add(new Variant(CountViewsBench::class, 'benchCount', [], []), [], [1.0]);
+
+        expect($report->toArray()['subjects'][0])->not->toHaveKey('timings_ms');
+    });
+
     it('writes pretty-printed JSON with unescaped slashes and a trailing newline', function (): void {
         $report = new QueryReport('pgsql', true, 'read');
 
@@ -86,6 +113,7 @@ describe('the report', function (): void {
                 "schema_version": 1,
                 "driver": "pgsql",
                 "analyzed": true,
+                "executed": false,
                 "group": "read",
                 "subjects": [
                     {
