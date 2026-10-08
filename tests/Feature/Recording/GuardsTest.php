@@ -15,11 +15,13 @@ use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreHeadRequests;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreMissingUserAgent;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreOptedOutViewers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
 use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 use CyrildeWit\EloquentViewable\Support\Config as PackageConfig;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\NotAGuard;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\RefuseAll;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\OptOutUser;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -40,13 +42,14 @@ function alwaysCrawler(): CrawlerDetector
     };
 }
 
-it('ships with the crawler, user agent, IP address, HEAD, prefetch, burst and cooldown guards listed', function (): void {
+it('ships with the crawler, user agent, IP address, HEAD, prefetch, opt-out, burst and cooldown guards listed', function (): void {
     expect($this->app->make(PackageConfig::class)->guards())->toBe([
         IgnoreCrawlers::class,
         IgnoreMissingUserAgent::class,
         IgnoreIpAddresses::class,
         IgnoreHeadRequests::class,
         IgnorePrefetch::class,
+        IgnoreOptedOutViewers::class,
         IgnoreBursts::class,
         EnforceCooldown::class,
     ]);
@@ -130,6 +133,54 @@ it('honours Global Privacy Control once IgnoreGlobalPrivacyControl is listed', f
 
     expect(views($this->post)->record())->toBeFalse()
         ->and(View::count())->toBe(1);
+});
+
+describe('opting out', function (): void {
+    beforeEach(function (): void {
+        $this->user = OptOutUser::query()->create(['name' => 'Ada', 'email' => 'ada@example.com']);
+        $this->actingAs($this->user);
+    });
+
+    it('drops the views of a signed-in user who opted out, with viewers not recorded', function (): void {
+        $this->user->hidesReadingHistory = true;
+
+        $result = views($this->post)->attempt();
+
+        expect($result->wasSkippedBy(IgnoreOptedOutViewers::class))->toBeTrue()
+            ->and(View::count())->toBe(0);
+    });
+
+    it('drops the views of a signed-in user who opted out, with viewers recorded', function (): void {
+        Config::set('eloquent-viewable.recording.viewer.enabled', true);
+        $this->user->hidesReadingHistory = true;
+
+        expect(views($this->post)->record())->toBeFalse()
+            ->and(View::count())->toBe(0);
+
+        $this->user->hidesReadingHistory = false;
+
+        expect(views($this->post)->record())->toBeTrue()
+            ->and(View::sole()->viewer_id)->toEqual($this->user->getKey());
+    });
+
+    it('starts no cooldown for a view it drops', function (): void {
+        $this->user->hidesReadingHistory = true;
+
+        expect(views($this->post)->cooldown(60)->record())->toBeFalse();
+
+        $this->user->hidesReadingHistory = false;
+
+        expect(views($this->post)->cooldown(60)->record())->toBeTrue()
+            ->and(View::count())->toBe(1);
+    });
+
+    it('records the views of a user who opted out once IgnoreOptedOutViewers is removed from the list', function (): void {
+        $this->user->hidesReadingHistory = true;
+        Config::set('eloquent-viewable.recording.guards', [EnforceCooldown::class]);
+
+        expect(views($this->post)->record())->toBeTrue()
+            ->and(View::count())->toBe(1);
+    });
 });
 
 it('drops a page the browser only prefetches', function (): void {
