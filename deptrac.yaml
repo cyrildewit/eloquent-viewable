@@ -174,8 +174,10 @@ deptrac:
       - Cooldowns
       - Presence
       - Dimensions
+    # Counts by the dimensions in config, through their definitions.
     Querying:
       - Foundation
+      - Dimensions
     # Ranks what is looked at right now with the rankings of querying.
     Presence:
       - Foundation

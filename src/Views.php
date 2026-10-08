@@ -9,6 +9,9 @@ use Carbon\CarbonInterface;
 use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\Arrival;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\Exceptions\UnknownDimension;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
@@ -17,6 +20,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
@@ -41,6 +45,7 @@ use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Recording\Recorder;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -86,6 +91,9 @@ class Views
     protected ?Rollup $rollup = null;
 
     protected ?Arrival $arrival = null;
+
+    /** @var list<DimensionFilter> */
+    protected array $dimensions = [];
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -202,6 +210,40 @@ class Views
         }
 
         return $this->reader->countByDimension($this->viewable(), $this->query(), $dimension, $this->cacheLifetime);
+    }
+
+    /**
+     * The views per value of a dimension from `dimensions.definitions`. With
+     * a limit, only the values with the most views are kept, and the views of
+     * the rest are counted in `other()`.
+     *
+     * @throws InvalidLimit
+     * @throws InvalidReturning
+     * @throws UnknownDimension
+     * @throws UnsupportedBySource
+     */
+    public function countBy(string $dimension, ?int $limit = null): DimensionCounts
+    {
+        $this->guardReturning('countBy()');
+
+        return $this->reader->countBy($this->viewable(), $this->query(), $this->dimension($dimension), $limit, $this->cacheLifetime);
+    }
+
+    /**
+     * Counts only the views whose dimension holds the value, or one of the
+     * values. Every call narrows the count further.
+     *
+     * @param  string|list<string>  $values
+     *
+     * @throws UnknownDimension
+     */
+    public function whereDimension(string $dimension, string|array $values): self
+    {
+        $definition = $this->dimension($dimension);
+
+        $this->dimensions[] = new DimensionFilter($definition->name, $definition->target(), is_string($values) ? [$values] : $values);
+
+        return $this;
     }
 
     /**
@@ -551,6 +593,12 @@ class Views
         );
     }
 
+    /** @throws UnknownDimension */
+    protected function dimension(string $name): DimensionDefinition
+    {
+        return Container::getInstance()->make(DimensionRegistry::class)->find($name) ?? throw UnknownDimension::named($name);
+    }
+
     /** @throws InvalidViewable */
     protected function among(?string $class): ?Viewable
     {
@@ -569,7 +617,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup, $this->dimensions);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -168,4 +169,21 @@ it('changes the key when the viewer changes', function (): void {
 it('changes the key when a relative period is anchored in another timezone', function (): void {
     expect(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2, 'Australia/Sydney'))))
         ->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(Period::pastDays(2))));
+});
+
+it('keeps the key of a count without dimension filters as it was', function (): void {
+    expect(cacheKey($this->firstPost)->make(new ViewsQuery(dimensions: [])))
+        ->toBe(cacheKey($this->firstPost)->make(new ViewsQuery));
+});
+
+it('keys a count by its dimension filters, in any order', function (): void {
+    $source = new DimensionFilter('source', 'source', ['Google', 'Bing']);
+    $device = new DimensionFilter('device', 'device', ['mobile']);
+    $plain = cacheKey($this->firstPost)->make(new ViewsQuery);
+
+    $both = cacheKey($this->firstPost)->make(new ViewsQuery(dimensions: [$source, $device]));
+
+    expect($both)->not->toBe($plain)
+        ->and($both)->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(dimensions: [$device, new DimensionFilter('source', 'source', ['Bing', 'Google'])])))
+        ->and($both)->not->toBe(cacheKey($this->firstPost)->make(new ViewsQuery(dimensions: [$source])));
 });

@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
+use CyrildeWit\EloquentViewable\Dimensions\Arrival;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionInput;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
@@ -70,6 +73,7 @@ const ENTRY_POINTS = [
 
 const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Exceptions',
+    'CyrildeWit\EloquentViewable\Dimensions\Exceptions',
     'CyrildeWit\EloquentViewable\Recording\Exceptions',
     'CyrildeWit\EloquentViewable\Querying\Exceptions',
     'CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions',
@@ -138,6 +142,14 @@ arch('dimensions read the facts of the visitor and the verdict of the detector')
 arch('recording does not depend on querying')
     ->expect('CyrildeWit\EloquentViewable\Recording')
     ->not->toUse('CyrildeWit\EloquentViewable\Querying');
+
+arch('querying knows dimensions only by their definitions')
+    ->expect('CyrildeWit\EloquentViewable\Querying')
+    ->not->toUse([
+        DimensionResolver::class,
+        DimensionInput::class,
+        Arrival::class,
+    ]);
 
 arch('querying does not depend on recording')
     ->expect('CyrildeWit\EloquentViewable\Querying')

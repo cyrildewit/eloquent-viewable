@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -97,4 +98,16 @@ describe('withPeriod', function (): void {
         expect($query->withPeriod(Period::pastDays(1))->period->cacheSignature())->toBe('past1days@Australia/Sydney')
             ->and($query->withPeriod(null)->period)->toBeNull();
     });
+});
+
+it('narrows by dimensions, carried through every copy', function (): void {
+    $source = new DimensionFilter('source', 'source', ['Google']);
+    $device = new DimensionFilter('device', 'device', ['mobile']);
+    $query = new ViewsQuery(collection: 'amp')->withDimension($source)->withDimension($device)->withDimension($source);
+
+    expect($query->dimensions)->toBe([$source, $device, $source])
+        ->and($query->dimensionNames())->toBe(['source', 'device'])
+        ->and($query->withPeriod(Period::pastDays(2))->dimensions)->toBe([$source, $device, $source])
+        ->and($query->withViewer(null)->dimensions)->toBe([$source, $device, $source])
+        ->and(new ViewsQuery()->dimensions)->toBeEmpty();
 });

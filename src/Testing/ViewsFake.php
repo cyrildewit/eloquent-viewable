@@ -10,18 +10,21 @@ use Closure;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Scope;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
 use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Step;
@@ -30,6 +33,7 @@ use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\ArrayStore;
 use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
@@ -44,7 +48,7 @@ use PHPUnit\Framework\Assert as PHPUnit;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final class ViewsFake implements CountsByWindow, CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource, ViewStore
+final class ViewsFake implements CountsBy, CountsByWindow, CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -124,6 +128,36 @@ final class ViewsFake implements CountsByWindow, CountsVisitFrequency, PresenceS
 
         /** @var array<string, int> $counts */
         return $counts;
+    }
+
+    /**
+     * Counts the recorded views the way the database source counts the views
+     * table: the values past the limit are counted again, so unique visitors
+     * are exact there too.
+     */
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
+    {
+        $keys = $dimension->storage()->keys();
+        $valueOf = fn (ViewRecord $record): ?string => $this->valueOf($record, $dimension->name, $keys);
+
+        $records = $this->matching($viewable, $query);
+        $valued = $records->filter(static fn (ViewRecord $record): bool => $valueOf($record) !== null);
+
+        /** @var array<string, int> $counts */
+        $counts = $valued
+            ->groupBy(static fn (ViewRecord $record): string => (string) $valueOf($record))
+            ->map(fn (Collection $views): int => $this->aggregate($views, $query))
+            ->all();
+
+        $kept = DimensionCounts::from($counts)->limit($limit)->all();
+        $rest = $valued->reject(static fn (ViewRecord $record): bool => array_key_exists((string) $valueOf($record), $kept));
+
+        return DimensionCounts::from(
+            $kept,
+            $this->aggregate($records->filter(static fn (ViewRecord $record): bool => $valueOf($record) === null), $query),
+            $this->aggregate($rest, $query),
+            $this->aggregate($records, $query),
+        );
     }
 
     /** @return array<int, int> */
@@ -568,7 +602,29 @@ final class ViewsFake implements CountsByWindow, CountsVisitFrequency, PresenceS
             ->filter(fn (ViewRecord $record): bool => $this->withinPeriod($record, $query->period))
             ->filter(fn (ViewRecord $record): bool => $this->inCollection($record, $query->collection))
             ->filter(fn (ViewRecord $record): bool => $this->byViewer($record, $query->viewer, $viewerKey))
+            ->filter(fn (ViewRecord $record): bool => $this->withDimensions($record, $query->dimensions))
             ->values();
+    }
+
+    /** @param  list<DimensionFilter>  $filters */
+    private function withDimensions(ViewRecord $record, array $filters): bool
+    {
+        return array_all($filters, fn (DimensionFilter $filter): bool => in_array($this->valueOf($record, $filter->name, $filter->keys()), $filter->values, true));
+    }
+
+    /**
+     * The value of a dimension on a recorded view: its column, or the path
+     * into the context when it is kept there.
+     *
+     * @param  list<string>  $keys
+     */
+    private function valueOf(ViewRecord $record, string $name, array $keys): ?string
+    {
+        $value = $keys === []
+            ? $record->dimensions[$name] ?? null
+            : data_get($record->context, implode('.', $keys));
+
+        return is_string($value) ? $value : null;
     }
 
     /**

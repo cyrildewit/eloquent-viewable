@@ -7,6 +7,8 @@ namespace CyrildeWit\EloquentViewable\Querying\Cache;
 use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
@@ -14,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
@@ -33,7 +36,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource
+final readonly class RememberingSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -86,6 +89,26 @@ final readonly class RememberingSource implements CountsByDimension, CountsByWin
             $this->key($viewable)->make($query, grouping: "dimension:{$dimension}"),
             fn (): array => $source->countByDimension($viewable, $query, $dimension),
         );
+    }
+
+    /**
+     * Kept as an array, so an entry outlives a change to the class.
+     *
+     * @throws UnsupportedBySource
+     */
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
+    {
+        $source = $this->source;
+
+        if (! $source instanceof CountsBy) {
+            throw UnsupportedBySource::countBy($source);
+        }
+
+        return DimensionCounts::fromArray($this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: "count-by:{$dimension->name}", limit: $limit),
+            fn (): array => $source->countBy($viewable, $query, $dimension, $limit)->toArray(),
+        ));
     }
 
     /**
@@ -250,7 +273,7 @@ final readonly class RememberingSource implements CountsByDimension, CountsByWin
     }
 
     /**
-     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>|list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>|RecommendationPairs
+     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>|list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>|RecommendationPairs|array{values: array<string, int>, none: int, other: int, total: int}
      *
      * @param  Closure(): TValue  $resolve
      * @return TValue
