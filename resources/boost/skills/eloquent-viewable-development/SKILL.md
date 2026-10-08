@@ -218,6 +218,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - Repeated counts slow a page: `remember($lifetime)` on the read.
 - The insert slows requests: `recording.queue.enabled`, or `recording.store.driver` set to `redis` with `views:flush` scheduled. Never both.
 - Sorting long lists by views is slow: `querying.counters` columns on the model's own table, kept current by `views:maintain`.
+- A copy of a counter column elsewhere goes stale, such as a search index: listen for `Querying\Counters\Events\CountersRecounted` and resync `$event->keys` of `$event->class`. A recount fires no model events.
 - `unique()`, whole-type, `alsoViewed()` or `recommended()` queries are slow: the optional indexes under "Database indexes" in the README.
 - `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled`, the `eloquent-viewable-pairs` migration and `views:pairs` scheduled.
 - The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
