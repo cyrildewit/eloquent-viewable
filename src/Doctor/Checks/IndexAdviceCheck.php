@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Doctor\Checks;
 
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Support\Indexes;
+use CyrildeWit\EloquentViewable\Doctor\Support\TableSize;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -21,7 +23,7 @@ use Generator;
  */
 class IndexAdviceCheck implements Check
 {
-    public const int LargeTable = 1_000_000;
+    public const int LargeTable = TableSize::Large;
 
     /**
      * The indexes the migration leaves out. `viewed_at` on its own is
@@ -38,6 +40,7 @@ class IndexAdviceCheck implements Check
     public function __construct(
         protected View $view,
         protected Config $config,
+        protected DimensionRegistry $dimensions,
     ) {}
 
     public function name(): string
@@ -64,7 +67,7 @@ class IndexAdviceCheck implements Check
         }
 
         $indexes = Indexes::of($schema, $table);
-        $rows = $this->estimateRows($table);
+        $rows = TableSize::estimate($this->view);
         $large = $rows >= self::LargeTable;
         $reported = false;
 
@@ -104,20 +107,47 @@ class IndexAdviceCheck implements Check
                 : Finding::advice($summary, $fix);
         }
 
+        foreach ($this->unfoldedDimensions() as $name) {
+            $columns = ['viewable_type', $name, 'viewed_at'];
+            $list = implode(', ', $columns);
+
+            if ($indexes->cover($columns)) {
+                $reported = true;
+
+                yield Finding::pass("The `({$list})` index is in place.");
+
+                continue;
+            }
+
+            if (! $large) {
+                continue;
+            }
+
+            $reported = true;
+            $views = number_format($rows);
+
+            yield Finding::advice(
+                "With about {$views} views, an index on `({$list})` speeds up `whereDimension('{$name}', ...)` and `countBy('{$name}')` over a whole model type.",
+                "Add it in a migration of your own: `\$table->index(['viewable_type', '{$name}', 'viewed_at']);`.",
+            );
+        }
+
         if (! $reported) {
             yield Finding::pass('No other index is needed yet: nothing in the config relies on one, and the views table is small.');
         }
     }
 
     /**
-     * The largest key stands in for the number of rows: it is one index
-     * lookup on every driver, where a count reads the whole table.
+     * The dimensions kept in a column that rollups do not fold, whose history
+     * across a type is only ever read from the views table.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
      */
-    protected function estimateRows(string $table): int
+    protected function unfoldedDimensions(): array
     {
-        $max = $this->view->getConnection()->table($table)->max($this->view->getKeyName());
-
-        return is_numeric($max) ? (int) $max : 0;
+        return array_values(array_diff($this->dimensions->columns(), $this->config->rollupDimensions()));
     }
 
     /**

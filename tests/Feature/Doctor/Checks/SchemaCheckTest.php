@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Device;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
@@ -138,4 +142,51 @@ it('says what to run to fix it', function (): void {
     $finding = iterator_to_array(app()->make(SchemaCheck::class)->run(), preserve_keys: false)[0];
 
     expect($finding->fix)->toContain('--tag="migrations"');
+});
+
+describe('dimensions', function (): void {
+    it('passes the columns of the dimensions in config', function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', ['source' => Source::class, 'device' => Device::class]);
+
+        expect(schemaFindings())->toBe([
+            [Status::Pass, 'The `views` table has every column and index the package needs.'],
+        ]);
+    });
+
+    it('names the column a dimension misses', function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', ['source' => Source::class, 'plan' => [PlanDimension::class, 'json' => null], 'tier' => [PlanDimension::class, 'json' => null]]);
+
+        $finding = iterator_to_array(app()->make(SchemaCheck::class)->run(), preserve_keys: false)[0];
+
+        expect($finding->status)->toBe(Status::Failure)
+            ->and($finding->summary)->toBe('The `views` table has no `plan`, `tier` column, which `dimensions.definitions` keeps a dimension in.')
+            ->and($finding->fix)->toContain('php artisan views:dimensions');
+    });
+
+    it('warns about a dimension kept in context once the table is large', function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', [
+            'plan' => PlanDimension::class,
+            'tier' => [PlanDimension::class, 'json' => 'context->billing->tier'],
+        ]);
+
+        View::factory()->for(Post::factory()->create(), 'viewable')->create(['id' => 1_000_000]);
+
+        $findings = array_values(array_filter(
+            iterator_to_array(app()->make(SchemaCheck::class)->run(), preserve_keys: false),
+            fn (Finding $finding): bool => $finding->status === Status::Warning,
+        ));
+
+        expect($findings)->toHaveCount(2)
+            ->and($findings[0]->summary)->toBe('The `plan` dimension is kept at `context->plan`, which no index serves, in a table of about 1,000,000 views.')
+            ->and($findings[0]->fix)->toEndWith('`php artisan views:dimensions --backfill=plan`.')
+            ->and($findings[1]->fix)->toEndWith('`php artisan views:dimensions --backfill=tier --from=context->billing->tier`.');
+    });
+
+    it('says nothing about a dimension kept in context while the table is small', function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', ['plan' => PlanDimension::class]);
+
+        expect(schemaFindings())->toBe([
+            [Status::Pass, 'The `views` table has every column and index the package needs.'],
+        ]);
+    });
 });
