@@ -288,6 +288,11 @@ move your changes into a macro, a [recording guard](README.md#adding-a-recording
 subclass that overrides the constructor needs the new arguments: the visitor, `Recording\Recorder`, `Querying\Reader`,
 `Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`.
 
+#### `Viewable` without `InteractsWithViews`
+
+`scopeOrderByViews()` and `scopeOrderByUniqueViews()` on `Contracts\Viewable` take a last argument,
+`array $dimensions = []`. A model that implements `Viewable` without the trait adds it to both signatures.
+
 #### Custom `Visitor`
 
 The contract changed:

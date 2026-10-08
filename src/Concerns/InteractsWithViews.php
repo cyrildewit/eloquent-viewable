@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Concerns;
 
 use Carbon\CarbonInterval;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\Exceptions\UnknownDimension;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -72,6 +74,7 @@ trait InteractsWithViews
     /**
      * @param  Builder<static>  $query
      * @param  'asc'|'desc'  $direction
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeOrderByViews(
@@ -80,14 +83,16 @@ trait InteractsWithViews
         ?Period $period = null,
         ?string $collection = null,
         bool $unique = false,
-        string $as = 'views_count'
+        string $as = 'views_count',
+        array $dimensions = [],
     ): Builder {
-        return $query->tap(new OrderByViews($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $direction, $as));
+        return $query->tap(new OrderByViews($this->subquerySource(), $this->viewsQuery($period, $collection, $unique, $dimensions), $direction, $as));
     }
 
     /**
      * @param  Builder<static>  $query
      * @param  'asc'|'desc'  $direction
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeOrderByUniqueViews(
@@ -95,20 +100,22 @@ trait InteractsWithViews
         string $direction = 'desc',
         ?Period $period = null,
         ?string $collection = null,
-        string $as = 'unique_views_count'
+        string $as = 'unique_views_count',
+        array $dimensions = [],
     ): Builder {
-        return $query->orderByViews($direction, $period, $collection, true, $as);
+        return $query->orderByViews($direction, $period, $collection, true, $as, $dimensions);
     }
 
     /**
      * Select the views count as a column instead of loading the views.
      *
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count'): Builder
+    public function scopeWithViewsCount(Builder $query, ?Period $period = null, ?string $collection = null, bool $unique = false, string $as = 'views_count', array $dimensions = []): Builder
     {
-        return $query->tap(new WithViewsCount($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $as));
+        return $query->tap(new WithViewsCount($this->subquerySource(), $this->viewsQuery($period, $collection, $unique, $dimensions), $as));
     }
 
     /**
@@ -117,6 +124,7 @@ trait InteractsWithViews
      *
      * @param  Builder<static>  $query
      * @param  'asc'|'desc'  $direction
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeOrderByTrending(
@@ -127,9 +135,10 @@ trait InteractsWithViews
         bool $unique = false,
         ?CarbonInterval $halfLife = null,
         ?DecayCurve $curve = null,
-        string $as = 'trending_score'
+        string $as = 'trending_score',
+        array $dimensions = [],
     ): Builder {
-        $viewsQuery = new ViewsQuery($period, $collection, $unique);
+        $viewsQuery = $this->viewsQuery($period, $collection, $unique, $dimensions);
 
         return $query->tap(new OrderByTrending($this->trendingSubquerySource(), $viewsQuery, $this->decay($viewsQuery, $halfLife, $curve), $direction, $as));
     }
@@ -138,6 +147,7 @@ trait InteractsWithViews
      * Select the trending score as a column, the views weighed by their age.
      *
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeWithTrendingScore(
@@ -147,15 +157,17 @@ trait InteractsWithViews
         bool $unique = false,
         ?CarbonInterval $halfLife = null,
         ?DecayCurve $curve = null,
-        string $as = 'trending_score'
+        string $as = 'trending_score',
+        array $dimensions = [],
     ): Builder {
-        $viewsQuery = new ViewsQuery($period, $collection, $unique);
+        $viewsQuery = $this->viewsQuery($period, $collection, $unique, $dimensions);
 
         return $query->tap(new WithTrendingScore($this->trendingSubquerySource(), $viewsQuery, $this->decay($viewsQuery, $halfLife, $curve), $as));
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeWhereViewsCount(
@@ -164,54 +176,60 @@ trait InteractsWithViews
         int $count,
         ?Period $period = null,
         ?string $collection = null,
-        bool $unique = false
+        bool $unique = false,
+        array $dimensions = [],
     ): Builder {
-        return $query->tap(new WhereViewsCount($this->subquerySource(), new ViewsQuery($period, $collection, $unique), $operator, $count));
+        return $query->tap(new WhereViewsCount($this->subquerySource(), $this->viewsQuery($period, $collection, $unique, $dimensions), $operator, $count));
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWhereUniqueViewsCount(Builder $query, string $operator, int $count, ?Period $period = null, ?string $collection = null): Builder
+    public function scopeWhereUniqueViewsCount(Builder $query, string $operator, int $count, ?Period $period = null, ?string $collection = null, array $dimensions = []): Builder
     {
-        return $query->whereViewsCount($operator, $count, $period, $collection, true);
+        return $query->whereViewsCount($operator, $count, $period, $collection, true, $dimensions);
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWhereViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
+    public function scopeWhereViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null, array $dimensions = []): Builder
     {
-        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection, viewer: $viewer)));
+        return $query->tap(new WhereViewed($this->subquerySource(), $this->viewsQuery($period, $collection, dimensions: $dimensions, viewer: $viewer)));
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWhereNotViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null): Builder
+    public function scopeWhereNotViewedBy(Builder $query, Model $viewer, ?Period $period = null, ?string $collection = null, array $dimensions = []): Builder
     {
-        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection, viewer: $viewer), not: true));
+        return $query->tap(new WhereViewed($this->subquerySource(), $this->viewsQuery($period, $collection, dimensions: $dimensions, viewer: $viewer), not: true));
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWhereViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
+    public function scopeWhereViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null, array $dimensions = []): Builder
     {
-        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection), $visitor));
+        return $query->tap(new WhereViewed($this->subquerySource(), $this->viewsQuery($period, $collection, dimensions: $dimensions), $visitor));
     }
 
     /**
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
-    public function scopeWhereNotViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null): Builder
+    public function scopeWhereNotViewedByVisitor(Builder $query, string $visitor, ?Period $period = null, ?string $collection = null, array $dimensions = []): Builder
     {
-        return $query->tap(new WhereViewed($this->subquerySource(), new ViewsQuery($period, $collection), $visitor, not: true));
+        return $query->tap(new WhereViewed($this->subquerySource(), $this->viewsQuery($period, $collection, dimensions: $dimensions), $visitor, not: true));
     }
 
     /**
@@ -219,6 +237,7 @@ trait InteractsWithViews
      * their score, highest first, with the score selected as a column.
      *
      * @param  Builder<static>  $query
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static>
      */
     public function scopeRecommendedFor(
@@ -227,12 +246,13 @@ trait InteractsWithViews
         ?Period $period = null,
         ?string $collection = null,
         bool $includeSeen = false,
-        string $as = 'recommendation_score'
+        string $as = 'recommendation_score',
+        array $dimensions = [],
     ): Builder {
         $scores = Container::getInstance()->make(Reader::class)->recommendationScores(
             is_string($recipient) ? Recipient::visitor($recipient) : Recipient::viewer($recipient),
             $query->getModel()->newInstance(),
-            new ViewsQuery($period, $collection),
+            $this->viewsQuery($period, $collection, dimensions: $dimensions),
             $includeSeen,
         );
 
@@ -256,6 +276,29 @@ trait InteractsWithViews
         $column ??= array_key_first($scores) ?? throw InvalidConfiguration::withoutHotScore(static::class);
 
         return $query->orderByDesc($query->qualifyColumn($column));
+    }
+
+    /**
+     * The count a scope reads, narrowed by the dimensions given, each one
+     * value or a list of values.
+     *
+     * @param  array<string, string|list<string>>  $dimensions
+     *
+     * @throws UnknownDimension
+     */
+    protected function viewsQuery(?Period $period, ?string $collection, bool $unique = false, array $dimensions = [], ?Model $viewer = null): ViewsQuery
+    {
+        $filters = [];
+
+        if ($dimensions !== []) {
+            $registry = Container::getInstance()->make(DimensionRegistry::class);
+
+            foreach ($dimensions as $name => $values) {
+                $filters[] = $registry->filter($name, $values);
+            }
+        }
+
+        return new ViewsQuery($period, $collection, $unique, viewer: $viewer, dimensions: $filters);
     }
 
     /** @throws UnsupportedBySource */

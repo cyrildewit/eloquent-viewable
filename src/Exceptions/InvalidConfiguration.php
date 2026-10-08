@@ -134,7 +134,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     {
         $given = self::describe($value);
 
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period`, `collection` and `hot`, {$given} given.");
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period`, `collection`, `hot` and `dimensions`, {$given} given.");
     }
 
     public static function mustBeMilestones(string $key, mixed $value): self

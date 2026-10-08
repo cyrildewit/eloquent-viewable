@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Counters;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
@@ -31,6 +32,7 @@ final readonly class RecountViews
         private ViewSource $source,
         private Config $config,
         private Dispatcher $events,
+        private DimensionRegistry $dimensions,
     ) {}
 
     /**
@@ -214,7 +216,7 @@ final readonly class RecountViews
         $values = [];
 
         foreach ($columns as $column => $query) {
-            $values[$column] = $source->countSubquery($model, $query);
+            $values[$column] = $source->countSubquery($model, $this->dimensions->resolve($query));
         }
 
         return $values;

@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Exceptions\UnknownDimension;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -191,4 +194,35 @@ it('skips recounting a model whose views were destroyed under a source that cann
     app(RecountViews::class)->destroyed($this->post);
 
     expect(counted($this->post))->toBe([[0, 0]]);
+});
+
+describe('dimensions', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', [
+            'source' => Source::class,
+            'plan' => PlanDimension::class,
+        ]);
+
+        View::factory()->for($this->post, 'viewable')->withDimensions(['source' => 'Google'])->withContext(['plan' => 'pro'])->create();
+        View::factory()->for($this->post, 'viewable')->withDimensions(['source' => 'Bing'])->create();
+    });
+
+    it('counts only the views of the dimension values a column names', function (): void {
+        config()->set('eloquent-viewable.querying.counters', [Post::class => [
+            'cached_views' => ['dimensions' => ['source' => ['Google', 'Bing']]],
+            'cached_unique_views' => ['dimensions' => ['source' => 'Google', 'plan' => 'pro']],
+        ]]);
+
+        app(RecountViews::class)->handle(100);
+
+        expect(counted($this->post))->toBe([[2, 1]]);
+    });
+
+    it('refuses a dimension that is not in config when it recounts', function (): void {
+        config()->set('eloquent-viewable.querying.counters', [Post::class => [
+            'cached_views' => ['dimensions' => ['browser' => 'Firefox']],
+        ]]);
+
+        app(RecountViews::class)->handle(100);
+    })->throws(UnknownDimension::class, 'No dimension is named `browser`.');
 });
