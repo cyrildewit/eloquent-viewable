@@ -576,6 +576,76 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Milestones
+    |--------------------------------------------------------------------------
+    |
+    | Thresholds a counter column can cross, such as a post's 10,000th view.
+    | Each recount compares the columns it writes with them and dispatches
+    | `ViewMilestoneReached` once per model and threshold. They need the
+    | migration published with `--tag=eloquent-viewable-milestones`.
+    |
+    */
+    'milestones' => [
+
+        /*
+         * The table that keeps the highest count each model crossed a
+         * threshold at, so a threshold never fires twice.
+         */
+        'table' => 'view_milestones',
+
+        /*
+         * The thresholds of each counter column in `querying.counters`, in
+         * ascending order. A column with a `period` goes up and down, so it
+         * cannot have milestones. For example:
+         *
+         *   Post::class => [
+         *       'views_count' => [100, 1_000, 10_000],
+         *   ],
+         */
+        'thresholds' => [],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Spikes
+    |--------------------------------------------------------------------------
+    |
+    | `views:detect-spikes` compares each model's views in the last closed
+    | window with the same window on past days or weeks, and dispatches
+    | `ViewsSpiked` once when a model takes off, `ViewsDropped` when it
+    | collapses, and `ViewsSettled` once it is back to normal. Schedule it as
+    | often as the window is wide. It needs the migration published with
+    | `--tag=eloquent-viewable-spikes`.
+    |
+    */
+    'spikes' => [
+
+        /*
+         * The table that keeps a row per model while it spikes or drops.
+         */
+        'table' => 'view_spikes',
+
+        /*
+         * The models to watch, each with its own settings. Every setting may
+         * be left out for its default. For example:
+         *
+         *   Post::class => [
+         *       'window' => '1h',        // whole hours, or `1d`
+         *       'seasonality' => 'week', // `day` or `week`
+         *       'samples' => 4,          // how many past windows to compare with
+         *       'threshold' => 3.0,      // the z-score a spike starts at
+         *       'minimum' => 50,         // views below which nothing counts
+         *       'drops' => false,        // also watch for drops
+         *       'cooldown' => '6h',      // how long it stays normal before it settles
+         *   ],
+         */
+        'types' => [],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Visitor
     |--------------------------------------------------------------------------
     |
