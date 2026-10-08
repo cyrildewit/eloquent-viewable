@@ -32,6 +32,7 @@ const CONTRACTS = [
     'CyrildeWit\EloquentViewable\Recording\Streams\Contracts',
     'CyrildeWit\EloquentViewable\Visitors\Contracts',
     'CyrildeWit\EloquentViewable\Crawlers\Contracts',
+    'CyrildeWit\EloquentViewable\Dimensions\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Contracts',
     'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
     'CyrildeWit\EloquentViewable\Cooldowns\Contracts',
@@ -44,6 +45,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Querying',
     'CyrildeWit\EloquentViewable\Visitors',
     'CyrildeWit\EloquentViewable\Crawlers',
+    'CyrildeWit\EloquentViewable\Dimensions',
     'CyrildeWit\EloquentViewable\Cooldowns',
     'CyrildeWit\EloquentViewable\Retention',
     'CyrildeWit\EloquentViewable\Debugging',
@@ -121,6 +123,16 @@ arch('visitors report facts and judge nothing')
         'CyrildeWit\EloquentViewable\Visitors',
         'Illuminate',
         Cookie::class,
+    ]);
+
+arch('dimensions read the facts of the visitor and the verdict of the detector')
+    ->expect('CyrildeWit\EloquentViewable\Dimensions')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Dimensions',
+        'CyrildeWit\EloquentViewable\Visitors\Contracts',
+        'CyrildeWit\EloquentViewable\Crawlers\Contracts',
+        'Illuminate',
     ]);
 
 arch('recording does not depend on querying')

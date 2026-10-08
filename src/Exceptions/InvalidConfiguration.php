@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 
 use CyrildeWit\EloquentViewable\Models\View;
 use Exception;
+use Throwable;
 
 final class InvalidConfiguration extends Exception implements EloquentViewableException
 {
@@ -221,6 +222,32 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         $given = self::describe($value);
 
         return new self("The `eloquent-viewable.{$key}` config value must be a number above 0 and at most 1, {$given} given.");
+    }
+
+    public static function invalidDimension(string $name, string $problem, ?Throwable $previous = null): self
+    {
+        return new self("The `{$name}` entry in `eloquent-viewable.dimensions.definitions` {$problem}.", previous: $previous);
+    }
+
+    public static function mustBeDimensions(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map dimension names to a class name, or to an array of the class name and its options, {$given} given.");
+    }
+
+    public static function mustBeSourceList(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map hosts to a pair of a source name and a medium, such as `['Example', 'referral']`, {$given} given.");
+    }
+
+    public static function mustMapStrings(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map strings to strings, {$given} given.");
     }
 
     private static function describe(mixed $value): string

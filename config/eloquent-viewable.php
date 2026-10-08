@@ -303,6 +303,75 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Dimensions
+    |--------------------------------------------------------------------------
+    |
+    | Count views by where they came from and who saw them. Each dimension
+    | turns the request into one short value when a view is recorded, kept in
+    | a column of its own, and `views($post)->countBy('source')` counts the
+    | views per value. None is on until you list it.
+    |
+    */
+    'dimensions' => [
+
+        /*
+         * The dimensions to record, by name. The name is the column the value
+         * is kept in, so after adding one run `php artisan views:dimensions`
+         * and migrate. Uncomment a line to turn a dimension on. An entry is a
+         * class, or an array of the class and its options by name, such as
+         * `[Country::class, 'resolver' => HeaderCountry::class]`. Every
+         * dimension takes `personal`, `maxValues` and `json`, a path into
+         * `context` to keep the value there instead of in a column.
+         */
+        'definitions' => [
+
+            // Google, Hacker News, the utm_source, Direct, or the referring host.
+            // 'source' => CyrildeWit\EloquentViewable\Dimensions\Source::class,
+
+            // organic, social, email, referral, cpc or direct.
+            // 'medium' => CyrildeWit\EloquentViewable\Dimensions\Medium::class,
+
+            // The lowercased utm_campaign. Personal: anonymising clears it.
+            // 'campaign' => CyrildeWit\EloquentViewable\Dimensions\Campaign::class,
+
+            // mobile, tablet, desktop, or bot when IgnoreCrawlers is off.
+            // 'device' => CyrildeWit\EloquentViewable\Dimensions\Device::class,
+
+            // The ISO country code, from the CF-IPCountry header by default.
+            // 'country' => CyrildeWit\EloquentViewable\Dimensions\Country::class,
+
+            // The referring host alone, such as news.ycombinator.com.
+            // 'referrer_host' => CyrildeWit\EloquentViewable\Dimensions\ReferrerHost::class,
+
+        ],
+
+        /*
+         * The hosts of the application itself, on top of the one in
+         * `app.url`. A visitor arriving from one of them came from another
+         * page of the site, so it is not counted as a referrer.
+         */
+        'internal_hosts' => [],
+
+        /*
+         * Hosts the `Source` and `Medium` dimensions should name, on top of
+         * the list the package ships, each a source name and a medium.
+         */
+        'sources' => [
+
+            // 'news.example.com' => ['Example News', 'referral'],
+
+        ],
+
+        /*
+         * `utm_source` and `ref` values to read as a source name, such as
+         * `'nl' => 'Newsletter'`.
+         */
+        'source_aliases' => [],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Querying
     |--------------------------------------------------------------------------
     |
@@ -562,6 +631,19 @@ return [
             'custom' => [
 
                 // App\Rollups\NewsletterViews::class,
+
+            ],
+
+            /*
+             * Dimensions from `dimensions.definitions` to fold per value,
+             * with the tiers and groupings above, so `countBy()` reads their
+             * history from the rollups. Each bucket keeps the dimension's top
+             * values and folds the rest into `other`. A dimension left out is
+             * only counted while its views are in the views table.
+             */
+            'dimensions' => [
+
+                // 'source',
 
             ],
 
