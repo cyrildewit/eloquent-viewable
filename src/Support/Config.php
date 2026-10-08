@@ -264,6 +264,16 @@ final readonly class Config
     }
 
     /**
+     * The `app.url` of the application, outside the package config.
+     */
+    public function applicationUrl(): ?string
+    {
+        $value = $this->config->get('app.url');
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
      * @return list<string>
      *
      * @throws InvalidConfiguration

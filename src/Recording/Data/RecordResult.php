@@ -9,15 +9,18 @@ use JsonSerializable;
 
 /**
  * Present is true when the attempt kept the visitor active for the live
- * counts, which a view skipped by a cooldown or the throttle still does.
+ * counts, which a view skipped by a cooldown or the throttle still does. The
+ * dimensions are the values a recorded view was given, by name.
  */
 final readonly class RecordResult implements JsonSerializable
 {
+    /** @param  array<string, ?string>  $dimensions */
     private function __construct(
         public bool $recorded,
         public bool $queued,
         public ?RecordingGuard $skippedBy,
         public bool $present = false,
+        public array $dimensions = [],
     ) {}
 
     public static function stored(): self
@@ -37,7 +40,13 @@ final readonly class RecordResult implements JsonSerializable
 
     public function withPresence(bool $present): self
     {
-        return new self($this->recorded, $this->queued, $this->skippedBy, $present);
+        return new self($this->recorded, $this->queued, $this->skippedBy, $present, $this->dimensions);
+    }
+
+    /** @param  array<string, ?string>  $dimensions */
+    public function withDimensions(array $dimensions): self
+    {
+        return new self($this->recorded, $this->queued, $this->skippedBy, $this->present, $dimensions);
     }
 
     /** @param  class-string<RecordingGuard>  $guard */
@@ -50,7 +59,7 @@ final readonly class RecordResult implements JsonSerializable
      * Names the guard by its class, so a log line or a Telescope entry shows
      * which guard skipped the view.
      *
-     * @return array{recorded: bool, queued: bool, skipped_by: ?class-string<RecordingGuard>, present: bool}
+     * @return array{recorded: bool, queued: bool, skipped_by: ?class-string<RecordingGuard>, present: bool, dimensions: array<string, ?string>}
      */
     public function jsonSerialize(): array
     {
@@ -61,6 +70,7 @@ final readonly class RecordResult implements JsonSerializable
                 ? $this->skippedBy::class
                 : null,
             'present' => $this->present,
+            'dimensions' => $this->dimensions,
         ];
     }
 }

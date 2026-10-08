@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Lists the views of the request in a Debugbar tab: the ones stored, the ones
  * handed to the queue and the ones a guard skipped, with the guard that did,
- * and whether each kept the visitor active for the live counts.
+ * whether each kept the visitor active for the live counts, and the value of
+ * every dimension a recorded view was given.
  *
  * Debugbar resets the messages at the start of every Octane request, so a
  * worker never shows the views of the request before.
@@ -48,6 +49,7 @@ class ViewsCollector extends MessagesCollector
             'viewer' => $this->describeViewer($attempt->viewer),
             'cooldown' => $attempt->cooldown?->toIso8601String(),
             'context' => $attempt->context,
+            'dimensions' => $event->result->dimensions,
         ]);
     }
 

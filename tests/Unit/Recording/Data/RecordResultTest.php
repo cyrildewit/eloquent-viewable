@@ -48,6 +48,7 @@ it('names the guard that skipped the view by its class in JSON', function (): vo
             'queued' => false,
             'skipped_by' => RefuseAll::class,
             'present' => false,
+            'dimensions' => [],
         ])
         ->and(RecordResult::queued()->jsonSerialize())
         ->toBe([
@@ -55,6 +56,7 @@ it('names the guard that skipped the view by its class in JSON', function (): vo
             'queued' => true,
             'skipped_by' => null,
             'present' => false,
+            'dimensions' => [],
         ]);
 });
 
@@ -65,4 +67,12 @@ it('says whether the attempt kept the visitor active', function (): void {
         ->and($result->skippedBy)->toBeInstanceOf(RefuseAll::class)
         ->and($result->jsonSerialize()['present'])->toBeTrue()
         ->and(RecordResult::stored()->present)->toBeFalse();
+});
+
+it('keeps the dimensions a view was given through a change of presence', function (): void {
+    $result = RecordResult::stored()->withDimensions(['source' => 'Google', 'device' => null])->withPresence(true);
+
+    expect($result->dimensions)->toBe(['source' => 'Google', 'device' => null])
+        ->and($result->present)->toBeTrue()
+        ->and($result->jsonSerialize()['dimensions'])->toBe(['source' => 'Google', 'device' => null]);
 });

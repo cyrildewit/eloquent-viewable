@@ -129,6 +129,13 @@ describe('viewer', function () use ($sqliteOnly): void {
         expect($view->context)->toBe(['source' => 'newsletter'])
             ->and(View::factory()->for(Post::factory()->create(), 'viewable')->create()->fresh()->context)->toBeNull();
     });
+
+    it('sets the values of dimensions kept in a column', function (): void {
+        $view = View::factory()->for(Post::factory()->create(), 'viewable')->withDimensions(['source' => 'Google', 'device' => 'mobile'])->create()->fresh();
+
+        expect($view->getAttribute('source'))->toBe('Google')
+            ->and($view->getAttribute('device'))->toBe('mobile');
+    });
 });
 
 describe('within period', function () use ($sqliteOnly): void {
