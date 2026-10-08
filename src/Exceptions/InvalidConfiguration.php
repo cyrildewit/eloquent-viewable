@@ -160,6 +160,13 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to options of `window`, `seasonality`, `samples`, `threshold`, `minimum`, `drops` and `cooldown`, {$given} given.");
     }
 
+    public static function invalidSpikeOption(string $class, string $option, string $expected, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `{$option}` option of `{$class}` in `eloquent-viewable.spikes.types` must be {$expected}, {$given} given.");
+    }
+
     public static function invalidMiddlewareOption(string $option): self
     {
         return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");
