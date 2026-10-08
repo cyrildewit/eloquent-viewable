@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Erasure\Actions\AnonymiseViewHistory;
 use CyrildeWit\EloquentViewable\Erasure\Events\ViewHistoryAnonymised;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
@@ -130,4 +132,20 @@ it('forgets the remembered counts of the viewables it touched', function (): voi
     $this->user->anonymiseViewHistory();
 
     expect(views($this->post)->viewedBy($this->user)->remember(60)->count())->toBe(0);
+});
+
+it('clears the dimensions marked personal of the views of a viewer', function (): void {
+    config()->set('eloquent-viewable.dimensions.definitions', [
+        'source' => Source::class,
+        'campaign' => Campaign::class,
+    ]);
+
+    $view = View::factory()->for($this->post, 'viewable')->by($this->user)->withDimensions(['source' => 'Google', 'campaign' => 'spring'])->create();
+
+    $this->user->anonymiseViewHistory();
+
+    $view->refresh();
+
+    expect($view->getAttribute('source'))->toBe('Google')
+        ->and($view->getAttribute('campaign'))->toBeNull();
 });

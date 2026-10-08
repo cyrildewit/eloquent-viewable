@@ -31,7 +31,7 @@ it('keeps nothing from happening when nothing is set', function (): void {
     expect(retentionPolicy(['chunk' => 5_000]))
         ->anonymiseAfter->toBeNull()
         ->pruneAfter->toBeNull()
-        ->anonymiseColumns->toBe(['visitor', 'viewer', 'context']);
+        ->anonymiseColumns->toBe(['visitor', 'viewer', 'context', 'dimensions']);
 });
 
 it('accepts anonymising and pruning after the same duration', function (): void {

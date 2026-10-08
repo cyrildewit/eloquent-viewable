@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
 use CyrildeWit\EloquentViewable\Dimensions\Arrival;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionInput;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
@@ -193,6 +194,7 @@ arch('retention knows querying only through the rollup contracts')
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Retention',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        DimensionRegistry::class,
         'Carbon',
         'Illuminate',
     ]);
@@ -242,6 +244,7 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         'CyrildeWit\EloquentViewable\Recording\Contracts',
         VisitorIdentity::class,
         AnonymiseViews::class,
+        DimensionRegistry::class,
         'Carbon',
         'Illuminate',
     ]);

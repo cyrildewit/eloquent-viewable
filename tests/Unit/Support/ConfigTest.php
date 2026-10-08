@@ -292,7 +292,7 @@ it('reads the retention settings', function (): void {
         ->and(packageConfig())
         ->anonymiseAfter()->toBeNull()
         ->pruneAfter()->toBeNull()
-        ->anonymiseColumns()->toBe(['visitor', 'viewer', 'context']);
+        ->anonymiseColumns()->toBe(['visitor', 'viewer', 'context', 'dimensions']);
 });
 
 it('rejects a retention duration that is not a shorthand', function (mixed $value, string $described): void {
@@ -304,9 +304,9 @@ it('rejects a retention duration that is not a shorthand', function (mixed $valu
     'integer' => [90, '`90`'],
 ]);
 
-it('rejects anonymised columns that are not visitor, viewer or context', function (mixed $value, string $described): void {
+it('rejects anonymised columns that are not visitor, viewer, context or dimensions', function (mixed $value, string $described): void {
     expect(fn (): array => packageConfig(['retention' => ['anonymise' => ['columns' => $value]]])->anonymiseColumns())
-        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.retention.anonymise.columns` config value must be a list of `visitor`, `viewer`, `context`, {$described} given.");
+        ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.retention.anonymise.columns` config value must be a list of `visitor`, `viewer`, `context`, `dimensions`, {$described} given.");
 })->with([
     'string' => ['visitor', '`"visitor"`'],
     'empty' => [[], 'array'],

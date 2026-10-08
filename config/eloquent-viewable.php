@@ -550,15 +550,17 @@ return [
              * Views older than this lose what ties them to a person. The
              * `visitor` column is re-hashed under a salt per day that is
              * destroyed afterwards, so unique counts stay exact within a day
-             * but no longer link a visitor across days. `viewer` and
-             * `context` become null. Must not be longer than `prune.after`.
+             * but no longer link a visitor across days. `viewer`, `context`
+             * and the dimensions marked personal become null. Must not be
+             * longer than `prune.after`.
              */
             'after' => null,
 
             /*
-             * Which of `visitor`, `viewer` and `context` are anonymised.
+             * Which of `visitor`, `viewer`, `context` and `dimensions`, the
+             * dimensions marked personal, are anonymised.
              */
-            'columns' => ['visitor', 'viewer', 'context'],
+            'columns' => ['visitor', 'viewer', 'context', 'dimensions'],
 
         ],
 

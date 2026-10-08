@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Retention\Actions;
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -28,7 +29,8 @@ use Illuminate\Support\Carbon;
  * `retention.rollups.timezone`. It re-hashes `visitor` under a salt of that
  * day, so the views of one visitor on one day keep sharing an id but no id
  * links two days, and once the salt is forgotten nothing leads back.
- * `viewer` and `context` become null.
+ * `viewer`, `context` and the columns of the dimensions marked personal
+ * become null.
  *
  * Once the deadline passes, the run stops before the next chunk. The salt of
  * a day it left halfway is kept, so the next run finishes that day with it.
@@ -49,13 +51,14 @@ final readonly class AnonymiseViews
         private Watermarks $watermarks,
         private Dispatcher $events,
         private Config $config,
+        private DimensionRegistry $dimensions,
     ) {}
 
     /**
      * The cutoff moves back to midnight, so a day is never split across two
      * salts.
      *
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
@@ -118,7 +121,7 @@ final readonly class AnonymiseViews
     }
 
     /**
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
@@ -139,7 +142,7 @@ final readonly class AnonymiseViews
      * once instead of once per chunk. The day is not finished when the
      * deadline stopped it halfway.
      *
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      * @return array{views: int, finished: bool}
      *
      * @throws InvalidConfiguration
@@ -247,7 +250,7 @@ final readonly class AnonymiseViews
      * their view.
      *
      * @param  non-empty-array<int|string, mixed>  $visitors
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
     {
@@ -300,7 +303,7 @@ final readonly class AnonymiseViews
     /**
      * @param  non-empty-list<int|string>  $ids
      * @param  array<string, string>  $hashes
-     * @param  list<'visitor'|'viewer'|'context'>  $columns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      */
     private function updateViews(array $ids, array $hashes, array $columns): void
     {
@@ -327,6 +330,10 @@ final readonly class AnonymiseViews
 
         if (in_array('context', $columns, true)) {
             $sets[] = "{$grammar->wrap('context')} = null";
+        }
+
+        foreach ($this->personalColumns($columns) as $column) {
+            $sets[] = "{$grammar->wrap($column)} = null";
         }
 
         $table = $grammar->wrapTable($this->view->getTable());
@@ -361,7 +368,7 @@ final readonly class AnonymiseViews
         return $hashes;
     }
 
-    /** @param  list<'visitor'|'viewer'|'context'>  $columns */
+    /** @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns */
     private function pending(?CarbonInterface $from, CarbonInterface $until, array $columns): Builder
     {
         return $this->view
@@ -383,6 +390,26 @@ final readonly class AnonymiseViews
                 if (in_array('context', $columns, true)) {
                     $query->orWhereNotNull('context');
                 }
+
+                foreach ($this->personalColumns($columns) as $column) {
+                    $query->orWhereNotNull($column);
+                }
             });
+    }
+
+    /**
+     * The columns of the dimensions marked personal, when dimensions are
+     * anonymised. A personal dimension kept in `context` goes with it.
+     *
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
+     * @return list<string>
+     */
+    private function personalColumns(array $columns): array
+    {
+        if (! in_array('dimensions', $columns, true)) {
+            return [];
+        }
+
+        return $this->dimensions->personalColumns();
     }
 }

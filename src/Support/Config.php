@@ -728,15 +728,15 @@ final readonly class Config
     }
 
     /**
-     * @return list<'visitor'|'viewer'|'context'>
+     * @return list<'visitor'|'viewer'|'context'|'dimensions'>
      *
      * @throws InvalidConfiguration
      */
     public function anonymiseColumns(): array
     {
-        $columns = ['visitor', 'viewer', 'context'];
+        $columns = ['visitor', 'viewer', 'context', 'dimensions'];
 
-        /** @var list<'visitor'|'viewer'|'context'> */
+        /** @var list<'visitor'|'viewer'|'context'|'dimensions'> */
         return $this->subsetOf('retention.anonymise.columns', $columns, $columns);
     }
 
