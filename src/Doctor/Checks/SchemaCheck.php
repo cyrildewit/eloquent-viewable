@@ -66,6 +66,7 @@ class SchemaCheck implements Check
         yield from $this->retentionTable();
         yield from $this->rollupTable();
         yield from $this->counterColumns();
+        yield from $this->milestonesTable();
     }
 
     /** @return Generator<int, Finding> */
@@ -185,6 +186,32 @@ class SchemaCheck implements Check
                 'Add the column in a migration of your own, as an unsigned integer that defaults to 0.',
             );
         }
+    }
+
+    /**
+     * @return Generator<int, Finding>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    protected function milestonesTable(): Generator
+    {
+        if ($this->config->milestones() === []) {
+            return;
+        }
+
+        $table = $this->config->milestonesTable();
+
+        if ($this->view->getConnection()->getSchemaBuilder()->hasTable($table)) {
+            yield Finding::pass("The `{$table}` table exists.");
+
+            return;
+        }
+
+        yield Finding::failure(
+            "Milestones are configured, but the `{$table}` table does not exist.",
+            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-milestones"` and run `php artisan migrate`.',
+        );
     }
 
     /**
