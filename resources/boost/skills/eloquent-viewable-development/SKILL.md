@@ -79,6 +79,9 @@ Periods: `Period::create($start, $end)`, `since()`, `upto()`, `pastDays()`, `sub
 views(Post::class)->period(Period::pastDays(7))->top(10);    // most viewed posts
 Views::top(10);                                               // across every model type
 views(Post::class)->trending(10);                             // recent views weigh more
+views(Post::class)->period(Period::pastDays(1))->rising(10);  // grew the most against the day before
+views(Post::class)->period(Period::subHours(1))->anomalies(); // far above the same hour on past weeks
+views($post)->period(Period::subHours(1))->againstBaseline(); // one model against its own past
 views($post)->alsoViewed(5, among: Post::class);              // what this post's visitors also viewed
 $user->recommended(Post::class, limit: 10);                   // for one viewer, needs HasViewHistory
 views(Post::class)->recommended(10);                          // for the current visitor
@@ -90,7 +93,7 @@ Post::whereNotViewedBy($user)->get();
 Post::where('published', true)->recommendedFor($user)->paginate();  // adds recommendation_score
 ```
 
-A ranking yields entries with `rank`, `count` and `viewable`. Show `count` to users, never the trending `score`.
+A ranking yields entries with `rank`, `count` and `viewable`. Show `count` to users, never the trending `score`. `rising()` and `anomalies()` need a period and give each entry the `baseline` it was compared with; pass `threshold: -3` to `anomalies()` for drops.
 
 A recommendation has `rank`, `score`, `viewable` and `because`, the viewer's views it came from. Show `because` as the reason, never the `score`. Pass a short `period`, such as `Period::pastDays(30)`, on every request; recommend over all time only in a queued job. An empty list is a valid answer below `querying.also_viewed.minimum_visitors`: fall back yourself, such as to `trending()`.
 
