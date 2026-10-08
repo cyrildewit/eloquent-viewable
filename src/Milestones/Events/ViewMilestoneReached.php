@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Milestones\Events;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Support\Concerns\NamesViewable;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * It is dispatched once a counter column of a model crosses one of its
@@ -18,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\Relation;
  */
 class ViewMilestoneReached implements ShouldDispatchAfterCommit
 {
+    use NamesViewable;
+
     /**
      * @param  string  $type  the morph type of the model
      * @param  int|string  $key  the key of the model
@@ -34,34 +34,4 @@ class ViewMilestoneReached implements ShouldDispatchAfterCommit
         public int $count,
         public array $passed,
     ) {}
-
-    /**
-     * Load the model through its own query, so a trashed model, or one its
-     * global scopes hide, is null.
-     */
-    public function viewable(): (Model&Viewable)|null
-    {
-        $class = Relation::getMorphedModel($this->type) ?? $this->type;
-
-        if (! is_a($class, Model::class, true)) {
-            return null;
-        }
-
-        $model = $class::query()->find($this->key);
-
-        if (! $model instanceof Viewable) {
-            return null;
-        }
-
-        return $model;
-    }
-
-    public function is(Model $model): bool
-    {
-        if ($model->getMorphClass() !== $this->type) {
-            return false;
-        }
-
-        return (string) $model->getKey() === (string) $this->key; // @phpstan-ignore cast.string (a model key)
-    }
 }
