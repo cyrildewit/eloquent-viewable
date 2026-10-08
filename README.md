@@ -149,8 +149,8 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 - Show **who is looking right now**, "12 people are viewing this", with a live counter on cached pages
 - Prevent duplicate views with a configurable **cooldown system**
 - Count unique visitors **without a cookie**, with a daily rotating fingerprint
-- Ignore views from **crawlers, blocked IPs, prefetches, and visitors who opt out** with Do Not Track or Global Privacy
-  Control
+- Ignore views from **crawlers, blocked IPs, prefetches, and visitors who opt out** with Do Not Track, Global Privacy
+  Control or a setting on their account
 - Scale with **caching, queued recording or a Redis buffer**, and test with `Views::fake()`
 
 ### Start simple, scale when you need to
@@ -1432,6 +1432,29 @@ $user->lastViewedAt($post);                      // Carbon or null
 
 Each `View` also has a `viewer` relation and `byViewer()` and `byVisitor()` scopes.
 
+#### Letting a viewer opt out
+
+For a "don't record my reading history" account setting, implement `Contracts\ViewerCanOptOut` on the viewer model.
+While `tracksViews()` returns `false`, the `IgnoreOptedOutViewers` guard drops their views:
+
+```php
+use CyrildeWit\EloquentViewable\Contracts\ViewerCanOptOut;
+
+class User extends Authenticatable implements ViewerCanOptOut
+{
+    public function tracksViews(): bool
+    {
+        return ! $this->settings->hide_reading_history;
+    }
+}
+```
+
+The guard is on by default and does nothing for guests or models without the contract. It asks the model passed to
+`viewedBy()`, otherwise the user signed in on `recording.viewer.guard`, also when `recording.viewer.enabled` is off,
+because the visitor cookie still ties their views together. A dropped view starts no cooldown and does not keep them
+[looking right now](#who-is-looking-right-now). Views recorded before they opted out are kept; call
+[`forgetViewHistory()` or `anonymiseViewHistory()`](#erasing-one-persons-views) to remove them.
+
 ### New and returning visitors
 
 `returning()` counts the visitors who came back, and `countByFrequency()` how many visitors viewed on one day, on two,
@@ -2389,7 +2412,7 @@ You can replace these classes with your own, as long as they implement the same 
 - `CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore`
 - `CyrildeWit\EloquentViewable\Recording\Stores\NullStore`
 - `CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers`, `IgnoreDoNotTrack`, `IgnoreGlobalPrivacyControl`,
-  `IgnoreIpAddresses`, `IgnorePrefetch` and `EnforceCooldown`
+  `IgnoreIpAddresses`, `IgnorePrefetch`, `IgnoreOptedOutViewers` and `EnforceCooldown`
 - `CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource`
 
 ### Custom information about visitor
@@ -2502,6 +2525,7 @@ drops the view:
 | `IgnoreIpAddresses`          | `recording.ignored_ip_addresses`                | yes           |
 | `IgnoreHeadRequests`         | `HEAD` requests                                 | yes           |
 | `IgnorePrefetch`             | pages the browser prefetches or prerenders      | yes           |
+| `IgnoreOptedOutViewers`      | viewers whose `tracksViews()` returns `false`   | yes           |
 | `IgnoreBursts`               | a visitor opening many models within seconds    | yes           |
 | `EnforceCooldown`            | a second view inside the cooldown               | yes           |
 | `ThrottleVisitors`           | views over `recording.throttle.max_per_minute`  | no            |

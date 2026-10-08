@@ -36,6 +36,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `Concerns\HasViewHistory` trait with `viewed()`, `hasViewed()` and `lastViewedAt()`, and a `viewer` relation and `byViewer()` and `byVisitor()` scopes on the `View` model
 - Added the `visitor.identity` config option: `cookie`, the default, `viewer`, which counts one account as one visitor on every device, and `fingerprint`, which counts guests without a cookie by a hash that rotates daily
 - Added the `visitor.cookie.lifetime` config option, in minutes. It still defaults to five years
+- Added the `Contracts\ViewerCanOptOut` contract and the `IgnoreOptedOutViewers` guard, on by default, which drops the views of a viewer whose `tracksViews()` returns `false`, for a "don't record my reading history" account setting. It asks the signed-in user also when `recording.viewer.enabled` is off, and `views:doctor` warns when the viewer model implements the contract but the guard is not listed
 - Added `forgetViewHistory()`, `anonymiseViewHistory()` and `exportViewHistory()` to `Concerns\HasViewHistory`, and the `views:forget-viewer` and `views:forget-visitor` commands, to erase or export the views of one person. They reach views in the Redis buffer, forget the remembered counts and recount the counter columns of the models touched, and dispatch `Erasure\Events\ViewHistoryForgotten`, `ViewHistoryAnonymised` and `ViewHistoryExported`. Rollups are left as they are
 
 #### Querying
