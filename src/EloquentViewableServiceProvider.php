@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
+use CyrildeWit\EloquentViewable\Dimensions\Console\DimensionsCommand;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
@@ -119,6 +120,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 DiagnoseViewsCommand::class,
                 SeedMilestonesCommand::class,
                 DetectSpikesCommand::class,
+                DimensionsCommand::class,
             ]);
 
             $this->publishes([

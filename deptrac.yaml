@@ -165,13 +165,15 @@ deptrac:
     Cooldowns:
       - Foundation
     # The guards read the visitor's facts, ask the detector for a verdict and
-    # push cooldowns. Every view that passes keeps the visitor's presence.
+    # push cooldowns. Every view that passes keeps the visitor's presence and
+    # is given its dimensions.
     Recording:
       - Foundation
       - Visitors
       - Crawlers
       - Cooldowns
       - Presence
+      - Dimensions
     Querying:
       - Foundation
     # Ranks what is looked at right now with the rankings of querying.
