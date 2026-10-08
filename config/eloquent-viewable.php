@@ -18,6 +18,7 @@ use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreGlobalPrivacyControl;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreHeadRequests;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreIpAddresses;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreMissingUserAgent;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreOptedOutViewers;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnorePrefetch;
 use CyrildeWit\EloquentViewable\Recording\Guards\ThrottleVisitors;
 
@@ -116,10 +117,10 @@ return [
          * `Recording\Contracts\RecordingGuard`.
          *
          * Out of the box crawlers, requests without a user agent, `HEAD`
-         * requests, `ignored_ip_addresses`, pages the browser only prefetches
-         * and bursts of views are dropped, and `EnforceCooldown` is listed
-         * because `cooldown()` does nothing without it. Uncomment the others
-         * to turn them on:
+         * requests, `ignored_ip_addresses`, pages the browser only prefetches,
+         * viewers who opted out and bursts of views are dropped, and
+         * `EnforceCooldown` is listed because `cooldown()` does nothing
+         * without it. Uncomment the others to turn them on:
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
@@ -129,6 +130,10 @@ return [
          *   IgnoreHeadRequests          drops `HEAD` requests, such as uptime
          *                               monitors and link checkers
          *   IgnorePrefetch              drops prefetched and prerendered pages
+         *   IgnoreOptedOutViewers       drops the views of a viewer whose
+         *                               model implements `ViewerCanOptOut`
+         *                               and returns false from
+         *                               `tracksViews()`
          *   IgnoreBursts                drops a visitor that opens many
          *                               different models within seconds, see
          *                               `bursts`
@@ -146,6 +151,7 @@ return [
             IgnoreIpAddresses::class,
             IgnoreHeadRequests::class,
             IgnorePrefetch::class,
+            IgnoreOptedOutViewers::class,
             IgnoreBursts::class,
             EnforceCooldown::class,
             // ThrottleVisitors::class,

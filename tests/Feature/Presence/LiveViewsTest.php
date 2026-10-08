@@ -18,6 +18,7 @@ use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Guards\RefuseAll;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\OptOutUser;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor;
@@ -121,6 +122,16 @@ describe('counting', function (): void {
 
     it('does not keep a visitor a guard refuses', function (): void {
         config()->set('eloquent-viewable.recording.guards', [RefuseAll::class]);
+
+        expect(views($this->post)->attempt()->present)->toBeFalse()
+            ->and(views($this->post)->heartbeat())->toBeFalse()
+            ->and(views($this->post)->activeVisitors())->toBe(0);
+    });
+
+    it('does not keep a signed-in user who opted out', function (): void {
+        $user = new OptOutUser;
+        $user->hidesReadingHistory = true;
+        $this->actingAs($user);
 
         expect(views($this->post)->attempt()->present)->toBeFalse()
             ->and(views($this->post)->heartbeat())->toBeFalse()
