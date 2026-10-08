@@ -12,6 +12,7 @@ sample combines several of them to solve one problem, and explains why it is put
 | [Recently viewed](RecentlyViewed)                | "Continue where you left off" for signed-in learners: the viewer columns, `HasViewHistory`, `whereNotViewedBy()` and the `viewer` identity                                   |
 | [Content dashboard](ContentDashboard)            | An editors' dashboard over two content types: `Views::top()`, `compare()`, `countByCollection()`, `forViewables()->counts()`, a `Period` bound from the URL and `timezone()` |
 | [Privacy-first analytics](PrivacyFirstAnalytics) | Counting docs readers without cookies: the `fingerprint` identity, the privacy guards, a guard of your own, `attempt()`, `ViewSkipped`, `context()` and `Views::fake()`      |
+| [Author digest](AuthorDigest)                    | A Monday mail to every author: `forViewables()->counts()` over two calendar weeks, `ViewComparison::between()`, a queued notification and each author's timezone             |
 
 Each sample is a folder you can read top to bottom: a `README.md` with the scenario, the code, the migration for its
 tables and a Pest test. The tests run with the rest of the suite, so a sample cannot drift from the package without the
