@@ -92,6 +92,25 @@ final readonly class DimensionRegistry
         return array_values(array_filter($this->definitions, static fn (DimensionDefinition $definition): bool => $definition->personal()));
     }
 
+    /**
+     * The columns anonymising clears. A personal dimension kept in `context`
+     * is cleared with it.
+     *
+     * @return list<string>
+     */
+    public function personalColumns(): array
+    {
+        $columns = [];
+
+        foreach ($this->personal() as $definition) {
+            if ($definition->isColumn()) {
+                $columns[] = $definition->name;
+            }
+        }
+
+        return $columns;
+    }
+
     /** @throws InvalidConfiguration */
     private static function guardName(string $name): void
     {

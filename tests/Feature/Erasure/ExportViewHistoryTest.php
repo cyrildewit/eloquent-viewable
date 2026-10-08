@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Erasure\Actions\ExportViewHistory;
 use CyrildeWit\EloquentViewable\Erasure\Events\ViewHistoryExported;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Support\Carbon;
@@ -38,6 +41,7 @@ it('exports the views of a viewer, oldest first, without the visitor id', functi
                 'viewable_id' => $this->post->getKey(),
                 'collection' => 'sidebar',
                 'context' => ['source' => 'newsletter'],
+                'dimensions' => [],
                 'viewed_at' => '2026-03-01T10:00:00+00:00',
             ],
             [
@@ -45,9 +49,24 @@ it('exports the views of a viewer, oldest first, without the visitor id', functi
                 'viewable_id' => $this->post->getKey(),
                 'collection' => null,
                 'context' => null,
+                'dimensions' => [],
                 'viewed_at' => '2026-03-02T10:00:00+00:00',
             ],
         ]);
+});
+
+it('exports every dimension kept in a column', function (): void {
+    config()->set('eloquent-viewable.dimensions.definitions', [
+        'source' => Source::class,
+        'campaign' => Campaign::class,
+        'plan' => PlanDimension::class,
+    ]);
+
+    View::factory()->for($this->post, 'viewable')->by($this->user)->withDimensions(['source' => 'Google'])->withContext(['plan' => 'pro'])->create();
+
+    expect($this->user->exportViewHistory()->first())
+        ->dimensions->toBe(['source' => 'Google', 'campaign' => null])
+        ->context->toBe(['plan' => 'pro']);
 });
 
 it('exports the views of a visitor in chunks', function (): void {

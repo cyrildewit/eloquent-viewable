@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
+use CyrildeWit\EloquentViewable\Dimensions\Medium;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
@@ -10,6 +13,7 @@ use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -33,7 +37,7 @@ function retainedView(Post $post, string $viewedAt, ?string $visitor = 'visitor-
     return ($viewer instanceof Model ? $factory->by($viewer) : $factory)->create();
 }
 
-/** @param  list<'visitor'|'viewer'|'context'>  $columns */
+/** @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns */
 function anonymiseBefore(string $cutoff, array $columns = ['visitor', 'viewer', 'context'], int $chunk = 100, bool $dryRun = false): RetentionRun
 {
     return app(AnonymiseViews::class)->handle(Carbon::parse($cutoff), $columns, $chunk, $dryRun);
@@ -331,4 +335,49 @@ it('splits a chunk with many visitors into statements of a hundred visitors', fu
         ->and(View::query()->where('visitor', 'like', 'a:%')->distinct()->count('visitor'))->toBe(150)
         ->and($withoutVisitor->refresh()->visitor)->toBeNull()
         ->and($withoutVisitor->viewer_id)->toBeNull();
+});
+
+describe('dimensions', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', [
+            'source' => Source::class,
+            'campaign' => Campaign::class,
+            'medium' => [Medium::class, 'personal' => true],
+            'plan' => [PlanDimension::class, 'personal' => true],
+        ]);
+    });
+
+    it('clears the dimensions marked personal and keeps the rest', function (): void {
+        $view = View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-01 10:00:00'))
+            ->withDimensions(['source' => 'Google', 'campaign' => 'spring', 'medium' => 'email'])
+            ->create();
+
+        anonymiseBefore('2026-03-15 00:00:00', ['visitor', 'viewer', 'context', 'dimensions']);
+
+        $view->refresh();
+
+        expect($view->getAttribute('source'))->toBe('Google')
+            ->and($view->getAttribute('campaign'))->toBeNull()
+            ->and($view->getAttribute('medium'))->toBeNull();
+    });
+
+    it('anonymises a view whose only trace is a personal dimension', function (): void {
+        $view = View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-01 10:00:00'))
+            ->state(['visitor' => null])
+            ->withDimensions(['campaign' => 'spring'])
+            ->create();
+
+        expect(anonymiseBefore('2026-03-15 00:00:00', ['dimensions'])->views)->toBe(1)
+            ->and($view->refresh()->getAttribute('campaign'))->toBeNull();
+    });
+
+    it('leaves the dimensions alone when they are not listed', function (): void {
+        $view = View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-01 10:00:00'))
+            ->withDimensions(['campaign' => 'spring'])
+            ->create();
+
+        anonymiseBefore('2026-03-15 00:00:00', ['visitor']);
+
+        expect($view->refresh()->getAttribute('campaign'))->toBe('spring');
+    });
 });

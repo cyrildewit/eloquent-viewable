@@ -187,6 +187,7 @@ deptrac:
     Retention:
       - Foundation
       - Querying
+      - Dimensions
     # Listens to the recording events and hands them to Debugbar. Only this
     # layer knows Debugbar.
     Debugging:
@@ -206,6 +207,7 @@ deptrac:
       - Recording
       - Visitors
       - Retention
+      - Dimensions
     # Compares the counter columns a recount wrote with their thresholds, and
     # keeps what it armed them with in the state table of retention.
     Milestones:
