@@ -108,6 +108,23 @@ views($product)->live()->within(60)->count();     // narrow the window, never wi
 
 Print `@viewsBeacon($product, live: true)` so the page keeps its visitor active with a heartbeat and lets them go when it closes. With `presence.expose_count` on, the script fills every `[data-views-live]` element. A cooldown skips the view but keeps the visitor active; every other guard keeps them out. In tests, `Views::fake()->present($product, 12)` puts visitors on a model.
 
+## Milestones
+
+Thresholds go on a `querying.counters` column without a `period`, under `milestones.thresholds`, in ascending order. Publish the `eloquent-viewable-milestones` migration. Every recount checks them, so schedule `views:maintain`.
+
+```php
+'milestones' => ['thresholds' => [Post::class => ['views_count' => [100, 1_000, 10_000]]]],
+
+public function handle(ViewMilestoneReached $event): void // in a listener that implements ShouldQueue
+{
+    $post = $event->viewable();   // null once deleted, check it
+    $event->milestone;            // the highest threshold crossed, 10_000
+    $event->passed;               // every threshold crossed since the last recount
+}
+```
+
+Listen for `Milestones\Events\ViewMilestoneReached` in a queued listener. It fires once per model and threshold, and never for what a model passed before milestones were turned on. Never compare counts with thresholds yourself or keep your own "already notified" flag.
+
 ## Caching
 
 ```php
