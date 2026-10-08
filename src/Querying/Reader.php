@@ -16,18 +16,23 @@ use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
+use CyrildeWit\EloquentViewable\Querying\Growth\GrowthRanking;
+use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\ExponentialDecay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
@@ -63,6 +68,7 @@ final readonly class Reader
         private ViewableLoader $loader,
         private DecayFactory $decays,
         private RecommendationLoader $recommendations,
+        private GrowthRanking $growth = new GrowthRanking,
     ) {}
 
     public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
@@ -239,6 +245,61 @@ final readonly class Reader
     }
 
     /**
+     * Ranked by how many times its count in the period the count of the
+     * period before is, highest first. Only what grew and reached the minimum
+     * in either period is ranked.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function rising(?Viewable $viewable, ViewsQuery $query, int $limit, int $minimum, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        $source = $this->growthSource($viewable, $limit, $minimum, 'rising()', $rememberUntil);
+
+        return $this->loader->load($this->growth->rising($source, $viewable, $query, $minimum, $limit));
+    }
+
+    /**
+     * Ranked by how many deviations its count in the period lies from the
+     * same period on past days or weeks. A positive threshold ranks spikes,
+     * highest first, a negative one drops, lowest first.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function anomalies(?Viewable $viewable, ViewsQuery $query, float $threshold, int $minimum, int $limit, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        $source = $this->growthSource($viewable, $limit, $minimum, 'anomalies()', $rememberUntil);
+
+        return $this->loader->load($this->growth->anomalies($source, $viewable, $query, $seasonality, $samples, $threshold, $minimum, $limit));
+    }
+
+    /**
+     * The count in the period next to the counts of the same period on past
+     * days or weeks, each remembered under its own key.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidPeriod
+     */
+    public function againstBaseline(Viewable $viewable, ViewsQuery $query, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Baseline
+    {
+        $period = $query->period ?? throw InvalidBaseline::withoutStart();
+
+        $references = array_map(
+            fn (Period $reference): int => $this->count($viewable, $query->withPeriod($reference), $rememberUntil),
+            $seasonality->references($period, $samples),
+        );
+
+        return new Baseline($this->count($viewable, $query, $rememberUntil), $references);
+    }
+
+    /**
      * What the visitors of the viewable also viewed, ranked by how many of
      * them did. The count is always of distinct visitors, so `unique()` makes
      * no difference.
@@ -377,6 +438,35 @@ final readonly class Reader
         }
 
         return $source->visitFrequency($viewable, $query);
+    }
+
+    /**
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?CarbonInterface $rememberUntil): CountsByWindow
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, $method);
+        }
+
+        if ($minimum < 1) {
+            throw InvalidBaseline::minimumBelowOne($minimum, $method);
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsByWindow) {
+            throw UnsupportedBySource::growth($source);
+        }
+
+        return $source;
     }
 
     /**

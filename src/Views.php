@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -23,6 +24,8 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidReturning;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
+use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Reader;
@@ -227,6 +230,61 @@ class Views
         $this->guardReturning('trending()');
 
         return $this->reader->trending($this->viewable, $this->query(), $limit, $halfLife, $curve, $this->cacheLifetime);
+    }
+
+    /**
+     * Ranked by how much the count grew against the period before, so
+     * something taking off ranks above something that is busy every day.
+     * Only what grew and got at least the minimum in either period counts,
+     * so going from 1 to 4 views never wins.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidReturning
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function rising(int $limit = 10, int $minimum = 10): Ranking
+    {
+        $this->guardReturning('rising()');
+
+        return $this->reader->rising($this->viewable, $this->query(), $limit, $minimum, $this->cacheLifetime);
+    }
+
+    /**
+     * Ranked by how far the count lies from the same period on past days or
+     * weeks, in deviations. A positive threshold finds what is spiking, a
+     * negative one what dropped.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidReturning
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function anomalies(float $threshold = 3.0, int $minimum = 10, int $limit = 10, Seasonality $seasonality = Seasonality::Week, int $samples = 4): Ranking
+    {
+        $this->guardReturning('anomalies()');
+
+        return $this->reader->anomalies($this->viewable, $this->query(), $threshold, $minimum, $limit, $seasonality, $samples, $this->cacheLifetime);
+    }
+
+    /**
+     * The count in the period next to the same period on past days or weeks,
+     * with its mean, deviation, z-score and ratio.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidPeriod
+     * @throws InvalidReturning
+     * @throws InvalidViewable
+     */
+    public function againstBaseline(Seasonality $seasonality = Seasonality::Week, int $samples = 4): Baseline
+    {
+        $this->guardReturning('againstBaseline()');
+
+        return $this->reader->againstBaseline($this->viewable(), $this->query(), $seasonality, $samples, $this->cacheLifetime);
     }
 
     /**

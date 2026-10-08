@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Ranking;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -12,7 +13,7 @@ use Illuminate\Support\Collection;
 
 final readonly class ViewableLoader
 {
-    /** @param  list<array{type: string, id: int|string, count: int, score?: float}>  $rows */
+    /** @param  list<array{type: string, id: int|string, count: int, score?: float, baseline?: Baseline}>  $rows */
     public function load(array $rows): Ranking
     {
         $models = $this->models($rows);
@@ -22,7 +23,7 @@ final readonly class ViewableLoader
             $viewable = $models[$row['type']][(string) $row['id']] ?? null;
 
             if ($viewable instanceof Model) {
-                $entries->push(new Entry($viewable, $row['count'], $entries->count() + 1, $row['score'] ?? null));
+                $entries->push(new Entry($viewable, $row['count'], $entries->count() + 1, $row['score'] ?? null, $row['baseline'] ?? null));
             }
         }
 
