@@ -7,9 +7,11 @@ namespace CyrildeWit\EloquentViewable\Querying\Sources;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
@@ -21,6 +23,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
 use CyrildeWit\EloquentViewable\Querying\Pairs\PairTable;
@@ -41,7 +44,7 @@ use stdClass;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class DatabaseSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -148,6 +151,46 @@ final readonly class DatabaseSource implements CountsByDimension, CountsByWindow
         }
 
         return $counts;
+    }
+
+    /**
+     * The values are grouped, ordered and limited in SQL. The views of the
+     * values past the limit are what is left of the total. With `unique()`
+     * that subtraction would count a visitor seen with two values twice, so
+     * their visitors are counted again instead.
+     */
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
+    {
+        $views = fn (): Builder => $this->view->newQueryFor($viewable, $query)->toBase();
+        $target = $this->view->qualifyColumn($dimension->target());
+        $grammar = $views()->getGrammar();
+
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $views()
+            ->whereNotNull($target)
+            ->selectRaw("{$grammar->wrap($target)} as dimension, {$this->aggregate($query, $grammar)} as aggregate") // @phpstan-ignore argument.type (a column or JSON path the application names, not user input)
+            ->groupBy('dimension')
+            ->orderByDesc('aggregate')
+            ->orderBy('dimension')
+            ->when($limit !== null, fn (Builder $builder): Builder => $builder->limit((int) $limit))
+            ->pluck('aggregate', 'dimension');
+
+        $counts = [];
+
+        foreach ($rows as $value => $count) {
+            $counts[(string) $value] = (int) $count;
+        }
+
+        $total = $this->countOf($views(), $query);
+        $none = $this->countOf($views()->whereNull($target), $query);
+
+        if (! $query->unique) {
+            return DimensionCounts::from($counts, $none, $total - $none - array_sum($counts), $total);
+        }
+
+        $other = $limit === null ? 0 : $this->countOf($views()->whereNotNull($target)->whereNotIn($target, array_keys($counts)), $query);
+
+        return DimensionCounts::from($counts, $none, $other, $total);
     }
 
     /**
@@ -614,6 +657,15 @@ final readonly class DatabaseSource implements CountsByDimension, CountsByWindow
         );
 
         return $conversion->isNoop() ? null : $conversion;
+    }
+
+    private function countOf(Builder $builder, ViewsQuery $query): int
+    {
+        if (! $query->unique) {
+            return $builder->count();
+        }
+
+        return $builder->distinct()->count($this->view->qualifyColumn('visitor'));
     }
 
     /**
