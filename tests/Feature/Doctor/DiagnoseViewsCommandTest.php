@@ -135,6 +135,7 @@ it('runs the shipped checks in order', function (): void {
     expect(array_map(fn (array $check): string => "{$check['check']}: {$check['name']}", $report['checks']))->toBe([
         'schema: Database schema',
         'index-advice: Optional indexes',
+        'dimensions: Dimensions',
         'shared-cache: Shared cache stores',
         'schedule: Scheduler',
         'trusted-proxies: Trusted proxies',

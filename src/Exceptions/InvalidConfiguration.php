@@ -250,6 +250,16 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must map strings to strings, {$given} given.");
     }
 
+    public static function unknownDimension(string $key, string $name): self
+    {
+        return new self("The `eloquent-viewable.{$key}` config value names `{$name}`, which is not listed in `dimensions.definitions`.");
+    }
+
+    public static function dimensionsWithoutTiers(): self
+    {
+        return new self('The `eloquent-viewable.retention.rollups.dimensions` config value folds dimensions, but `retention.rollups.tiers` keeps no tier to fold them into.');
+    }
+
     private static function describe(mixed $value): string
     {
         if (! is_scalar($value)) {

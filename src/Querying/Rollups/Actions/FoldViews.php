@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups\Actions;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Dimensions\Normaliser;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\RollupsNotInstalled;
@@ -19,6 +20,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 
 /**
  * This action folds the views of closed buckets into the rollup table, every
@@ -40,6 +42,12 @@ final readonly class FoldViews
      * timestamp column refuses, so it gets a cast.
      */
     private const array BucketPlaceholders = ['pgsql' => 'cast(? as timestamp)'];
+
+    /**
+     * Compares two values that may both be null as equal, as a group column
+     * such as `collection` may be.
+     */
+    private const array NullSafeEquals = ['mysql' => '<=>', 'mariadb' => '<=>', 'pgsql' => 'is not distinct from'];
 
     public function __construct(
         private View $view,
@@ -331,7 +339,9 @@ final readonly class FoldViews
 
     /**
      * The totals of a custom rollup are kept next to its rows per value,
-     * because unique visitors cannot be summed from those.
+     * because unique visitors cannot be summed from those. A dimension's
+     * rollup keeps only the rows per value: the built-in rollup has the
+     * totals.
      */
     private function foldBucket(RollupDefinition $definition, Tier $tier, CarbonImmutable $start, bool $dryRun): int
     {
@@ -351,11 +361,25 @@ final readonly class FoldViews
                 ->delete();
 
             foreach ($definition->groupings as $grouping) {
-                $this->insert($definition, $tier, $grouping, $start, $end, null);
-
-                if ($definition->dimension() !== null) {
-                    $this->insert($definition, $tier, $grouping, $start, $end, $definition->dimension());
+                if (! $definition->dimensionOnly()) {
+                    $this->insert($definition, $tier, $grouping, $start, $end, null);
                 }
+
+                $dimension = $definition->dimension();
+
+                if ($dimension === null) {
+                    continue;
+                }
+
+                $maxValues = $definition->maxValues();
+
+                if ($maxValues === null) {
+                    $this->insert($definition, $tier, $grouping, $start, $end, $dimension);
+
+                    continue;
+                }
+
+                $this->insertCapped($definition, $tier, $grouping, $start, $end, $dimension, $maxValues);
             }
         });
 
@@ -392,6 +416,85 @@ final readonly class FoldViews
             ->newQuery()
             ->toBase()
             ->insertUsing([...$inserted, 'views', 'unique_visitors'], $query);
+    }
+
+    /**
+     * Keeps the values with the most views per group and folds the rest into
+     * one `other` row. The values are ranked in a derived table over their
+     * counts, so every driver ranks the same way, and views without a value
+     * are ranked apart, so they never take a place. The unique visitors of
+     * `other` are counted from the views whose value ranked past the cap,
+     * so they stay exact per bucket.
+     */
+    private function insertCapped(RollupDefinition $definition, Tier $tier, Grouping $grouping, CarbonImmutable $start, CarbonImmutable $end, string $dimension, int $maxValues): void
+    {
+        $columns = $grouping->columns();
+        $ranked = $this->ranked($columns, $start, $end, $dimension);
+        $grammar = $ranked->getGrammar();
+        $inserted = ['rollup', 'tier', 'bucket_start', 'grouping', ...$columns, 'dimension', 'views', 'unique_visitors'];
+        $head = [$definition->name, $tier->value, $start->format('Y-m-d H:i:s'), $grouping->stored(perDimension: true)];
+
+        $kept = $this->view->getConnection()->query()
+            ->fromSub($ranked, 'ranked')
+            ->selectRaw("?, ?, {$this->bucketPlaceholder()}, ?", $head) // @phpstan-ignore argument.type (placeholders only, the values are bound)
+            ->addSelect([...$columns, 'dimension', 'views', 'unique_visitors'])
+            ->where(static fn (Builder $query): Builder => $query->whereNull('dimension')->orWhere('position', '<=', $maxValues));
+
+        $this->rollup->newQuery()->toBase()->insertUsing($inserted, $kept);
+
+        $folded = $this->view->getConnection()->query()
+            ->fromSub($this->ranked($columns, $start, $end, $dimension), 'ranked')
+            ->select([...$columns, 'dimension'])
+            ->whereNotNull('dimension')
+            ->where('position', '>', $maxValues);
+
+        $views = $this->view->newQuery()->toBase();
+        $qualified = array_map($this->view->qualifyColumn(...), $columns);
+        $equals = self::NullSafeEquals[$this->view->getConnection()->getDriverName()] ?? 'is';
+
+        $other = $views
+            ->joinSub($folded, 'folded', function (JoinClause $join) use ($columns, $dimension, $grammar, $equals): void {
+                foreach ($columns as $column) {
+                    $join->whereRaw("{$grammar->wrap($this->view->qualifyColumn($column))} {$equals} {$grammar->wrap("folded.{$column}")}"); // @phpstan-ignore argument.type (wrapped identifiers and a driver's operator, not user input)
+                }
+
+                $join->whereRaw("{$grammar->wrap($this->view->qualifyColumn($dimension))} = {$grammar->wrap('folded.dimension')}"); // @phpstan-ignore argument.type (a column or JSON path the application names, not user input)
+            })
+            ->where($this->view->qualifyColumn('viewed_at'), '>=', $start)
+            ->where($this->view->qualifyColumn('viewed_at'), '<', $end)
+            ->selectRaw("?, ?, {$this->bucketPlaceholder()}, ?", $head) // @phpstan-ignore argument.type (placeholders only, the values are bound)
+            ->addSelect($qualified)
+            ->selectRaw('?', [Normaliser::Other])
+            ->selectRaw("count(*), count(distinct {$grammar->wrap($this->view->qualifyColumn('visitor'))})") // @phpstan-ignore argument.type (a wrapped identifier, not user input)
+            ->groupBy($qualified);
+
+        $this->rollup->newQuery()->toBase()->insertUsing($inserted, $other);
+    }
+
+    /**
+     * The views per value of each group in the bucket, numbered from the
+     * most viewed value down, ties by value.
+     *
+     * @param  non-empty-list<string>  $columns
+     */
+    private function ranked(array $columns, CarbonImmutable $start, CarbonImmutable $end, string $dimension): Builder
+    {
+        $views = $this->view->newQuery()->toBase();
+        $grammar = $views->getGrammar();
+
+        $counted = $views
+            ->where('viewed_at', '>=', $start)
+            ->where('viewed_at', '<', $end)
+            ->select($columns)
+            ->selectRaw("{$grammar->wrap($dimension)} as dimension, count(*) as views, count(distinct {$grammar->wrap('visitor')}) as unique_visitors") // @phpstan-ignore argument.type (a column or JSON path the application names, not user input)
+            ->groupBy([...$columns, 'dimension']);
+
+        $partition = implode(', ', array_map($grammar->wrap(...), $columns));
+
+        return $this->view->getConnection()->query()
+            ->fromSub($counted, 'counted')
+            ->select([...$columns, 'dimension', 'views', 'unique_visitors'])
+            ->selectRaw("row_number() over (partition by {$partition}, case when dimension is null then 0 else 1 end order by views desc, dimension) as position"); // @phpstan-ignore argument.type (wrapped identifiers, not user input)
     }
 
     private function bucketPlaceholder(): string
