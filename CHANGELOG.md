@@ -59,6 +59,10 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added personal recommendations: `recommended()` on `Concerns\HasViewHistory` and on `Views`, for the viewer `viewedBy()` names or the current visitor, and the `recommendedFor()` scope, which keeps the recommended models of a query ordered by a selected `recommendation_score`. They rank what the visitors of the viewer's most recent views also viewed, weighed by recency and by cosine similarity, leave out what the viewer viewed unless `includeSeen` is passed, and give each `Querying\Recommendations\Recommendation` the views it came from in `because`. Configure them under `querying.recommendations`. A view source of your own supports them by implementing `Querying\Contracts\RanksRecommendations`
 - Added the pairs table, an opt-in table of the models that share the most visitors, which `alsoViewed()` and `recommended()` read instead of the `views` table when a call names no period or collection. `views:pairs` rewrites it and dispatches `Querying\Pairs\Events\ViewsPaired`. Configure it under `querying.pairs`; the migration is published under the `eloquent-viewable-pairs` tag
 
+#### Milestones
+
+- Added milestones: thresholds on a counter column under `milestones.thresholds`, checked by every recount. `Milestones\Events\ViewMilestoneReached` is dispatched once per model and threshold, after the mark that keeps it from firing again is committed, with the model's morph type and key, `viewable()` and `is()`. The first recount, and the one after a threshold is added, marks the models already past it without dispatching. `views:seed-milestones` marks every model by hand. The migration is published under the `eloquent-viewable-milestones` tag
+
 #### Presence
 
 - Added presence, which counts who is looking right now: `views($post)->activeVisitors()`, and `live()` with `count()`, `counts()` for a set, `top()` for a ranking of what is being looked at, `viewers()` for the signed-in viewers and `within()` to narrow the window. It reads a viewable, a type or, through `Views::live()`, the whole site, within a collection when one is set. Turn it on with `presence.enabled`
