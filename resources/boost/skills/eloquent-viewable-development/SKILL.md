@@ -128,6 +128,19 @@ public function handle(ViewMilestoneReached $event): void // in a listener that 
 
 Listen for `Milestones\Events\ViewMilestoneReached` in a queued listener. It fires once per model and threshold, and never for what a model passed before milestones were turned on. Never compare counts with thresholds yourself or keep your own "already notified" flag.
 
+## Spike Alerts
+
+List the models under `spikes.types`, publish the `eloquent-viewable-spikes` migration and schedule `views:detect-spikes` hourly. Listen for `Spikes\Events\ViewsSpiked`, `ViewsDropped` and `ViewsSettled` in queued listeners; each fires once per episode, so never keep your own "already alerted" flag. Turn `drops` on only where a drop means something broke.
+
+```php
+public function handle(ViewsSpiked $event): void
+{
+    $post = $event->viewable();     // null once deleted
+    $event->baseline->current;      // views in the last closed hour
+    $event->baseline->mean;         // the same hour on past weeks
+}
+```
+
 ## Caching
 
 ```php

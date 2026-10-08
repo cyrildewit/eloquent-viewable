@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Milestones\Events\ViewMilestoneReached;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
+use CyrildeWit\EloquentViewable\Spikes\Events\ViewsSpiked;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Testing\ViewsFake;
 use CyrildeWit\EloquentViewable\Views;
@@ -67,7 +68,8 @@ it('points the guideline at a skill that exists', function (): void {
 it('only calls methods that exist', function (string $file): void {
     $classes = [
         Views::class, ViewsFacade::class, ViewsFake::class, Period::class, RecordResult::class, RecordViews::class,
-        InteractsWithViews::class, HasViewHistory::class, View::class, LiveViews::class, ViewMilestoneReached::class,
+        InteractsWithViews::class, HasViewHistory::class, View::class, LiveViews::class,
+        ViewMilestoneReached::class, ViewsSpiked::class,
         Builder::class, Factory::class, Route::class, Router::class, MakesHttpRequests::class,
     ];
 
