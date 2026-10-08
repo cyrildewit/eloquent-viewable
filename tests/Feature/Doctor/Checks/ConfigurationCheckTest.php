@@ -5,7 +5,10 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Doctor\Checks\ConfigurationCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
+use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\OptOutUser;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 
 /** @return list<array{Status, string}> */
 function configurationFindings(): array
@@ -80,3 +83,29 @@ it('advises to list EnforceCooldown', function (): void {
         [Status::Advice, '`EnforceCooldown` is not listed in `recording.guards`, so `cooldown()` does nothing.'],
     ]);
 });
+
+it('warns when the viewer model can opt out but IgnoreOptedOutViewers is not listed', function (): void {
+    config()->set('auth.guards.admin', ['driver' => 'session', 'provider' => 'admins']);
+    config()->set('auth.providers.admins', ['driver' => 'eloquent', 'model' => OptOutUser::class]);
+    config()->set('eloquent-viewable.recording.viewer.guard', 'admin');
+
+    expect(configurationFindings()[0][0])->toBe(Status::Pass);
+
+    config()->set('eloquent-viewable.recording.guards', [EnforceCooldown::class]);
+
+    expect(configurationFindings())->toBe([
+        [Status::Warning, '`'.OptOutUser::class.'` implements `ViewerCanOptOut`, but `IgnoreOptedOutViewers` is not listed in `recording.guards`, so views of people who opted out are still recorded.'],
+    ]);
+});
+
+it('leaves the opt-out alone when the viewer model cannot opt out or is not known', function (?string $model): void {
+    config()->set('auth.defaults.guard', 'web');
+    config()->set('auth.guards.web', ['driver' => 'session', 'provider' => 'users']);
+    config()->set('auth.providers.users', ['driver' => 'eloquent', 'model' => $model]);
+    config()->set('eloquent-viewable.recording.guards', [EnforceCooldown::class]);
+
+    expect(configurationFindings()[0][0])->toBe(Status::Pass);
+})->with([
+    'a model without the contract' => [User::class],
+    'no model' => [null],
+]);

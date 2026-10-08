@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Doctor\Checks;
 
+use CyrildeWit\EloquentViewable\Contracts\ViewerCanOptOut;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
+use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreOptedOutViewers;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
 use Illuminate\Contracts\Config\Repository;
@@ -41,6 +43,7 @@ class ConfigurationCheck implements Check
             ...$this->beacon(),
             ...$this->source(),
             ...$this->cooldowns(),
+            ...$this->optOut(),
         ];
 
         if ($conflicts === []) {
@@ -132,5 +135,43 @@ class ConfigurationCheck implements Check
             '`EnforceCooldown` is not listed in `recording.guards`, so `cooldown()` does nothing.',
             'List it, unless no view is recorded with a cooldown.',
         )];
+    }
+
+    /**
+     * Only the model of the guard the viewer is read from is known here, so
+     * a viewer passed to `viewedBy()` of another class is not looked at.
+     *
+     * @return list<Finding>
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function optOut(): array
+    {
+        if (in_array(IgnoreOptedOutViewers::class, $this->config->guards(), true)) {
+            return [];
+        }
+
+        $model = $this->viewerModel();
+
+        if ($model === null || ! is_subclass_of($model, ViewerCanOptOut::class)) {
+            return [];
+        }
+
+        return [Finding::warning(
+            "`{$model}` implements `ViewerCanOptOut`, but `IgnoreOptedOutViewers` is not listed in `recording.guards`, so views of people who opted out are still recorded.",
+            'List `IgnoreOptedOutViewers` in `recording.guards`.',
+        )];
+    }
+
+    /**
+     * The model the user provider of the viewer's guard signs people in as.
+     */
+    protected function viewerModel(): ?string
+    {
+        $guard = $this->config->viewerGuard() ?? $this->repository->get('auth.defaults.guard');
+        $provider = is_string($guard) ? $this->repository->get("auth.guards.{$guard}.provider") : null;
+        $model = is_string($provider) ? $this->repository->get("auth.providers.{$provider}.model") : null;
+
+        return is_string($model) ? $model : null;
     }
 }
