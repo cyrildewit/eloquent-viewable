@@ -1,7 +1,9 @@
 <div align="center">
-  <a href="https://github.com/cyrildewit/eloquent-viewable">
-    <img src="art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
-  </a>
+  <p align="center">
+    <a href="https://github.com/cyrildewit/eloquent-viewable">
+      <img src="art/logo.png" alt="Eloquent Viewable Logo" width="80" height="80">
+    </a>
+  </p>
   <h3 align="center">Eloquent Viewable</h3>
   <p align="center">
     A minimalistic analytics package for Laravel with seamless view tracking for Eloquent models
