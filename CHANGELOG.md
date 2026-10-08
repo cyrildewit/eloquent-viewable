@@ -68,7 +68,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 #### Spikes
 
 - Added `views:detect-spikes`, which compares the last closed window of the models under `spikes.types` with the same window on past weeks or days, and dispatches `Spikes\Events\ViewsSpiked` or `ViewsDropped` once when a model leaves its baseline and `ViewsSettled` once it has been back to normal for the cooldown. The events carry the model's morph type and key, `viewable()` and `is()`, and the baseline it was compared with. The migration is published under the `eloquent-viewable-spikes` tag
-- `views:doctor` checks that the spikes and milestones tables exist once they are configured, and that `views:detect-spikes` is scheduled
+- `views:doctor` checks that the spikes and milestones tables exist once they are configured, and that `views:detect-spikes` is scheduled, and recommends the `(viewable_type, viewed_at)` index once `spikes.types` is set
 
 #### Presence
 
