@@ -20,7 +20,7 @@ lint: ## Fix the code style
 rector: ## Run Rector
 	docker compose run --rm composer rector
 
-ready: ## Fix with Rector and the linter, then run the static analysis and the tests
+ready: ## Fix with Rector and the linter, then run the static analysis, type coverage and tests side by side
 	XDEBUG_MODE=off docker compose run --rm composer ready
 
 test: ## Run the tests in parallel (SQLite in memory)

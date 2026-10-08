@@ -10,7 +10,7 @@ Every command goes through `make`, which runs it in the `composer` container:
 
 ```bash
 make install            # install dependencies (run once, or after composer.json changes)
-make ready              # rector, pint, phpstan, type coverage, tests
+make ready              # rector and pint, then phpstan, type coverage and tests side by side
 make lint               # pint, fixes style in place
 make rector             # rector
 make test               # the full Pest suite, in parallel and without Xdebug
