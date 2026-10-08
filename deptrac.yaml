@@ -23,6 +23,9 @@
 #   Spikes        fires an event when a model spikes, drops or settles,
 #                 above querying for the growth rankings it reads
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
+#   Dimensions    turns the facts of a request into short values to count
+#                 views by, below recording, which records them, and
+#                 querying, which counts by them
 #   Presence      who is looking right now, below recording, which keeps it
 #                 up to date, and above querying for the rankings it builds
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
@@ -52,6 +55,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Visitors\\.*
+
+    - name: Dimensions
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Dimensions\\.*
 
     - name: Cooldowns
       collectors:
@@ -148,6 +156,12 @@ deptrac:
     # "Who is viewing": facts about the request. A leaf; it judges nothing.
     Visitors:
       - Foundation
+    # "What kind of view is this": a value per dimension, read from the
+    # visitor's facts and the detector's verdict.
+    Dimensions:
+      - Foundation
+      - Visitors
+      - Crawlers
     Cooldowns:
       - Foundation
     # The guards read the visitor's facts, ask the detector for a verdict and
@@ -235,5 +249,6 @@ deptrac:
           - Erasure
           - Doctor
           - Cooldowns
+          - Dimensions
           - Visitors
           - Crawlers
