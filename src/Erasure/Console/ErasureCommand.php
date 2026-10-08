@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Erasure\Console;
 
+use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
 use Illuminate\Console\Command;
-use Illuminate\Console\ConfirmableTrait;
 
 /** @internal */
 abstract class ErasureCommand extends Command
 {
-    use ConfirmableTrait;
+    use ConfirmsInProduction;
 
     private const int Chunk = 1000;
 
