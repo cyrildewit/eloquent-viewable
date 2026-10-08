@@ -9,8 +9,10 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Config;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 
@@ -18,13 +20,14 @@ use Illuminate\Database\Query\Builder;
  * Each column is set from the source's correlated count, so under the `rollup`
  * source it includes history whose views are gone. `handle()` recounts every
  * model; `recount()` and `keysAfter()` let a caller that knows which models
- * changed recount only those.
+ * changed recount only those. Every write dispatches `CountersRecounted`.
  */
 final readonly class RecountViews
 {
     public function __construct(
         private ViewSource $source,
         private Config $config,
+        private Dispatcher $events,
     ) {}
 
     /**
@@ -78,6 +81,8 @@ final readonly class RecountViews
         }
 
         $this->table($model)->whereIn($model->getQualifiedKeyName(), $keys)->update($values);
+
+        $this->events->dispatch(new CountersRecounted($model::class, $keys));
     }
 
     /**
