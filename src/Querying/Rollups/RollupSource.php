@@ -495,9 +495,9 @@ final readonly class RollupSource implements CountsByDimension, CountsByWindow, 
     }
 
     /**
-     * The views of each viewable in the period, as `viewable_type`,
-     * `viewable_id` and `aggregate`, from the views table and the rollups the
-     * period covers.
+     * It counts the views of each viewable in the period, as
+     * `viewable_type`, `viewable_id` and `aggregate`, from the views table and
+     * the rollups the period covers.
      *
      * @return non-empty-list<Builder>
      *

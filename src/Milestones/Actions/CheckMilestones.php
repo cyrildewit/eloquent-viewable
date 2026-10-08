@@ -102,12 +102,13 @@ final readonly class CheckMilestones
         $this->marks->ensureInstalled();
 
         $seeded = [];
+        $milestones = $this->config->milestones();
 
-        foreach ($this->config->milestones() as $class => $columns) {
-            if ($only !== null && $only !== $class) {
-                continue;
-            }
+        if ($only !== null) {
+            $milestones = array_intersect_key($milestones, [$only => true]);
+        }
 
+        foreach ($milestones as $class => $columns) {
             $model = new $class;
             $seeded[$class] = 0;
 
@@ -149,7 +150,9 @@ final readonly class CheckMilestones
                     $mark = $marks[(string) $key] ?? null;
                     $passed = $this->crossed($firing, $mark ?? 0, $count);
 
-                    if ($passed === [] && $this->crossed($silent, $mark ?? 0, $count) === []) {
+                    $moves = $passed !== [] || $this->crossed($silent, $mark ?? 0, $count) !== [];
+
+                    if (! $moves) {
                         continue;
                     }
 
@@ -178,7 +181,8 @@ final readonly class CheckMilestones
     }
 
     /**
-     * The thresholds that lie above the mark and at or below the count.
+     * It returns the thresholds that lie above the mark and at or below the
+     * count.
      *
      * @param  list<int>  $thresholds
      * @return list<int>
@@ -189,8 +193,8 @@ final readonly class CheckMilestones
     }
 
     /**
-     * The counts of the models at or above the lowest threshold, keyed by
-     * model key, a chunk at a time. The table is read without the model's
+     * It reads the counts of the models at or above the lowest threshold,
+     * keyed by model key, a chunk at a time. The table is read without the model's
      * scopes, like the recount writes it, so trashed models count too.
      *
      * @param  ?list<int|string>  $keys
@@ -257,6 +261,8 @@ final readonly class CheckMilestones
 
     private function name(Model $model, string $column): string
     {
-        return self::Prefix."{$model->getMorphClass()}:{$column}";
+        $prefix = self::Prefix;
+
+        return "{$prefix}{$model->getMorphClass()}:{$column}";
     }
 }

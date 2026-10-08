@@ -175,9 +175,9 @@ final readonly class RememberingSource implements CountsByDimension, CountsByWin
     }
 
     /**
-     * Remembered under each reference's distance from the period, which
-     * leaves out now, so the counts are served until the moment `remember()`
-     * names even as the clock moves on.
+     * The counts are remembered under each reference's distance from the
+     * period, which leaves out now, so they are served until the moment
+     * `remember()` names even as the clock moves on.
      *
      * @param  non-empty-list<Period>  $references
      * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
@@ -267,8 +267,8 @@ final readonly class RememberingSource implements CountsByDimension, CountsByWin
     }
 
     /**
-     * How far the reference starts before the period, and how wide it is, in
-     * seconds.
+     * It returns how far the reference starts before the period, and how wide
+     * it is, in seconds.
      */
     private function offset(?Period $period, Period $reference): string
     {

@@ -80,7 +80,7 @@ final readonly class RecountViews
         $values = $this->values($model);
         $scores = $this->config->hotScores()[$model::class] ?? [];
 
-        if ($values === [] && $scores === []) {
+        if ([...$values, ...$scores] === []) {
             return;
         }
 
@@ -178,10 +178,11 @@ final readonly class RecountViews
             $bindings[] = $id;
         }
 
+        $whens = implode(' ', $cases);
         $placeholders = implode(', ', array_fill(0, count($bindings), '?'));
 
         $model->getConnection()->update(
-            "update {$grammar->wrapTable($model->getTable())} set {$grammar->wrap($column)} = case {$grammar->wrap($key)} ".implode(' ', $cases)." end where {$grammar->wrap($key)} in ({$placeholders})",
+            "update {$grammar->wrapTable($model->getTable())} set {$grammar->wrap($column)} = case {$grammar->wrap($key)} {$whens} end where {$grammar->wrap($key)} in ({$placeholders})",
             [...$bindings, ...$bindings],
         );
     }

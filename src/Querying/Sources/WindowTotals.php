@@ -43,13 +43,13 @@ final readonly class WindowTotals
         }
 
         $samples = count($windows) - 1;
-        $columns = array_map(fn (int $slot): string => "sum(case when slot = {$slot} then aggregate else 0 end) as window_{$slot}", array_keys($windows));
+        $columns = implode(', ', array_map(fn (int $slot): string => "sum(case when slot = {$slot} then aggregate else 0 end) as window_{$slot}", array_keys($windows)));
         $inCurrent = 'sum(case when slot = 0 then aggregate else 0 end)';
         $inReferences = 'sum(case when slot > 0 then aggregate else 0 end)';
 
         $rows = $connection->query()
             ->fromSub($union, 'counted')
-            ->selectRaw('viewable_type, viewable_id, '.implode(', ', $columns)) // @phpstan-ignore argument.type (integers, not user input)
+            ->selectRaw("viewable_type, viewable_id, {$columns}") // @phpstan-ignore argument.type (integers, not user input)
             ->groupBy('viewable_type', 'viewable_id')
             ->havingRaw("{$inCurrent} >= ? or {$inReferences} >= ?", [$minimum, $minimum * $samples])
             ->get();

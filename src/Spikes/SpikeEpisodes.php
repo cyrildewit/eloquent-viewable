@@ -53,7 +53,7 @@ final readonly class SpikeEpisodes
     }
 
     /**
-     * The open episodes of a type, keyed by model key as a string.
+     * It reads the open episodes of a type, keyed by model key as a string.
      *
      * @return array<string, Episode>
      *
