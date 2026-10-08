@@ -9,8 +9,10 @@ The version upgrade guides for versions below `v7.0.3` are still accessible in t
 
 ## Upgrading from v8.0.0 to v9.0.0
 
-The requirements are unchanged: PHP 8.5 and Laravel 13. Most applications only need the five steps below. The sections
-after them cover behaviour changes to be aware of and what to change if you extended the package.
+The requirements are unchanged: PHP 8.5 and Laravel 13. On MySQL, version 9 needs MySQL 8.0 or newer, because the
+rollups of a dimension rank its values with a window function. MariaDB, Postgres and SQLite have one on every version
+Laravel supports. Most applications only need the five steps below. The sections after them cover behaviour changes to
+be aware of and what to change if you extended the package.
 
 ### What's new in 9.0
 
@@ -22,6 +24,8 @@ after them cover behaviour changes to be aware of and what to change if you exte
 - **Who is looking right now:** live visitor counts and a ranking of what is being read, kept in Redis and refreshed by
   a heartbeat from the page.
 - **Who viewed what:** link views to the signed-in user and ask what they have or have not seen.
+- **Where views came from:** count views by source, medium, campaign, device, country or a value of your own with
+  `countBy()`, and narrow any count with `whereDimension()`.
 - **Scale when you need to:** buffer views in Redis and land them in batches, count a page of models in one query, and
   forget cached counts on demand.
 - **Privacy:** count unique visitors without a cookie, honour Global Privacy Control and skip prefetched pages.
@@ -153,6 +157,11 @@ Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = fals
 
 Nothing is recorded in the new columns until you opt in to [recording the viewer](README.md#who-viewed-what) or pass a
 [context](README.md#storing-context-with-a-view).
+
+[Dimensions](README.md#dimensions) add no column until you list one. After listing one under
+`dimensions.definitions`, run `php artisan views:dimensions`, which writes the migration that adds its column, and
+migrate. If you publish the config by hand, add `dimensions` to `retention.anonymise.columns`, so anonymising clears
+the dimensions marked personal.
 
 ### 5. Replace `$removeViewsOnDelete` with a method
 
