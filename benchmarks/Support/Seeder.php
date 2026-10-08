@@ -29,7 +29,11 @@ use Random\Randomizer;
  *    the rows by time the way real traffic does;
  *  - one in ten views belongs to a video, so every query has to filter on
  *    the viewable type;
- *  - one in five views is in a named collection.
+ *  - one in five views is in a named collection;
+ *  - every view has a source and a device, the source from a short head and
+ *    a long tail of referring sites, so a capped rollup folds some away.
+ *    They are drawn from a generator of their own, so the other columns are
+ *    the same as without them.
  */
 final class Seeder
 {
@@ -51,7 +55,28 @@ final class Seeder
 
     private const array Collections = ['homepage', 'rss', 'newsletter', 'search'];
 
+    /**
+     * The columns of the dimensions `DimensionsBench` records with. Only the
+     * source and the device are filled.
+     */
+    public const array DimensionColumns = ['source', 'medium', 'campaign', 'device', 'country'];
+
+    /**
+     * Relative traffic per source. One view in twenty comes from one of
+     * `LongTailSites` sites of its own.
+     */
+    private const array SourceWeights = [
+        'Google' => 40, 'Direct' => 25, 'Bing' => 6, 'Facebook' => 5, 'X' => 4, 'Reddit' => 4,
+        'Hacker News' => 3, 'LinkedIn' => 3, 'newsletter' => 3, 'DuckDuckGo' => 2,
+    ];
+
+    private const int LongTailSites = 200;
+
+    private const array DeviceWeights = ['mobile' => 55, 'desktop' => 40, 'tablet' => 5];
+
     private Randomizer $random;
+
+    private Randomizer $dimensions;
 
     /**
      * Alias table for the article distribution: `$probability[$i]` is the
@@ -77,6 +102,7 @@ final class Seeder
     public function seed(DatasetSize $size, int $seed): Dataset
     {
         $this->random = new Randomizer(new Mt19937($seed));
+        $this->dimensions = new Randomizer(new Mt19937($seed + 1));
 
         Output::heading("Seeding the {$size->value} dataset on {$this->connection->getDriverName()} with seed {$seed}");
 
@@ -118,6 +144,12 @@ final class Seeder
         require_once Application::projectPath('database/migrations/create_views_table.php.stub');
 
         new \CreateViewsTable()->up();
+
+        $schema->table($this->table, function (Blueprint $blueprint): void {
+            foreach (self::DimensionColumns as $column) {
+                $blueprint->string($column, 64)->nullable();
+            }
+        });
 
         foreach (['articles', 'videos'] as $table) {
             $schema->create($table, function (Blueprint $blueprint): void {
@@ -189,6 +221,8 @@ final class Seeder
                         ? self::Collections[$this->random->getInt(0, count(self::Collections) - 1)]
                         : null,
                     'viewed_at' => gmdate(self::LabelFormat, $dayStart + $seconds),
+                    'source' => $this->drawSource(),
+                    'device' => $this->drawWeighted(self::DeviceWeights),
                 ];
 
                 if (count($rows) === self::ChunkRows) {
@@ -357,6 +391,31 @@ final class Seeder
         $bucket = $this->random->getInt(0, count($this->probability) - 1);
 
         return 1 + ($this->random->nextFloat() < $this->probability[$bucket] ? $bucket : $this->alias[$bucket]);
+    }
+
+    private function drawSource(): string
+    {
+        if ($this->dimensions->getInt(1, 20) === 1) {
+            return 'site-'.$this->dimensions->getInt(1, self::LongTailSites).'.example';
+        }
+
+        return $this->drawWeighted(self::SourceWeights);
+    }
+
+    /** @param  array<string, int>  $weights */
+    private function drawWeighted(array $weights): string
+    {
+        $draw = $this->dimensions->getInt(1, array_sum($weights));
+
+        foreach ($weights as $value => $weight) {
+            $draw -= $weight;
+
+            if ($draw <= 0) {
+                return $value;
+            }
+        }
+
+        return array_key_last($weights);
     }
 
     /**

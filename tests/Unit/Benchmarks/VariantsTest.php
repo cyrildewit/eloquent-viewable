@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Benchmarks\Dimensions\DimensionsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\AnonymiseViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\DetectSpikesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\PruneViewsBench;
@@ -67,6 +68,7 @@ it('finds every benchmark class in path order', function (): void {
     $classes = array_map(fn (Benchmark $benchmark): string => $benchmark->class, Variants::discover()->all());
 
     expect($classes)->toBe([
+        DimensionsBench::class,
         AnonymiseViewsBench::class,
         DetectSpikesBench::class,
         PruneViewsBench::class,
@@ -108,6 +110,7 @@ it('filters the benchmarks on their group', function (): void {
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
         ->and($names('rollup'))->toBe(['FoldViewsBench', 'RollupReadsBench'])
         ->and($names('maintenance'))->toBe(['AnonymiseViewsBench', 'DetectSpikesBench', 'PruneViewsBench', 'RecountViewsBench'])
+        ->and($names('dimensions'))->toBe(['DimensionsBench'])
         ->and($names('missing'))->toBeEmpty();
 });
 
