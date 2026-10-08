@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Milestones\Console;
 
-use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Milestones\Actions\CheckMilestones;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 
@@ -48,7 +46,6 @@ final class SeedMilestonesCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @return ?class-string<Model&Viewable> */
     private function model(): ?string
     {
         $model = $this->argument('model');
