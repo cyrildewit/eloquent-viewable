@@ -31,7 +31,7 @@ final class SeedMilestonesCommand extends Command
 
         $only = $this->model();
 
-        if ($only !== null && ! array_key_exists($only, $configured)) {
+        if ($this->isUnconfigured($only, $configured)) {
             $this->components->error("The `{$only}` model has no thresholds in `milestones.thresholds`.");
 
             return self::FAILURE;
@@ -44,6 +44,16 @@ final class SeedMilestonesCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /** @param  array<string, mixed>  $configured */
+    private function isUnconfigured(?string $only, array $configured): bool
+    {
+        if ($only === null) {
+            return false;
+        }
+
+        return ! array_key_exists($only, $configured);
     }
 
     private function model(): ?string

@@ -469,9 +469,9 @@ final readonly class Config
     }
 
     /**
-     * The counter columns that hold a hot score instead of a count, by class
-     * and column. Their count is the one the other options of the column
-     * describe.
+     * It returns the counter columns that hold a hot score instead of a
+     * count, by class and column. Their count is the one the other options of
+     * the column describe.
      *
      * @return array<class-string<Model&Viewable>, array<string, HotScore>>
      *
@@ -509,8 +509,8 @@ final readonly class Config
     }
 
     /**
-     * The thresholds of each counter column, in ascending order. Every column
-     * is a counter column without a period.
+     * It returns the thresholds of each counter column, in ascending order.
+     * Every column is a counter column without a period or a hot score.
      *
      * @return array<class-string<Model&Viewable>, array<string, non-empty-list<int>>>
      *
@@ -572,7 +572,8 @@ final readonly class Config
     }
 
     /**
-     * The options of each model class to watch for spikes, read as given.
+     * It returns the options of each model class to watch for spikes, as
+     * given. `Spikes\SpikeSettings` reads them.
      *
      * @return array<class-string<Model&Viewable>, array<string, mixed>>
      *
@@ -1041,8 +1042,8 @@ final readonly class Config
     }
 
     /**
-     * `true` for the defaults, the name of the timestamp column, or `from`
-     * and `every` options.
+     * The option is `true` for the defaults, the name of the timestamp
+     * column, or `from` and `every` options.
      *
      * @throws InvalidConfiguration
      */

@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
- * An event that names a model by its morph type and key, so a queued listener
- * loads it under its own rules and one deleted since is null.
+ * An event with this trait names a model by its morph type and key, so a
+ * queued listener loads it under its own rules and one deleted since is null.
  *
  * @property-read string $type
  * @property-read int|string $key

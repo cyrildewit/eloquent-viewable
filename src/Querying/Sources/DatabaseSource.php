@@ -310,7 +310,7 @@ final readonly class DatabaseSource implements CountsByDimension, CountsByWindow
     }
 
     /**
-     * The views of each viewable in the period of the query, as
+     * It counts the views of each viewable in the period of the query, as
      * `viewable_type`, `viewable_id` and `aggregate`.
      *
      * @internal

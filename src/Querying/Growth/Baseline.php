@@ -8,9 +8,9 @@ use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
 
 /**
- * A baseline holds a count and the counts of the windows it is compared
- * with, and says how far the count lies from what those windows lead to
- * expect.
+ * A baseline holds the count of a window and the counts of the windows it is
+ * compared with, the closest first, and says how far the count lies from what
+ * those windows lead to expect.
  *
  * @implements Arrayable<string, int|float|list<int>>
  */
@@ -20,10 +20,7 @@ final readonly class Baseline implements Arrayable, JsonSerializable
 
     public float $stddev;
 
-    /**
-     * @param  int  $current  the count of the window itself
-     * @param  non-empty-list<int>  $references  the counts of the windows it is compared with, the closest first
-     */
+    /** @param  non-empty-list<int>  $references */
     public function __construct(
         public int $current,
         public array $references,

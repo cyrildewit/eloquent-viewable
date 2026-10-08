@@ -245,9 +245,9 @@ final readonly class Reader
     }
 
     /**
-     * Ranked by how many times its count in the period the count of the
-     * period before is, highest first. Only what grew and reached the minimum
-     * in either period is ranked.
+     * It ranks by how many times the count of the period before the count in
+     * the period is, highest first. Only what grew and reached the minimum in
+     * either period is ranked.
      *
      * @throws InvalidBaseline
      * @throws InvalidLimit
@@ -263,7 +263,7 @@ final readonly class Reader
     }
 
     /**
-     * Ranked by how many deviations its count in the period lies from the
+     * It ranks by how many deviations the count in the period lies from the
      * same period on past days or weeks. A positive threshold ranks spikes,
      * highest first, a negative one drops, lowest first.
      *
@@ -281,8 +281,8 @@ final readonly class Reader
     }
 
     /**
-     * The count in the period next to the counts of the same period on past
-     * days or weeks, each remembered under its own key.
+     * It returns the count in the period next to the counts of the same
+     * period on past days or weeks, each remembered under its own key.
      *
      * @throws InvalidBaseline
      * @throws InvalidPeriod
