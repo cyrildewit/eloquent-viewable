@@ -133,7 +133,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     {
         $given = self::describe($value);
 
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period` and `collection`, {$given} given.");
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period`, `collection` and `hot`, {$given} given.");
     }
 
     public static function mustBeMilestones(string $key, mixed $value): self
@@ -151,6 +151,23 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     public static function milestoneOnPeriod(string $class, string $column): self
     {
         return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which counts a period. A count over a period goes up and down, so it cannot cross a milestone once.");
+    }
+
+    public static function mustBeHotScore(string $column, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `hot` option of the `{$column}` counter column in `eloquent-viewable.querying.counters` must be `true`, the name of a timestamp column, or `from` and `every` options such as `['from' => 'published_at', 'every' => '12h']`, {$given} given.");
+    }
+
+    public static function milestoneOnHotScore(string $class, string $column): self
+    {
+        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which holds a hot score rather than a count.");
+    }
+
+    public static function withoutHotScore(string $class): self
+    {
+        return new self("`{$class}` has no counter column with the `hot` option in `eloquent-viewable.querying.counters`, so orderByHot() has nothing to order by.");
     }
 
     public static function mustBeSpikes(string $key, mixed $value): self

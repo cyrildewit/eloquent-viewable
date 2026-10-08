@@ -386,6 +386,51 @@ it('rejects counters that are not viewable models mapped to columns', function (
     'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],
 ]);
 
+describe('hot scores', function (): void {
+    it('reads the hot option of a counter column', function (): void {
+        $config = packageConfig(['querying' => ['counters' => [Post::class => [
+            'views_count',
+            'hot' => ['hot' => true],
+            'fresh' => ['hot' => 'published_at', 'unique' => true],
+            'slow' => ['hot' => ['from' => 'published_at', 'every' => '1d']],
+        ]]]]);
+
+        $scores = $config->hotScores()[Post::class];
+
+        expect(array_keys($scores))->toBe(['hot', 'fresh', 'slow'])
+            ->and($scores['hot']->signature())->toBe('created_at:12h')
+            ->and($scores['fresh']->signature())->toBe('published_at:12h')
+            ->and($scores['slow']->signature())->toBe('published_at:1d')
+            ->and(array_keys($config->counters()[Post::class]))->toBe(['views_count', 'hot', 'fresh', 'slow'])
+            ->and(packageConfig()->hotScores())->toBeEmpty();
+    });
+
+    it('rejects a hot option it cannot use', function (mixed $hot): void {
+        $config = packageConfig(['querying' => ['counters' => [Post::class => ['hot' => ['hot' => $hot]]]]]);
+
+        expect(fn (): array => $config->hotScores())
+            ->toThrow(InvalidConfiguration::class, 'The `hot` option of the `hot` counter column in `eloquent-viewable.querying.counters` must be');
+    })->with([
+        'false' => [false],
+        'an integer' => [1],
+        'an empty column' => [''],
+        'unknown option' => [['decay' => '1d']],
+        'from not a string' => [['from' => 1]],
+        'every not a duration' => [['every' => 'soon']],
+        'every not a string' => [['every' => 12]],
+    ]);
+
+    it('rejects a milestone on a hot score', function (): void {
+        $config = packageConfig([
+            'querying' => ['counters' => [Post::class => ['hot' => ['hot' => true]]]],
+            'milestones' => ['thresholds' => [Post::class => ['hot' => [100]]]],
+        ]);
+
+        expect(fn (): array => $config->milestones())
+            ->toThrow(InvalidConfiguration::class, 'which holds a hot score rather than a count');
+    });
+});
+
 describe('milestones', function (): void {
     it('reads the thresholds of counter columns without a period', function (): void {
         $config = packageConfig([
