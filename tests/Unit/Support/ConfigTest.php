@@ -386,6 +386,85 @@ it('rejects counters that are not viewable models mapped to columns', function (
     'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],
 ]);
 
+describe('milestones', function (): void {
+    it('reads the thresholds of counter columns without a period', function (): void {
+        $config = packageConfig([
+            'querying' => ['counters' => [Post::class => ['views_count', 'unique' => ['unique' => true, 'collection' => 'featured']]]],
+            'milestones' => ['table' => 'post_milestones', 'thresholds' => [Post::class => [
+                'views_count' => [100, 1_000],
+                'unique' => [10],
+            ]]],
+        ]);
+
+        expect($config->milestones())->toBe([Post::class => ['views_count' => [100, 1_000], 'unique' => [10]]])
+            ->and($config->milestonesTable())->toBe('post_milestones')
+            ->and(packageConfig()->milestones())->toBeEmpty();
+    });
+
+    it('rejects thresholds that are not ascending lists of integers', function (mixed $value): void {
+        $config = packageConfig([
+            'querying' => ['counters' => [Post::class => ['views_count']]],
+            'milestones' => ['thresholds' => $value],
+        ]);
+
+        expect(fn (): array => $config->milestones())
+            ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.milestones.thresholds` config value must map viewable model classes to their counter columns, each with a list of thresholds in ascending order');
+    })->with([
+        'string' => ['views_count'],
+        'a class by number' => [[[100]]],
+        'columns not a map' => [[Post::class => 'views_count']],
+        'no columns' => [[Post::class => []]],
+        'thresholds not a list' => [[Post::class => ['views_count' => 100]]],
+        'thresholds keyed' => [[Post::class => ['views_count' => ['first' => 100]]]],
+        'no thresholds' => [[Post::class => ['views_count' => []]]],
+        'a threshold not an integer' => [[Post::class => ['views_count' => ['100']]]],
+        'not ascending' => [[Post::class => ['views_count' => [1_000, 100]]]],
+        'a threshold of zero' => [[Post::class => ['views_count' => [0, 100]]]],
+    ]);
+
+    it('rejects a column that is not a counter column', function (): void {
+        $config = packageConfig([
+            'querying' => ['counters' => [Post::class => ['views_count']]],
+            'milestones' => ['thresholds' => [Post::class => ['likes' => [100]]]],
+        ]);
+
+        expect(fn (): array => $config->milestones())
+            ->toThrow(InvalidConfiguration::class, 'names the `likes` column of `'.Post::class.'`, which is not one of its counter columns');
+    });
+
+    it('rejects a counter column over a period', function (): void {
+        $config = packageConfig([
+            'querying' => ['counters' => [Post::class => ['weekly' => ['period' => '7d']]]],
+            'milestones' => ['thresholds' => [Post::class => ['weekly' => [100]]]],
+        ]);
+
+        expect(fn (): array => $config->milestones())
+            ->toThrow(InvalidConfiguration::class, 'names the `weekly` column of `'.Post::class.'`, which counts a period');
+    });
+});
+
+describe('spikes', function (): void {
+    it('reads the options of each model as given', function (): void {
+        $config = packageConfig(['spikes' => ['table' => 'post_spikes', 'types' => [Post::class => ['window' => '1h', 'drops' => true]]]]);
+
+        expect($config->spikes())->toBe([Post::class => ['window' => '1h', 'drops' => true]])
+            ->and($config->spikesTable())->toBe('post_spikes')
+            ->and(packageConfig()->spikes())->toBeEmpty();
+    });
+
+    it('rejects anything but viewable models mapped to known options', function (mixed $value): void {
+        expect(fn (): array => packageConfig(['spikes' => ['types' => $value]])->spikes())
+            ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.spikes.types` config value must map viewable model classes to options of');
+    })->with([
+        'string' => ['posts'],
+        'a class by number' => [[['window' => '1h']]],
+        'not a model' => [[Config::class => []]],
+        'not a viewable' => [[SoftDeletableView::class => []]],
+        'options not a map' => [[Post::class => '1h']],
+        'unknown option' => [[Post::class => ['period' => '1h']]],
+    ]);
+});
+
 describe('trending', function (): void {
     it('reads the trending settings', function (): void {
         $config = packageConfig(['querying' => ['trending' => [

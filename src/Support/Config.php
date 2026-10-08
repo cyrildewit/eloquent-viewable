@@ -469,6 +469,115 @@ final readonly class Config
     }
 
     /** @throws InvalidConfiguration */
+    public function milestonesTable(): string
+    {
+        return $this->nonEmptyString('milestones.table');
+    }
+
+    /**
+     * The thresholds of each counter column, in ascending order. Every column
+     * is a counter column without a period.
+     *
+     * @return array<class-string<Model&Viewable>, array<string, non-empty-list<int>>>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    public function milestones(): array
+    {
+        $value = $this->get('milestones.thresholds', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $value);
+        }
+
+        $counters = $value === [] ? [] : $this->counters();
+        $milestones = [];
+
+        foreach ($value as $class => $columns) {
+            if (! is_string($class)) {
+                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
+            }
+
+            if (! is_array($columns)) {
+                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
+            }
+
+            if ($columns === []) {
+                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
+            }
+
+            foreach ($columns as $column => $thresholds) {
+                $query = $counters[$class][$column] ?? null;
+
+                if (! $query instanceof ViewsQuery) {
+                    throw InvalidConfiguration::milestoneWithoutCounter($class, (string) $column);
+                }
+
+                if ($query->period instanceof Period) {
+                    throw InvalidConfiguration::milestoneOnPeriod($class, (string) $column);
+                }
+
+                /** @var class-string<Model&Viewable> $class */
+                $milestones[$class][(string) $column] = $this->thresholds($thresholds);
+            }
+        }
+
+        return $milestones;
+    }
+
+    /** @throws InvalidConfiguration */
+    public function spikesTable(): string
+    {
+        return $this->nonEmptyString('spikes.table');
+    }
+
+    /**
+     * The options of each model class to watch for spikes, read as given.
+     *
+     * @return array<class-string<Model&Viewable>, array<string, mixed>>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function spikes(): array
+    {
+        $value = $this->get('spikes.types', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeSpikes('spikes.types', $value);
+        }
+
+        $spikes = [];
+
+        foreach ($value as $class => $options) {
+            if (! is_string($class)) {
+                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
+            }
+
+            if (! is_a($class, Model::class, true)) {
+                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
+            }
+
+            if (! is_a($class, Viewable::class, true)) {
+                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
+            }
+
+            if (! is_array($options)) {
+                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
+            }
+
+            if (array_diff(array_keys($options), ['window', 'seasonality', 'samples', 'threshold', 'minimum', 'drops', 'cooldown']) !== []) {
+                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
+            }
+
+            /** @var array<string, mixed> $options */
+            $spikes[$class] = $options;
+        }
+
+        return $spikes;
+    }
+
+    /** @throws InvalidConfiguration */
     public function anonymiseAfter(): ?Duration
     {
         return $this->duration('retention.anonymise.after');
@@ -854,6 +963,42 @@ final readonly class Config
             $collection,
             (bool) ($options['unique'] ?? false),
         );
+    }
+
+    /**
+     * @return non-empty-list<int>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function thresholds(mixed $thresholds): array
+    {
+        if (! is_array($thresholds)) {
+            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
+        }
+
+        if (! array_is_list($thresholds)) {
+            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
+        }
+
+        if ($thresholds === []) {
+            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
+        }
+
+        $previous = 0;
+
+        foreach ($thresholds as $threshold) {
+            if (! is_int($threshold)) {
+                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $threshold);
+            }
+
+            if ($threshold <= $previous) {
+                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $threshold);
+            }
+
+            $previous = $threshold;
+        }
+
+        return $thresholds;
     }
 
     /** @throws InvalidConfiguration */
