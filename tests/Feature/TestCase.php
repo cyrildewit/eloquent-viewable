@@ -62,6 +62,10 @@ abstract class TestCase extends OrchestraTestCase
 
         new \CreateViewsTable()->up();
 
+        require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194719_add_dimension_columns_to_views_table.php';
+
+        new \AddDimensionColumnsToViewsTable()->up();
+
         require_once __DIR__.'/../../database/migrations/create_view_retention_state_table.php.stub';
 
         new \CreateViewRetentionStateTable()->up();

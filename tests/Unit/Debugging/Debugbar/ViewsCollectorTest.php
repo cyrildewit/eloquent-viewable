@@ -138,3 +138,13 @@ it('shows whether the visitor was kept active', function (): void {
         ->present
         ->toContain('true');
 });
+
+it('shows the value of every dimension the view was given', function (): void {
+    $collector = new ViewsCollector;
+
+    $collector->addAttempt(attemptedView(RecordResult::stored()->withDimensions(['source' => 'Hacker News', 'device' => null])));
+
+    expect(onlyMessage($collector)['context'])
+        ->dimensions
+        ->toContain('Hacker News');
+});

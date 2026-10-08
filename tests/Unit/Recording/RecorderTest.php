@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
@@ -30,9 +32,11 @@ use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\Encrypter;
+use Illuminate\Http\Request;
 
 const RECORDER_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
@@ -41,7 +45,7 @@ const RECORDER_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
  * @param  array<string, mixed>  $queue
  * @param  array<string, mixed>  $presenceConfig
  */
-function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie', ?PresenceStore $presence = null, array $presenceConfig = []): Recorder
+function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie', ?PresenceStore $presence = null, array $presenceConfig = [], ?DimensionRegistry $dimensions = null): Recorder
 {
     $config = new Config(new Repository([
         'eloquent-viewable' => [
@@ -59,6 +63,7 @@ function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array
         $action,
         new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC'), new Fingerprint($config, Mockery::mock(CacheFactory::class))),
         $presence ?? new ArrayPresenceStore,
+        new DimensionResolver($dimensions ?? new DimensionRegistry, $config, Request::create('https://example.com/posts/1'), Mockery::mock(ExceptionHandler::class)),
     );
 }
 

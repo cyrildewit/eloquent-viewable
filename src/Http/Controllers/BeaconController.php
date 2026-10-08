@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Http\Controllers;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\Arrival;
 use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Views;
@@ -24,6 +25,12 @@ use Illuminate\Routing\UrlGenerator;
 final readonly class BeaconController
 {
     use FindsViewables;
+
+    /**
+     * How long the referrer and the landing query the script posts may be. A
+     * longer one is cut, which costs no more than a dimension cut short.
+     */
+    private const int MaxPostedLength = 2_048;
 
     public function __construct(
         private Container $container,
@@ -55,11 +62,18 @@ final readonly class BeaconController
     /**
      * The options were signed along with the model, so they are as the page
      * printed them. An option the URL leaves out is not set at all, so the
-     * config still decides it.
+     * config still decides it. The referrer and the landing page come from
+     * the body, never from the signed query, so the signature stays the same
+     * for every visitor.
      */
     private function views(Request $request): Views
     {
         $views = $this->container->make(Views::class);
+
+        $views->arrivedFrom(Arrival::fromUrls(
+            $this->posted($request, 'referrer'),
+            $this->posted($request, 'landing'),
+        ));
 
         if ($request->query->has('collection')) {
             $views->collection($request->query->getString('collection'));
@@ -74,6 +88,21 @@ final readonly class BeaconController
         }
 
         return $views;
+    }
+
+    /**
+     * Read through `all()`, because asking the input bag for a value a visitor
+     * posted as an array throws.
+     */
+    private function posted(Request $request, string $key): ?string
+    {
+        $value = $request->request->all()[$key] ?? null;
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        return substr($value, 0, self::MaxPostedLength);
     }
 
     private function respond(int $status): Response

@@ -53,6 +53,18 @@ class ViewFactory extends Factory
         return $this->state(['context' => $context]);
     }
 
+    /**
+     * The values of dimensions kept in a column, by name, such as
+     * `['source' => 'Google']`. A dimension kept in `context` is set through
+     * `withContext()`.
+     *
+     * @param  array<string, ?string>  $dimensions
+     */
+    public function withDimensions(array $dimensions): static
+    {
+        return $this->state($dimensions);
+    }
+
     public function viewedAt(DateTimeInterface $viewedAt): static
     {
         return $this->state(['viewed_at' => $viewedAt]);

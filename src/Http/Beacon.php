@@ -91,6 +91,10 @@ final readonly class Beacon
      * A prerendered page waits until it is shown, so a page the browser only
      * prepared in case it is visited records nothing.
      *
+     * The view carries the referrer of the page and its `utm_` and `ref`
+     * parameters, which the dimensions read, because the request the beacon
+     * makes is not the page's own. Other parameters never leave the browser.
+     *
      * A live script also keeps the visitor active: once the view is posted it
      * sends a heartbeat every `presence.heartbeat` seconds while the page is
      * visible, pauses while it is hidden, and lets the visitor go when the
@@ -121,9 +125,10 @@ final readonly class Beacon
         return new HtmlString(<<<HTML
             <script>
             (function (url) {
+                {$this->arrivalScript()}
                 var send = function () {
-                    if (navigator.sendBeacon && navigator.sendBeacon(url)) return;
-                    fetch(url, { method: 'POST', keepalive: true, credentials: 'same-origin' });
+                    if (navigator.sendBeacon && navigator.sendBeacon(url, arrival())) return;
+                    fetch(url, { method: 'POST', keepalive: true, credentials: 'same-origin', body: arrival() });
                 };
                 if (document.prerendering) {
                     document.addEventListener('prerenderingchange', send, { once: true });
@@ -145,9 +150,10 @@ final readonly class Beacon
         return new HtmlString(<<<HTML
             <script>
             (function (url, live) {
+                {$this->arrivalScript()}
                 var timer = null;
-                var post = function (target) {
-                    return fetch(target, { method: 'POST', keepalive: true, credentials: 'same-origin' });
+                var post = function (target, body) {
+                    return fetch(target, { method: 'POST', keepalive: true, credentials: 'same-origin', body: body });
                 };
                 var show = function (response) {
                     if (response.status !== 200) return;
@@ -177,7 +183,7 @@ final readonly class Beacon
                     post(live.leave);
                 };
                 var start = function () {
-                    post(url).then(resume, resume);
+                    post(url, arrival()).then(resume, resume);
                     document.addEventListener('visibilitychange', function () {
                         if (document.hidden) {
                             pause();
@@ -198,6 +204,26 @@ final readonly class Beacon
             })({$url}, {$live});
             </script>
             HTML);
+    }
+
+    /**
+     * Defines `arrival()`, which builds the body of the view: the referrer
+     * and the tracked parameters of the page's query string.
+     */
+    private function arrivalScript(): string
+    {
+        return <<<'JS'
+            var arrival = function () {
+                    var landing = new URLSearchParams();
+                    new URLSearchParams(location.search).forEach(function (value, key) {
+                        if (key === 'ref' || key.indexOf('utm_') === 0) landing.append(key, value);
+                    });
+                    var body = new URLSearchParams();
+                    body.append('referrer', document.referrer);
+                    body.append('landing', landing.toString());
+                    return body;
+                };
+            JS;
     }
 
     /**

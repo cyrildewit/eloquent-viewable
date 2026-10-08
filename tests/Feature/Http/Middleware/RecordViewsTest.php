@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
@@ -212,4 +214,18 @@ it('passes a request without a route through', function (): void {
 
     expect($response->getContent())->toBe('ok')
         ->and(View::count())->toBe(0);
+});
+
+it('reads the dimensions from the request of the page', function (): void {
+    config()->set('eloquent-viewable.dimensions.definitions', [
+        'source' => Source::class,
+        'campaign' => Campaign::class,
+    ]);
+    viewsRoute('/posts/{post}', action: fn (Post $post): string => 'ok');
+
+    $this->get("/posts/{$this->post->getKey()}?utm_campaign=Launch", ['Referer' => 'https://t.co/abc'])->assertOk();
+
+    expect(View::sole())
+        ->getAttribute('source')->toBe('X')
+        ->getAttribute('campaign')->toBe('launch');
 });

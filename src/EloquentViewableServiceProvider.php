@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDet
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
 use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
 use CyrildeWit\EloquentViewable\Doctor\Sampling\GuardSamples;
@@ -404,6 +405,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $app->make(RecordsViewsContract::class),
                 $app->make(VisitorIdentity::class),
                 $app->make(PresenceStore::class),
+                $app->make(DimensionResolver::class),
             );
         });
 

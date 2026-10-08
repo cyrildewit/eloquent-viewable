@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\EloquentViewableServiceProvider;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
@@ -137,6 +139,50 @@ describe('recording', function (): void {
     });
 });
 
+describe('dimensions', function (): void {
+    beforeEach(function (): void {
+        enableBeacon();
+
+        config()->set('app.url', 'https://example.com');
+        config()->set('eloquent-viewable.dimensions.definitions', [
+            'source' => Source::class,
+            'campaign' => Campaign::class,
+        ]);
+    });
+
+    it('reads the referrer and landing page the script posts, not the request', function (): void {
+        $this->post(
+            beaconUrl($this->post),
+            ['referrer' => 'https://news.ycombinator.com/item?id=1', 'landing' => 'utm_campaign=Launch'],
+            ['Referer' => 'https://example.com/posts/1'],
+        )->assertNoContent();
+
+        expect(View::sole())
+            ->getAttribute('source')->toBe('Hacker News')
+            ->getAttribute('campaign')->toBe('launch');
+    });
+
+    it('reads a view without a body as direct', function (): void {
+        $this->post(beaconUrl($this->post), headers: ['Referer' => 'https://news.ycombinator.com/'])->assertNoContent();
+
+        expect(View::sole()->getAttribute('source'))->toBe('Direct');
+    });
+
+    it('keeps only the tracked parameters of the landing page', function (): void {
+        $this->post(beaconUrl($this->post), ['landing' => 'token=secret&ref=hn&utm_campaign[]=nested'])->assertNoContent();
+
+        expect(View::sole())
+            ->getAttribute('source')->toBe('Hacker News')
+            ->getAttribute('campaign')->toBeNull();
+    });
+
+    it('cuts what the script posts at a length', function (): void {
+        $this->post(beaconUrl($this->post), ['landing' => str_repeat('x', 2_048).'&utm_source=late', 'referrer' => ['not', 'a', 'string']])->assertNoContent();
+
+        expect(View::sole()->getAttribute('source'))->toBe('Direct');
+    });
+});
+
 describe('refusing', function (): void {
     beforeEach(fn () => enableBeacon());
 
@@ -239,7 +285,12 @@ describe('script', function (): void {
         $url = json_encode(beaconUrl($this->post), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
 
         expect($script)->toStartWith('<script>')
-            ->toContain("})({$url});", 'navigator.sendBeacon(url)', 'keepalive: true', 'prerenderingchange');
+            ->toContain("})({$url});", 'navigator.sendBeacon(url, arrival())', 'keepalive: true', 'prerenderingchange');
+    });
+
+    it('posts the referrer and only the tracked parameters of the page', function (): void {
+        expect(app(Beacon::class)->script($this->post)->toHtml())
+            ->toContain("body.append('referrer', document.referrer);", "key === 'ref' || key.indexOf('utm_') === 0", 'body: arrival()');
     });
 
     it('cannot be closed early by an option', function (): void {

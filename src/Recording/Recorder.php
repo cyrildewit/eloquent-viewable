@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Recording;
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
@@ -38,12 +39,17 @@ final readonly class Recorder
         private RecordsViews $action,
         private VisitorIdentity $identity,
         private PresenceStore $presence,
+        private DimensionResolver $dimensions,
     ) {}
 
     /**
      * A guard that limits repeats, such as the cooldown, does not stop the
      * other guards from being asked, so the view is only skipped by it once
      * every other guard allowed it. The visitor is then still kept active.
+     *
+     * The dimensions are resolved once every guard has allowed the view, so
+     * a skipped view costs nothing, and before it is queued, because the
+     * request is gone by the time a worker stores it.
      *
      * @throws RecordingFailed
      */
@@ -79,6 +85,7 @@ final readonly class Recorder
 
         $viewer = $attempt->viewer;
         $visitor = $this->identity->of($attempt->visitor, $viewer);
+        $dimensions = $this->dimensions->resolve($attempt->visitor, $attempt->viewable, $attempt->collection, $attempt->context, $attempt->arrival);
 
         $record = new ViewRecord(
             viewableId: $key,
@@ -88,7 +95,8 @@ final readonly class Recorder
             viewedAt: Carbon::now(),
             viewerType: $viewer?->getMorphClass(),
             viewerId: $viewer instanceof Model ? ViewerKey::of($viewer) : null,
-            context: $attempt->context,
+            context: $dimensions->context($attempt->context),
+            dimensions: $dimensions->columns(),
         );
 
         $result = $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
@@ -101,7 +109,7 @@ final readonly class Recorder
 
         $present = $this->sight($attempt, $key, $visitor);
 
-        return $this->attempted($attempt, $result->withPresence($present));
+        return $this->attempted($attempt, $result->withPresence($present)->withDimensions($dimensions->all()));
     }
 
     /**

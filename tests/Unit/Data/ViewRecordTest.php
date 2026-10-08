@@ -102,7 +102,24 @@ it('flattens to a payload of scalars', function (): void {
         'collection' => null,
         'context' => '{"source":"newsletter"}',
         'viewed_at' => '2021-01-01T12:30:00+01:00',
+        'dimensions' => null,
     ]);
+});
+
+it('carries its dimensions as one key of the payload and as columns of the row', function (): void {
+    $record = new ViewRecord(
+        viewableId: 1,
+        viewableType: 'posts',
+        visitor: 'visitor_one',
+        collection: null,
+        viewedAt: Carbon::parse('2021-01-01 12:30:00', 'UTC'),
+        dimensions: ['source' => 'Google', 'campaign' => null],
+    );
+
+    expect($record->toPayload()['dimensions'])->toBe('{"source":"Google","campaign":null}')
+        ->and($record->toArray())->toMatchArray(['source' => 'Google', 'campaign' => null])
+        ->and(ViewRecord::fromPayload($record->toPayload())->dimensions)->toBe(['source' => 'Google', 'campaign' => null])
+        ->and(ViewRecord::fromPayload([...$record->toPayload(), 'dimensions' => ['source' => 'Bing']])->dimensions)->toBe(['source' => 'Bing']);
 });
 
 it('round-trips through its payload', function (): void {
@@ -162,7 +179,8 @@ it('rebuilds from a payload without the viewer and the context', function (): vo
 
     expect($restored->viewerType)->toBeNull()
         ->and($restored->viewerId)->toBeNull()
-        ->and($restored->context)->toBeNull();
+        ->and($restored->context)->toBeNull()
+        ->and($restored->dimensions)->toBeEmpty();
 });
 
 it('accepts a context that was not flattened', function (): void {
