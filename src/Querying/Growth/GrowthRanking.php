@@ -60,15 +60,30 @@ final readonly class GrowthRanking
             throw InvalidBaseline::thresholdOfZero();
         }
 
-        $period = $query->period ?? throw InvalidBaseline::withoutStart();
-        $references = $seasonality->references($period, $samples);
-
         $rows = array_filter(
-            $this->rows($source->countByWindow($viewable, $query, $references, $minimum), fn (Baseline $baseline): float => $baseline->zScore()),
+            $this->zScores($source, $viewable, $query, $seasonality, $samples, $minimum),
             fn (array $row): bool => $threshold > 0 ? $row['score'] >= $threshold : $row['score'] <= $threshold,
         );
 
         return $this->ranked($rows, descending: $threshold > 0, limit: $limit);
+    }
+
+    /**
+     * Score every viewable that reached the minimum by its z-score against
+     * the same period on past days or weeks, in no order. Spikes and drops
+     * come from the same rows, so a caller after both reads them once.
+     *
+     * @return list<GrowthRow>
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidPeriod
+     */
+    public function zScores(CountsByWindow $source, ?Viewable $viewable, ViewsQuery $query, Seasonality $seasonality, int $samples, int $minimum): array
+    {
+        $period = $query->period ?? throw InvalidBaseline::withoutStart();
+        $references = $seasonality->references($period, $samples);
+
+        return $this->rows($source->countByWindow($viewable, $query, $references, $minimum), fn (Baseline $baseline): float => $baseline->zScore());
     }
 
     /**
