@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions;
 
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use Exception;
 
@@ -22,6 +23,29 @@ final class ResolutionUnavailable extends Exception implements EloquentViewableE
     public static function otherTimezone(string $series, string $rollups): self
     {
         return new self("A series in `{$series}` cannot be built exactly from rollup buckets aligned to `{$rollups}`. Count by interval in `{$rollups}`, or turn `retention.rollups.strict` off to place a bucket by its start.");
+    }
+
+    /** @param  non-empty-list<string>  $dimensions */
+    public static function dimensionHistory(array $dimensions, CarbonInterface $pruned): self
+    {
+        return new self(self::dimensionHistoryMessage($dimensions, $pruned));
+    }
+
+    /**
+     * Shared with `UnsupportedBySource`, which says the same outside strict
+     * mode.
+     *
+     * @param  non-empty-list<string>  $dimensions
+     */
+    public static function dimensionHistoryMessage(array $dimensions, CarbonInterface $pruned): string
+    {
+        $names = implode('` and `', $dimensions);
+        $since = $pruned->toDateTimeString();
+        $reason = count($dimensions) > 1
+            ? 'no rollup keeps two dimensions together'
+            : "the `views:{$dimensions[0]}` rollup cannot answer it: list `{$dimensions[0]}` under `retention.rollups.dimensions`, and count unique visitors one value at a time";
+
+        return "A count by `{$names}` reads the views table, which no longer holds the views before {$since}, and {$reason}. Start the period on or after {$since}.";
     }
 
     public static function trendingStep(string $step): self

@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -19,6 +20,12 @@ use Illuminate\Support\Carbon;
 final readonly class RollupPolicy
 {
     public const string BuiltIn = 'views';
+
+    /**
+     * The rollup of a dimension is named after it, behind a prefix no custom
+     * rollup can use, such as `views:source`.
+     */
+    public const string DimensionPrefix = 'views:';
 
     private const array Tiers = ['hour', 'day', 'month', 'year'];
 
@@ -79,6 +86,10 @@ final readonly class RollupPolicy
             );
         }
 
+        foreach (self::dimensions($config, $tiers) as $definition) {
+            $definitions[] = $definition;
+        }
+
         foreach ($config->customRollups() as $class) {
             $definition = self::define($class);
 
@@ -132,6 +143,14 @@ final readonly class RollupPolicy
         return $tier->floor($this->settle?->before($now) ?? $now, $this->timezone);
     }
 
+    /**
+     * The rollup that folds the dimension, or null when it is not folded.
+     */
+    public function forDimension(string $name): ?RollupDefinition
+    {
+        return $this->find(self::DimensionPrefix.$name);
+    }
+
     public function for(ViewsQuery $query): ?RollupDefinition
     {
         if (! $query->filter instanceof FiltersViews) {
@@ -168,6 +187,48 @@ final readonly class RollupPolicy
         }
 
         return new Timezone($timezone);
+    }
+
+    /**
+     * A definition per dimension in `retention.rollups.dimensions`, with the
+     * tiers and groupings of the built-in rollup. The dimensions are only
+     * built when one is folded, so a policy read at boot costs nothing more
+     * without them.
+     *
+     * @param  array<'hour'|'day'|'month'|'year', ?Duration>  $tiers
+     * @return list<RollupDefinition>
+     *
+     * @throws InvalidConfiguration
+     */
+    private static function dimensions(Config $config, array $tiers): array
+    {
+        $names = $config->rollupDimensions();
+
+        if ($names === []) {
+            return [];
+        }
+
+        if ($tiers === []) {
+            throw InvalidConfiguration::dimensionsWithoutTiers();
+        }
+
+        $registry = DimensionRegistry::fromConfig($config, Container::getInstance());
+        $groupings = array_map(Grouping::from(...), $config->rollupGroupings());
+        $definitions = [];
+
+        foreach (array_unique($names) as $name) {
+            $dimension = $registry->find($name) ?? throw InvalidConfiguration::unknownDimension('retention.rollups.dimensions', $name);
+
+            $definitions[] = new RollupDefinition(
+                self::DimensionPrefix.$name,
+                self::ordered($tiers),
+                $groupings,
+                dimension: $dimension->target(),
+                maxValues: $dimension->maxValues(),
+            );
+        }
+
+        return $definitions;
     }
 
     /**
