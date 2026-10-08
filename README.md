@@ -44,6 +44,7 @@
         <li><a href="#ordering-and-filtering-models-by-view-count">Ordering and filtering models by view count</a></li>
         <li><a href="#most-viewed-across-the-app">Most viewed across the app</a></li>
         <li><a href="#trending-right-now">Trending right now</a></li>
+        <li><a href="#rising-spiking-and-dropping">Rising, spiking and dropping</a></li>
         <li><a href="#people-who-viewed-this-also-viewed">People who viewed this also viewed</a></li>
         <li><a href="#recommended-for-you">Recommended for you</a></li>
         <li><a href="#who-is-looking-right-now">Who is looking right now</a></li>
@@ -704,6 +705,72 @@ the period is the "now" that ages are measured from.
 index from the migration covers it. With the [`rollup` source](#rollups), the hourly tier is used when you keep one. A
 day tier alone can't tell hours apart, so with hourly weighing those reads come from the `views` table. Keep an `hour`
 tier for as long as your trending window, or set `querying.trending.step` to `'1d'`.
+
+### Rising, spiking and dropping
+
+`trending()` favours what gets the most views lately. Two other questions come up as often: what is *growing*, and what
+is doing something *unusual*. Both compare a model's views in a period with a reference, so a post that is busy every
+day doesn't rank just for being busy.
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
+
+// Growing the most against the day before
+views(Post::class)->period(Period::pastDays(1))->rising(10);
+
+// Far above the same hour on the past four Thursdays: taking off
+views(Post::class)->period(Period::subHours(1))->anomalies();
+
+// Far below it: a broken link, a page that fell out of search
+views(Product::class)->period(Period::subHours(1))->anomalies(threshold: -3);
+
+// One model against its own past
+$baseline = views($post)->period(Period::subHours(1))->againstBaseline();
+```
+
+Each entry has the usual `rank`, `count` and `viewable`, a `score`, and the `baseline` it was compared with:
+
+```php
+foreach (views(Post::class)->period(Period::subHours(1))->anomalies() as $entry) {
+    $entry->count;                 // its views in the period, 1,840
+    $entry->score;                 // how unusual that is, 52.2
+    $entry->baseline->references;  // the same hour on past weeks, [210, 190, 240, 210]
+    $entry->baseline->mean;        // 212.5
+}
+```
+
+#### How the ranking is made
+
+- **`rising()`** divides the count by the count of the [previous period](#compare-with-the-previous-period), the same
+  window `compare()` uses, and ranks the models that grew, highest first. A post that went from 6 views to 60 scores 10.
+  With nothing before, it counts as one view, so growth from nothing stays finite.
+- **`anomalies()`** compares the count with the same window on past weeks, or days with
+  `seasonality: Seasonality::Day`, `samples` of them, four by default. The score is the z-score: how many standard
+  deviations the count lies from their mean. The deviation is at least the square root of the mean, the noise a count of
+  that size has anyway, and at least 1, so a post with exactly 10 views every Thursday doesn't spike at 11. The default
+  `threshold` of 3 finds spikes; a negative one finds drops, lowest first.
+- **`minimum`**, 10 by default, leaves out a model unless it got that many views in the period, or that many on average
+  in the reference windows. So 1 to 4 views never ranks, while a page that drops from 400 to 0 does.
+
+Comparing with the same weekday keeps the rhythm of a week out of it: Monday morning is compared with Monday mornings,
+not with Sunday night. The period can be as long as the season, a day for `Seasonality::Day` and a week for
+`Seasonality::Week`, and starts the windows it is compared with.
+
+#### Good to know
+
+- **Use a closed window for alerts.** `Period::subHours(1)` includes the views of the last few minutes, which aren't
+  all in yet with a queue or the Redis buffer. `Period::create(now()->subHours(2)->startOfHour(), now()->subHour()->startOfHour())`
+  is the last complete hour. [`views:detect-spikes`](#spike-alerts) does this for you.
+- **Give `remember()` a lifetime.** A remembered ranking keeps its windows, so `remember(600)` serves the same answer for
+  ten minutes.
+- **`unique()` compares visitors instead of views.**
+
+#### On large tables
+
+Both rankings count every model of the type in every window, in one statement. The
+`(viewable_type, viewable_id, viewed_at)` index covers the views table. With the [`rollup` source](#rollups), windows
+whose views are gone read the rollups, so keep an `hour` tier for as long as `samples` weeks reach back to compare
+hours, and a `day` tier for days.
 
 ### People who viewed this also viewed
 
