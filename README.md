@@ -765,6 +765,61 @@ not with Sunday night. The period can be as long as the season, a day for `Seaso
   ten minutes.
 - **`unique()` compares visitors instead of views.**
 
+#### Spike alerts
+
+To hear about a spike rather than look for one, list the models to watch and schedule the detector:
+
+```php
+'spikes' => [
+    'types' => [
+        Post::class => [
+            'window' => '1h',        // whole hours, or `1d`
+            'seasonality' => 'week', // or `day`
+            'samples' => 4,
+            'threshold' => 3.0,
+            'minimum' => 50,
+            'drops' => true,         // off by default
+            'cooldown' => '6h',
+        ],
+    ],
+],
+```
+
+```php
+// routes/console.php
+Schedule::command('views:detect-spikes')->hourly()->onOneServer();
+```
+
+```bash
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-spikes"
+php artisan migrate
+```
+
+Every option may be left out for the default shown, except `drops`, which is `false`. Each run looks at the last
+closed window, the hour before the current one began, and runs `anomalies()` over it. A model that leaves its baseline
+dispatches `ViewsSpiked`, or `ViewsDropped`, once. While it stays out, nothing fires again and the `view_spikes` table
+keeps its peak. Once it has been back to normal for the `cooldown`, `ViewsSettled` fires with the peak count, score and
+the moment it started:
+
+```php
+use CyrildeWit\EloquentViewable\Spikes\Events\ViewsSpiked;
+
+class TellTheNewsDesk implements ShouldQueue
+{
+    public function handle(ViewsSpiked $event): void
+    {
+        $post = $event->viewable(); // null once deleted
+
+        $post?->desk->notify(new StoryTakingOff($post, $event->baseline));
+    }
+}
+```
+
+Like [milestones](#milestones), the events carry the model's `type` and `key` with `viewable()` and `is()`, and are
+dispatched once the row they report is written, so queue your listeners. Watching drops is the costly half: it counts
+every model that had views in the windows it compares with, not only those with views now, so turn it on for the types
+where a drop means something broke.
+
 #### On large tables
 
 Both rankings count every model of the type in every window, in one statement. The
