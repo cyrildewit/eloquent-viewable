@@ -94,6 +94,18 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Anonymising reads each day once instead of once per chunk, and sets at most a hundred visitors per statement, which made anonymising a day two to six times faster in the benchmarks
 - Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
 
+#### Dimensions
+
+- Added dimensions, which count views by where they came from and who saw them. A dimension turns the request into one short value when a view is recorded, kept in a column of its own. List them under `dimensions.definitions`, all off by default
+- Added the built-in `Source`, `Medium`, `Campaign`, `ReferrerHost`, `Device` and `Country` dimensions, with a source list of referring hosts written for the package that `dimensions.sources` and `dimensions.source_aliases` extend, and the `CloudflareCountry` and `HeaderCountry` resolvers behind `Dimensions\Contracts\CountryResolver`
+- Added `Dimensions\Dimension` and the `Dimensions\Contracts\Dimension` contract for dimensions of your own. Every dimension takes the `personal`, `maxValues` and `json` options in config, and `DimensionInput::fake()` builds the input for a unit test
+- Added `Views::countBy()`, which returns a `Querying\Dimensions\DimensionCounts` of the views per value with `none()`, `other()`, `total()` and `share()`, and `Views::whereDimension()`, which narrows every count, series and ranking. A view source of your own supports them by implementing `Querying\Contracts\CountsBy`
+- Added the `views:dimensions` command, which writes a migration that adds the columns the views table lacks, and copies values from `context` into a column with `--backfill`
+- Added `retention.rollups.dimensions`, which folds a dimension into a rollup of its own, `views:{name}`, keeping its top values per bucket and the rest as `other`
+- Added `Views::arrivedFrom()` and `Dimensions\Arrival`, for a view whose referrer and landing page are not the current request's. The beacon posts them from the page
+- Added the `Dimensions` doctor check, and dimension findings to the schema and index checks
+- Added `View::factory()->withDimensions()`, and the dimensions of every recorded view to `Views::fake()`, `RecordResult`, `ViewAttempted` and the Debugbar tab
+
 #### Doctor
 
 - Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
