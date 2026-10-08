@@ -7,8 +7,10 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 use Carbon\CarbonImmutable;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
@@ -19,6 +21,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
@@ -49,7 +52,7 @@ use stdClass;
  *
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class RollupSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -206,6 +209,11 @@ final readonly class RollupSource implements CountsByDimension, CountsByWindow, 
         }
 
         return self::add($counts, $rollups);
+    }
+
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
+    {
+        return $this->raw->countBy($viewable, $query, $dimension, $limit);
     }
 
     /**
@@ -618,7 +626,8 @@ final readonly class RollupSource implements CountsByDimension, CountsByWindow, 
 
     /**
      * The rollup the query reads through, unless the rollups cannot answer
-     * it: a read narrowed to a viewer, or one by a grouping not kept.
+     * it: a read narrowed to a viewer or a dimension, or one by a grouping
+     * not kept.
      */
     private function definition(Grouping $grouping, ViewsQuery $query): ?RollupDefinition
     {
@@ -629,6 +638,10 @@ final readonly class RollupSource implements CountsByDimension, CountsByWindow, 
         }
 
         if ($query->viewer instanceof Model) {
+            return null;
+        }
+
+        if ($query->dimensions !== []) {
             return null;
         }
 

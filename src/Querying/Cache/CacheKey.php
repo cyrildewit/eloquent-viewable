@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Cache;
 
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
@@ -79,6 +80,7 @@ final readonly class CacheKey
             $grouping,
             $limit,
             ...$this->filter($query),
+            ...$this->dimensions($query),
         ]));
     }
 
@@ -95,5 +97,24 @@ final readonly class CacheKey
         }
 
         return [$query->filter->name()];
+    }
+
+    /**
+     * The dimension filters join the identity only when there are any, in
+     * one order whatever order they were added in.
+     *
+     * @return list<string>
+     */
+    private function dimensions(ViewsQuery $query): array
+    {
+        if ($query->dimensions === []) {
+            return [];
+        }
+
+        $signatures = array_map(static fn (DimensionFilter $filter): string => $filter->signature(), $query->dimensions);
+
+        sort($signatures, SORT_STRING);
+
+        return ['dimensions', ...$signatures];
     }
 }

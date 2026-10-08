@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
@@ -15,6 +16,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
@@ -23,6 +25,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
@@ -194,6 +197,25 @@ final readonly class Reader
         $counts = $source->countByDimension($viewable, $query, $dimension);
 
         return $this->sortByCountThenName($counts);
+    }
+
+    /**
+     * @throws InvalidLimit
+     * @throws UnsupportedBySource
+     */
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?CarbonInterface $rememberUntil = null): DimensionCounts
+    {
+        if (($limit ?? 1) < 1) {
+            throw InvalidLimit::belowOne((int) $limit, 'countBy()');
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsBy) {
+            throw UnsupportedBySource::countBy($source);
+        }
+
+        return $source->countBy($viewable, $query, $dimension, $limit);
     }
 
     /**

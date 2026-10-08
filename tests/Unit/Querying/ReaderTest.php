@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
+use CyrildeWit\EloquentViewable\Dimensions\ReferrerHost;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
@@ -482,6 +486,50 @@ describe('countByCollection', function (): void {
         expect($reader->count($this->viewable, $this->query, $until))->toBe(7)
             ->and($reader->countByCollection($this->viewable, $this->query, $until))->toBe(['sidebar' => 7]);
     });
+});
+
+describe('countBy', function (): void {
+    beforeEach(function (): void {
+        $this->dimension = new DimensionDefinition('source', new ReferrerHost);
+    });
+
+    it('reads through the source', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsBy::class);
+        $source->expects('countBy')->with($this->viewable, $this->query, $this->dimension, 5)->andReturn(DimensionCounts::from(['Google' => 3]));
+
+        expect(reader($source)->countBy($this->viewable, $this->query, $this->dimension, 5)->all())->toBe(['Google' => 3]);
+    });
+
+    it('refuses a limit below one', function (): void {
+        reader(Mockery::mock(ViewSource::class, CountsBy::class))->countBy($this->viewable, $this->query, $this->dimension, 0);
+    })->throws(InvalidLimit::class, 'countBy() needs a limit of at least one, 0 given.');
+
+    it('refuses a source that cannot count by a dimension', function (): void {
+        reader(Mockery::mock(ViewSource::class))->countBy($this->viewable, $this->query, $this->dimension);
+    })->throws(UnsupportedBySource::class, 'cannot count by a dimension');
+
+    it('remembers the counts until the lifetime, apart per dimension and limit', function (): void {
+        $source = Mockery::mock(ViewSource::class, CountsBy::class);
+        $source->expects('countBy')->with($this->viewable, $this->query, $this->dimension, null)->once()->andReturn(DimensionCounts::from(['Google' => 3], none: 1));
+        $source->expects('countBy')->with($this->viewable, $this->query, $this->dimension, 1)->once()->andReturn(DimensionCounts::from(['Google' => 3], none: 1, other: 2));
+
+        $cache = new CacheRepository(new ArrayStore);
+        $reader = reader($source, $cache);
+        $until = Carbon::now()->addMinutes(10);
+
+        $reader->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: $until);
+        $again = $reader->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: $until);
+        $limited = $reader->countBy($this->viewable, $this->query, $this->dimension, 1, $until);
+
+        expect(cachedEntries($cache))->toHaveCount(2)
+            ->and($again->toArray())->toBe(['values' => ['Google' => 3], 'none' => 1, 'other' => 0, 'total' => 4])
+            ->and($limited->other())->toBe(2);
+    });
+
+    it('refuses a source behind the cache that cannot count by a dimension', function (): void {
+        reader(Mockery::mock(ViewSource::class), new CacheRepository(new ArrayStore))
+            ->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: Carbon::now()->addMinute());
+    })->throws(UnsupportedBySource::class, 'cannot count by a dimension');
 });
 
 describe('count many', function (): void {

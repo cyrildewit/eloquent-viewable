@@ -158,8 +158,8 @@ class View extends Model
 
     /**
      * Scope a query to only include views matching the period, collection,
-     * viewer and filter of the views query. Uniqueness is an aggregate choice
-     * rather than a filter, so the caller applies it.
+     * viewer, filter and dimensions of the views query. Uniqueness is an
+     * aggregate choice rather than a filter, so the caller applies it.
      *
      * @param  Builder<View>  $query
      */
@@ -178,5 +178,9 @@ class View extends Model
         }
 
         $viewsQuery->filter?->filter($query);
+
+        foreach ($viewsQuery->dimensions as $filter) {
+            $query->whereIn($this->qualifyColumn($filter->target), $filter->values);
+        }
     }
 }
