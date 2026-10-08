@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -140,6 +141,47 @@ it('is no longer quiet once it leaves its baseline again', function (): void {
     app(DetectSpikes::class)->handle();
 
     expect(episodes()[1])->toBe([$this->breaking->getKey(), 'spike', '2026-10-08 12:00:00', 50, null]);
+});
+
+/**
+ * Run the write once, right after the next read of the episodes, the way a
+ * second run would between this run's read and its own write.
+ */
+function raceOnce(Closure $write): void
+{
+    $raced = false;
+
+    DB::listen(function (QueryExecuted $query) use (&$raced, $write): void {
+        if ($raced || ! str_starts_with($query->sql, 'select') || ! str_contains($query->sql, 'direction')) {
+            return;
+        }
+
+        $raced = true;
+
+        $write();
+    });
+}
+
+it('leaves a change to the run that wrote it first', function (): void {
+    config()->set('eloquent-viewable.spikes.types', [Post::class => ['cooldown' => '1h']]);
+
+    raceOnce(fn () => DB::table('view_spikes')->insert(['viewable_type' => $this->breaking->getMorphClass(), 'viewable_id' => $this->breaking->getKey(), 'direction' => 'spike', 'since' => '2026-10-08 12:00:00', 'peak_count' => 60, 'peak_score' => 24.6]));
+
+    app(DetectSpikes::class)->handle();
+
+    Event::assertNotDispatched(ViewsSpiked::class);
+
+    $this->travelTo(Carbon::parse('2026-10-08 13:30:00'));
+    app(DetectSpikes::class)->handle();
+
+    raceOnce(fn () => DB::table('view_spikes')->delete());
+
+    $this->travelTo(Carbon::parse('2026-10-08 14:30:00'));
+    app(DetectSpikes::class)->handle();
+
+    expect(DB::table('view_spikes')->count())->toBe(0);
+
+    Event::assertNotDispatched(ViewsSettled::class);
 });
 
 it('watches drops only when asked', function (): void {

@@ -75,13 +75,13 @@ final readonly class CheckMilestones
             $armed = $this->armedWith($model, $column);
 
             if ($armed !== $thresholds) {
-                $this->check($model, $column, array_values(array_intersect($thresholds, $armed ?? [])), array_values(array_diff($thresholds, $armed ?? [])));
+                $this->check($model, $column, $thresholds, array_values(array_diff($thresholds, $armed ?? [])));
                 $this->arm($model, $column, $thresholds);
 
                 continue;
             }
 
-            $this->check($model, $column, $thresholds, [], $keys);
+            $this->check($model, $column, $thresholds, keys: $keys);
         }
     }
 
@@ -112,7 +112,7 @@ final readonly class CheckMilestones
             $seeded[$class] = 0;
 
             foreach ($columns as $column => $thresholds) {
-                $seeded[$class] += $this->check($model, $column, [], $thresholds);
+                $seeded[$class] += $this->check($model, $column, $thresholds, silent: $thresholds);
 
                 $this->arm($model, $column, $thresholds);
             }
@@ -123,24 +123,19 @@ final readonly class CheckMilestones
 
     /**
      * Move the marks of the models whose count crossed a threshold. Crossing
-     * one of `$firing` dispatches an event, crossing one of `$silent` only
-     * moves the mark. Without keys every model is checked. It returns how many
-     * marks moved.
+     * one dispatches an event, unless it is one of `$silent`, which only moves
+     * the mark. Without keys every model is checked. It returns how many marks
+     * moved.
      *
-     * @param  list<int>  $firing
+     * @param  non-empty-list<int>  $thresholds
      * @param  list<int>  $silent
      * @param  ?list<int|string>  $keys
      *
      * @throws InvalidConfiguration
      */
-    private function check(Model&Viewable $model, string $column, array $firing, array $silent, ?array $keys = null): int
+    private function check(Model&Viewable $model, string $column, array $thresholds, array $silent = [], ?array $keys = null): int
     {
-        $thresholds = [...$firing, ...$silent];
-
-        if ($thresholds === []) {
-            return 0;
-        }
-
+        $firing = array_values(array_diff($thresholds, $silent));
         $type = $model->getMorphClass();
         $moved = 0;
 
