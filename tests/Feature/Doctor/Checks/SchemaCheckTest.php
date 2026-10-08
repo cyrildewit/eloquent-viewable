@@ -112,6 +112,16 @@ it('checks the milestones table once thresholds are configured', function (): vo
     expect(schemaFindings())->toContain([Status::Failure, 'Milestones are configured, but the `missing_milestones` table does not exist.']);
 });
 
+it('checks the spikes table once models are watched', function (): void {
+    config()->set('eloquent-viewable.spikes.types', [Post::class => []]);
+
+    expect(schemaFindings())->toContain([Status::Pass, 'The `view_spikes` table exists.']);
+
+    config()->set('eloquent-viewable.spikes.table', 'missing_spikes');
+
+    expect(schemaFindings())->toContain([Status::Failure, 'Spikes are configured, but the `missing_spikes` table does not exist.']);
+});
+
 it('checks the counter columns on the tables of the models', function (): void {
     config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
 

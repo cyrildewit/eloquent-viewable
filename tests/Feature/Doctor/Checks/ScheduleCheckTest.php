@@ -24,11 +24,22 @@ function schedule(): Schedule
     return app()->make(Schedule::class);
 }
 
-it('skips both commands when nothing needs them', function (): void {
+it('skips every command when nothing needs them', function (): void {
     expect(scheduleFindings())->toBe([
         [Status::Skipped, '`views:maintain` has nothing to do: no rollups, retention or counter columns are configured.'],
         [Status::Skipped, '`views:flush` has nothing to do: the `redis` store driver is not in use.'],
+        [Status::Skipped, '`views:detect-spikes` has nothing to do: `spikes.types` is empty.'],
     ]);
+});
+
+it('warns when spikes are watched but the detector is not scheduled', function (): void {
+    config()->set('eloquent-viewable.spikes.types', [Post::class => []]);
+
+    expect(scheduleFindings()[2])->toBe([Status::Warning, '`views:detect-spikes` is not scheduled, so no spike, drop or settle is ever reported.']);
+
+    schedule()->command('views:detect-spikes')->hourly();
+
+    expect(scheduleFindings()[2])->toBe([Status::Pass, 'The spike detector is scheduled.']);
 });
 
 it('warns when maintenance is needed but not scheduled', function (string $key, mixed $value): void {

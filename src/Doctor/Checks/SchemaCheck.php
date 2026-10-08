@@ -67,6 +67,7 @@ class SchemaCheck implements Check
         yield from $this->rollupTable();
         yield from $this->counterColumns();
         yield from $this->milestonesTable();
+        yield from $this->spikesTable();
     }
 
     /** @return Generator<int, Finding> */
@@ -211,6 +212,31 @@ class SchemaCheck implements Check
         yield Finding::failure(
             "Milestones are configured, but the `{$table}` table does not exist.",
             'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-milestones"` and run `php artisan migrate`.',
+        );
+    }
+
+    /**
+     * @return Generator<int, Finding>
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function spikesTable(): Generator
+    {
+        if ($this->config->spikes() === []) {
+            return;
+        }
+
+        $table = $this->config->spikesTable();
+
+        if ($this->view->getConnection()->getSchemaBuilder()->hasTable($table)) {
+            yield Finding::pass("The `{$table}` table exists.");
+
+            return;
+        }
+
+        yield Finding::failure(
+            "Spikes are configured, but the `{$table}` table does not exist.",
+            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-spikes"` and run `php artisan migrate`.',
         );
     }
 
