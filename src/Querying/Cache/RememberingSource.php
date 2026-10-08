@@ -8,6 +8,7 @@ use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
@@ -17,6 +18,7 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
@@ -31,7 +33,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  *
  * @internal
  */
-final readonly class RememberingSource implements CountsByDimension, CountsVisitFrequency, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource
+final readonly class RememberingSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource
 {
     public function __construct(
         private ViewSource $source,
@@ -173,6 +175,33 @@ final readonly class RememberingSource implements CountsByDimension, CountsVisit
     }
 
     /**
+     * Remembered under each reference's distance from the period, which
+     * leaves out now, so the counts are served until the moment `remember()`
+     * names even as the clock moves on.
+     *
+     * @param  non-empty-list<Period>  $references
+     * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function countByWindow(?Viewable $viewable, ViewsQuery $query, array $references, int $minimum): array
+    {
+        $source = $this->source;
+
+        if (! $source instanceof CountsByWindow) {
+            throw UnsupportedBySource::growth($source);
+        }
+
+        $offsets = implode(',', array_map(fn (Period $reference): string => $this->offset($query->period, $reference), $references));
+
+        return $this->remember(
+            $viewable,
+            $this->key($viewable)->make($query, grouping: "windows:{$offsets}:{$minimum}"),
+            fn (): array => $source->countByWindow($viewable, $query, $references, $minimum),
+        );
+    }
+
+    /**
      * Remembered under the identity of the decay, which leaves out now, so
      * the ranking is served until the moment `remember()` names even as the
      * clock moves on. Another curve, step or period starts a fresh entry.
@@ -221,7 +250,7 @@ final readonly class RememberingSource implements CountsByDimension, CountsVisit
     }
 
     /**
-     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>|RecommendationPairs
+     * @template TValue of int|array<string, int>|array<int, int>|list<array{type: string, id: int|string, count: int}>|list<array{type: string, id: int|string, count: int, score: float}>|list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>|RecommendationPairs
      *
      * @param  Closure(): TValue  $resolve
      * @return TValue
@@ -235,6 +264,20 @@ final readonly class RememberingSource implements CountsByDimension, CountsVisit
             $this->until,
             $resolve,
         );
+    }
+
+    /**
+     * How far the reference starts before the period, and how wide it is, in
+     * seconds.
+     */
+    private function offset(?Period $period, Period $reference): string
+    {
+        $start = $reference->getStartDateTime()?->getTimestamp() ?? 0;
+        $end = $reference->getEndDateTime()?->getTimestamp() ?? 0;
+        $before = ($period?->getStartDateTime()?->getTimestamp() ?? 0) - $start;
+        $width = $end - $start;
+
+        return "{$before}+{$width}";
     }
 
     private function key(?Viewable $viewable): CacheKey
