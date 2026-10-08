@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Dimensions;
 
 use CyrildeWit\EloquentViewable\Dimensions\Contracts\Dimension;
+use CyrildeWit\EloquentViewable\Dimensions\Exceptions\UnknownDimension;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Container\Container;
 use ReflectionClass;
 use ReflectionParameter;
@@ -66,6 +69,36 @@ final readonly class DimensionRegistry
     public function find(string $name): ?DimensionDefinition
     {
         return $this->definitions[$name] ?? null;
+    }
+
+    /**
+     * Narrows a count to the views whose dimension holds the value, or one of
+     * the values.
+     *
+     * @param  string|list<string>  $values
+     *
+     * @throws UnknownDimension
+     */
+    public function filter(string $name, string|array $values): DimensionFilter
+    {
+        $definition = $this->find($name) ?? throw UnknownDimension::named($name);
+
+        return new DimensionFilter($name, $definition->target(), is_string($values) ? [$values] : $values);
+    }
+
+    /**
+     * The query with every dimension filter pointed at where its dimension
+     * is kept. Config only knows the names, so a counter column's filters are
+     * resolved here before they are counted.
+     *
+     * @throws UnknownDimension
+     */
+    public function resolve(ViewsQuery $query): ViewsQuery
+    {
+        return $query->withDimensions(array_map(
+            fn (DimensionFilter $filter): DimensionFilter => $this->filter($filter->name, $filter->values),
+            $query->dimensions,
+        ));
     }
 
     /**

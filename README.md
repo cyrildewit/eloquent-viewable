@@ -1526,8 +1526,17 @@ views(Post::class)->whereDimension('country', 'NL')->top(10);
 views($post)->whereDimension('medium', 'email')->countBy('campaign');
 ```
 
-A dimension that is not in config throws `Dimensions\Exceptions\UnknownDimension`. The Eloquent scopes, such as
-`orderByViews()`, do not take a dimension yet.
+The Eloquent scopes take the same filters as a map of each dimension to one value or a list of values, by name:
+
+```php
+Post::orderByViews(period: Period::pastDays(7), dimensions: ['source' => 'Google'])->paginate();
+Post::withViewsCount(dimensions: ['device' => ['mobile', 'tablet']])->get();
+Post::whereViewsCount('>', 100, dimensions: ['source' => 'Google', 'device' => 'mobile'])->get();
+```
+
+Every scope that counts views takes `dimensions`: `orderByViews()`, `orderByUniqueViews()`, `withViewsCount()`,
+`whereViewsCount()`, `whereUniqueViewsCount()`, `orderByTrending()`, `withTrendingScore()`, the `whereViewedBy()`
+family and `recommendedFor()`. A dimension that is not in config throws `Dimensions\Exceptions\UnknownDimension`.
 
 #### Writing your own
 
@@ -2252,6 +2261,13 @@ lists, keep the count in a column of your own, default `0`, and sort on that. Li
         ],
     ],
 ],
+```
+
+A column can also count only the views of some [dimension](#dimensions) values, with `dimensions` mapping each
+dimension to one value or a list of values:
+
+```php
+'google_views' => ['period' => '30d', 'dimensions' => ['source' => 'Google']],
 ```
 
 `views:recount` writes the columns, trashed models included, and `views:maintain` runs it after rolling up and
