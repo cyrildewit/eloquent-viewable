@@ -136,6 +136,30 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period` and `collection`, {$given} given.");
     }
 
+    public static function mustBeMilestones(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each with a list of thresholds in ascending order, {$given} given.");
+    }
+
+    public static function milestoneWithoutCounter(string $class, string $column): self
+    {
+        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which is not one of its counter columns in `querying.counters`.");
+    }
+
+    public static function milestoneOnPeriod(string $class, string $column): self
+    {
+        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which counts a period. A count over a period goes up and down, so it cannot cross a milestone once.");
+    }
+
+    public static function mustBeSpikes(string $key, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to options of `window`, `seasonality`, `samples`, `threshold`, `minimum`, `drops` and `cooldown`, {$given} given.");
+    }
+
     public static function invalidMiddlewareOption(string $option): self
     {
         return new self("The `views` middleware does not understand `{$option}`. It takes `collection=<name>`, `cooldown=<minutes>` and `queue=<true|false>`.");
