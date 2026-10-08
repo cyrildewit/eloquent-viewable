@@ -64,6 +64,11 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 
 - Added milestones: thresholds on a counter column under `milestones.thresholds`, checked by every recount. `Milestones\Events\ViewMilestoneReached` is dispatched once per model and threshold, after the mark that keeps it from firing again is committed, with the model's morph type and key, `viewable()` and `is()`. The first recount, and the one after a threshold is added, marks the models already past it without dispatching. `views:seed-milestones` marks every model by hand. The migration is published under the `eloquent-viewable-milestones` tag
 
+#### Spikes
+
+- Added `views:detect-spikes`, which compares the last closed window of the models under `spikes.types` with the same window on past weeks or days, and dispatches `Spikes\Events\ViewsSpiked` or `ViewsDropped` once when a model leaves its baseline and `ViewsSettled` once it has been back to normal for the cooldown. The events carry the model's morph type and key, `viewable()` and `is()`, and the baseline it was compared with. The migration is published under the `eloquent-viewable-spikes` tag
+- `views:doctor` checks that the spikes and milestones tables exist once they are configured, and that `views:detect-spikes` is scheduled
+
 #### Presence
 
 - Added presence, which counts who is looking right now: `views($post)->activeVisitors()`, and `live()` with `count()`, `counts()` for a set, `top()` for a ranking of what is being looked at, `viewers()` for the signed-in viewers and `within()` to narrow the window. It reads a viewable, a type or, through `Views::live()`, the whole site, within a collection when one is set. Turn it on with `presence.enabled`
