@@ -99,3 +99,18 @@ it('asks before deleting in production', function (string $command, array $argum
     'viewer' => fn (): array => ['views:forget-viewer', ['type' => User::class, 'id' => (string) $this->user->getKey()]],
     'visitor' => ['views:forget-visitor', ['visitor' => 'cookie-1']],
 ]);
+
+it('deletes in production once the question is answered with yes', function (string $command, array $arguments): void {
+    $this->app->detectEnvironment(fn (): string => 'production');
+
+    View::factory()->for($this->post, 'viewable')->by($this->user)->fromVisitor('cookie-1')->create();
+
+    $this->artisan($command, $arguments)
+        ->expectsConfirmation('Are you sure you want to run this command?', 'yes')
+        ->assertSuccessful();
+
+    expect(View::query()->count())->toBe(0);
+})->with([
+    'viewer' => fn (): array => ['views:forget-viewer', ['type' => User::class, 'id' => (string) $this->user->getKey()]],
+    'visitor' => ['views:forget-visitor', ['visitor' => 'cookie-1']],
+]);
