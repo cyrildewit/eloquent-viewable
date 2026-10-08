@@ -28,7 +28,8 @@ be aware of and what to change if you extended the package.
   `countBy()`, and narrow any count with `whereDimension()`.
 - **Scale when you need to:** buffer views in Redis and land them in batches, count a page of models in one query, and
   forget cached counts on demand.
-- **Privacy:** count unique visitors without a cookie, honour Global Privacy Control and skip prefetched pages.
+- **Privacy:** count unique visitors without a cookie, honour Global Privacy Control, let a signed-in user opt out of
+  recording and skip prefetched pages.
 - **Bots:** refuse bursts of views from one visitor, and delete the bot views already in your table with
   `views:purge-bots`.
 - **Testing:** `Views::fake()` with assertions, and a factory for the `View` model.
@@ -104,6 +105,9 @@ particular. The `cooldown` block needs the new keys, otherwise every `views()` c
     ],
 ],
 ```
+
+If you keep your old `recording.guards` list, add `IgnoreOptedOutViewers` to it before implementing
+`Contracts\ViewerCanOptOut` on a viewer model, or the opt-out is not honoured. `php artisan views:doctor` warns about it.
 
 Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
 other than a string or `null` throws `InvalidConfiguration` naming the key.
