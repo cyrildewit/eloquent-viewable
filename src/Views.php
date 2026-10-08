@@ -233,7 +233,7 @@ class Views
     }
 
     /**
-     * Ranked by how much the count grew against the period before, so
+     * It ranks by how much the count grew against the period before, so
      * something taking off ranks above something that is busy every day.
      * Only what grew and got at least the minimum in either period counts,
      * so going from 1 to 4 views never wins.
@@ -253,7 +253,7 @@ class Views
     }
 
     /**
-     * Ranked by how far the count lies from the same period on past days or
+     * It ranks by how far the count lies from the same period on past days or
      * weeks, in deviations. A positive threshold finds what is spiking, a
      * negative one what dropped.
      *
@@ -272,8 +272,8 @@ class Views
     }
 
     /**
-     * The count in the period next to the same period on past days or weeks,
-     * with its mean, deviation, z-score and ratio.
+     * It returns the count in the period next to the same period on past days
+     * or weeks, with their mean, deviation, z-score and ratio.
      *
      * @throws InvalidBaseline
      * @throws InvalidPeriod

@@ -10,17 +10,13 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 
 /**
  * It is dispatched once when a model's views lie far above the same window on
- * past days or weeks. It does not fire again until the model has settled.
+ * past days or weeks, with the baseline they were compared with. It does not
+ * fire again until the model has settled.
  */
 class ViewsSpiked implements ShouldDispatchAfterCommit
 {
     use NamesViewable;
 
-    /**
-     * @param  string  $type  the morph type of the model
-     * @param  int|string  $key  the key of the model
-     * @param  Baseline  $baseline  the count of the window and those it was compared with
-     */
     public function __construct(
         public string $type,
         public int|string $key,

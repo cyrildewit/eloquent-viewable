@@ -8,16 +8,12 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * What one run of `views:detect-spikes` found for one model class.
+ * It holds how many models of one class started to spike, started to drop
+ * and settled in one run of `views:detect-spikes`.
  */
 final readonly class SpikeRun
 {
-    /**
-     * @param  class-string<Model&Viewable>  $class
-     * @param  int  $spiked  the models that started to spike
-     * @param  int  $dropped  the models that started to drop
-     * @param  int  $settled  the models that settled
-     */
+    /** @param  class-string<Model&Viewable>  $class */
     public function __construct(
         public string $class,
         public int $spiked,

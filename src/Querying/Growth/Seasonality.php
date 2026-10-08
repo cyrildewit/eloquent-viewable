@@ -12,7 +12,8 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use Illuminate\Support\Carbon;
 
 /**
- * The rhythm a baseline follows. A window is compared with the same hours on
+ * A seasonality is the rhythm a baseline follows. A window is compared with
+ * the same hours on
  * past days, or on the same day of past weeks, so a quiet night is never
  * measured against a busy afternoon.
  */
@@ -23,8 +24,8 @@ enum Seasonality: string
     case Week = 'week';
 
     /**
-     * The same window on each of the past days or weeks, the closest first.
-     * A period without an end runs until now.
+     * It returns the same window on each of the past days or weeks, the
+     * closest first. A period without an end runs until now.
      *
      * @return non-empty-list<Period>
      *
