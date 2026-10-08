@@ -21,6 +21,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use CyrildeWit\EloquentViewable\Support\HotScore;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Model;
@@ -186,7 +187,7 @@ final readonly class RecountChangedViews
         $pending = $full ? null : $this->read($this->name($model).self::Pending);
 
         if ($pending === null) {
-            $target = $this->snapshot($columns);
+            $target = $this->snapshot($model, $columns);
 
             $pending = [
                 'target' => $target,
@@ -235,19 +236,24 @@ final readonly class RecountChangedViews
     /**
      * Captures what a recount sees as it starts: the last view, where the
      * period of each column starts, and how far views are anonymised and
-     * pruned. The signature says which columns and source it was taken for.
+     * pruned. The signature says which columns and source it was taken for,
+     * and how each hot score is worked out.
      *
      * @param  array<string, ViewsQuery>  $columns
      * @return Snapshot
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
      */
-    private function snapshot(array $columns): array
+    private function snapshot(Model $model, array $columns): array
     {
         $starts = [];
         $signature = [$this->source::class];
+        $hot = $this->config->hotScores()[$model::class] ?? [];
 
         foreach ($columns as $column => $query) {
             $starts[$column] = $this->format($query->period?->getStartDateTime());
-            $signature[$column] = [$query->period?->cacheSignature(), $query->collection, $query->unique];
+            $signature[$column] = [$query->period?->cacheSignature(), $query->collection, $query->unique, ...$this->hotSignature($hot, $column)];
         }
 
         $max = $this->view->newQuery()->toBase()->max('id');
@@ -259,6 +265,22 @@ final readonly class RecountChangedViews
             'anonymised' => $this->state->get(StateStore::Anonymised),
             'pruned' => $this->state->get(StateStore::Pruned),
         ];
+    }
+
+    /**
+     * A plain count keeps the signature it had before hot scores existed, so
+     * adding the option to one column does not recount the others.
+     *
+     * @param  array<string, HotScore>  $hot
+     * @return list<string>
+     */
+    private function hotSignature(array $hot, string $column): array
+    {
+        if (! isset($hot[$column])) {
+            return [];
+        }
+
+        return [$hot[$column]->signature()];
     }
 
     /**

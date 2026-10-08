@@ -12,9 +12,12 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\HotScore;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 
 /**
  * Each column is set from the source's correlated count, so under the `rollup`
@@ -75,12 +78,19 @@ final readonly class RecountViews
     public function recount(Model&Viewable $model, array $keys): void
     {
         $values = $this->values($model);
+        $scores = $this->config->hotScores()[$model::class] ?? [];
 
-        if ($values === []) {
+        if ($values === [] && $scores === []) {
             return;
         }
 
-        $this->table($model)->whereIn($model->getQualifiedKeyName(), $keys)->update($values);
+        if ($values !== []) {
+            $this->table($model)->whereIn($model->getQualifiedKeyName(), $keys)->update($values);
+        }
+
+        foreach ($scores as $column => $score) {
+            $this->writeHotScores($model, $keys, $column, $score);
+        }
 
         $this->events->dispatch(new CountersRecounted($model::class, $keys));
     }
@@ -130,6 +140,53 @@ final readonly class RecountViews
     }
 
     /**
+     * A hot score needs a logarithm, which SQLite has no function for, so it
+     * is worked out here from the counts and written in one statement. The
+     * scores are numbers this method made, so they are written as literals,
+     * which every driver reads as a number.
+     *
+     * @param  list<int|string>  $keys
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    private function writeHotScores(Model&Viewable $model, array $keys, string $column, HotScore $score): void
+    {
+        if ($keys === []) {
+            return;
+        }
+
+        $query = $this->config->counters()[$model::class][$column] ?? new ViewsQuery;
+        $counts = $this->source->countMany($model, $keys, $query);
+        $grammar = $model->getConnection()->getQueryGrammar();
+        $key = $model->getKeyName();
+
+        $moments = $this->table($model)->whereIn($key, $keys)->pluck($score->from, $key);
+
+        if ($moments->isEmpty()) {
+            return;
+        }
+
+        $cases = [];
+        $bindings = [];
+
+        foreach ($moments as $id => $moment) {
+            $at = $moment === null ? null : Carbon::parse($moment); // @phpstan-ignore argument.type (a timestamp column)
+            $value = number_format($score->score($counts[$id] ?? 0, $at), 10, '.', '');
+
+            $cases[] = "when ? then {$value}";
+            $bindings[] = $id;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($bindings), '?'));
+
+        $model->getConnection()->update(
+            "update {$grammar->wrapTable($model->getTable())} set {$grammar->wrap($column)} = case {$grammar->wrap($key)} ".implode(' ', $cases)." end where {$grammar->wrap($key)} in ({$placeholders})",
+            [...$bindings, ...$bindings],
+        );
+    }
+
+    /**
      * @return array<string, Builder>
      *
      * @throws InvalidConfiguration
@@ -138,7 +195,10 @@ final readonly class RecountViews
      */
     private function values(Model&Viewable $model): array
     {
-        $columns = $this->config->counters()[$model::class] ?? [];
+        $columns = array_diff_key(
+            $this->config->counters()[$model::class] ?? [],
+            $this->config->hotScores()[$model::class] ?? [],
+        );
 
         if ($columns === []) {
             return [];

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Concerns;
 
 use Carbon\CarbonInterval;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
@@ -43,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @method static Builder<static> whereNotViewedBy(Model $viewer, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
  * @method static Builder<static> whereNotViewedByVisitor(string $visitor, ?Period $period = null, ?string $collection = null)
+ * @method static Builder<static> orderByHot(?string $column = null)
  * @method static Builder<static> recommendedFor(Model|string $recipient, ?Period $period = null, ?string $collection = null, bool $includeSeen = false, string $as = 'recommendation_score')
  */
 trait InteractsWithViews
@@ -234,6 +237,25 @@ trait InteractsWithViews
         );
 
         return $query->tap(new RecommendedFor($scores, $as));
+    }
+
+    /**
+     * Order by the hot score a recount keeps in a counter column with the
+     * `hot` option, highest first. Name the column when the model has more
+     * than one.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    public function scopeOrderByHot(Builder $query, ?string $column = null): Builder
+    {
+        $scores = Container::getInstance()->make(Config::class)->hotScores()[static::class] ?? [];
+        $column ??= array_key_first($scores) ?? throw InvalidConfiguration::withoutHotScore(static::class);
+
+        return $query->orderByDesc($query->qualifyColumn($column));
     }
 
     /** @throws UnsupportedBySource */

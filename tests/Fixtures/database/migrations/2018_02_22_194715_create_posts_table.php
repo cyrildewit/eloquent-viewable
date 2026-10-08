@@ -18,6 +18,7 @@ class CreatePostsTable extends Migration
             // `views_count` alias the scopes select.
             $table->unsignedInteger('cached_views')->default(0);
             $table->unsignedInteger('cached_unique_views')->default(0);
+            $table->double('hot_score')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });

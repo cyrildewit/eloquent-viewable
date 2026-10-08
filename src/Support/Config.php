@@ -468,6 +468,40 @@ final readonly class Config
         return $counters;
     }
 
+    /**
+     * The counter columns that hold a hot score instead of a count, by class
+     * and column. Their count is the one the other options of the column
+     * describe.
+     *
+     * @return array<class-string<Model&Viewable>, array<string, HotScore>>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    public function hotScores(): array
+    {
+        $counters = $this->counters();
+
+        /** @var array<string, array<int|string, mixed>> $value */
+        $value = $this->get('querying.counters', []);
+        $scores = [];
+
+        foreach ($counters as $class => $columns) {
+            foreach (array_keys($columns) as $column) {
+                $options = $value[$class][$column] ?? null;
+                $hot = is_array($options) ? $options['hot'] ?? null : null;
+
+                if ($hot === null) {
+                    continue;
+                }
+
+                $scores[$class][$column] = $this->hotScore($column, $hot);
+            }
+        }
+
+        return $scores;
+    }
+
     /** @throws InvalidConfiguration */
     public function milestonesTable(): string
     {
@@ -492,6 +526,7 @@ final readonly class Config
         }
 
         $counters = $value === [] ? [] : $this->counters();
+        $hotScores = $value === [] ? [] : $this->hotScores();
         $milestones = [];
 
         foreach ($value as $class => $columns) {
@@ -516,6 +551,10 @@ final readonly class Config
 
                 if ($query->period instanceof Period) {
                     throw InvalidConfiguration::milestoneOnPeriod($class, (string) $column);
+                }
+
+                if (isset($hotScores[$class][$column])) {
+                    throw InvalidConfiguration::milestoneOnHotScore($class, (string) $column);
                 }
 
                 /** @var class-string<Model&Viewable> $class */
@@ -943,7 +982,7 @@ final readonly class Config
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
-        if (array_diff(array_keys($options), ['unique', 'period', 'collection']) !== []) {
+        if (array_diff(array_keys($options), ['unique', 'period', 'collection', 'hot']) !== []) {
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
@@ -999,6 +1038,49 @@ final readonly class Config
         }
 
         return $thresholds;
+    }
+
+    /**
+     * `true` for the defaults, the name of the timestamp column, or `from`
+     * and `every` options.
+     *
+     * @throws InvalidConfiguration
+     */
+    private function hotScore(string $column, mixed $hot): HotScore
+    {
+        if ($hot === true) {
+            $hot = [];
+        }
+
+        if (is_string($hot)) {
+            $hot = ['from' => $hot];
+        }
+
+        if (! is_array($hot)) {
+            throw InvalidConfiguration::mustBeHotScore($column, $hot);
+        }
+
+        if (array_diff(array_keys($hot), ['from', 'every']) !== []) {
+            throw InvalidConfiguration::mustBeHotScore($column, $hot);
+        }
+
+        $from = $hot['from'] ?? 'created_at';
+        $every = $hot['every'] ?? '12h';
+        $duration = is_string($every) ? Duration::tryParse($every) : null;
+
+        if (! is_string($from)) {
+            throw InvalidConfiguration::mustBeHotScore($column, $from);
+        }
+
+        if ($from === '') {
+            throw InvalidConfiguration::mustBeHotScore($column, $from);
+        }
+
+        if (! $duration instanceof Duration) {
+            throw InvalidConfiguration::mustBeHotScore($column, $every);
+        }
+
+        return new HotScore($from, $duration);
     }
 
     /** @throws InvalidConfiguration */

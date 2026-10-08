@@ -348,12 +348,15 @@ return [
          * `views:maintain` write the count into, so a listing can order and
          * filter by a plain column. List a column by name for its all-time
          * count, or map it to the `unique`, `period` and `collection` of the
-         * count it holds. For example:
+         * count it holds. With `hot`, the column holds the score
+         * `orderByHot()` sorts by instead: `true`, the timestamp column the
+         * model was made at, or `from` and `every` options. For example:
          *
          *   Post::class => [
          *       'views_count',
          *       'unique_views_count' => ['unique' => true],
          *       'views_last_week' => ['period' => '7d'],
+         *       'hot_score' => ['hot' => ['from' => 'published_at', 'every' => '12h']],
          *   ],
          */
         'counters' => [],
