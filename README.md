@@ -817,16 +817,21 @@ class TellTheNewsDesk implements ShouldQueue
 ```
 
 Like [milestones](#milestones), the events carry the model's `type` and `key` with `viewable()` and `is()`, and are
-dispatched once the row they report is written, so queue your listeners. Watching drops is the costly half: it counts
-every model that had views in the windows it compares with, not only those with views now, so turn it on for the types
-where a drop means something broke.
+dispatched once the row they report is written, so queue your listeners. Spikes and drops are scored from the same read
+of the windows, so watching drops costs nothing extra; turn it on for the types where a drop means something broke.
+Add the [`(viewable_type, viewed_at)` index](#database-indexes) for every watched type.
 
 #### On large tables
 
-Both rankings count every model of the type in every window, in one statement. The
-`(viewable_type, viewable_id, viewed_at)` index covers the views table. With the [`rollup` source](#rollups), windows
-whose views are gone read the rollups, so keep an `hour` tier for as long as `samples` weeks reach back to compare
-hours, and a `day` tier for days.
+Both rankings count every model of the type in every window, in one statement, so a ranking reads one window more than
+it has samples. Within one type, add the optional [`(viewable_type, viewed_at)` index](#database-indexes): without it,
+every window walks the composite index once per model. On a million views on Postgres, the last hour of articles
+against four past weeks took about 45 ms without it and 1 ms with it, and the last day 49 ms and 4 ms. `views:doctor`
+recommends it once `spikes.types` is set. Across every type, `Views::anomalies()`, the `viewed_at` index the migration
+creates serves each window.
+
+With the [`rollup` source](#rollups), windows whose views are gone read the rollups, so keep an `hour` tier for as long
+as `samples` weeks reach back to compare hours, and a `day` tier for days.
 
 ### Hot
 
@@ -1637,7 +1642,8 @@ your config relies on, and all three once the table passes a million rows:
 - `visitor` as a fourth column of that composite index, or `include (visitor)` on Postgres, speeds up `unique()` counts,
   `returning()` and `countByFrequency()`.
 - `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
-  `views(Post::class)->countByInterval()`.
+  `views(Post::class)->countByInterval()`, and `rising()`, `anomalies()` and `views:detect-spikes`, which count every
+  window of a type.
 - `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()` and `recommended()` find the views of each
   visitor they pair without scanning the table.
 
