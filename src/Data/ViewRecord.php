@@ -12,7 +12,10 @@ use JsonException;
 
 final readonly class ViewRecord
 {
-    /** @param  ?array<string, mixed>  $context */
+    /**
+     * @param  ?array<string, mixed>  $context
+     * @param  array<string, ?string>  $dimensions  the values of the dimensions kept in a column, by column
+     */
     public function __construct(
         public int|string $viewableId,
         public string $viewableType,
@@ -22,13 +25,15 @@ final readonly class ViewRecord
         public ?string $viewerType = null,
         public int|string|null $viewerId = null,
         public ?array $context = null,
+        public array $dimensions = [],
     ) {}
 
     /**
-     * A store that keeps strings hands back string keys and the context as
-     * JSON. The database coerces the keys.
+     * A store that keeps strings hands back string keys, and the context and
+     * dimensions as JSON. The database coerces the keys. A payload buffered
+     * before dimensions were recorded has none.
      *
-     * @param  array{viewable_id: int|string, viewable_type: string, visitor?: ?string, collection?: ?string, viewed_at: string, viewer_type?: ?string, viewer_id?: int|string|null, context?: array<string, mixed>|string|null}  $payload
+     * @param  array{viewable_id: int|string, viewable_type: string, visitor?: ?string, collection?: ?string, viewed_at: string, viewer_type?: ?string, viewer_id?: int|string|null, context?: array<string, mixed>|string|null, dimensions?: array<string, ?string>|string|null}  $payload
      *
      * @throws JsonException
      */
@@ -41,6 +46,13 @@ final readonly class ViewRecord
             $context = json_decode($context, true, flags: JSON_THROW_ON_ERROR);
         }
 
+        $dimensions = $payload['dimensions'] ?? [];
+
+        if (is_string($dimensions)) {
+            /** @var array<string, ?string> $dimensions */
+            $dimensions = json_decode($dimensions, true, flags: JSON_THROW_ON_ERROR);
+        }
+
         return new self(
             viewableId: $payload['viewable_id'],
             viewableType: $payload['viewable_type'],
@@ -50,6 +62,7 @@ final readonly class ViewRecord
             viewerType: $payload['viewer_type'] ?? null,
             viewerId: $payload['viewer_id'] ?? null,
             context: $context,
+            dimensions: $dimensions,
         );
     }
 
@@ -70,9 +83,10 @@ final readonly class ViewRecord
 
     /**
      * The context is encoded here because the stores write through the query
-     * builder, which does not cast arrays.
+     * builder, which does not cast arrays. Each dimension is a column of its
+     * own.
      *
-     * @return array{viewable_id: int|string, viewable_type: string, viewer_type: ?string, viewer_id: int|string|null, visitor: ?string, collection: ?string, context: ?string, viewed_at: CarbonInterface}
+     * @return array<string, mixed>
      *
      * @throws JsonException
      */
@@ -87,11 +101,14 @@ final readonly class ViewRecord
             'collection' => $this->collection,
             'context' => $this->encodedContext(),
             'viewed_at' => $this->viewedAt,
+            ...$this->dimensions,
         ];
     }
 
     /**
-     * @return array{viewable_id: int|string, viewable_type: string, viewer_type: ?string, viewer_id: int|string|null, visitor: ?string, collection: ?string, context: ?string, viewed_at: string}
+     * The dimensions travel as one key, so a stream entry only gains a field.
+     *
+     * @return array{viewable_id: int|string, viewable_type: string, viewer_type: ?string, viewer_id: int|string|null, visitor: ?string, collection: ?string, context: ?string, viewed_at: string, dimensions: ?string}
      *
      * @throws JsonException
      */
@@ -106,6 +123,7 @@ final readonly class ViewRecord
             'collection' => $this->collection,
             'context' => $this->encodedContext(),
             'viewed_at' => $this->viewedAt->toIso8601String(),
+            'dimensions' => $this->dimensions === [] ? null : json_encode($this->dimensions, JSON_THROW_ON_ERROR),
         ];
     }
 

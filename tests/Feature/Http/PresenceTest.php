@@ -194,7 +194,7 @@ describe('live script', function (): void {
         ], $flags);
 
         expect($script)->toStartWith('<script>')
-            ->toContain("})({$url}, {$live});", 'visibilitychange', 'pagehide', 'pageshow', '[data-views-live]', "'views:live'", 'prerenderingchange', 'post(url).then(resume, resume)')
+            ->toContain("})({$url}, {$live});", 'visibilitychange', 'pagehide', 'pageshow', '[data-views-live]', "'views:live'", 'prerenderingchange', 'post(url, arrival()).then(resume, resume)')
             ->and(substr_count($script, '</script>'))->toBe(1);
     });
 

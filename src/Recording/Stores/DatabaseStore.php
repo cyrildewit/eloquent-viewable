@@ -24,17 +24,24 @@ final readonly class DatabaseStore implements ViewStore
      * rows go through the query builder, so no Eloquent events are fired on
      * the view model.
      *
+     * One statement takes its columns from the first row, so every row is
+     * given every column of the batch. A batch flushed from the buffer can mix
+     * views recorded before a dimension was added with views recorded after.
+     *
      * @param  iterable<ViewRecord>  $records
      */
     public function storeMany(iterable $records): void
     {
         $rows = [];
+        $columns = [];
 
         foreach ($records as $record) {
-            $rows[] = $record->toArray();
+            $row = $record->toArray();
+            $rows[] = $row;
+            $columns += array_fill_keys(array_keys($row), null);
         }
 
-        $this->view->newQuery()->insert($rows);
+        $this->view->newQuery()->insert(array_map(static fn (array $row): array => $row + $columns, $rows));
     }
 
     public function forget(Viewable $viewable): void

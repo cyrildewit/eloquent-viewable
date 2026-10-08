@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\Arrival;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
@@ -83,6 +84,8 @@ class Views
     protected ?array $context = null;
 
     protected ?Rollup $rollup = null;
+
+    protected ?Arrival $arrival = null;
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -447,6 +450,18 @@ class Views
         return $this;
     }
 
+    /**
+     * How the visitor reached the page, when the current request is not the
+     * page's own, such as an API call the page makes. Without one, the
+     * dimensions read the referrer and the landing page from the request.
+     */
+    public function arrivedFrom(?Arrival $arrival): self
+    {
+        $this->arrival = $arrival;
+
+        return $this;
+    }
+
     public function queue(bool $state = true): self
     {
         $this->queue = $state;
@@ -532,6 +547,7 @@ class Views
             queue: $this->queue,
             viewer: $this->viewer,
             context: $this->context,
+            arrival: $this->arrival,
         );
     }
 
