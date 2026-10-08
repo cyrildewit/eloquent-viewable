@@ -47,6 +47,7 @@ class ScheduleCheck implements Check
     {
         yield $this->maintenance();
         yield $this->flush();
+        yield $this->spikes();
     }
 
     /**
@@ -106,6 +107,25 @@ class ScheduleCheck implements Check
         }
 
         return Finding::pass('The flush is scheduled without overlapping.');
+    }
+
+    /** @throws InvalidConfiguration */
+    protected function spikes(): Finding
+    {
+        if ($this->config->spikes() === []) {
+            return Finding::skipped('`views:detect-spikes` has nothing to do: `spikes.types` is empty.');
+        }
+
+        $event = $this->find(fn (Event $event): bool => $this->runsAnyOf($event, ['views:detect-spikes']));
+
+        if (! $event instanceof Event) {
+            return Finding::warning(
+                '`views:detect-spikes` is not scheduled, so no spike, drop or settle is ever reported.',
+                "Add `Schedule::command('views:detect-spikes')->hourly()->onOneServer();` to `routes/console.php`, unless a crontab of your own runs it.",
+            );
+        }
+
+        return Finding::pass('The spike detector is scheduled.');
     }
 
     /**
