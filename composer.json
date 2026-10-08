@@ -98,13 +98,7 @@
         "bench:explain": "php benchmarks/explain.php",
         "bench:describe": "php benchmarks/describe.php",
         "rector": "rector",
-        "ready": [
-            "@rector",
-            "@lint",
-            "@test:types",
-            "@test:type-coverage",
-            "@test"
-        ]
+        "ready": "sh scripts/ready.sh"
     },
     "config": {
         "process-timeout": 0,
