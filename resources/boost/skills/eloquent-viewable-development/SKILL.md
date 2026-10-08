@@ -211,6 +211,18 @@ $user->exportViewHistory();                         // a lazy collection for a d
 
 The model needs `Concerns\HasViewHistory`. Call these before deleting the user; once it is gone, run `php artisan views:forget-viewer "App\Models\User" 42`. A guest is erased with `php artisan views:forget-visitor <visitor-id>`. Never set `viewer_type` and `viewer_id` to null yourself: the `visitor` column still identifies them. Listen for `Erasure\Events\ViewHistoryForgotten` to write an audit log.
 
+For a "don't record my reading history" setting, implement `Contracts\ViewerCanOptOut` on the user and keep `IgnoreOptedOutViewers` in `recording.guards`. Opting out does not erase what was already recorded.
+
+```php
+class User extends Authenticatable implements ViewerCanOptOut
+{
+    public function tracksViews(): bool
+    {
+        return ! $this->settings->hide_reading_history;
+    }
+}
+```
+
 ## When the App Grows
 
 Suggest these only once the problem shows up. Each is a config change, and querying stays the same.
