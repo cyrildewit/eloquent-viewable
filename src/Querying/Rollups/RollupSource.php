@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
@@ -28,7 +29,9 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Plan;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Planner;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Segment;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Querying\Sources\WindowTotals;
 use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -46,7 +49,7 @@ use stdClass;
  *
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class RollupSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -383,6 +386,29 @@ final readonly class RollupSource implements CountsByDimension, CountsVisitFrequ
     }
 
     /**
+     * Each window is planned on its own, so a recent window reads the views
+     * table and an older one the rollups, and all of them are added up in one
+     * statement.
+     *
+     * @param  non-empty-list<Period>  $references
+     * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
+     *
+     * @throws InvalidPeriod
+     * @throws ResolutionUnavailable
+     */
+    public function countByWindow(?Viewable $viewable, ViewsQuery $query, array $references, int $minimum): array
+    {
+        $type = $viewable?->getMorphClass();
+        $windows = [$this->countedPerViewable($type, $query)];
+
+        foreach ($references as $reference) {
+            $windows[] = $this->countedPerViewable($type, $query->withPeriod($reference));
+        }
+
+        return WindowTotals::of($this->view->getConnection(), $windows, $minimum);
+    }
+
+    /**
      * Rollup rows are weighed by their bucket start, the views table by
      * `viewed_at`. Only tiers no coarser than the step answer, so a bucket
      * lies inside one step, and the scores match the views table's.
@@ -466,6 +492,37 @@ final readonly class RollupSource implements CountsByDimension, CountsVisitFrequ
         $parts[] = "({$rollups->toSql()})";
 
         return DatabaseSource::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
+    }
+
+    /**
+     * The views of each viewable in the period, as `viewable_type`,
+     * `viewable_id` and `aggregate`, from the views table and the rollups the
+     * period covers.
+     *
+     * @return non-empty-list<Builder>
+     *
+     * @throws InvalidPeriod
+     * @throws ResolutionUnavailable
+     */
+    private function countedPerViewable(?string $type, ViewsQuery $query): array
+    {
+        $grouping = Grouping::for(null, $query->collection !== null);
+        $plan = $this->plan($grouping, $query);
+
+        if (! $plan instanceof Plan) {
+            return [$this->raw->countedPerViewable($type, $query)];
+        }
+
+        $branches = array_map(fn (Segment $segment): Builder => $this->raw->countedPerViewable($type, $this->narrow($query, $segment)), $plan->raw());
+
+        $rollupType = $this->rollup->qualifyColumn('viewable_type');
+        $rollupId = $this->rollup->qualifyColumn('viewable_id');
+
+        $branches[] = $this->rollups($type, null, $grouping, $plan, $query)
+            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->groupBy($rollupType, $rollupId);
+
+        return $branches;
     }
 
     /** @throws ResolutionUnavailable */

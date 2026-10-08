@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Exceptions;
 
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
@@ -71,6 +72,14 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
         $contract = RanksTrending::class;
 
         return new self("The view source [{$class}] cannot rank by trending, so trending() cannot read from it. Implement `{$contract}` on it.");
+    }
+
+    public static function growth(ViewSource $source): self
+    {
+        $class = $source::class;
+        $contract = CountsByWindow::class;
+
+        return new self("The view source [{$class}] cannot count by window, so rising(), anomalies() and views:detect-spikes cannot read from it. Implement `{$contract}` on it.");
     }
 
     public static function trendingScopes(ViewSource $source): self
