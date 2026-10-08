@@ -235,6 +235,100 @@ final readonly class Config
         return $this->strings('recording.beacon.middleware');
     }
 
+    /**
+     * Each dimension by name, with the class and the options it is built with.
+     *
+     * @return array<string, array{class: class-string, options: array<string, mixed>}>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function dimensions(): array
+    {
+        $value = $this->get('dimensions.definitions', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeDimensions('dimensions.definitions', $value);
+        }
+
+        $dimensions = [];
+
+        foreach ($value as $name => $entry) {
+            if (! is_string($name)) {
+                throw InvalidConfiguration::mustBeDimensions('dimensions.definitions', $name);
+            }
+
+            $dimensions[$name] = $this->dimension($name, $entry);
+        }
+
+        return $dimensions;
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function internalHosts(): array
+    {
+        return $this->strings('dimensions.internal_hosts');
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function sourceHosts(): array
+    {
+        $value = $this->get('dimensions.sources', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $value);
+        }
+
+        $sources = [];
+
+        foreach ($value as $host => $source) {
+            if (! is_string($host)) {
+                throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
+            }
+
+            $sources[strtolower($host)] = $this->source($host, $source);
+        }
+
+        return $sources;
+    }
+
+    /**
+     * @return array<string, string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function sourceAliases(): array
+    {
+        $value = $this->get('dimensions.source_aliases', []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $value);
+        }
+
+        $aliases = [];
+
+        foreach ($value as $alias => $name) {
+            if (! is_string($alias)) {
+                throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $alias);
+            }
+
+            if (! is_string($name)) {
+                throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $alias);
+            }
+
+            $aliases[strtolower($alias)] = $name;
+        }
+
+        return $aliases;
+    }
+
     /** @throws InvalidConfiguration */
     public function sourceDriver(): string
     {
@@ -735,6 +829,16 @@ final readonly class Config
         return array_values($value);
     }
 
+    /**
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function rollupDimensions(): array
+    {
+        return $this->strings('retention.rollups.dimensions');
+    }
+
     public function rollupsStrict(): bool
     {
         return (bool) $this->get('retention.rollups.strict', false);
@@ -923,6 +1027,71 @@ final readonly class Config
         }
 
         return $value;
+    }
+
+    /**
+     * A class name alone, or an array of the class name and options by name.
+     *
+     * @return array{class: class-string, options: array<string, mixed>}
+     *
+     * @throws InvalidConfiguration
+     */
+    private function dimension(string $name, mixed $entry): array
+    {
+        $options = [];
+
+        if (is_array($entry)) {
+            $options = $entry;
+            $entry = $options[0] ?? null;
+
+            unset($options[0]);
+        }
+
+        if (! is_string($entry)) {
+            throw InvalidConfiguration::invalidDimension($name, 'must name a class, alone or first in an array of options');
+        }
+
+        if (! class_exists($entry)) {
+            throw InvalidConfiguration::invalidDimension($name, 'must name a class, alone or first in an array of options');
+        }
+
+        foreach (array_keys($options) as $option) {
+            if (! is_string($option)) {
+                throw InvalidConfiguration::invalidDimension($name, 'must give every option after the class a name');
+            }
+        }
+
+        /** @var array<string, mixed> $options */
+        return ['class' => $entry, 'options' => $options];
+    }
+
+    /**
+     * @return array{string, string}
+     *
+     * @throws InvalidConfiguration
+     */
+    private function source(string $host, mixed $source): array
+    {
+        if (! is_array($source)) {
+            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
+        }
+
+        if (array_keys($source) !== [0, 1]) {
+            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
+        }
+
+        $name = $source[0] ?? null;
+        $medium = $source[1] ?? null;
+
+        if (! is_string($name)) {
+            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
+        }
+
+        if (! is_string($medium)) {
+            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
+        }
+
+        return [$name, $medium];
     }
 
     /**

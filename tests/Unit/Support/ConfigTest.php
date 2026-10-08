@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Countries\HeaderCountry;
+use CyrildeWit\EloquentViewable\Dimensions\Country;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
@@ -660,4 +663,70 @@ it('reads the pairs settings', function (): void {
         ->pairsMaxPairs()->toBe(25)
         ->and($config->pairsPeriod()->shorthand())->toBe('30d')
         ->and(packageConfig()->pairsEnabled())->toBeFalse();
+});
+
+it('reads the dimensions with their classes and options', function (): void {
+    expect(packageConfig(['dimensions' => ['definitions' => [
+        'source' => Source::class,
+        'country' => [Country::class, 'resolver' => HeaderCountry::class],
+    ]]]))->dimensions()->toBe([
+        'source' => ['class' => Source::class, 'options' => []],
+        'country' => ['class' => Country::class, 'options' => ['resolver' => HeaderCountry::class]],
+    ])->and(packageConfig())->dimensions()->toBe([]);
+});
+
+it('refuses dimensions it cannot read', function (mixed $value, string $message): void {
+    expect(fn (): array => packageConfig(['dimensions' => ['definitions' => $value]])->dimensions())
+        ->toThrow(InvalidConfiguration::class, $message);
+})->with([
+    'not an array' => ['source', 'must map dimension names'],
+    'a list' => [[Source::class], 'must map dimension names'],
+    'no class' => [['source' => 42], 'must name a class'],
+    'an unknown class' => [['source' => 'App\Missing'], 'must name a class'],
+    'options without a class' => [['source' => ['personal' => true]], 'must name a class'],
+    'an option without a name' => [['source' => [Source::class, true]], 'must give every option after the class a name'],
+]);
+
+it('reads the internal hosts', function (): void {
+    expect(packageConfig(['dimensions' => ['internal_hosts' => ['example.com', 'shop.example']]]))->internalHosts()->toBe(['example.com', 'shop.example'])
+        ->and(packageConfig())->internalHosts()->toBe([]);
+});
+
+it('reads the source hosts and aliases, lowercased', function (): void {
+    $config = packageConfig(['dimensions' => [
+        'sources' => ['News.Example.com' => ['Example News', 'referral']],
+        'source_aliases' => ['NL' => 'Newsletter'],
+    ]]);
+
+    expect($config->sourceHosts())->toBe(['news.example.com' => ['Example News', 'referral']])
+        ->and($config->sourceAliases())->toBe(['nl' => 'Newsletter'])
+        ->and(packageConfig())->sourceHosts()->toBe([])
+        ->and(packageConfig())->sourceAliases()->toBe([]);
+});
+
+it('refuses source hosts it cannot read', function (mixed $value): void {
+    expect(fn (): array => packageConfig(['dimensions' => ['sources' => $value]])->sourceHosts())
+        ->toThrow(InvalidConfiguration::class, 'must map hosts to a pair of a source name and a medium');
+})->with([
+    'not an array' => ['example.com'],
+    'a list' => [[['Example', 'referral']]],
+    'not a pair' => [['example.com' => 'Example']],
+    'one of a pair' => [['example.com' => ['Example']]],
+    'a keyed pair' => [['example.com' => ['name' => 'Example', 'medium' => 'referral']]],
+    'a name that is not a string' => [['example.com' => [1, 'referral']]],
+    'a medium that is not a string' => [['example.com' => ['Example', null]]],
+]);
+
+it('refuses source aliases it cannot read', function (mixed $value): void {
+    expect(fn (): array => packageConfig(['dimensions' => ['source_aliases' => $value]])->sourceAliases())
+        ->toThrow(InvalidConfiguration::class, 'must map strings to strings');
+})->with([
+    'not an array' => ['nl'],
+    'a list' => [['Newsletter']],
+    'a name that is not a string' => [['nl' => 1]],
+]);
+
+it('reads the dimensions folded into rollups', function (): void {
+    expect(packageConfig(['retention' => ['rollups' => ['dimensions' => ['source', 'device']]]]))->rollupDimensions()->toBe(['source', 'device'])
+        ->and(packageConfig())->rollupDimensions()->toBe([]);
 });

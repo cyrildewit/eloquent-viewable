@@ -26,3 +26,16 @@ it('never treats a missing user agent as a crawler', function (?string $userAgen
     'empty' => [''],
     'blank' => ['   '],
 ]);
+
+it('asks the library once for the same user agent in a row', function (): void {
+    $library = Mockery::mock(CrawlerDetect::class);
+    $library->expects('isCrawler')->with('Googlebot/2.1')->once()->andReturn(true);
+    $library->expects('isCrawler')->with('Mozilla/5.0')->twice()->andReturn(false);
+
+    $detector = new CrawlerDetectAdapter($library);
+
+    expect($detector->isCrawler('Mozilla/5.0'))->toBeFalse()
+        ->and($detector->isCrawler('Googlebot/2.1'))->toBeTrue()
+        ->and($detector->isCrawler('Googlebot/2.1'))->toBeTrue()
+        ->and($detector->isCrawler('Mozilla/5.0'))->toBeFalse();
+});

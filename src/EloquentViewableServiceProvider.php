@@ -9,6 +9,8 @@ use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
 use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
 use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
 use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
 use CyrildeWit\EloquentViewable\Doctor\Sampling\GuardSamples;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
@@ -345,6 +347,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
         );
 
         $this->registerCore();
+        $this->registerDimensions();
         $this->registerRecording();
         $this->registerPresence();
         $this->registerQuerying();
@@ -369,6 +372,17 @@ class EloquentViewableServiceProvider extends ServiceProvider
             ->give(fn (): CacheRepository => $this->app->make(CacheFactory::class)->store(
                 $this->app->make(Config::class)->cacheStore()
             ));
+    }
+
+    /**
+     * Scoped, so an Octane worker builds the dimensions from the config of the
+     * request it serves, and a dimension remembers nothing past it.
+     */
+    protected function registerDimensions(): void
+    {
+        $this->app->scoped(DimensionRegistry::class, fn (Application $app): DimensionRegistry => DimensionRegistry::fromConfig($app->make(Config::class), $app));
+
+        $this->app->scoped(SourceList::class, fn (Application $app): SourceList => SourceList::fromConfig($app->make(Config::class)));
     }
 
     protected function registerRecording(): void
