@@ -90,7 +90,6 @@ final readonly class CheckMilestones
      * nothing it already passed fires. It returns how many marks moved per
      * class.
      *
-     * @param  ?class-string<Model&Viewable>  $only
      * @return array<class-string<Model&Viewable>, int>
      *
      * @throws InvalidConfiguration
