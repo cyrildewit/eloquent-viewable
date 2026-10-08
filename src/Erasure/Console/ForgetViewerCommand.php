@@ -29,7 +29,7 @@ final class ForgetViewerCommand extends ErasureCommand
             return self::FAILURE;
         }
 
-        if (! $this->confirmToProceed()) {
+        if (! $this->confirmInProduction()) {
             return self::FAILURE;
         }
 

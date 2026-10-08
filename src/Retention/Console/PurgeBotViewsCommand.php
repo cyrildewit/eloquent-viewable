@@ -11,14 +11,14 @@ use CyrildeWit\EloquentViewable\Retention\Actions\PurgeBotViews;
 use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
 use CyrildeWit\EloquentViewable\Support\Duration;
-use Illuminate\Console\ConfirmableTrait;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 final class PurgeBotViewsCommand extends RetentionCommand
 {
-    use ConfirmableTrait;
+    use ConfirmsInProduction;
 
     #[\Override]
     protected $signature = 'views:purge-bots
@@ -156,7 +156,7 @@ final class PurgeBotViewsCommand extends RetentionCommand
             return true;
         }
 
-        return $this->confirmToProceed();
+        return $this->confirmInProduction();
     }
 
     /** @throws InvalidConfiguration */
