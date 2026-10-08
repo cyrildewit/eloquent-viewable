@@ -1162,7 +1162,7 @@ final readonly class Config
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
-        if (array_diff(array_keys($options), ['unique', 'period', 'collection', 'hot']) !== []) {
+        if (array_diff(array_keys($options), ['unique', 'period', 'collection', 'hot', 'dimensions']) !== []) {
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
@@ -1181,7 +1181,65 @@ final readonly class Config
             $period === null ? null : Period::parse($period),
             $collection,
             (bool) ($options['unique'] ?? false),
+            dimensions: $this->counterDimensions($column, $options['dimensions'] ?? []),
         );
+    }
+
+    /**
+     * Config cannot tell where a dimension is kept, so each filter points at
+     * the column named after it until the registry resolves it before the
+     * count.
+     *
+     * @return list<DimensionFilter>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function counterDimensions(string $column, mixed $dimensions): array
+    {
+        if (! is_array($dimensions)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        $filters = [];
+
+        foreach ($dimensions as $name => $values) {
+            if (! is_string($name)) {
+                throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+            }
+
+            $filters[] = new DimensionFilter($name, $name, $this->dimensionValues($column, $values));
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function dimensionValues(string $column, mixed $values): array
+    {
+        if (is_string($values)) {
+            return [$values];
+        }
+
+        if (! is_array($values)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        if (! array_is_list($values)) {
+            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+        }
+
+        foreach ($values as $value) {
+            if (! is_string($value)) {
+                throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
+            }
+        }
+
+        /** @var list<string> $values */
+        return $values;
     }
 
     /**

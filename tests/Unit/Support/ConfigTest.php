@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Guards\EnforceCooldown;
 use CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -373,6 +374,17 @@ it('reads the counter columns', function (): void {
         ->and(packageConfig()->counters())->toBeEmpty();
 });
 
+it('reads the dimensions of a counter column by name', function (): void {
+    $query = packageConfig(['querying' => ['counters' => [Post::class => [
+        'google_views' => ['dimensions' => ['source' => 'Google', 'device' => ['mobile', 'tablet']]],
+    ]]]])->counters()[Post::class]['google_views'];
+
+    expect($query->dimensions)->toEqual([
+        new DimensionFilter('source', 'source', ['Google']),
+        new DimensionFilter('device', 'device', ['mobile', 'tablet']),
+    ]);
+});
+
 it('rejects counters that are not viewable models mapped to columns', function (mixed $value): void {
     expect(fn (): array => packageConfig(['querying' => ['counters' => $value]])->counters())
         ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.querying.counters` config value must map viewable model classes to their counter columns');
@@ -387,6 +399,11 @@ it('rejects counters that are not viewable models mapped to columns', function (
     'unknown option' => [[Post::class => ['views_count' => ['viewer' => 1]]]],
     'period not a string' => [[Post::class => ['views_count' => ['period' => 7]]]],
     'collection not a string' => [[Post::class => ['views_count' => ['collection' => 1]]]],
+    'dimensions not a map' => [[Post::class => ['views_count' => ['dimensions' => 'source']]]],
+    'a dimension without a name' => [[Post::class => ['views_count' => ['dimensions' => ['Google']]]]],
+    'a dimension value not a string' => [[Post::class => ['views_count' => ['dimensions' => ['source' => 1]]]]],
+    'dimension values not a list' => [[Post::class => ['views_count' => ['dimensions' => ['source' => ['a' => 'Google']]]]]],
+    'a dimension value in a list not a string' => [[Post::class => ['views_count' => ['dimensions' => ['source' => ['Google', 1]]]]]],
 ]);
 
 describe('hot scores', function (): void {

@@ -98,6 +98,8 @@ $sources->share('Google');  // 0.462
 
 views($post)->whereDimension('device', 'mobile')->count();
 views(Post::class)->whereDimension('source', ['Google', 'Bing'])->top(10);
+
+Post::orderByViews(dimensions: ['source' => 'Google'])->paginate(); // every views scope takes `dimensions`
 ```
 
 Built in: `Source`, `Medium`, `Campaign`, `ReferrerHost`, `Device`, `Country`. Write your own by extending `Dimensions\Dimension`:

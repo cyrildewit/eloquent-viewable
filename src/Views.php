@@ -239,9 +239,7 @@ class Views
      */
     public function whereDimension(string $dimension, string|array $values): self
     {
-        $definition = $this->dimension($dimension);
-
-        $this->dimensions[] = new DimensionFilter($definition->name, $definition->target(), is_string($values) ? [$values] : $values);
+        $this->dimensions[] = Container::getInstance()->make(DimensionRegistry::class)->filter($dimension, $values);
 
         return $this;
     }

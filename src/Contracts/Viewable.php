@@ -25,6 +25,7 @@ interface Viewable
      *
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static&Model>
      */
     public function scopeOrderByViews(
@@ -33,7 +34,8 @@ interface Viewable
         ?Period $period = null,
         ?string $collection = null,
         bool $unique = false,
-        string $as = 'views_count'
+        string $as = 'views_count',
+        array $dimensions = [],
     ): Builder;
 
     /**
@@ -41,6 +43,7 @@ interface Viewable
      *
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
+     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
      * @return Builder<static&Model>
      */
     public function scopeOrderByUniqueViews(
@@ -48,7 +51,8 @@ interface Viewable
         string $direction = 'desc',
         ?Period $period = null,
         ?string $collection = null,
-        string $as = 'unique_views_count'
+        string $as = 'unique_views_count',
+        array $dimensions = [],
     ): Builder;
 
     /** Soft deletes keep the views regardless. */

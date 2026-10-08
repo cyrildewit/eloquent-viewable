@@ -44,7 +44,13 @@ final readonly class ViewsQuery
 
     public function withDimension(DimensionFilter $filter): self
     {
-        return new self($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->filter, [...$this->dimensions, $filter]);
+        return $this->withDimensions([...$this->dimensions, $filter]);
+    }
+
+    /** @param  list<DimensionFilter>  $filters */
+    public function withDimensions(array $filters): self
+    {
+        return new self($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->filter, $filters);
     }
 
     /**
