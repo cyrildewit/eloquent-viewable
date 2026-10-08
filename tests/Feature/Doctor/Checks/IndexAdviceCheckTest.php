@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Device;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
 use CyrildeWit\EloquentViewable\Support\OptionalIndex;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -153,4 +156,52 @@ it('counts the included visitor column on Postgres', function (): void {
     OptionalIndex::Visitor->create(DB::connection(), 'views');
 
     expect(indexAdviceSummaries())->toContain([Status::Pass, 'The `(viewable_type, viewable_id, viewed_at, visitor)` index is in place.']);
+});
+
+describe('dimensions', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.dimensions.definitions', [
+            'source' => Source::class,
+            'device' => Device::class,
+            'plan' => PlanDimension::class,
+        ]);
+    });
+
+    it('recommends an index per dimension column on a large table', function (): void {
+        viewsTableWith([OptionalIndex::Visitor, OptionalIndex::TypeViewedAt, OptionalIndex::VisitorHistory], rows: IndexAdviceCheck::LargeTable);
+
+        $findings = array_values(array_filter(indexAdvice(), fn (Finding $finding): bool => $finding->status === Status::Advice));
+
+        expect($findings)->toHaveCount(2)
+            ->and($findings[0]->summary)->toBe("With about 1,000,000 views, an index on `(viewable_type, source, viewed_at)` speeds up `whereDimension('source', ...)` and `countBy('source')` over a whole model type.")
+            ->and($findings[0]->fix)->toBe("Add it in a migration of your own: `\$table->index(['viewable_type', 'source', 'viewed_at']);`.")
+            ->and($findings[1]->summary)->toContain('(viewable_type, device, viewed_at)');
+    });
+
+    it('leaves out a dimension the rollups fold', function (): void {
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source']);
+        viewsTableWith(rows: IndexAdviceCheck::LargeTable);
+
+        expect(implode("\n", array_map(fn (Finding $finding): string => $finding->summary, indexAdvice())))
+            ->not->toContain('source')
+            ->toContain('(viewable_type, device, viewed_at)');
+    });
+
+    it('recommends nothing for a dimension on a small table', function (): void {
+        viewsTableWith([OptionalIndex::Visitor, OptionalIndex::TypeViewedAt, OptionalIndex::VisitorHistory]);
+
+        expect(implode("\n", array_map(fn (Finding $finding): string => $finding->summary, indexAdvice())))
+            ->not->toContain('device');
+    });
+
+    it('passes a dimension index that is in place', function (): void {
+        viewsTableWith();
+
+        Schema::connection('doctor')->table('views', function (Blueprint $table): void {
+            $table->string('source')->nullable();
+            $table->index(['viewable_type', 'source', 'viewed_at']);
+        });
+
+        expect(indexAdviceSummaries())->toContain([Status::Pass, 'The `(viewable_type, source, viewed_at)` index is in place.']);
+    });
 });

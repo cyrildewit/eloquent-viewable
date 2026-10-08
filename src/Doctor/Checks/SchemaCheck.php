@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Doctor\Checks;
 
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Support\Indexes;
+use CyrildeWit\EloquentViewable\Doctor\Support\TableSize;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
@@ -47,6 +50,7 @@ class SchemaCheck implements Check
         protected RetentionPolicy $retention,
         protected RollupPolicy $rollups,
         protected RetentionState $state,
+        protected DimensionRegistry $dimensions,
     ) {}
 
     public function name(): string
@@ -63,6 +67,7 @@ class SchemaCheck implements Check
     public function run(): Generator
     {
         yield from $this->viewsTable();
+        yield from $this->jsonDimensions();
         yield from $this->retentionTable();
         yield from $this->rollupTable();
         yield from $this->counterColumns();
@@ -97,6 +102,19 @@ class SchemaCheck implements Check
             yield Finding::failure("The `{$table}` table has no {$list} column.", self::UpgradeGuide);
         }
 
+        $missing = $this->missingColumns($schema, $table, $this->dimensions->columns());
+
+        if ($missing !== []) {
+            $complete = false;
+
+            $list = $this->list($missing);
+
+            yield Finding::failure(
+                "The `{$table}` table has no {$list} column, which `dimensions.definitions` keeps a dimension in.",
+                'Run `php artisan views:dimensions`, which writes a migration that adds it, and then `php artisan migrate`.',
+            );
+        }
+
         $indexes = Indexes::of($schema, $table);
 
         foreach (self::Indexes as $columns) {
@@ -113,6 +131,39 @@ class SchemaCheck implements Check
 
         if ($complete) {
             yield Finding::pass("The `{$table}` table has every column and index the package needs.");
+        }
+    }
+
+    /**
+     * A dimension kept in `context` is read through a JSON path, which no
+     * plain index serves, so it is worth a column once the table is large.
+     *
+     * @return Generator<int, Finding>
+     */
+    protected function jsonDimensions(): Generator
+    {
+        $json = array_filter($this->dimensions->all(), static fn (DimensionDefinition $definition): bool => ! $definition->isColumn());
+
+        if ($json === []) {
+            return;
+        }
+
+        $rows = TableSize::estimate($this->view);
+
+        if ($rows < TableSize::Large) {
+            return;
+        }
+
+        $views = number_format($rows);
+
+        foreach ($json as $name => $definition) {
+            $path = $definition->target();
+            $from = $path === "context->{$name}" ? '' : " --from={$path}";
+
+            yield Finding::warning(
+                "The `{$name}` dimension is kept at `{$path}`, which no index serves, in a table of about {$views} views.",
+                "Keep it in a column: drop its `json` option, run `php artisan views:dimensions` and migrate, then copy the values it has with `php artisan views:dimensions --backfill={$name}{$from}`.",
+            );
         }
     }
 
