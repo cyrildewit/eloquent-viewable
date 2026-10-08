@@ -73,6 +73,53 @@ views($post)->period(Period::pastDays(30))->countByFrequency();   // [1 => 820, 
 
 Periods: `Period::create($start, $end)`, `since()`, `upto()`, `pastDays()`, `subHours()` and the like, and `Period::parse('7d')` for URL input. `Period` also binds as a route parameter.
 
+## Dimensions
+
+Count where views came from with a dimension, never by querying `context`. List it, add its column, then count:
+
+```php
+// config/eloquent-viewable.php
+'dimensions' => [
+    'definitions' => [
+        'source' => CyrildeWit\EloquentViewable\Dimensions\Source::class,
+        'device' => CyrildeWit\EloquentViewable\Dimensions\Device::class,
+    ],
+],
+```
+
+Run `php artisan views:dimensions` and `php artisan migrate` after listing one. Views recorded before it have no value.
+
+```php
+$sources = views($post)->period(Period::pastDays(30))->countBy('source', limit: 5);
+$sources->all();            // ['Google' => 120, 'Direct' => 64, ...]
+$sources->other();          // views of the values past the limit
+$sources->none();           // views without a value
+$sources->share('Google');  // 0.462
+
+views($post)->whereDimension('device', 'mobile')->count();
+views(Post::class)->whereDimension('source', ['Google', 'Bing'])->top(10);
+```
+
+Built in: `Source`, `Medium`, `Campaign`, `ReferrerHost`, `Device`, `Country`. Write your own by extending `Dimensions\Dimension`:
+
+```php
+use CyrildeWit\EloquentViewable\Dimensions\Dimension;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionInput;
+
+final class PlanDimension extends Dimension
+{
+    public function resolve(DimensionInput $input): ?string
+    {
+        return $input->visitor->viewer()?->plan;
+    }
+}
+```
+
+- Keep a value short and of few distinct values: it is cut at 64 characters.
+- Give a dimension that can identify a person `'personal' => true` in config; anonymising clears it.
+- List a dimension under `retention.rollups.dimensions` to keep its history once views are pruned. Combining two dimensions in one count then only works while the views are still in the table.
+- In tests, seed values with `View::factory()->withDimensions(['source' => 'Google'])`.
+
 ## Ranking and Scopes
 
 ```php

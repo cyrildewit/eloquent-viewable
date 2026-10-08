@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Concerns\HasViewHistory;
 use CyrildeWit\EloquentViewable\Concerns\InteractsWithViews;
+use CyrildeWit\EloquentViewable\Database\Factories\ViewFactory;
+use CyrildeWit\EloquentViewable\Dimensions\Dimension;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionInput;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Milestones\Events\ViewMilestoneReached;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
 use CyrildeWit\EloquentViewable\Spikes\Events\ViewsSpiked;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -69,7 +73,8 @@ it('only calls methods that exist', function (string $file): void {
     $classes = [
         Views::class, ViewsFacade::class, ViewsFake::class, Period::class, RecordResult::class, RecordViews::class,
         InteractsWithViews::class, HasViewHistory::class, View::class, LiveViews::class,
-        ViewMilestoneReached::class, ViewsSpiked::class,
+        ViewMilestoneReached::class, ViewsSpiked::class, DimensionCounts::class,
+        Dimension::class, DimensionInput::class, ViewFactory::class,
         Builder::class, Factory::class, Route::class, Router::class, MakesHttpRequests::class,
     ];
 
