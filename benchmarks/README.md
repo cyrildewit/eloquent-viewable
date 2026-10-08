@@ -74,6 +74,9 @@ The shape is meant to look like production rather than a uniform spray:
   rising trend. The rows are inserted in that order, so the primary key orders them by time the way real traffic does.
 - One in ten views belongs to a video, so every query has to filter on `viewable_type`.
 - One in five views is in a named collection.
+- Every view has a source and a device. The source comes from a short head, such as `Google` and `Direct`, and one view
+  in twenty from a long tail of two hundred sites, so a capped rollup folds some of them away. The table also has the
+  empty `medium`, `campaign` and `country` columns, so `DimensionsBench` can record with five dimensions.
 
 Every view is recorded before `2026-01-01 00:00:00`. The benchmarks build their periods relative to that anchor, so
 "the past 30 days" covers the same rows on every run, whenever it happens. The write benchmarks remove the rows they
@@ -163,6 +166,7 @@ Subjects are grouped so a run can pick a part. `make bench ARGS="--group=write"`
 | `read`   | `WhereViewedBench`            | `whereViewedByVisitor()` and `whereNotViewedByVisitor()`, first page of twenty, for the visitor with the most views and for one with none, over the same periods                                                                                                  |
 | `read`   | `WhereViewsCountBench`        | `whereViewsCount()` and `whereUniqueViewsCount()` at a threshold of a hundred, first page of twenty, over the same periods                                                                                                                                        |
 | `read`   | `WithViewsCountBench`         | `withViewsCount()`, plain and unique, first page of twenty, over the same periods                                                                                                                                                                                 |
+| `dimensions` | `DimensionsBench`         | `record()` with the five common dimensions against none, `countBy('source', limit: 10)` read from the views table for the same targets and periods as `CountViewsBench`, the sources of every article over a year read from the `views:source` rollup, and folding the last day of that rollup with the cap of twenty values and without |
 | `rollup` | `FoldViewsBench`              | `views:rollup` folding the last day and the last month before the anchor again, a delete and one `insert … select` per grouping                                                                                                                                   |
 | `rollup` | `RollupReadsBench`            | `count()`, `orderByViews()`, `top()` and `trending()` through the `rollup` source with every view folded into day and month rollups, for the same targets and periods as in `read`, and `anomalies()` over the last day against the four weeks before, which the day tier answers |
 | `maintenance` | `AnonymiseViewsBench`     | `views:anonymise` over the last day before the anchor, in chunks of a thousand and of five thousand views, each chunk continuing after the last id of the one before; rolled back after every iteration |
