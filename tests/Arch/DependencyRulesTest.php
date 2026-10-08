@@ -51,6 +51,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Erasure',
     'CyrildeWit\EloquentViewable\Doctor',
     'CyrildeWit\EloquentViewable\Presence',
+    'CyrildeWit\EloquentViewable\Milestones',
 ];
 
 const ENTRY_POINTS = [
@@ -71,6 +72,7 @@ const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions',
     'CyrildeWit\EloquentViewable\Retention\Exceptions',
     'CyrildeWit\EloquentViewable\Presence\Exceptions',
+    'CyrildeWit\EloquentViewable\Milestones\Exceptions',
 ];
 
 arch('no debugging statements are left in the codebase')
@@ -215,6 +217,19 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         VisitorIdentity::class,
         AnonymiseViews::class,
         'Carbon',
+        'Illuminate',
+    ]);
+
+arch('no module depends on milestones')
+    ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying', 'CyrildeWit\EloquentViewable\Retention', 'CyrildeWit\EloquentViewable\Maintenance'])
+    ->not->toUse('CyrildeWit\EloquentViewable\Milestones');
+
+arch('milestones read the counter columns and the state table, and nothing else')
+    ->expect('CyrildeWit\EloquentViewable\Milestones')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Milestones',
+        'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
         'Illuminate',
     ]);
 
