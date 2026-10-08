@@ -886,9 +886,23 @@ recommended because of itself.
 
 #### On large tables
 
-`recommended()` runs the work of `alsoViewed()` for every model the viewer viewed recently, so the same advice holds:
-add the visitor index from [Database indexes](#database-indexes), and turn on [the pairs table](#the-pairs-table) for
-heavy traffic. The viewer's own history is read through the `(viewer_type, viewer_id)` index the migration adds.
+`recommended()` runs the work of `alsoViewed()` for every model the viewer viewed recently, so its cost grows with how
+many views those models have. Three things keep it fast:
+
+- **Give it a short period.** Over all time, one call reads every view of every popular model the viewer opened. Over
+  the last 30 days it reads only those, which on a million views is the difference between seconds and a tenth of a
+  second. Recent views are usually the better signal anyway:
+
+  ```php
+  $user->recommended(Post::class, period: Period::pastDays(30));
+  ```
+
+- **Add the visitor index** from [Database indexes](#database-indexes). The viewer's own history is read through the
+  `(viewer_type, viewer_id)` index the migration adds.
+- **Turn on [the pairs table](#the-pairs-table)** for heavy traffic.
+
+To recommend over all time, compute the list outside the request, in a queued job or a scheduled command, and keep it
+with `remember()` or in a table of your own, so a page only reads the result.
 
 ### Who is looking right now
 
