@@ -1,7 +1,7 @@
 # Listing stats
 
 A marketplace gives each seller a stats page for their listing: a chart of the views per day over the past 30 days,
-the number of people who saw it, and how the views compare with the 30 days before.
+the number of people who saw it, how the views compare with the 30 days before, and where they came from.
 
 ## The pieces
 
@@ -31,6 +31,30 @@ $report = app(ListingStats::class)->for($listing);
 @foreach ($report->views as $day)
     <div title="{{ $day->start->toFormattedDayDateString() }}" style="height: {{ $day->count }}px"></div>
 @endforeach
+
+<ul>
+    @foreach ($report->sources->all() as $source => $views)
+        <li>{{ $source }}: {{ $views }}</li>
+    @endforeach
+    @if ($report->sources->other() > 0)
+        <li>Other sites: {{ $report->sources->other() }}</li>
+    @endif
+</ul>
+```
+
+The sources come from the `source` [dimension](../../README.md#dimensions), so list it and add its column first:
+
+```php
+'dimensions' => [
+    'definitions' => [
+        'source' => CyrildeWit\EloquentViewable\Dimensions\Source::class,
+    ],
+],
+```
+
+```bash
+php artisan views:dimensions
+php artisan migrate
 ```
 
 ## Decisions
@@ -60,6 +84,11 @@ series. Their numbers differ, so the page should not show the sum of the chart a
 so the previous window cannot change and could be cached until midnight, but only by building and counting it
 separately again. One extra count every ten minutes is the price of letting `compare()` do it.
 
+**Name five sources and add up the rest.** A listing shared around gets views from many small sites, and a seller
+cares about the few that matter. `countBy('source', limit: 5)` keeps the five largest and counts the rest in
+`other()`, in one grouped query. Views recorded before the dimension was listed have no source, which `none()` counts,
+so the list never adds up to more than `totalViews()`.
+
 **`remember()` does the caching.** Unlike the ranking in the trending articles sample, `count()`,
 `countByInterval()` and `compare()` go through `remember()`, so `ListingStats` needs no cache of its own.
 
@@ -69,5 +98,5 @@ separately again. One extra count every ten minutes is the price of letting `com
   `views($listing)->period($day->period())->countByInterval(Granularity::Hour)` adds up to the bar.
 - Offer a year view with `Granularity::Week` or `Granularity::Month`. A finer granularity over a long range can produce
   more buckets than `max_intervals` allows, which throws `InvalidInterval` before the query runs.
-- Show where the views came from by recording them into [view collections](../../README.md#view-collections) and
-  passing `collection()` to each count.
+- Narrow the chart to one source with `whereDimension('source', 'Google')`, or break the views down by `device` too.
+- Keep the sources past the 30 days the views table holds by listing `source` under `retention.rollups.dimensions`.

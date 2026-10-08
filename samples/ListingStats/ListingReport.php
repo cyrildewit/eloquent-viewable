@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Samples\ListingStats;
 
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 
 final readonly class ListingReport
@@ -18,6 +19,8 @@ final readonly class ListingReport
         public int $visitors,
         /** The views of the window against the 30 days before it. */
         public ViewComparison $trend,
+        /** The views per source, the five largest by name and the rest in `other()`. */
+        public DimensionCounts $sources,
     ) {}
 
     public function totalViews(): int

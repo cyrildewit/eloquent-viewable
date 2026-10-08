@@ -3,21 +3,24 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Samples\ListingStats\Listing;
 use CyrildeWit\EloquentViewable\Samples\ListingStats\ListingStats;
 
 beforeEach(function (): void {
     $this->travelTo(Carbon::parse('2026-10-01 15:00'));
+
+    config()->set('eloquent-viewable.dimensions.definitions', ['source' => Source::class]);
 });
 
 /**
  * Stores a view the way `record()` would, but at a chosen time and for a
  * chosen visitor, so a test can lay out a month of traffic in a few lines.
  */
-function viewListing(Listing $listing, string $at, string $visitor = 'visitor'): void
+function viewListing(Listing $listing, string $at, string $visitor = 'visitor', ?string $source = null): void
 {
-    $listing->views()->create(['visitor' => $visitor, 'viewed_at' => Carbon::parse($at)]);
+    $listing->views()->create(['visitor' => $visitor, 'viewed_at' => Carbon::parse($at), 'source' => $source]);
 }
 
 /**
@@ -95,6 +98,23 @@ it('has no percentage to show when the 30 days before had no views', function ()
     viewListing($listing, '2026-10-01 10:00');
 
     expect(app(ListingStats::class)->for($listing)->trend->percent)->toBeNull();
+});
+
+it('lists the five largest sources and adds up the rest', function (): void {
+    $listing = Listing::create(['title' => 'Oak table']);
+
+    foreach (['Google', 'Google', 'Google', 'Direct', 'Direct', 'Facebook', 'Bing', 'Hacker News', 'Reddit', 'X'] as $source) {
+        viewListing($listing, '2026-09-20 10:00', source: $source);
+    }
+
+    viewListing($listing, '2026-09-21 10:00');
+
+    $sources = app(ListingStats::class)->for($listing)->sources;
+
+    expect($sources->all())->toBe(['Google' => 3, 'Direct' => 2, 'Bing' => 1, 'Facebook' => 1, 'Hacker News' => 1])
+        ->and($sources->other())->toBe(2)
+        ->and($sources->none())->toBe(1)
+        ->and($sources->share('Google'))->toBe(0.273);
 });
 
 it('keeps serving the cached counts for ten minutes', function (): void {
