@@ -32,9 +32,12 @@ use Illuminate\Contracts\Events\Dispatcher;
  * or weeks. A model that leaves its baseline opens an episode and dispatches
  * one event; while it stays out, the episode keeps its peak. Once it has been
  * back to normal for the cooldown, the episode settles with one more event.
- * Every event is dispatched after the row it reports is written.
+ * Every event is dispatched after the row it reports is written. Spikes and
+ * drops are scored from one read of the windows.
  *
  * @internal
+ *
+ * @phpstan-import-type GrowthRow from GrowthRanking
  */
 final readonly class DetectSpikes
 {
@@ -77,9 +80,12 @@ final readonly class DetectSpikes
             $end = CarbonImmutable::now()->startOfHour();
             $window = Period::create($end->subHours($settings->hours), $end);
 
-            $spikes = $this->watch($source, $settings, $window, $end, Direction::Spike);
+            $model = new ($settings->class);
+            $rows = $this->growth->zScores($source, $model, new ViewsQuery($window), $settings->seasonality, $settings->samples, $settings->minimum);
+
+            $spikes = $this->watch($model->getMorphClass(), $settings, $this->beyond($rows, $settings->threshold), $end, Direction::Spike);
             $drops = $settings->drops
-                ? $this->watch($source, $settings, $window, $end, Direction::Drop)
+                ? $this->watch($model->getMorphClass(), $settings, $this->beyond($rows, -$settings->threshold), $end, Direction::Drop)
                 : ['started' => 0, 'settled' => 0];
 
             $runs[] = new SpikeRun($settings->class, $spikes['started'], $drops['started'], $spikes['settled'] + $drops['settled']);
@@ -89,22 +95,25 @@ final readonly class DetectSpikes
     }
 
     /**
+     * The rows at or above a positive threshold, or at or below a negative
+     * one.
+     *
+     * @param  list<GrowthRow>  $rows
+     * @return list<GrowthRow>
+     */
+    private function beyond(array $rows, float $threshold): array
+    {
+        return array_values(array_filter($rows, fn (array $row): bool => $threshold > 0 ? $row['score'] >= $threshold : $row['score'] <= $threshold));
+    }
+
+    /**
+     * @param  list<GrowthRow>  $rows
      * @return array{started: int, settled: int}
      *
-     * @throws InvalidBaseline
      * @throws InvalidConfiguration
-     * @throws InvalidPeriod
      */
-    private function watch(CountsByWindow $source, SpikeSettings $settings, Period $window, CarbonImmutable $end, Direction $direction): array
+    private function watch(string $type, SpikeSettings $settings, array $rows, CarbonImmutable $end, Direction $direction): array
     {
-        $model = new ($settings->class);
-        $type = $model->getMorphClass();
-
-        $threshold = $direction === Direction::Spike
-            ? $settings->threshold
-            : -$settings->threshold;
-
-        $rows = $this->growth->anomalies($source, $model, new ViewsQuery($window), $settings->seasonality, $settings->samples, $threshold, $settings->minimum, PHP_INT_MAX);
         $open = $this->episodes->open($type, $direction);
         $events = [];
 
