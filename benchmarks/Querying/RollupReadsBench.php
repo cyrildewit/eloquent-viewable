@@ -17,12 +17,13 @@ use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
 /**
- * The reads of `CountViewsBench`, `OrderByViewsBench`, `TopViewedBench` and
- * `TrendingBench` through the `rollup` source, with every view folded into
- * day and month rollups. Compare a subject with its counterpart in those
- * classes to see what the rollups save. Trending over the past day is weighed
- * per hour, which no day tier fits, so it reads the views table. Unique counts still read the views table, which
- * holds them exactly while nothing is anonymised or pruned.
+ * The reads of `CountViewsBench`, `OrderByViewsBench`, `TopViewedBench`,
+ * `TrendingBench` and `GrowthBench` through the `rollup` source, with every
+ * view folded into day and month rollups. Compare a subject with its
+ * counterpart in those classes to see what the rollups save. Trending over the
+ * past day is weighed per hour, which no day tier fits, so it reads the views
+ * table. Unique counts still read the views table, which holds them exactly
+ * while nothing is anonymised or pruned.
  */
 #[Groups(['rollup'])]
 #[BeforeMethods('setUp')]
@@ -68,6 +69,15 @@ final class RollupReadsBench extends BenchCase
     public function benchTop(array $params): void
     {
         views(Article::class)->period($this->period($params))->top(10);
+    }
+
+    /**
+     * The last day before the anchor against the same day on the four weeks
+     * before, which the day tier answers.
+     */
+    public function benchAnomalies(): void
+    {
+        views(Article::class)->period($this->dataset->pastDays(1))->anomalies(limit: 10);
     }
 
     /**

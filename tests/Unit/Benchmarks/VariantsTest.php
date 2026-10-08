@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\AnonymiseViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\DetectSpikesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\PruneViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Maintenance\RecountViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Php\CooldownManagerBench;
@@ -14,6 +15,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsByIntervalBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsForViewablesBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\CountViewsInCollectionBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\FoldViewsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\GrowthBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RecommendedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
@@ -66,6 +68,7 @@ it('finds every benchmark class in path order', function (): void {
 
     expect($classes)->toBe([
         AnonymiseViewsBench::class,
+        DetectSpikesBench::class,
         PruneViewsBench::class,
         RecountViewsBench::class,
         CooldownManagerBench::class,
@@ -77,6 +80,7 @@ it('finds every benchmark class in path order', function (): void {
         CountViewsForViewablesBench::class,
         CountViewsInCollectionBench::class,
         FoldViewsBench::class,
+        GrowthBench::class,
         OrderByViewsBench::class,
         RecommendedBench::class,
         RememberedCountsBench::class,
@@ -98,12 +102,12 @@ it('filters the benchmarks on their group', function (): void {
         Variants::discover()->inGroup($group),
     );
 
-    expect($names('read'))->toBe(['AlsoViewedBench', 'CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'OrderByViewsBench', 'RecommendedBench', 'TopViewedBench', 'TrendingBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
+    expect($names('read'))->toBe(['AlsoViewedBench', 'CountViewsBench', 'CountViewsByCollectionBench', 'CountViewsByIntervalBench', 'CountViewsForViewablesBench', 'CountViewsInCollectionBench', 'GrowthBench', 'OrderByViewsBench', 'RecommendedBench', 'TopViewedBench', 'TrendingBench', 'WhereViewedBench', 'WhereViewsCountBench', 'WithViewsCountBench'])
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
         ->and($names('rollup'))->toBe(['FoldViewsBench', 'RollupReadsBench'])
-        ->and($names('maintenance'))->toBe(['AnonymiseViewsBench', 'PruneViewsBench', 'RecountViewsBench'])
+        ->and($names('maintenance'))->toBe(['AnonymiseViewsBench', 'DetectSpikesBench', 'PruneViewsBench', 'RecountViewsBench'])
         ->and($names('missing'))->toBeEmpty();
 });
 
@@ -334,5 +338,33 @@ it('names the parameter sets of the maintenance benchmarks', function (): void {
     expect(setsOf(AnonymiseViewsBench::class, 'benchAnonymiseDay'))->toBe(['1,000 per chunk', '5,000 per chunk'])
         ->and(setsOf(PruneViewsBench::class, 'benchPruneDay'))->toBe(['1,000 per chunk', '5,000 per chunk'])
         ->and(setsOf(RecountViewsBench::class, 'benchRecountChanged'))->toBe(['10 articles viewed', '100 articles viewed'])
-        ->and(benchmark(RecountViewsBench::class)->beforeMethods)->toBe(['setUp', 'begin']);
+        ->and(benchmark(RecountViewsBench::class)->beforeMethods)->toBe(['setUp', 'begin'])
+        ->and(setsOf(DetectSpikesBench::class, 'benchDetect'))->toBe(['spikes', 'spikes and drops'])
+        ->and(benchmark(DetectSpikesBench::class)->beforeMethods)->toBe(['setUp', 'begin']);
+});
+
+it('names the parameter sets of the growth benchmarks', function (): void {
+    expect(setsOf(GrowthBench::class, 'benchRising'))->toBe([
+        'every type,past hour',
+        'articles,past hour',
+        'every type,past day',
+        'articles,past day',
+    ])
+        ->and(setsOf(GrowthBench::class, 'benchAnomalies'))->toBe([
+            'every type,past hour,4 weeks',
+            'articles,past hour,4 weeks',
+            'every type,past day,4 weeks',
+            'articles,past day,4 weeks',
+            'every type,past hour,8 weeks',
+            'articles,past hour,8 weeks',
+            'every type,past day,8 weeks',
+            'articles,past day,8 weeks',
+            'every type,past hour,7 days',
+            'articles,past hour,7 days',
+            'every type,past day,7 days',
+            'articles,past day,7 days',
+        ])
+        ->and(setsOf(GrowthBench::class, 'benchDrops'))->toBe(['past hour,4 weeks', 'past day,4 weeks', 'past hour,8 weeks', 'past day,8 weeks', 'past hour,7 days', 'past day,7 days'])
+        ->and(setsOf(GrowthBench::class, 'benchAgainstBaseline'))->toBe(['hot article,past hour', 'cold article,past hour', 'hot article,past day', 'cold article,past day'])
+        ->and(setsOf(RollupReadsBench::class, 'benchAnomalies'))->toBe(['']);
 });
