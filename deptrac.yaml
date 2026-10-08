@@ -20,6 +20,8 @@
 #                 prefix
 #   Milestones    fires an event once a counter column crosses a threshold,
 #                 above querying for the recounts it listens to
+#   Spikes        fires an event when a model spikes, drops or settles,
+#                 above querying for the growth rankings it reads
 #   Recording, Querying, Cooldowns, Visitors, Crawlers
 #   Presence      who is looking right now, below recording, which keeps it
 #                 up to date, and above querying for the rankings it builds
@@ -98,6 +100,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^CyrildeWit\\EloquentViewable\\Milestones\\.*
+
+    - name: Spikes
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Spikes\\.*
 
     # The builder behind the facade. It records views as well as counting them,
     # so it sits above both.
@@ -186,6 +193,11 @@ deptrac:
     Milestones:
       - Foundation
       - Querying
+    # Ranks the watched models with the growth rankings of querying, and keeps
+    # an episode per model while it spikes or drops.
+    Spikes:
+      - Foundation
+      - Querying
     # Reads the config, schema and state every module relies on, and nothing
     # below it knows the doctor exists.
     Doctor:
@@ -204,6 +216,7 @@ deptrac:
       - Debugging
       - +Erasure
       - +Milestones
+      - +Spikes
       - +Doctor
       # The service provider binds the crawler adapter and the CrawlerDetect
       # instance it wraps. Wiring is its job, so it may know both.

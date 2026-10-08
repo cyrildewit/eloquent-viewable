@@ -52,6 +52,7 @@ const MODULES = [
     'CyrildeWit\EloquentViewable\Doctor',
     'CyrildeWit\EloquentViewable\Presence',
     'CyrildeWit\EloquentViewable\Milestones',
+    'CyrildeWit\EloquentViewable\Spikes',
 ];
 
 const ENTRY_POINTS = [
@@ -73,6 +74,7 @@ const EXCEPTIONS = [
     'CyrildeWit\EloquentViewable\Retention\Exceptions',
     'CyrildeWit\EloquentViewable\Presence\Exceptions',
     'CyrildeWit\EloquentViewable\Milestones\Exceptions',
+    'CyrildeWit\EloquentViewable\Spikes\Exceptions',
 ];
 
 arch('no debugging statements are left in the codebase')
@@ -230,6 +232,22 @@ arch('milestones read the counter columns and the state table, and nothing else'
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Milestones',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        'Illuminate',
+    ]);
+
+arch('no module depends on spikes')
+    ->expect(['CyrildeWit\EloquentViewable\Recording', 'CyrildeWit\EloquentViewable\Querying', 'CyrildeWit\EloquentViewable\Retention', 'CyrildeWit\EloquentViewable\Maintenance', 'CyrildeWit\EloquentViewable\Milestones'])
+    ->not->toUse('CyrildeWit\EloquentViewable\Spikes');
+
+arch('spikes rank through querying and keep their episodes, and nothing else')
+    ->expect('CyrildeWit\EloquentViewable\Spikes')
+    ->toOnlyUse([
+        ...FOUNDATION,
+        'CyrildeWit\EloquentViewable\Spikes',
+        'CyrildeWit\EloquentViewable\Querying\Contracts',
+        'CyrildeWit\EloquentViewable\Querying\Exceptions',
+        'CyrildeWit\EloquentViewable\Querying\Growth',
+        'Carbon',
         'Illuminate',
     ]);
 

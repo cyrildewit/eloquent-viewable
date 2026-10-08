@@ -68,6 +68,7 @@ use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
@@ -114,6 +115,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 ForgetVisitorCommand::class,
                 DiagnoseViewsCommand::class,
                 SeedMilestonesCommand::class,
+                DetectSpikesCommand::class,
             ]);
 
             $this->publishes([
@@ -155,6 +157,10 @@ class EloquentViewableServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../database/migrations/create_view_milestones_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_milestones_table.php"),
         ], 'eloquent-viewable-milestones');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_view_spikes_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_spikes_table.php"),
+        ], 'eloquent-viewable-spikes');
     }
 
     /**
