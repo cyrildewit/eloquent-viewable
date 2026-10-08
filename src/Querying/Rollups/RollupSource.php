@@ -555,18 +555,18 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     private function countedPerViewable(?string $type, ViewsQuery $query): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $plan = $this->plan($grouping, $query);
+        $read = $this->plan($grouping, $query);
 
-        if (! $plan instanceof Plan) {
+        if (! $read instanceof PlannedRead) {
             return [$this->raw->countedPerViewable($type, $query)];
         }
 
-        $branches = array_map(fn (Segment $segment): Builder => $this->raw->countedPerViewable($type, $this->narrow($query, $segment)), $plan->raw());
+        $branches = array_map(fn (Segment $segment): Builder => $this->raw->countedPerViewable($type, $this->narrow($query, $segment)), $read->plan->raw());
 
         $rollupType = $this->rollup->qualifyColumn('viewable_type');
         $rollupId = $this->rollup->qualifyColumn('viewable_id');
 
-        $branches[] = $this->rollups($type, null, $grouping, $plan, $query)
+        $branches[] = $this->rollups($type, null, $grouping, $read, $query)
             ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($rollupType, $rollupId);
 
