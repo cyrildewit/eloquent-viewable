@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Dimensions\Exceptions\UnknownDimension;
 use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Facades\Views as ViewsFacade;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
@@ -15,6 +16,7 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
     $this->travelTo(Carbon::parse('2026-03-31 12:00:00'));
@@ -194,6 +196,44 @@ it('skips recounting a model whose views were destroyed under a source that cann
     app(RecountViews::class)->destroyed($this->post);
 
     expect(counted($this->post))->toBe([[0, 0]]);
+});
+
+describe('CountersRecounted', function (): void {
+    beforeEach(fn () => Event::fake([CountersRecounted::class]));
+
+    it('is dispatched once per chunk with the keys it recounted', function (): void {
+        app(RecountViews::class)->handle(chunk: 2);
+
+        Event::assertDispatchedTimes(CountersRecounted::class, 2);
+        Event::assertDispatched(CountersRecounted::class, fn (CountersRecounted $event): bool => $event->class === Post::class
+            && $event->keys === [$this->post->getKey(), $this->trashed->getKey()]);
+        Event::assertDispatched(CountersRecounted::class, fn (CountersRecounted $event): bool => $event->keys === [$this->unseen->getKey()]);
+    });
+
+    it('is dispatched with only the models a later run recounts', function (): void {
+        $this->artisan('views:recount')->assertSuccessful();
+
+        View::factory()->for($this->unseen, 'viewable')->create();
+
+        $this->artisan('views:maintain')->assertSuccessful();
+
+        Event::assertDispatchedTimes(CountersRecounted::class, 2);
+        Event::assertDispatched(CountersRecounted::class, fn (CountersRecounted $event): bool => $event->keys === [$this->unseen->getKey()]);
+    });
+
+    it('is dispatched for a model whose views were destroyed', function (): void {
+        views($this->post)->destroy();
+
+        Event::assertDispatched(CountersRecounted::class, fn (CountersRecounted $event): bool => $event->keys === [$this->post->getKey()]);
+    });
+
+    it('is not dispatched when the class has no counter columns', function (): void {
+        config()->set('eloquent-viewable.querying.counters', []);
+
+        app(RecountViews::class)->recount(new Post, [$this->post->getKey()]);
+
+        Event::assertNotDispatched(CountersRecounted::class);
+    });
 });
 
 describe('dimensions', function (): void {

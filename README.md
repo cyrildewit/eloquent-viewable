@@ -2284,6 +2284,20 @@ the second. Without the retention migration every run recounts every model.
 
 `views($post)->destroy()` recounts the post's columns right away.
 
+The columns are written with a query builder `UPDATE`, so no model events fire. Every recount dispatches
+`Querying\Counters\Events\CountersRecounted` instead, once per chunk, with the model class and the keys it recounted.
+Listen to it to keep a copy of the columns elsewhere in sync, such as a search index:
+
+```php
+use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
+
+Event::listen(function (CountersRecounted $event): void {
+    $event->class::query()->whereKey($event->keys)->searchable();
+});
+```
+
+The keys are every model the recount wrote, also those whose counts stayed the same.
+
 ### Buffering views in Redis
 
 The `redis` store replaces the insert during the request with one `XADD` to a Redis stream. A scheduled command moves
