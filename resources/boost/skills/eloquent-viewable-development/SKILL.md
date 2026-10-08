@@ -89,6 +89,7 @@ views(Post::class)->recommended(10);                          // for the current
 Post::orderByViews('desc', Period::pastDays(7))->paginate();
 Post::withViewsCount()->get();                                // adds views_count
 Post::orderByTrending()->paginate();
+Post::orderByHot()->paginate();                               // needs a counter column with the `hot` option
 Post::whereNotViewedBy($user)->get();
 Post::where('published', true)->recommendedFor($user)->paginate();  // adds recommendation_score
 ```
