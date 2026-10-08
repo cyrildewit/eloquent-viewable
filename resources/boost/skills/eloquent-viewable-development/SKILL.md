@@ -92,7 +92,7 @@ Post::where('published', true)->recommendedFor($user)->paginate();  // adds reco
 
 A ranking yields entries with `rank`, `count` and `viewable`. Show `count` to users, never the trending `score`.
 
-A recommendation has `rank`, `score`, `viewable` and `because`, the viewer's views it came from. Show `because` as the reason, never the `score`. An empty list is a valid answer below `querying.also_viewed.minimum_visitors`: fall back yourself, such as to `trending()`.
+A recommendation has `rank`, `score`, `viewable` and `because`, the viewer's views it came from. Show `because` as the reason, never the `score`. Pass a short `period`, such as `Period::pastDays(30)`, on every request; recommend over all time only in a queued job. An empty list is a valid answer below `querying.also_viewed.minimum_visitors`: fall back yourself, such as to `trending()`.
 
 ## Who Is Looking Right Now
 
