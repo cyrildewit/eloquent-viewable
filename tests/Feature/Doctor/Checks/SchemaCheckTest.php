@@ -101,6 +101,17 @@ it('checks the rollup table once rollups are configured', function (): void {
     expect(schemaFindings())->toContain([Status::Failure, 'Rollups are configured, but the `missing_rollups` table does not exist.']);
 });
 
+it('checks the milestones table once thresholds are configured', function (): void {
+    config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
+    config()->set('eloquent-viewable.milestones.thresholds', [Post::class => ['cached_views' => [100]]]);
+
+    expect(schemaFindings())->toContain([Status::Pass, 'The `view_milestones` table exists.']);
+
+    config()->set('eloquent-viewable.milestones.table', 'missing_milestones');
+
+    expect(schemaFindings())->toContain([Status::Failure, 'Milestones are configured, but the `missing_milestones` table does not exist.']);
+});
+
 it('checks the counter columns on the tables of the models', function (): void {
     config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
 
