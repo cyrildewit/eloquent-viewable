@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Exceptions;
 
+use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\EloquentViewableException;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
@@ -15,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailable;
 use LogicException;
 
 final class UnsupportedBySource extends LogicException implements EloquentViewableException
@@ -97,6 +99,12 @@ final class UnsupportedBySource extends LogicException implements EloquentViewab
         $contract = TrendingSubquerySource::class;
 
         return new self("The view source [{$class}] cannot weigh views by age in SQL, so the withTrendingScore() and orderByTrending() scopes cannot read from it. Implement `{$contract}` on it, or rank through views()->trending() instead.");
+    }
+
+    /** @param  non-empty-list<string>  $dimensions */
+    public static function dimensionHistory(array $dimensions, CarbonInterface $pruned): self
+    {
+        return new self(ResolutionUnavailable::dimensionHistoryMessage($dimensions, $pruned));
     }
 
     public static function filter(ViewSource $source): self
