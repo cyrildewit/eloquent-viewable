@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Erasure\Actions;
 
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Erasure\Events\ViewHistoryAnonymised;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Erasure\TouchedViewables;
@@ -22,8 +23,9 @@ use Illuminate\Support\Carbon;
  * This action keeps the views of a subject but takes what ties them to it
  * out, the way retention anonymises old views: `visitor` is re-hashed under
  * a salt per day on the clock of `retention.rollups.timezone`, which is
- * thrown away after the run, and `viewer` and `context` become null. Counts
- * and daily unique visitors stay the same.
+ * thrown away after the run, and `viewer`, `context` and the dimensions
+ * marked personal become null. Counts and daily unique visitors stay the
+ * same.
  */
 final readonly class AnonymiseViewHistory
 {
@@ -32,6 +34,7 @@ final readonly class AnonymiseViewHistory
         private View $view,
         private Config $config,
         private Dispatcher $events,
+        private DimensionRegistry $dimensions,
     ) {}
 
     /**
@@ -93,12 +96,15 @@ final readonly class AnonymiseViewHistory
             $groups[$this->anonymisedVisitor($row, $zone, $salts) ?? ''][] = $row->id;
         }
 
+        $personal = array_fill_keys($this->dimensions->personalColumns(), null);
+
         foreach ($groups as $visitor => $ids) {
             $this->view->newQuery()->toBase()->whereIn('id', $ids)->update([
                 'visitor' => $visitor === '' ? null : $visitor,
                 'viewer_type' => null,
                 'viewer_id' => null,
                 'context' => null,
+                ...$personal,
             ]);
         }
     }

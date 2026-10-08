@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Dimensions\Campaign;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\Source;
 use CyrildeWit\EloquentViewable\Doctor\Checks\DimensionsCheck;
@@ -129,6 +130,25 @@ it('says nothing before the views are folded', function (): void {
     config()->set('eloquent-viewable.retention.rollups.dimensions', ['source']);
 
     app(RollupState::class)->putOrigin('views:source', Carbon::parse('2026-03-10'));
+
+    expect(dimensionFindings()[0][0])->toBe(Status::Pass);
+});
+
+it('warns about a personal dimension folded into rollups', function (): void {
+    config()->set('eloquent-viewable.dimensions.definitions', [
+        'campaign' => Campaign::class,
+        'source' => Source::class,
+    ]);
+    config()->set('eloquent-viewable.retention.rollups.dimensions', ['campaign', 'source']);
+
+    expect(dimensionFindings())->toBe([
+        [Status::Warning, 'The `campaign` dimension is marked personal but folded into rollups, where anonymising and erasing a person never reach its values.'],
+    ]);
+});
+
+it('lets a dimension whose values identify no one be folded', function (): void {
+    config()->set('eloquent-viewable.dimensions.definitions', ['campaign' => [Campaign::class, 'personal' => false]]);
+    config()->set('eloquent-viewable.retention.rollups.dimensions', ['campaign']);
 
     expect(dimensionFindings()[0][0])->toBe(Status::Pass);
 });

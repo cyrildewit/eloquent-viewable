@@ -121,3 +121,13 @@ it('refuses an entry it cannot build', function (mixed $entry, string $problem):
 it('names the entry in the error', function (): void {
     registryOf(['plan' => stdClass::class]);
 })->throws(InvalidConfiguration::class, 'The `plan` entry in `eloquent-viewable.dimensions.definitions`');
+
+it('lists the columns of the personal dimensions', function (): void {
+    $registry = registryOf([
+        'campaign' => Campaign::class,
+        'plan' => [PlanDimension::class, 'personal' => true, 'json' => 'context->plan'],
+        'source' => Source::class,
+    ]);
+
+    expect($registry->personalColumns())->toBe(['campaign']);
+});

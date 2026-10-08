@@ -111,7 +111,7 @@ trait HasViewHistory
     /**
      * Read every view this model made, oldest first, for a data access request.
      *
-     * @return LazyCollection<int, array{viewable_type: string, viewable_id: int|string, collection: ?string, context: ?array<string, mixed>, viewed_at: string}>
+     * @return LazyCollection<int, array{viewable_type: string, viewable_id: int|string, collection: ?string, context: ?array<string, mixed>, dimensions: array<string, mixed>, viewed_at: string}>
      *
      * @throws InvalidViewer
      */

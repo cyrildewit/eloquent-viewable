@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 final readonly class RetentionPolicy
 {
     /**
-     * @param  list<'visitor'|'viewer'|'context'>  $anonymiseColumns
+     * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $anonymiseColumns
      *
      * @throws InvalidConfiguration
      */

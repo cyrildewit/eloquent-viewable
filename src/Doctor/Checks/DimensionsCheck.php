@@ -44,6 +44,7 @@ class DimensionsCheck implements Check
 
         $findings = [
             ...$this->windowFunctions(),
+            ...$this->foldedPersonal(),
             ...$this->lateRollups(),
         ];
 
@@ -84,6 +85,30 @@ class DimensionsCheck implements Check
             "Rollups fold dimensions with a cap, which needs MySQL 8.0 or newer, and the database runs {$version}.",
             'Upgrade MySQL, or give every folded dimension `maxValues` of null to keep all its values.',
         )];
+    }
+
+    /**
+     * Rollup rows carry no visitor, so neither anonymising nor erasing a
+     * person reaches the values of a personal dimension folded into them.
+     *
+     * @return list<Finding>
+     */
+    protected function foldedPersonal(): array
+    {
+        $findings = [];
+
+        foreach (array_keys($this->folded()) as $name) {
+            if ($this->dimensions->find($name)?->personal() !== true) {
+                continue;
+            }
+
+            $findings[] = Finding::warning(
+                "The `{$name}` dimension is marked personal but folded into rollups, where anonymising and erasing a person never reach its values.",
+                "Remove `{$name}` from `retention.rollups.dimensions`, or give it `'personal' => false` if its values identify no one.",
+            );
+        }
+
+        return $findings;
     }
 
     /**
