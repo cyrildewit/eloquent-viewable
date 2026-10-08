@@ -126,10 +126,34 @@ class IndexAdviceCheck implements Check
      */
     protected function reasonFor(OptionalIndex $index): ?string
     {
-        if ($index !== OptionalIndex::Visitor) {
+        return match ($index) {
+            OptionalIndex::Visitor => $this->uniqueCounterReason(),
+            OptionalIndex::TypeViewedAt => $this->spikesReason(),
+            default => null,
+        };
+    }
+
+    /**
+     * Without the index, every window the detector compares walks the
+     * composite index once per model of the type.
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function spikesReason(): ?string
+    {
+        if ($this->config->spikes() === []) {
             return null;
         }
 
+        return '`spikes.types` watches whole model types';
+    }
+
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     */
+    protected function uniqueCounterReason(): ?string
+    {
         foreach ($this->config->counters() as $columns) {
             foreach ($columns as $query) {
                 if ($query->unique) {
@@ -145,7 +169,7 @@ class IndexAdviceCheck implements Check
     {
         return match ($index) {
             OptionalIndex::Visitor => '`unique()` counts',
-            OptionalIndex::TypeViewedAt => 'counts over a whole model type, such as `views(Post::class)->count()` and `orderByTrending()`',
+            OptionalIndex::TypeViewedAt => 'counts over a whole model type, such as `views(Post::class)->count()`, `orderByTrending()`, `rising()` and `anomalies()`',
             OptionalIndex::VisitorHistory => '`alsoViewed()`',
             OptionalIndex::ViewedAt => 'retention and rollups',
         };
