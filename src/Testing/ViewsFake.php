@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Scope;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
 use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
@@ -43,7 +44,7 @@ use PHPUnit\Framework\Assert as PHPUnit;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource, ViewStore
+final class ViewsFake implements CountsByWindow, CountsVisitFrequency, PresenceStore, RanksAlsoViewed, RanksRecommendations, RanksTrending, ViewSource, ViewStore
 {
     private readonly ArrayStore $store;
 
@@ -183,6 +184,50 @@ final class ViewsFake implements CountsVisitFrequency, PresenceStore, RanksAlsoV
         usort($rows, static fn (array $a, array $b): int => [$b['count'], $a['type'], $a['id']] <=> [$a['count'], $b['type'], $b['id']]);
 
         return array_slice($rows, 0, $limit);
+    }
+
+    /**
+     * Counts the recorded views per window, as the database source does in
+     * SQL.
+     *
+     * @param  non-empty-list<Period>  $references
+     * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
+     */
+    public function countByWindow(?Viewable $viewable, ViewsQuery $query, array $references, int $minimum): array
+    {
+        $type = $viewable?->getMorphClass();
+        $windows = [$query, ...array_map($query->withPeriod(...), $references)];
+        $counts = [];
+
+        foreach ($windows as $slot => $window) {
+            $grouped = $this->matchingRecords($window, fn (ViewRecord $record): bool => $type === null || $record->viewableType === $type)
+                ->groupBy(fn (ViewRecord $record): string => self::keyOf($record));
+
+            foreach ($grouped as $key => $views) {
+                /** @var ViewRecord $first */
+                $first = $views->first();
+
+                $counts[$key] ??= ['type' => $first->viewableType, 'id' => $first->viewableId, 'counts' => array_fill(0, count($windows), 0)];
+                $counts[$key]['counts'][$slot] = $this->aggregate($views, $window);
+            }
+        }
+
+        $rows = [];
+
+        foreach ($counts as $count) {
+            /** @var non-empty-list<int> $references */
+            $references = array_slice($count['counts'], 1);
+            $current = $count['counts'][0];
+            $reaches = $current >= $minimum || array_sum($references) >= $minimum * count($references);
+
+            if (! $reaches) {
+                continue;
+            }
+
+            $rows[] = ['type' => $count['type'], 'id' => $count['id'], 'current' => $current, 'references' => $references];
+        }
+
+        return $rows;
     }
 
     /**
