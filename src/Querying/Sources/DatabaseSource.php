@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
@@ -40,7 +41,7 @@ use stdClass;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class DatabaseSource implements CountsByDimension, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -290,6 +291,42 @@ final readonly class DatabaseSource implements CountsByDimension, CountsVisitFre
         }
 
         return $ranking;
+    }
+
+    /**
+     * @param  non-empty-list<Period>  $references
+     * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
+     */
+    public function countByWindow(?Viewable $viewable, ViewsQuery $query, array $references, int $minimum): array
+    {
+        $type = $viewable?->getMorphClass();
+        $windows = [[$this->countedPerViewable($type, $query)]];
+
+        foreach ($references as $reference) {
+            $windows[] = [$this->countedPerViewable($type, $query->withPeriod($reference))];
+        }
+
+        return WindowTotals::of($this->view->getConnection(), $windows, $minimum);
+    }
+
+    /**
+     * The views of each viewable in the period of the query, as
+     * `viewable_type`, `viewable_id` and `aggregate`.
+     *
+     * @internal
+     */
+    public function countedPerViewable(?string $type, ViewsQuery $query): Builder
+    {
+        $builder = $this->view->newQuery()->matching($query)->toBase();
+        $grammar = $builder->getGrammar();
+
+        $viewableType = $this->view->qualifyColumn('viewable_type');
+        $viewableId = $this->view->qualifyColumn('viewable_id');
+
+        return $builder
+            ->when($type !== null, fn (Builder $builder): Builder => $builder->where($viewableType, $type))
+            ->selectRaw("{$grammar->wrap($viewableType)} as viewable_type, {$grammar->wrap($viewableId)} as viewable_id, {$this->aggregate($query, $grammar)} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
+            ->groupBy($viewableType, $viewableId);
     }
 
     /**
