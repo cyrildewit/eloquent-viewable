@@ -77,6 +77,16 @@ it('recommends the visitor index for a unique counter', function (): void {
     ]);
 });
 
+it('recommends the type index once spikes are watched', function (): void {
+    viewsTableWith();
+
+    config()->set('eloquent-viewable.spikes.types', [Post::class => []]);
+
+    expect(indexAdviceSummaries())->toBe([
+        [Status::Advice, 'Add an index on `(viewable_type, viewed_at)`: `spikes.types` watches whole model types, and it speeds up counts over a whole model type, such as `views(Post::class)->count()`, `orderByTrending()`, `rising()` and `anomalies()`.'],
+    ]);
+});
+
 it('ignores a counter that is not unique', function (): void {
     viewsTableWith();
 
@@ -99,7 +109,7 @@ it('suggests every index for a large table', function (): void {
 
     expect(indexAdviceSummaries())->toBe([
         [Status::Advice, 'With about 1,200,000 views, an index on `(viewable_type, viewable_id, viewed_at, visitor)` speeds up `unique()` counts.'],
-        [Status::Advice, 'With about 1,200,000 views, an index on `(viewable_type, viewed_at)` speeds up counts over a whole model type, such as `views(Post::class)->count()` and `orderByTrending()`.'],
+        [Status::Advice, 'With about 1,200,000 views, an index on `(viewable_type, viewed_at)` speeds up counts over a whole model type, such as `views(Post::class)->count()`, `orderByTrending()`, `rising()` and `anomalies()`.'],
         [Status::Advice, 'With about 1,200,000 views, an index on `(visitor, viewed_at, viewable_type, viewable_id)` speeds up `alsoViewed()`.'],
     ]);
 });
