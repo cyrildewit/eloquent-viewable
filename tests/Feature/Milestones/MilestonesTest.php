@@ -9,6 +9,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post as PlainPost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -182,6 +183,31 @@ it('fires through views:maintain', function (): void {
     expect(reached())->toBe([['cached_views', 2, 2, [2]]]);
 });
 
+it('leaves a crossing to the run that moved the mark first', function (): void {
+    recount();
+    viewPost($this->post, 2);
+
+    $raced = false;
+
+    DB::listen(function (QueryExecuted $query) use (&$raced): void {
+        if ($raced || ! str_starts_with($query->sql, 'select') || ! str_contains($query->sql, 'high_water')) {
+            return;
+        }
+
+        $raced = true;
+
+        DB::table('view_milestones')->insert(['viewable_type' => $this->post->getMorphClass(), 'viewable_id' => $this->post->getKey(), 'column' => 'cached_views', 'high_water' => 2]);
+    });
+
+    Event::fake([ViewMilestoneReached::class]);
+
+    recount();
+
+    expect($raced)->toBeTrue();
+
+    Event::assertNotDispatched(ViewMilestoneReached::class);
+});
+
 it('keeps the mark it moved when a listener throws', function (): void {
     recount();
     viewPost($this->post, 2);
@@ -239,8 +265,12 @@ describe('views:seed-milestones', function (): void {
     });
 
     it('seeds one model class', function (): void {
+        config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views'], PlainPost::class => ['cached_views']]);
+        config()->set('eloquent-viewable.milestones.thresholds', [Post::class => ['cached_views' => [2]], PlainPost::class => ['cached_views' => [2]]]);
+
         $this->artisan('views:seed-milestones', ['model' => Post::class])
             ->expectsOutputToContain('Marked 0 SoftDeletablePosts at their current count.')
+            ->doesntExpectOutputToContain('Marked 0 Posts')
             ->assertSuccessful();
     });
 
