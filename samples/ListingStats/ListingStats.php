@@ -22,6 +22,12 @@ class ListingStats
      */
     private const int CacheMinutes = 10;
 
+    /**
+     * The sources listed by name. The views of the rest are added up as one
+     * row, so a long tail of referring sites does not push the page down.
+     */
+    private const int TopSources = 5;
+
     public function for(Listing $listing): ListingReport
     {
         // The window runs from midnight to midnight. A period's cache key is
@@ -53,6 +59,11 @@ class ListingStats
                 ->period($window)
                 ->remember(self::CacheMinutes)
                 ->compare(),
+            // Needs the `source` dimension in `dimensions.definitions`.
+            sources: views($listing)
+                ->period($window)
+                ->remember(self::CacheMinutes)
+                ->countBy('source', limit: self::TopSources),
         );
     }
 }
