@@ -9,9 +9,10 @@ use Closure;
 
 /**
  * How long a maintenance run may keep starting new work. A run asks before
- * every unit of work, a bucket, a day or a chunk, and stops once the deadline
- * has passed. The unit in progress always finishes, so a run overshoots by at
- * most one unit, and the marks it leaves let the next run pick up from there.
+ * every unit of work, such as a bucket, a day or a chunk, and stops once the
+ * deadline has passed. The unit in progress always finishes, so a run
+ * overshoots by at most one unit, and the marks it leaves let the next run
+ * pick up from there.
  *
  * Every question also beats the heart of the run, which keeps the lock of a
  * long run from expiring underneath it.

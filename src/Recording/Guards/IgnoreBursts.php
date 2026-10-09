@@ -20,7 +20,7 @@ use Illuminate\Support\Carbon;
  * Refuses a visitor that opens more than `recording.bursts.max` different
  * viewables within `recording.bursts.seconds`, and every view of theirs for
  * `recording.bursts.block_for` seconds after. Opening the same viewable again
- * does not count, that is the cooldown's job.
+ * does not count, because the cooldown limits repeated views of one viewable.
  *
  * Attempts count when they are asked about, not once they are recorded,
  * because a burst is about what the visitor does. The count only uses atomic

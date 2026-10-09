@@ -25,7 +25,7 @@ use Throwable;
  *
  * Every key shares one hash tag, so each write and read is one Lua script
  * that a Redis Cluster runs on a single slot. A key expires once nobody has
- * been seen in it for twice the window.
+ * been seen in it for twice the window plus one minute.
  */
 final readonly class RedisPresenceStore implements PresenceStore
 {

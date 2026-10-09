@@ -23,8 +23,8 @@ final readonly class RecommendedFor
     ) {}
 
     /**
-     * The scores are written into the SQL as floating point literals: a bound
-     * value would leave Postgres to type the case expression as text.
+     * The scores are written into the SQL as floating point literals, because
+     * Postgres types the case expression as text when the scores are bound.
      *
      * @template TModel of Model&Viewable
      *

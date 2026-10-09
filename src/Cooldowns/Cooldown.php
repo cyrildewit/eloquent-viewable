@@ -22,7 +22,8 @@ final readonly class Cooldown
     }
 
     /**
-     * Hashed so no part can run into the next and the key fits any cache.
+     * The parts are JSON encoded so that no part can run into the next, and
+     * hashed so that the key fits the key length limit of any cache store.
      */
     public function key(): string
     {

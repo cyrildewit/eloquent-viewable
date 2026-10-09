@@ -107,7 +107,8 @@ class Visitor implements VisitorContract
     }
 
     /**
-     * Every visitor instance in a request must hand out the same new id.
+     * Reads the id of a cookie queued earlier in the request, so that every
+     * visitor instance in a request hands out the same new id.
      */
     protected function queuedId(string $cookieName): ?string
     {

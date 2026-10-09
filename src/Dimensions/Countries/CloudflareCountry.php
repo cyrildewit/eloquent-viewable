@@ -9,8 +9,9 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionInput;
 
 /**
  * Reads the `CF-IPCountry` header Cloudflare adds when IP geolocation is on.
- * Cloudflare sends `XX` for an unknown country and `T1` for Tor, and both are
- * read as no country.
+ * Cloudflare sends `XX` for an unknown country, which this reads as no country.
+ * It sends `T1` for Tor, which `Country` drops because it is not a two-letter
+ * code.
  */
 final readonly class CloudflareCountry implements CountryResolver
 {

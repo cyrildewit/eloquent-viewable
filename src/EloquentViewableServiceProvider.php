@@ -480,8 +480,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The rest of querying never learns about rollups: the source is offered
-     * to the manager here.
+     * The rollup source is offered to the source manager here, so the rest of
+     * querying does not have to know about rollups.
      */
     protected function registerRollups(): void
     {

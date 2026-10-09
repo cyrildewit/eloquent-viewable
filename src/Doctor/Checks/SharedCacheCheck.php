@@ -14,9 +14,9 @@ use Generator;
 use Illuminate\Contracts\Config\Repository;
 
 /**
- * Cooldowns, the throttle, the burst guard and the fingerprint salt only work when every
- * server that records views reads the same cache, and the counts `remember()`
- * keeps are only flushed everywhere when the servers share it.
+ * Cooldowns, the throttle, the burst guard and the fingerprint salt only work
+ * when every server that records views reads the same cache, and the counts
+ * `remember()` keeps are only flushed everywhere when the servers share it.
  */
 class SharedCacheCheck implements Check
 {
