@@ -5,6 +5,168 @@ All notable changes to `Eloquent Viewable` will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Version 9 adds dashboards, rankings, viewer tracking, cookieless visitors and a Redis buffer, and reorganises the
+package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-to-v900) for the steps to upgrade.
+
+### Added
+
+#### Recording
+
+- Added the `views` route middleware, `Http\Middleware\RecordViews`, which records the model bound to a route once a `GET` request gets a successful response. Route parameters or model classes pick what to record, `collection`, `cooldown` and `queue` options apply, and `RecordViews::using()` builds the middleware string
+- Added the beacon, which records views of pages served from a full-page cache. Turn it on with `recording.beacon.enabled` and print the `@viewsBeacon($post)` Blade directive; the page posts to a signed route once it has loaded. `Http\Beacon::url()` builds the URL for a script of your own
+- Added recording guards: the `recording.guards` config list, the `Recording\Contracts\RecordingGuard` contract for your own, and the new `IgnorePrefetch` guard, on by default, and `IgnoreGlobalPrivacyControl` guard, which honours `Sec-GPC: 1`
+- Added the `IgnoreMissingUserAgent` and `IgnoreHeadRequests` guards, on by default, which drop requests without a user agent and `HEAD` requests
+- Added the `ThrottleVisitors` guard, off by default, which caps the views one visitor records per minute across every model. Configure it under `recording.throttle`
+- Added the `IgnoreBursts` guard, on by default, which refuses a visitor that opens more than 8 different models within 2 seconds, and blocks them for 2 minutes. It counts per visitor id and per network and user agent, so a bot that drops its cookie is caught too. Configure it under `recording.bursts`. `Recording\Events\BurstDetected` is dispatched when a block starts
+- `recording.ignored_ip_addresses` accepts CIDR ranges such as `10.0.0.0/8`
+- Added `Views::attempt()`, which records like `record()` and returns a `Recording\Data\RecordResult` saying whether the view was stored or queued, or which guard skipped it. `Recording\Events\ViewSkipped` is dispatched when a guard refuses a view
+- Added `Recording\Events\ViewAttempted`, dispatched for every view the guards have judged with its `RecordResult`, in the request that made it, also when the write is queued. It is only built when something listens. `RecordResult` serialises to JSON with the guard named by its class
+- Added a Debugbar collector: with `fruitcake/laravel-debugbar` 4.4 or newer installed, a **Viewable** tab lists the views stored, queued and skipped in the request, with the guard that refused each. Turn it off with `debugbar.collectors.eloquent_viewable`
+- Added `Views::context(?array $context)` and a nullable `context` JSON column to store extra data with a view
+- Added store drivers, picked by `recording.store.driver`: `database`, the default, `redis`, `array` and `null`. Add your own `Recording\Contracts\ViewStore` with `StoreManager::extend()`
+- Added the `redis` store driver, which buffers views in a Redis stream and lands them in the views table in batches through the `views:flush` command or `Recording\Jobs\FlushBufferedViewsJob`. Needs Redis 7 or newer and phpredis or Predis 3.3 or newer
+- Added cooldown stores, picked by `cooldown.store`: `session`, the default, and `cache`, which also works without a session. Add your own with `CooldownManager::extend()`
+
+#### Viewers and visitors
+
+- Added nullable `viewer_type` and `viewer_id` columns, the `recording.viewer.enabled` and `recording.viewer.guard` config options, and `Views::viewedBy()`, to link a view to the signed-in model and count the views of one model
+- Added the `whereViewedBy()`, `whereNotViewedBy()`, `whereViewedByVisitor()` and `whereNotViewedByVisitor()` scopes
+- Added the `Concerns\HasViewHistory` trait with `viewed()`, `hasViewed()` and `lastViewedAt()`, and a `viewer` relation and `byViewer()` and `byVisitor()` scopes on the `View` model
+- Added the `visitor.identity` config option: `cookie`, the default, `viewer`, which counts one account as one visitor on every device, and `fingerprint`, which counts guests without a cookie by a hash that rotates daily. Set `visitor.fingerprint.rotation` to `week` or `month` to rotate it less often
+- Added the `visitor.cookie.lifetime` config option, in minutes. It still defaults to five years
+- Added the `Contracts\ViewerCanOptOut` contract and the `IgnoreOptedOutViewers` guard, on by default, which drops the views of a viewer whose `tracksViews()` returns `false`, for a "don't record my reading history" account setting. It asks the signed-in user also when `recording.viewer.enabled` is off, and `views:doctor` warns when the viewer model implements the contract but the guard is not listed
+- Added `forgetViewHistory()`, `anonymiseViewHistory()` and `exportViewHistory()` to `Concerns\HasViewHistory`, and the `views:forget-viewer` and `views:forget-visitor` commands, to erase or export the views of one person. They reach views in the Redis buffer, forget the remembered counts and recount the counter columns of the models touched, and dispatch `Erasure\Events\ViewHistoryForgotten`, `ViewHistoryAnonymised` and `ViewHistoryExported`. Rollups are left as they are
+
+#### Querying
+
+- Added `countByInterval()`, which returns a gap-filled `Querying\Series\ViewSeries` of counts per hour, day, week, month or year, with `labels()`, `values()`, `peak()`, `average()` and JSON output. `Views::timezone()` aligns its buckets to another timezone, and `querying.max_intervals` caps the number of buckets
+- Added `Views::compare()` and `Period::previous()`, which compare a period with the one before it
+- Added `Views::countByCollection()`, the counts of every collection at once
+- Added `Views::top()`, a ranking of the most viewed models across every type or within one
+- Added `Views::alsoViewed()`, a ranking of what the visitors of one model also viewed, bounded by the `querying.also_viewed.minimum_visitors` and `querying.also_viewed.max_visitors` config options. A view source of your own supports it by implementing `Querying\Contracts\RanksAlsoViewed`
+- Added `Views::forViewables()` and `counts()`, which count a set of models you already have in one query
+- Added `Views::returning()` and `Views::countByFrequency()`, which count the visitors who viewed a model on two days or more within the period, and how many visitors viewed on one day, on two, and so on, as a `Querying\Frequency\VisitFrequency` with `new()`, `returning()`, `total()`, `returningShare()` and JSON output. Views without a visitor and anonymised views are left out. A view source of your own supports them by implementing `Querying\Contracts\CountsVisitFrequency`
+- Added the `whereViewsCount()` and `whereUniqueViewsCount()` scopes
+- Added `Period::parse()`, route model binding for `Period`, and an optional timezone argument on the relative `Period` constructors
+- Added `Views::forgetCache()` and `Views::flushCache()` to forget remembered counts, on every cache store
+- Added count sources, picked by `querying.source.driver`. Add your own `Querying\Contracts\ViewSource` with `SourceManager::extend()`, and a bucket grammar for another database driver with `Querying\Grammars\GrammarRegistry`
+- Added the `Querying\Contracts\SubquerySource` contract, which a source implements so the scopes can read from it. A source that does not throws `Querying\Exceptions\UnsupportedBySource` from a scope
+- Added the `Querying\Contracts\IdentifiesSource` contract, whose `cacheIdentity()` keeps the remembered counts of a source apart per setting
+- Added `Views::trending()` and the `orderByTrending()` and `withTrendingScore()` scopes, which rank models by views weighed by their age, so recent views count more. `Entry` has a `score`. Configure them under `querying.trending`
+- Added the `Querying\Ranking\DecayCurve` contract with the `ExponentialDecay`, `LinearDecay` and `Window` curves, to choose or write how a view loses weight
+- Added the `Querying\Contracts\RanksTrending` and `TrendingSubquerySource` contracts, which a source of your own implements to support `trending()` and the trending scopes
+- Added personal recommendations: `recommended()` on `Concerns\HasViewHistory` and on `Views`, for the viewer `viewedBy()` names or the current visitor, and the `recommendedFor()` scope, which keeps the recommended models of a query ordered by a selected `recommendation_score`. They rank what the visitors of the viewer's most recent views also viewed, weighed by recency and by cosine similarity, leave out what the viewer viewed unless `includeSeen` is passed, and give each `Querying\Recommendations\Recommendation` the views it came from in `because`. Configure them under `querying.recommendations`. A view source of your own supports them by implementing `Querying\Contracts\RanksRecommendations`
+- Added the pairs table, an opt-in table of the models that share the most visitors, which `alsoViewed()` and `recommended()` read instead of the `views` table when a call names no period or collection. `views:pairs` rewrites it and dispatches `Querying\Pairs\Events\ViewsPaired`. Configure it under `querying.pairs`; the migration is published under the `eloquent-viewable-pairs` tag
+- Added `Views::rising()`, which ranks the models whose count grew the most against the previous period, `Views::anomalies()`, which ranks them by how many standard deviations their count lies from the same period on past weeks or days, spikes with a positive threshold and drops with a negative one, and `Views::againstBaseline()`, which compares one model with its own past as a `Querying\Growth\Baseline`. Every `Entry` of their rankings has the `baseline` it was compared with. A view source of your own supports them by implementing `Querying\Contracts\CountsByWindow`
+- Added the `hot` option of a counter column and the `orderByHot()` scope. The recount writes a Reddit-style score, the logarithm of the count plus a term that grows with the model's `created_at` or another timestamp column, so new content gets a head start and the column can be indexed
+
+#### Milestones
+
+- Added milestones: thresholds on a counter column under `milestones.thresholds`, checked by every recount. `Milestones\Events\ViewMilestoneReached` is dispatched once per model and threshold, after the mark that keeps it from firing again is committed, with the model's morph type and key, `viewable()` and `is()`. The first recount, and the one after a threshold is added, marks the models already past it without dispatching. `views:seed-milestones` marks every model by hand. The migration is published under the `eloquent-viewable-milestones` tag
+
+#### Spikes
+
+- Added `views:detect-spikes`, which compares the last closed window of the models under `spikes.types` with the same window on past weeks or days, and dispatches `Spikes\Events\ViewsSpiked` or `ViewsDropped` once when a model leaves its baseline and `ViewsSettled` once it has been back to normal for the cooldown. The events carry the model's morph type and key, `viewable()` and `is()`, and the baseline it was compared with. The migration is published under the `eloquent-viewable-spikes` tag
+- `views:doctor` checks that the spikes and milestones tables exist once they are configured, and that `views:detect-spikes` is scheduled, and recommends the `(viewable_type, viewed_at)` index once `spikes.types` is set
+
+#### Presence
+
+- Added presence, which counts who is looking right now: `views($post)->activeVisitors()`, and `live()` with `count()`, `counts()` for a set, `top()` for a ranking of what is being looked at, `viewers()` for the signed-in viewers and `within()` to narrow the window. It reads a viewable, a type or, through `Views::live()`, the whole site, within a collection when one is set. Turn it on with `presence.enabled`
+- Added the `redis` presence driver, which stores every active visitor, or with `presence.precision` set to `approximate` estimates the count with a HyperLogLog per minute. All keys share one hash tag, so on a Redis Cluster they live on the same node. Writes Redis refuses are reported, not thrown. The `array` and `null` drivers and `Presence\Contracts\PresenceStore` with `PresenceManager::extend()` cover tests and stores of your own
+- Added `Views::heartbeat()` and `Views::leave()`, which keep a visitor active without recording a view and stop counting them at once, and `@viewsBeacon($post, live: true)`, whose script sends a heartbeat every `presence.heartbeat` seconds while the page is visible and leaves when it closes. With `presence.expose_count` the heartbeat answers with the count, which the script writes into `[data-views-live]` elements and dispatches as a `views:live` event. `Http\Beacon::presenceUrl()` and `leaveUrl()` build the signed URLs
+- Added the `Recording\Contracts\LimitsRepeats` marker interface, implemented by `EnforceCooldown` and `ThrottleVisitors`. A view such a guard refuses is skipped only once every other guard allowed it, and still keeps its visitor active; a heartbeat never asks these guards
+- Added `RecordResult::$present`, also in its JSON and the Debugbar tab, which says whether an attempt kept the visitor active
+- Added `present()`, `assertPresent()`, `assertNotPresent()` and `assertLeft()` to `Views::fake()`
+
+#### Retention
+
+- Added retention: `views:anonymise` anonymises views older than `retention.anonymise.after`, `views:prune` deletes views older than `retention.prune.after`, and `views:maintain` runs every step from one scheduler line. The migration is published under the `eloquent-viewable-retention` tag
+- Added rollups: `views:rollup` folds views into day, month or other tiers per grouping, and the `rollup` source reads them, so history and fast all-time counts outlive deleted views. The migration is published under the `eloquent-viewable-rollups` tag
+- Added custom rollups, classes that extend `Querying\Rollups\Rollup` with a filter, tiers, groupings and one dimension, listed under `retention.rollups.custom`. `Views::rollup()` reads one and `Views::countByDimension()` counts per value of its dimension, through the new `Contracts\FiltersViews` and `Querying\Contracts\CountsByDimension` contracts
+- Added counter columns: `querying.counters` lists columns on your own tables that `views:recount` fills with a view count, and `views:maintain` runs it. Every recount dispatches `Querying\Counters\Events\CountersRecounted` with the model class and the keys it wrote
+- Added `--before` to `views:prune`, for an application that drops partitions of the `views` table itself
+- Added `views:purge-bots`, which deletes the views inside a burst, the views `IgnoreBursts` would have refused, and folds the rollups again. Views of a signed-in viewer are kept unless `--include-viewers` is passed, and `--whole-visitor` deletes every view of a visitor with several bursts. Dispatches `Retention\Events\BotViewsPurged`. Rollups expose the new `Querying\Rollups\Contracts\Refolder` contract for it
+- Added `--max-seconds` to `views:maintain`, `views:rollup`, `views:anonymise`, `views:prune` and `views:recount`. Once the time is up, a run finishes the bucket, day or chunk in progress and stops, and the next run carries on from there
+- Added `Maintenance\Jobs\MaintainViewsJob`, which runs what `views:maintain` runs for at most `maxSeconds` and queues itself again while there is work left, for hosts that cut long scheduled commands off
+- `views:recount` only recounts the models whose counts can have changed since the last recount when the retention migration is installed. `--full` recounts every model, as does the run after `views:purge-bots`, and `views($post)->destroy()` recounts the post's columns right away
+- A maintenance run renews its lock while it works, so a run longer than an hour no longer lets a second run start beside it
+- Anonymising reads each day once instead of once per chunk, and sets at most a hundred visitors per statement, which made anonymising a day two to six times faster in the benchmarks
+- Added the `Retention\Events\ViewsAnonymised`, `ViewsPruned` and `Querying\Rollups\Events\ViewsRolledUp` events, and the `RetentionNotInstalled`, `RollupsNotInstalled`, `ResolutionUnavailable` and `LockUnavailable` exceptions
+
+#### Dimensions
+
+- Added dimensions, which count views by where they came from and who saw them. A dimension turns the request into one short value when a view is recorded, kept in a column of its own. List them under `dimensions.definitions`, all off by default
+- Added the built-in `Source`, `Medium`, `Campaign`, `ReferrerHost`, `Device` and `Country` dimensions, with a source list of referring hosts written for the package that `dimensions.sources` and `dimensions.source_aliases` extend, and the `CloudflareCountry` and `HeaderCountry` resolvers behind `Dimensions\Contracts\CountryResolver`
+- Added `Dimensions\Dimension` and the `Dimensions\Contracts\Dimension` contract for dimensions of your own. Every dimension takes the `personal`, `maxValues` and `json` options in config, and `DimensionInput::fake()` builds the input for a unit test
+- Added `Views::countBy()`, which returns a `Querying\Dimensions\DimensionCounts` of the views per value with `none()`, `other()`, `total()` and `share()`, and `Views::whereDimension()`, which narrows every count, series and ranking. A view source of your own supports them by implementing `Querying\Contracts\CountsBy`
+- Added a `dimensions` argument to every scope that counts views, `orderByViews()`, `orderByUniqueViews()`, `withViewsCount()`, `whereViewsCount()`, `whereUniqueViewsCount()`, `orderByTrending()`, `withTrendingScore()`, the `whereViewedBy()` family and `recommendedFor()`, and a `dimensions` option to the columns in `querying.counters`, each mapping a dimension to one value or a list of values
+- Added the `views:dimensions` command, which writes a migration that adds the columns the views table lacks, and copies values from `context` into a column with `--backfill`
+- Added `retention.rollups.dimensions`, which folds a dimension into a rollup of its own, `views:{name}`, keeping its top values per bucket and the rest as `other`
+- Added `Views::arrivedFrom()` and `Dimensions\Arrival`, for a view whose referrer and landing page are not the current request's. The beacon posts them from the page
+- Added the `Dimensions` doctor check, and dimension findings to the schema and index checks
+- Added `View::factory()->withDimensions()`, and the dimensions of every recorded view to `Views::fake()`, `RecordResult`, `ViewAttempted` and the Debugbar tab
+
+#### Doctor
+
+- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
+- Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
+- Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
+- Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
+
+#### Models and testing
+
+- Added the `models.view.class` config option to use your own `View` model
+- Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract
+- Added `Views::fake()` with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `UnsupportedBySource` under the fake, apart from `recommendedFor()`, which reads the fake
+- Added `View::factory()` with the `fromVisitor()`, `inCollection()`, `viewedAt()`, `by()` and `withContext()` states
+- Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws, and the `InvalidConfiguration`, `InvalidViewable`, `InvalidViewer` and `InvalidTimezone` exceptions
+- Added Laravel Boost guidelines and the `eloquent-viewable-development` skill in `resources/boost`, which `boost:install` offers to coding agents
+
+### Changed
+
+- `Period` is half-open: the start is included and the end is excluded, so a view recorded exactly at the end no longer counts
+- `Period` converts bounds built in another timezone to the application timezone
+- The migration stub creates a composite `(viewable_type, viewable_id, viewed_at)` index, an index on `viewed_at` and the `viewer` and `context` columns. Existing installations add them with the migration in the upgrade guide
+- The config file is grouped by module: `cache` moved to `querying.cache`, `queue` to `recording.queue`, `ignored_ip_addresses` to `recording.ignored_ip_addresses` and `visitor_cookie_key` to `visitor.cookie.name`. Config values are validated when read and throw `InvalidConfiguration` when invalid
+- The crawler, Do Not Track, IP address and cooldown checks are guards in `recording.guards`. The defaults keep the v8 behaviour and also skip prefetched pages, `HEAD` requests and requests without a user agent
+- Classes moved into module namespaces, and `CreateView`, `StoreView`, `ViewRecordException` and `PendingView` were renamed. The upgrade guide has the full table
+- `Visitor::DNT` is renamed to `Visitor::DoNotTrackHeader`
+- `Recording\Contracts\RecordsViews::handle()` receives a `Data\ViewRecord` and returns `void`
+- `Recording\Events\ViewRecorded` carries the `Data\ViewRecord` as `$record` instead of the model as `$view`, and no longer uses `SerializesModels`
+- Views are written through the query builder, so `View` model events no longer fire when a view is stored
+- `Visitors\Contracts\Visitor` gained `viewer()`, `userAgent()`, `hasGlobalPrivacyControl()` and `isPrefetch()`. The shipped `Visitor` constructor takes `Support\Config`, the cookie jar and the auth factory, and no longer takes a `CrawlerDetector`
+- `Crawlers\Contracts\CrawlerDetector::isCrawler()` receives the user agent to judge
+- `CacheKey` moved to `Querying\Cache\CacheKey` and `make()` takes a `ViewsQuery`. Remembered counts are recalculated once after upgrading, and again when the source driver or its connection changes
+- `Views::destroy()` and deleting a model forget the counts remembered of it
+- Cooldowns are keyed by visitor id and stored in a new format, so cooldowns running at upgrade end early once
+- `Models\View` prefers its own `$table` and `$connection` properties over the config
+- The `withViewsCount()` and `orderByViews()` scopes count with a correlated subselect from the source instead of `withAggregate()`, with the same results
+- The `Views` constructor takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`
+- `Recording\Jobs\RecordViewJob` has no static `dispatch()` method. Use `dispatch(new RecordViewJob($record))`
+- The package requires the `illuminate/bus`, `illuminate/container`, `illuminate/queue` and `illuminate/routing` components and no longer uses `Illuminate\Foundation`
+- The migration stub is published from `database/migrations/`, with no change for existing installations
+- Development only: the test suite runs against SQLite, MySQL, MariaDB and Postgres, including models keyed by UUID and ULID, and a phpbench suite in `benchmarks/` times the queries against millions of views
+
+### Removed
+
+- Removed the `Contracts\View` and `Contracts\Views` interfaces. Extend `Models\View` and name it in `models.view.class`. `Views` can no longer be replaced through the container
+- Removed the `$removeViewsOnDelete` model property in favour of `shouldRemoveViewsOnDelete()`
+- Removed `Visitors\Contracts\Visitor::isCrawler()`
+- Removed the `ignore_bots` and `honor_dnt` config keys. List or unlist the guards in `recording.guards` instead
+- Removed `CooldownManager::push()`
+
+### Fixed
+
+- Fixed a count remembered in a Redis cache store failing to read back with a `TypeError`, because Redis returns numbers as strings
+- Fixed the `Views` facade carrying the viewable, period, collection and every other option of one call into the next within a request. See the [upgrade guide](UPGRADING.md#every-facade-call-starts-a-fresh-builder)
+- Fixed the crawler detector judging every request in a long-running worker, such as Octane, by the user agent of the first request
+- Fixed an Octane worker reading the package config it booted with, so a `config()` change made during a request was ignored
+- Fixed `PeriodInterval::subtract()` mutating the date instance passed to it
+- Fixed a visitor without a cookie getting a new id, and queueing another cookie, from every `Visitor` instance in the same request
+- Fixed expired session cooldowns being pruned only for the viewable type being checked, so cooldowns for other types piled up in the session
+
 ## [v8.0.1]
 
 ### Changed

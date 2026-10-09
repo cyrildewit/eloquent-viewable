@@ -1,0 +1,112 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Retention\Actions;
+
+use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
+use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
+use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
+use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
+use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\Deadline;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Query\Builder;
+
+/**
+ * This action deletes the views viewed before the cutoff. Every view before
+ * it goes, not only those after the last run, so a view that landed late is
+ * not left behind.
+ *
+ * Once the deadline passes, the run stops before the next chunk and the mark
+ * stays where it was, so the next run deletes the rest.
+ */
+final readonly class PruneViews
+{
+    public const string Mark = StateStore::Pruned;
+
+    public function __construct(
+        private View $view,
+        private RetentionState $state,
+        private Watermarks $watermarks,
+        private Dispatcher $events,
+    ) {}
+
+    /** @throws RetentionNotInstalled */
+    public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
+    {
+        $this->state->ensureInstalled();
+
+        $deadline ??= Deadline::none();
+        $until = $this->watermarks->clamp($cutoff);
+        $from = $this->state->moment(self::Mark);
+        $clamped = $until < $cutoff;
+
+        if ($dryRun) {
+            return new RetentionRun($from, $until, $this->expired($until)->count(), $clamped, true);
+        }
+
+        $views = 0;
+
+        do {
+            if ($deadline->passed()) {
+                return $this->stopped($from, $until, $views, $clamped);
+            }
+
+            $ids = $this->expiredIds($until, $chunk);
+
+            if ($ids !== []) {
+                $views += $this->view->newQuery()->toBase()->whereIn('id', $ids)->delete();
+            }
+        } while (count($ids) === $chunk);
+
+        $this->moveMarkForward($from, $until);
+
+        if ($views > 0) {
+            $this->events->dispatch(new ViewsPruned($from, $until, $views));
+        }
+
+        return new RetentionRun($from, $until, $views, $clamped, false);
+    }
+
+    private function stopped(?CarbonInterface $from, CarbonInterface $until, int $views, bool $clamped): RetentionRun
+    {
+        if ($views > 0) {
+            $this->events->dispatch(new ViewsPruned($from, $until, $views));
+        }
+
+        return new RetentionRun($from, $until, $views, $clamped, false, stopped: true);
+    }
+
+    /**
+     * The ids are selected first, because Postgres has no `delete … limit`
+     * and MySQL refuses a limited subquery on the table it deletes from.
+     *
+     * @return list<int|string>
+     */
+    private function expiredIds(CarbonInterface $until, int $chunk): array
+    {
+        /** @var list<int|string> */
+        return $this->expired($until)
+            ->limit($chunk)
+            ->pluck('id')
+            ->all();
+    }
+
+    private function moveMarkForward(?CarbonInterface $from, CarbonInterface $until): void
+    {
+        if ($from instanceof CarbonInterface && $from >= $until) {
+            return;
+        }
+
+        $this->state->putMoment(self::Mark, $until);
+    }
+
+    private function expired(CarbonInterface $until): Builder
+    {
+        return $this->view->newQuery()->toBase()->where('viewed_at', '<', $until);
+    }
+}

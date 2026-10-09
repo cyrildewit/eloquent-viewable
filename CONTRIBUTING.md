@@ -101,29 +101,85 @@ make build ARGS="--build-arg PHP=8.4"
 
 ### Common tasks
 
-| Command             | Description                                                                   |
-|---------------------|-------------------------------------------------------------------------------|
-| `make ready`        | Run Rector and Pint, then the static analysis, type coverage and test suite   |
-| `make test`         | Run the [Pest](https://pestphp.com/) test suite                               |
-| `make test-arch`    | Run only the architecture tests                                               |
-| `make test-unit`    | Run only the unit tests                                                       |
-| `make test-feature` | Run only the feature tests                                                    |
-| `make lint`         | Fix code style with [Pint](https://laravel.com/docs/pint)                     |
-| `make types`        | Run the [PHPStan](https://phpstan.org/) static analysis                       |
-| `make rector`       | Run [Rector](https://getrector.com/)                                          |
-| `make mutation`     | Run mutation testing (see note below)                                         |
+| Command                   | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `make ready`              | Run Rector and Pint, then the static analysis, type coverage and test suite |
+| `make lint`               | Fix code style with [Pint](https://laravel.com/docs/pint)                   |
+| `make rector`             | Run [Rector](https://getrector.com/)                                        |
+| `make test`               | Run the [Pest](https://pestphp.com/) test suite                             |
+| `make test-arch`          | Run only the architecture tests                                             |
+| `make test-unit`          | Run only the unit tests                                                     |
+| `make test-feature`       | Run only the feature tests                                                  |
+| `make test-lint`          | Check code style without fixing it                                          |
+| `make test-types`         | Run the [PHPStan](https://phpstan.org/) static analysis                     |
+| `make deptrac-graph`      | Draw the dependencies between layers (see below)                            |
+| `make test-type-coverage` | Run the type coverage check (fails below 100%)                              |
+| `make test-coverage`      | Run the suite with line coverage (fails below 100%)                         |
+| `make test-mutation`      | Run mutation testing (see note below)                                       |
 
-Each target is a thin wrapper around a Composer script executed in the `composer` container, e.g. `make test` runs
-`docker compose run --rm composer test`. If you prefer, you can invoke those scripts directly:
+Every target in that table maps onto the Composer script of the same name, with `-` where the script has `:`, run in
+the `composer` container. `make test-coverage` runs `docker compose run --rm composer test:coverage`. If you prefer,
+you can invoke those scripts directly:
 
 ```bash
 docker compose run --rm composer test
 ```
 
-The suite is split in three. Tests in `tests/Architecture` are Pest arch expectations about the source tree. Tests in
+### Dependency graph
+
+`make deptrac-graph` uses [Deptrac](https://deptrac.github.io/deptrac/) to draw the dependencies between the layers
+of `src/` to `build/deptrac.png`. Each edge shows how many references it stands for. A red edge points up the stack,
+or sideways between two modules, and is worth a second look. `deptrac.yaml` defines the layers. The Pest arch tests
+in `tests/Architecture` are what enforce the rules, so the graph never fails a build.
+
+### Running against another database
+
+`make test` uses SQLite in memory. CI also runs the suite against MySQL, MariaDB and Postgres, so anything that
+touches a query or a bucket grammar is worth checking against them before you open a pull request.
+
+| Command             | Description                                |
+|---------------------|--------------------------------------------|
+| `make test-mysql`   | Run the suite against MySQL                |
+| `make test-mariadb` | Run the suite against MariaDB              |
+| `make test-pgsql`   | Run the suite against PostgreSQL           |
+| `make test-drivers` | Run the suite against all four drivers     |
+| `make db-stop`      | Stop the database services                 |
+
+These have no matching Composer script. Each one starts its database service, waits for the healthcheck and then sets
+`DB_CONNECTION`, `DB_HOST` and `DB_PORT` for the run, which you can also do by hand:
+
+```bash
+DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test
+```
+
+A handful of tests assert raw SQL strings or read a SQLite query plan. Those skip on the other drivers, so the counts
+differ between runs.
+
+The suite is split in three. Tests in `tests/Arch` are Pest arch expectations about the source tree. Tests in
 `tests/Unit` extend plain PHPUnit and never boot a Laravel application, so they run in well under a second. Tests in
-`tests/Feature` extend the Testbench test case and get a booted application with an SQLite database. Put a test in
+`tests/Feature` extend the Testbench test case and get a booted application with a database. Put a test in
 `tests/Feature` when it needs the container, a database, a facade or the service provider.
+
+Feature tests share one database per process. The schema is created once and `RefreshDatabase` rolls each test back,
+which does not reset auto-increment counters, so ids keep climbing from one test to the next. Assert on a model's own
+key rather than a literal id.
+
+### Benchmarks
+
+The `benchmarks` directory holds a [phpbench](https://phpbench.readthedocs.io/) suite that times the paths that get
+expensive as the `views` table grows, against a seeded dataset of a million to fifty million rows, on every supported
+driver. It does not run with the tests or in CI. Use it when you change a query, a grammar or anything on the recording
+path: store a run on `main`, switch to your branch and compare.
+
+```bash
+make bench-seed DRIVER=mysql SIZE=medium
+git switch main && make bench-baseline DRIVER=mysql TAG=main
+git switch my-branch && make bench-compare DRIVER=mysql TAG=main
+```
+
+`make bench-explain` prints the SQL and the query plan of every read path, which is the quickest way to see whether a
+query still uses the composite index. [`benchmarks/README.md`](benchmarks/README.md) documents the dataset, the
+targets and the optional indexes.
 
 When you make a pull request, the tests will be automatically run again
 by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).

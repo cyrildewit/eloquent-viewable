@@ -7,6 +7,8 @@ use Rector\Config\RectorConfig;
 
 return RectorConfig::configure()
     ->withPaths([
+        __DIR__.'/benchmarks',
+        __DIR__.'/samples',
         __DIR__.'/src',
         __DIR__.'/tests',
     ])
