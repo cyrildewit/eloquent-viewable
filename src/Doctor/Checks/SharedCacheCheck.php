@@ -102,7 +102,7 @@ class SharedCacheCheck implements Check
     }
 
     /**
-     * The fingerprint identity hashes under the daily salt, and so does the
+     * The fingerprint identity hashes under the rotating salt, and so does the
      * burst guard when it keys on the network.
      *
      * @throws InvalidConfiguration

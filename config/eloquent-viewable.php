@@ -761,9 +761,10 @@ return [
          *            on an API without a cookie; guests get the cookie id
          *   fingerprint
          *            a hash of the truncated IP address and the user agent
-         *            under a random salt that is replaced at midnight, so no
-         *            cookie is set and a guest is a new visitor every day;
-         *            signed-in models get the `viewer` id
+         *            under a random salt that is replaced at the start of
+         *            every `fingerprint.rotation` window, so no cookie is set
+         *            and a guest is a new visitor in every window; signed-in
+         *            models get the `viewer` id
          *
          * The signed-in model comes from `recording.viewer` or `viewedBy()`.
          */
@@ -786,7 +787,16 @@ return [
         'fingerprint' => [
 
             /*
-             * The cache store the daily salt is kept in. Every server that
+             * How long one salt is used: `day`, `week` or `month`. The salt
+             * is replaced at the start of each, weeks starting on Monday, so
+             * `unique()` counts a guest once per window. A longer window
+             * keeps unique counts exact over that window, but keeps one
+             * person linkable across all the views they make in it.
+             */
+            'rotation' => 'day',
+
+            /*
+             * The cache store the salt is kept in. Every server that
              * records views must share it, or each hashes under its own salt
              * and one visitor counts once per server. When `null`, the
              * application's default cache store is used.
@@ -794,7 +804,7 @@ return [
             'store' => null,
 
             /*
-             * The cache key prefix the daily salt is kept under.
+             * The cache key prefix the salt is kept under.
              */
             'key' => 'cyrildewit.eloquent-viewable.fingerprint',
 

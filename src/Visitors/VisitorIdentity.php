@@ -17,7 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  * is keyed on. With `visitor.identity` set to `viewer` it is derived from the
  * signed-in model instead of the cookie, so one account is one visitor on
  * every device and on an API without a cookie. With `fingerprint` a guest is
- * identified by a daily fingerprint and no cookie is set.
+ * identified by a fingerprint that rotates daily, weekly or monthly and no
+ * cookie is set.
  */
 final readonly class VisitorIdentity
 {

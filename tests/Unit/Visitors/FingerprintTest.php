@@ -22,9 +22,9 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-function fingerprint(CacheRepositoryContract $cache, ?string $store = null): Fingerprint
+function fingerprint(CacheRepositoryContract $cache, ?string $store = null, ?string $rotation = null): Fingerprint
 {
-    $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => ['fingerprint' => ['store' => $store, 'key' => 'salt']]]]));
+    $config = new Config(new Repository(['eloquent-viewable' => ['visitor' => ['fingerprint' => ['store' => $store, 'key' => 'salt', 'rotation' => $rotation ?? 'day']]]]));
 
     $factory = Mockery::mock(CacheFactory::class);
     $factory->allows('store')->with($store)->andReturn($cache);
@@ -73,6 +73,33 @@ it('lets the salt of the day expire at midnight', function (): void {
     Carbon::setTestNow('2026-10-04 00:00:00');
 
     expect($this->cache->has('salt:2026-10-03'))->toBeFalse();
+});
+
+it('keeps one salt for the whole window', function (string $rotation, string $key, string $lastMoment, string $nextWindow): void {
+    $first = fingerprint($this->cache, rotation: $rotation)->of(fingerprintVisitor());
+
+    expect($this->cache->get($key))->toBeString()->toHaveLength(64);
+
+    Carbon::setTestNow($lastMoment);
+
+    expect(fingerprint($this->cache, rotation: $rotation)->of(fingerprintVisitor()))->toBe($first);
+
+    Carbon::setTestNow($nextWindow);
+
+    expect($this->cache->has($key))->toBeFalse()
+        ->and(fingerprint($this->cache, rotation: $rotation)->of(fingerprintVisitor()))->not->toBe($first);
+})->with([
+    'day' => ['day', 'salt:2026-10-03', '2026-10-03 23:59:59', '2026-10-04 00:00:00'],
+    'week' => ['week', 'salt:2026-W40', '2026-10-04 23:59:59', '2026-10-05 00:00:00'],
+    'month' => ['month', 'salt:2026-10', '2026-10-31 23:59:59', '2026-11-01 00:00:00'],
+]);
+
+it('names a week by its ISO year', function (): void {
+    Carbon::setTestNow('2027-01-01 12:00:00');
+    $this->cache->put('salt:2026-W53', 'the-salt');
+
+    expect(fingerprint($this->cache, rotation: 'week')->of(fingerprintVisitor()))
+        ->toBe(hash_hmac('sha256', '192.0.2.0|Mozilla/5.0', 'the-salt'));
 });
 
 it('ignores the last byte of an IPv4 address and the last ten of an IPv6 address', function (string $ip, string $sameNetwork, string $otherNetwork): void {

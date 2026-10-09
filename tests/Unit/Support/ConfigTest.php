@@ -150,6 +150,17 @@ it('reads the fingerprint settings', function (): void {
         ->and(packageConfig())->fingerprintCacheStore()->toBeNull();
 });
 
+it('reads the fingerprint rotation', function (): void {
+    expect(packageConfig(['visitor' => ['fingerprint' => ['rotation' => 'week']]]))->fingerprintRotation()->toBe('week')
+        ->and(packageConfig(['visitor' => ['fingerprint' => ['rotation' => 'month']]]))->fingerprintRotation()->toBe('month')
+        ->and(packageConfig())->fingerprintRotation()->toBe('day');
+});
+
+it('rejects an unknown fingerprint rotation', function (): void {
+    expect(fn (): string => packageConfig(['visitor' => ['fingerprint' => ['rotation' => 'year']]])->fingerprintRotation())
+        ->toThrow(InvalidConfiguration::class, 'The `eloquent-viewable.visitor.fingerprint.rotation` config value must be one of `day`, `week`, `month`, `"year"` given.');
+});
+
 it('rejects an unknown visitor identity', function (mixed $value, string $described): void {
     expect(fn (): string => packageConfig(['visitor' => ['identity' => $value]])->visitorIdentity())
         ->toThrow(InvalidConfiguration::class, "The `eloquent-viewable.visitor.identity` config value must be one of `cookie`, `viewer`, `fingerprint`, {$described} given.");

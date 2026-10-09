@@ -525,6 +525,22 @@ final readonly class Config
         return $this->string('visitor.fingerprint.store');
     }
 
+    /**
+     * @return 'day'|'week'|'month'
+     *
+     * @throws InvalidConfiguration
+     */
+    public function fingerprintRotation(): string
+    {
+        $value = $this->get('visitor.fingerprint.rotation', 'day');
+
+        if (! in_array($value, ['day', 'week', 'month'], true)) {
+            throw InvalidConfiguration::mustBeOneOf('visitor.fingerprint.rotation', ['day', 'week', 'month'], $value);
+        }
+
+        return $value;
+    }
+
     /** @throws InvalidConfiguration */
     public function cooldownStore(): string
     {

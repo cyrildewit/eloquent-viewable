@@ -424,10 +424,23 @@ salt that rotates at midnight. Neither the IP address nor the user agent is stor
 cannot be traced back. Signed-in users are identified by their account instead, as with the
 [`viewer` identity](#counting-one-account-as-one-visitor).
 
+Set `visitor.fingerprint.rotation` to `week` or `month` to keep one salt longer. Weeks start on Monday:
+
+```php
+'fingerprint' => [
+    'rotation' => 'month', // day, the default, week or month
+],
+```
+
+A longer window keeps `unique()` exact over that window, but it also keeps one person linkable across every view they
+make in it, for up to a month. Pick the shortest window your reports need, and say how long it is in your privacy
+notice.
+
 The trade-offs compared to the cookie:
 
-- **`unique()` counts visitors per day.** The same guest on Monday and Tuesday counts twice over a week.
-- **Cooldowns end at midnight** at the latest.
+- **`unique()` counts visitors per rotation window.** With the default `day`, the same guest on Monday and Tuesday
+  counts twice over a week.
+- **Cooldowns end when the salt rotates** at the latest.
 - **Visitors sharing a network and browser count as one**, so unique counts come out lower. Totals are unaffected.
 - **Configure trusted proxies** behind a load balancer or CDN, or every visitor hashes the same address.
 - **Every server needs the same cache store** for the salt. The `array` store does not work.
