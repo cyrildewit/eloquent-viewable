@@ -211,3 +211,20 @@ it('leaves out what a viewer viewed itself, unless it is included', function ():
     expect($pairs(false)['pairs'])->toBeEmpty()
         ->and(array_map(fn (array $pair): array => [$pair['id'], $pair['visitors']], $pairs(true)['pairs']))->toBe([[$other->getKey(), 2]]);
 });
+
+it('leaves out what a visitor viewed itself, unless it is included', function (): void {
+    $other = Post::factory()->create();
+
+    pairedBy($this->post, ['laptop', 'one', 'two']);
+    pairedBy($other, ['laptop', 'one', 'two']);
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    $pairs = fn (bool $includeSeen): array => Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        new RecommendationRequest(Recipient::visitor('laptop'), null, 20, 1, null, $includeSeen),
+        [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
+    );
+
+    expect($pairs(false)['pairs'])->toBeEmpty()
+        ->and(array_map(fn (array $pair): array => [$pair['id'], $pair['visitors']], $pairs(true)['pairs']))->toBe([[$other->getKey(), 2]]);
+});
