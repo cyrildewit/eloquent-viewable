@@ -124,8 +124,9 @@ Fix PHPStan errors rather than ignoring them.
 
 ## Conventions
 
-Commit messages and pull request titles follow Conventional Commits. `CONTRIBUTING.md` has the format, the
-allowed types and how to signal a breaking change.
+Every commit message and every pull request title must follow Conventional Commits. This applies to a pull
+request title as much as to a commit: do not open or retitle a pull request with a free-form title.
+`CONTRIBUTING.md` has the format, the allowed types and how to signal a breaking change.
 
 Document behaviour changes in `README.md`, and add an entry to `CHANGELOG.md` under Unreleased.
 A breaking change also needs a section in `UPGRADING.md`, under the heading for the version being
