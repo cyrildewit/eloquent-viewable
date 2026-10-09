@@ -87,19 +87,15 @@ class View extends Model
         return $this->morphTo();
     }
 
-    /**
-     * Build a query for the views of the viewable that match the views query.
-     *
-     * @return Builder<static>
-     */
+    /** @return Builder<static> */
     public function newQueryFor(Viewable $viewable, ViewsQuery $viewsQuery): Builder
     {
         return $this->newQuery()->forViewable($viewable)->matching($viewsQuery);
     }
 
     /**
-     * Scope a query to only include views within the period. The period is
-     * half-open: the start is included and the end is excluded.
+     * The period is half-open, which means the start is included and the end
+     * is excluded.
      *
      * @param  Builder<View>  $query
      */
@@ -124,8 +120,7 @@ class View extends Model
     }
 
     /**
-     * Scope a query to only include views of the viewable. A viewable without
-     * a key stands for every viewable of its type.
+     * A viewable without a key stands for every viewable of its type.
      *
      * @param  Builder<View>  $query
      */
@@ -157,9 +152,8 @@ class View extends Model
     }
 
     /**
-     * Scope a query to only include views matching the period, collection,
-     * viewer, filter and dimensions of the views query. Uniqueness is an
-     * aggregate choice rather than a filter, so the caller applies it.
+     * This applies every part of the views query except uniqueness. Uniqueness
+     * is an aggregate choice rather than a filter, so the caller applies it.
      *
      * @param  Builder<View>  $query
      */

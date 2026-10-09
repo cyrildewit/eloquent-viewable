@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /**
  * Asks before a destructive command runs in production, unless `--force` is
  * passed. It asks through the console components rather than Laravel's
- * `ConfirmableTrait`, which asks through Laravel Prompts from Laravel 13.35:
+ * `ConfirmableTrait`, which asks through Laravel Prompts from Laravel 13.35.
  * Prompts only falls back to a question a test can answer while the
  * environment is `testing`, so a test that switches to `production` to reach
  * the question would never see it.

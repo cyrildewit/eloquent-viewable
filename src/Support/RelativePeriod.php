@@ -29,7 +29,8 @@ final readonly class RelativePeriod
     }
 
     /**
-     * Null until shifted, an unshifted relative period runs on past now.
+     * Null until the period is shifted, because an unshifted relative period
+     * runs on past now.
      */
     public function endDateTime(): ?CarbonInterface
     {

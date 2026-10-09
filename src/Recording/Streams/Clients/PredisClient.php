@@ -132,8 +132,8 @@ final readonly class PredisClient implements StreamClient
     }
 
     /**
-     * A group that does not exist yet has nothing pending, where Redis
-     * replies with a `NOGROUP` error.
+     * Redis replies with a `NOGROUP` error when the group does not exist yet.
+     * This returns null for that error, because such a group has nothing pending.
      *
      * @param  callable(): mixed  $command
      */

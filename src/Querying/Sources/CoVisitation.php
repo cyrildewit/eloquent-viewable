@@ -124,9 +124,10 @@ final readonly class CoVisitation
             $builder->where($type, $among->getMorphClass());
         }
 
-        // An anti-join to what the recipient has seen, read once. A correlated
-        // `not exists` runs once per view the join reads, and without an index
-        // that leads with the visitor each run reads every view of a viewable.
+        // Use an anti-join so that what the recipient has seen is read once. A
+        // correlated `not exists` runs once per view the join reads, and without
+        // an index that leads with the visitor, each run reads every view of a
+        // viewable.
         if ($recipient instanceof Recipient && ! $includeSeen) {
             $builder
                 ->leftJoinSub($this->seen($recipient), 'seen', static fn (JoinClause $join): JoinClause => $join

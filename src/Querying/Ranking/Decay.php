@@ -46,7 +46,6 @@ final readonly class Decay
      * start. Ages are measured from the anchor, the end of the period or now.
      * The step is an hour or a day, or null to pick one.
      *
-     *
      * @throws InvalidDecay
      */
     public static function for(ViewsQuery $query, DecayCurve $curve, ?Granularity $step, int $maxSteps, DateTimeZone $timezone): self

@@ -13,9 +13,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * A seasonality is the rhythm a baseline follows. A window is compared with
- * the same hours on
- * past days, or on the same day of past weeks, so a quiet night is never
- * measured against a busy afternoon.
+ * the same hours on past days, or on the same day of past weeks, so a quiet
+ * night is never measured against a busy afternoon.
  */
 enum Seasonality: string
 {

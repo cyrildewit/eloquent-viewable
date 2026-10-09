@@ -10,9 +10,10 @@ use Closure;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
- * This cache remembers values stamped with the versions they depend on, so bumping a
- * version through `CacheVersions` forgets every entry stamped with it without
- * knowing their keys. An entry and its versions are read in one round trip.
+ * This cache remembers values stamped with the versions they depend on, so
+ * bumping a version through `CacheVersions` forgets every entry stamped with
+ * it without knowing their keys. An entry and its versions are read in one
+ * round trip.
  *
  * @internal
  */

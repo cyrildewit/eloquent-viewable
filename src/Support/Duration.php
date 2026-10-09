@@ -9,8 +9,8 @@ use Carbon\CarbonInterval;
 
 /**
  * A duration is a length of time in the period shorthand, such as `30d` or
- * `2y`. Unlike a period it is not anchored: it counts back from the moment it
- * is handed.
+ * `2y`. Unlike a period, a duration has no anchor. It counts back from the
+ * date it is given.
  */
 final readonly class Duration
 {

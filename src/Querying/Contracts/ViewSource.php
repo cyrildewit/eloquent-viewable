@@ -9,10 +9,10 @@ use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 /**
- * A view source is where the numbers come from. Every method returns plain values, so a source
- * can read from any backend. A source that can also be queried in SQL
- * implements `SubquerySource` for the Eloquent scopes, and one with settings
- * that change its counts implements `IdentifiesSource`.
+ * A view source is where the numbers come from. Every method returns plain
+ * values, so a source can read from any backend. A source that can also be
+ * queried in SQL implements `SubquerySource` for the Eloquent scopes, and one
+ * with settings that change its counts implements `IdentifiesSource`.
  *
  * A viewable without a key stands for every viewable of its type.
  */

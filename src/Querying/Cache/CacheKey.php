@@ -85,8 +85,9 @@ final readonly class CacheKey
     }
 
     /**
-     * The filter joins the identity only when it is set, so the keys of
-     * unfiltered counts stay as they were.
+     * The filter joins the identity only when it is set. An empty part for
+     * an unfiltered count would change its digest, and with it the key of
+     * every entry already cached without a filter.
      *
      * @return list<string>
      */

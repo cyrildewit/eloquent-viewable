@@ -143,9 +143,6 @@ final readonly class RollupPolicy
         return $tier->floor($this->settle?->before($now) ?? $now, $this->timezone);
     }
 
-    /**
-     * The rollup that folds the dimension, or null when it is not folded.
-     */
     public function forDimension(string $name): ?RollupDefinition
     {
         return $this->find(self::DimensionPrefix.$name);

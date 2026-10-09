@@ -25,7 +25,7 @@ interface ViewStore
     public function storeMany(iterable $records): void;
 
     /**
-     * Every view of the viewable, in every collection, buffered or stored.
+     * Deletes every view of the viewable, in every collection, buffered or stored.
      */
     public function forget(Viewable $viewable): void;
 }

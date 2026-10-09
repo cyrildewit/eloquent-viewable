@@ -20,7 +20,8 @@ class RedisStreamCheck implements Check
 {
     /**
      * How long, in seconds, the oldest buffered view may wait before the
-     * flush is taken to have stopped. A flush every minute stays well under.
+     * flush is taken to have stopped. A flush scheduled every minute stays
+     * well under this limit.
      */
     public const int StaleAfter = 300;
 

@@ -108,9 +108,6 @@ final readonly class DimensionInput
         return $this->referrer;
     }
 
-    /**
-     * The host with a leading `www.` taken off.
-     */
     public static function withoutWww(string $host): string
     {
         if (! str_starts_with($host, 'www.')) {

@@ -194,8 +194,9 @@ final readonly class CheckMilestones
 
     /**
      * It reads the counts of the models at or above the lowest threshold,
-     * keyed by model key, a chunk at a time. The table is read without the model's
-     * scopes, like the recount writes it, so trashed models count too.
+     * keyed by model key, a chunk at a time. The table is read without the
+     * model's scopes, the same way the recount writes it, so trashed models
+     * count too.
      *
      * @param  ?list<int|string>  $keys
      * @return Generator<int, non-empty-array<int|string, int>>

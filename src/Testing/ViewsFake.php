@@ -221,8 +221,7 @@ final class ViewsFake implements CountsBy, CountsByWindow, CountsVisitFrequency,
     }
 
     /**
-     * Counts the recorded views per window, as the database source does in
-     * SQL.
+     * Counts the recorded views per window, as the database source does in SQL.
      *
      * @param  non-empty-list<Period>  $references
      * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>

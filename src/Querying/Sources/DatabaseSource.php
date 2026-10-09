@@ -669,7 +669,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     }
 
     /**
-     * The SQL that counts the views inside one bucket or one row. Identical
+     * The SQL that counts the views inside one bucket or one row is identical
      * on every supported driver, so it does not belong to the bucket grammars.
      */
     private function aggregate(ViewsQuery $query, Grammar $grammar): string
