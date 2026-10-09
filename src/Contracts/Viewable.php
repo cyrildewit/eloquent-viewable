@@ -13,16 +13,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /** @mixin Model */
 interface Viewable
 {
-    /**
-     * Get the views the model has.
-     *
-     * @return MorphMany<View, $this&Model>
-     */
+    /** @return MorphMany<View, $this&Model> */
     public function views(): MorphMany;
 
     /**
-     * Scope a query to order records by views count.
-     *
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
      * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
@@ -39,8 +33,6 @@ interface Viewable
     ): Builder;
 
     /**
-     * Scope a query to order records by unique views count.
-     *
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
      * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
@@ -55,6 +47,6 @@ interface Viewable
         array $dimensions = [],
     ): Builder;
 
-    /** Soft deletes keep the views regardless. */
+    /** A soft delete keeps the views, whatever this returns. */
     public function shouldRemoveViewsOnDelete(): bool;
 }

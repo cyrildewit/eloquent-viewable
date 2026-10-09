@@ -9,10 +9,11 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Query\Builder;
 
 /**
- * Implement this on a view source that can be queried in SQL. The Eloquent scopes embed these
- * queries in a query over the viewable's table, so they read from the
- * configured source only when it implements this, and every scope reads from
- * the same place. Both queries correlate on the viewable's qualified key.
+ * Implement this on a view source that can be queried in SQL. The Eloquent
+ * scopes embed these queries in a query over the viewable's table, so they
+ * read from the configured source only when it implements this, and every
+ * scope reads from the same place. Both queries correlate on the viewable's
+ * qualified key.
  */
 interface SubquerySource
 {

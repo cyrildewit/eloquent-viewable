@@ -18,7 +18,8 @@ use Illuminate\Console\Command;
 trait LimitsRunTime
 {
     /**
-     * It returns false once the error is reported.
+     * Returns false when the option is not a positive integer. The error is
+     * already written to the console, so the caller only has to stop.
      */
     protected function deadline(): Deadline|false
     {

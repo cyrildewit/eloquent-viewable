@@ -217,8 +217,9 @@ final readonly class PurgeBotViews
     }
 
     /**
-     * Timestamps are read as UTC, so the gaps between views stay true across
-     * a change to daylight saving time, and turned back the same way.
+     * The scan reads timestamps as UTC so that the gaps between views stay
+     * correct across a change to daylight saving time. This turns a timestamp
+     * back into a moment through UTC in the same way.
      */
     private function moment(int $timestamp): CarbonInterface
     {

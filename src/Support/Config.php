@@ -236,8 +236,6 @@ final readonly class Config
     }
 
     /**
-     * Each dimension by name, with the class and the options it is built with.
-     *
      * @return array<string, array{class: class-string, options: array<string, mixed>}>
      *
      * @throws InvalidConfiguration

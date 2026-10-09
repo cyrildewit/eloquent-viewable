@@ -24,9 +24,6 @@ enum Granularity: string
 
     case Year = 'year';
 
-    /**
-     * Add a number of buckets to a date without mutating it.
-     */
     public function add(CarbonInterface $dateTime, int $value): CarbonInterface
     {
         return $dateTime->avoidMutation()->add($this->unit(), $value);
