@@ -49,8 +49,8 @@ final readonly class Fingerprint
     /** @throws InvalidConfiguration */
     private function salt(): string
     {
-        $now = Carbon::now();
-        $key = "{$this->config->fingerprintKey()}:{$now->toDateString()}";
+        [$window, $expires] = $this->window(Carbon::now());
+        $key = "{$this->config->fingerprintKey()}:{$window}";
         $cache = $this->cache->store($this->config->fingerprintCacheStore());
 
         $salt = $cache->get($key);
@@ -61,7 +61,7 @@ final readonly class Fingerprint
 
         $salt = bin2hex(random_bytes(32));
 
-        $addedByThisRequest = $cache->add($key, $salt, $now->copy()->startOfDay()->addDay());
+        $addedByThisRequest = $cache->add($key, $salt, $expires);
 
         if ($addedByThisRequest) {
             return $salt;
@@ -70,5 +70,21 @@ final readonly class Fingerprint
         $stored = $cache->get($key);
 
         return is_string($stored) ? $stored : $salt;
+    }
+
+    /**
+     * The name of the window the salt belongs to, and the moment it ends.
+     *
+     * @return array{string, Carbon}
+     *
+     * @throws InvalidConfiguration
+     */
+    private function window(Carbon $now): array
+    {
+        return match ($this->config->fingerprintRotation()) {
+            'day' => [$now->toDateString(), $now->copy()->startOfDay()->addDay()],
+            'week' => [$now->format('o-\\WW'), $now->copy()->startOfWeek(Carbon::MONDAY)->addWeek()],
+            'month' => [$now->format('Y-m'), $now->copy()->startOfMonth()->addMonth()],
+        };
     }
 }

@@ -237,7 +237,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - A `views:maintain` run outlasts its schedule, such as the first run on a large table: add `--max-seconds`, and the next run carries on. On a host that cuts commands off, schedule `Maintenance\Jobs\MaintainViewsJob` instead.
 - Bots that pass for a browser inflate counts: `views:purge-bots --dry-run`, then `views:purge-bots`, which deletes only the views inside a burst.
 - Cooldowns on stateless API routes: `cooldown.store` set to `cache`.
-- No visitor cookie wanted: `visitor.identity` set to `fingerprint`. To count a signed-in user once across devices: `viewer`.
+- No visitor cookie wanted: `visitor.identity` set to `fingerprint`. Its `unique()` counts per day; `visitor.fingerprint.rotation` set to `week` or `month` widens that window and keeps a guest linkable for as long. To count a signed-in user once across devices: `viewer`.
 - Opt-in guards in `recording.guards`: `ThrottleVisitors` for a per-visitor rate limit, `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl`. Write your own with `Recording\Contracts\RecordingGuard`.
 
 ## Testing
