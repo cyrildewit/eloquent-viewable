@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 use stdClass;
 
 /**
@@ -123,8 +124,15 @@ final readonly class CoVisitation
             $builder->where($type, $among->getMorphClass());
         }
 
+        // An anti-join to what the recipient has seen, read once. A correlated
+        // `not exists` runs once per view the join reads, and without an index
+        // that leads with the visitor each run reads every view of a viewable.
         if ($recipient instanceof Recipient && ! $includeSeen) {
-            $builder->whereNotExists($this->seenBy($recipient, $type, $id));
+            $builder
+                ->leftJoinSub($this->seen($recipient), 'seen', static fn (JoinClause $join): JoinClause => $join
+                    ->on('seen.viewable_type', '=', $type)
+                    ->on('seen.viewable_id', '=', $id))
+                ->whereNull('seen.viewable_type');
         }
 
         $rows = $builder
@@ -247,6 +255,24 @@ final readonly class CoVisitation
         }
 
         return $builder;
+    }
+
+    /**
+     * Every viewable the recipient viewed, over all time and every
+     * collection, once each.
+     */
+    private function seen(Recipient $recipient): Builder
+    {
+        $seen = $this->view->getConnection()
+            ->table($this->view->getTable())
+            ->select(['viewable_type', 'viewable_id'])
+            ->distinct();
+
+        if (! $recipient->isViewer()) {
+            return $seen->where('visitor', $recipient->visitor);
+        }
+
+        return $seen->where('viewer_type', $recipient->viewer->getMorphClass())->where('viewer_id', $recipient->viewerKey);
     }
 
     /**
