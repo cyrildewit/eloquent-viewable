@@ -11,9 +11,15 @@ updates:
       labels:
           - "dependencies"
 
-#    - package-ecosystem: "composer"
-#      directory: "/"
-#      schedule:
-#          interval: "weekly"
-#      labels:
-#          - "dependencies"
+    # Development dependencies only. The runtime constraints in `require`
+    # define which Laravel versions this package supports, so they stay a
+    # deliberate choice rather than an automated bump.
+    - package-ecosystem: "composer"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      allow:
+          - dependency-type: "development"
+      versioning-strategy: "increase"
+      labels:
+          - "dependencies"

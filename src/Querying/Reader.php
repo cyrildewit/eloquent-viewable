@@ -1,0 +1,544 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Querying;
+
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Carbon\CarbonInterval;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
+use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
+use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
+use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByWindow;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Contracts\IdentifiesSource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
+use CyrildeWit\EloquentViewable\Querying\Growth\GrowthRanking;
+use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\ExponentialDecay;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
+use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
+use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
+use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Scorer;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Similarity;
+use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\ViewableSet;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * Reads counts from the source, through the cache when the call asks to
+ * remember them, and shapes them: it checks the arguments, fills in empty
+ * buckets and zeros, sorts and loads the ranked models.
+ */
+final readonly class Reader
+{
+    public function __construct(
+        private ViewSource $source,
+        private VersionedCache $cache,
+        private Config $config,
+        private ViewableLoader $loader,
+        private DecayFactory $decays,
+        private RecommendationLoader $recommendations,
+        private GrowthRanking $growth = new GrowthRanking,
+    ) {}
+
+    public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
+    {
+        return $this->source($rememberUntil)->count($viewable, $query);
+    }
+
+    /**
+     * Two counts, one over the period and one over `Period::previous()`,
+     * each remembered under its own key. With `$returning`, both count the
+     * visitors who came back instead of the views.
+     *
+     * @throws InvalidPeriod
+     * @throws UnsupportedBySource
+     */
+    public function compare(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null, bool $returning = false): ViewComparison
+    {
+        $period = $query->period ?? throw InvalidPeriod::comparedWithoutPeriod();
+        $previous = $period->previous();
+
+        $count = $returning
+            ? fn (ViewsQuery $query): int => $this->returning($viewable, $query, $rememberUntil)
+            : fn (ViewsQuery $query): int => $this->count($viewable, $query, $rememberUntil);
+
+        return ViewComparison::between(
+            $count($query),
+            $count($query->withPeriod($previous)),
+            $period,
+            $previous,
+        );
+    }
+
+    /**
+     * The visitors who viewed on two days or more.
+     *
+     * @throws UnsupportedBySource
+     */
+    public function returning(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
+    {
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), 2)->returning();
+    }
+
+    /**
+     * @throws InvalidFrequency
+     * @throws UnsupportedBySource
+     */
+    public function countByFrequency(Viewable $viewable, ViewsQuery $query, int $upTo, ?CarbonInterface $rememberUntil = null): VisitFrequency
+    {
+        if ($upTo < 2) {
+            throw InvalidFrequency::capBelowTwo($upTo);
+        }
+
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), $upTo);
+    }
+
+    /** @return array<int|string, int> */
+    public function countMany(ViewableSet $viewables, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    {
+        $type = $viewables->type();
+        $keys = $viewables->keys();
+
+        if (! $type instanceof Viewable || $keys === []) {
+            return [];
+        }
+
+        $counts = $this->source($rememberUntil)->countMany($type, $keys, $query);
+
+        return array_replace(array_fill_keys(array_keys($viewables->all()), 0), $counts);
+    }
+
+    /** @throws InvalidInterval */
+    public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity, ?CarbonInterface $rememberUntil = null): ViewSeries
+    {
+        $period = $query->period;
+        $startDateTime = $period?->getStartDateTime();
+
+        if (! $period instanceof Period || ! $startDateTime instanceof CarbonInterface) {
+            throw InvalidInterval::periodWithoutStartDateTime();
+        }
+
+        $timezone = $query->timezone ?? Timezone::application();
+
+        $this->guardIntervalCap(
+            $granularity,
+            $startDateTime->avoidMutation()->setTimezone($timezone),
+            ($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone),
+        );
+
+        $counts = $this->source($rememberUntil)->countByInterval($viewable, $query, $granularity);
+
+        return ViewSeries::fill($period, $granularity, $counts, $timezone);
+    }
+
+    /**
+     * Most viewed first, then by name, so the order is the same on every
+     * driver. Sorting in SQL would place the default collection, stored as
+     * null, differently per database.
+     *
+     * @return array<string, int>
+     */
+    public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    {
+        $counts = $this->source($rememberUntil)->countByCollection($viewable, $query);
+
+        return $this->sortByCountThenName($counts);
+    }
+
+    /**
+     * Most viewed first, then by value, like `countByCollection()`.
+     *
+     * @return array<string, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
+    {
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsByDimension) {
+            throw UnsupportedBySource::dimension($source);
+        }
+
+        $counts = $source->countByDimension($viewable, $query, $dimension);
+
+        return $this->sortByCountThenName($counts);
+    }
+
+    /**
+     * @throws InvalidLimit
+     * @throws UnsupportedBySource
+     */
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?CarbonInterface $rememberUntil = null): DimensionCounts
+    {
+        if (($limit ?? 1) < 1) {
+            throw InvalidLimit::belowOne((int) $limit, 'countBy()');
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsBy) {
+            throw UnsupportedBySource::countBy($source);
+        }
+
+        return $source->countBy($viewable, $query, $dimension, $limit);
+    }
+
+    /**
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit);
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
+    }
+
+    /**
+     * Ranked by views weighed by their age, so recent views count more. The
+     * half-life is a shorthand for exponential decay, so only one of the two
+     * may be given; without either, the configured curve is used.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'trending()');
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        $decay = $this->decays->make($query, $halfLife, $curve);
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksTrending) {
+            throw UnsupportedBySource::trending($source);
+        }
+
+        return $this->loader->load($source->trending($viewable, $query, $decay, $limit));
+    }
+
+    /**
+     * It ranks by how many times the count of the period before the count in
+     * the period is, highest first. Only what grew and reached the minimum in
+     * either period is ranked.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function rising(?Viewable $viewable, ViewsQuery $query, int $limit, int $minimum, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        $source = $this->growthSource($viewable, $limit, $minimum, 'rising()', $rememberUntil);
+
+        return $this->loader->load($this->growth->rising($source, $viewable, $query, $minimum, $limit));
+    }
+
+    /**
+     * It ranks by how many deviations the count in the period lies from the
+     * same period on past days or weeks. A positive threshold ranks spikes,
+     * highest first, a negative one drops, lowest first.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidPeriod
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function anomalies(?Viewable $viewable, ViewsQuery $query, float $threshold, int $minimum, int $limit, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        $source = $this->growthSource($viewable, $limit, $minimum, 'anomalies()', $rememberUntil);
+
+        return $this->loader->load($this->growth->anomalies($source, $viewable, $query, $seasonality, $samples, $threshold, $minimum, $limit));
+    }
+
+    /**
+     * It returns the count in the period next to the counts of the same
+     * period on past days or weeks, each remembered under its own key.
+     *
+     * @throws InvalidBaseline
+     * @throws InvalidPeriod
+     */
+    public function againstBaseline(Viewable $viewable, ViewsQuery $query, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Baseline
+    {
+        $period = $query->period ?? throw InvalidBaseline::withoutStart();
+
+        $references = array_map(
+            fn (Period $reference): int => $this->count($viewable, $query->withPeriod($reference), $rememberUntil),
+            $seasonality->references($period, $samples),
+        );
+
+        return new Baseline($this->count($viewable, $query, $rememberUntil), $references);
+    }
+
+    /**
+     * What the visitors of the viewable also viewed, ranked by how many of
+     * them did. The count is always of distinct visitors, so `unique()` makes
+     * no difference.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws InvalidViewer
+     * @throws UnsupportedBySource
+     */
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'alsoViewed()');
+        }
+
+        if (ViewableKey::of($viewable) === null) {
+            throw InvalidViewable::cannotPairType($viewable);
+        }
+
+        if ($query->viewer instanceof Model) {
+            throw InvalidViewer::cannotNarrowAlsoViewed();
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksAlsoViewed) {
+            throw UnsupportedBySource::alsoViewed($source);
+        }
+
+        return $this->loader->load($source->alsoViewed(
+            $viewable,
+            $among,
+            $query,
+            $limit,
+            $this->config->alsoViewedMinimumVisitors(),
+            $this->config->alsoViewedMaxVisitors(),
+        ));
+    }
+
+    /**
+     * What the visitors of the viewables the recipient viewed recently also
+     * viewed, weighed by how recently the recipient viewed each and how
+     * closely the two follow each other. The query is matched on every side;
+     * a viewer it names is the recipient, not a narrowing.
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?CarbonInterface $rememberUntil = null): Recommendations
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, 'recommended()');
+        }
+
+        return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $rememberUntil));
+    }
+
+    /**
+     * The score of every viewable of the type recommended to the recipient,
+     * highest first, keyed by its key.
+     *
+     * @return array<int|string, float>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    public function recommendationScores(Recipient $recipient, Viewable $among, ViewsQuery $query, bool $includeSeen = false): array
+    {
+        $scores = [];
+
+        foreach ($this->scoreRecommendations($recipient, $among, $query, $includeSeen) as $row) {
+            $scores[$row['id']] = $row['score'];
+        }
+
+        return $scores;
+    }
+
+    /**
+     * @return list<array{type: string, id: int|string, score: float, because: list<array{type: string, id: int|string}>}>
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidDecay
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    private function scoreRecommendations(Recipient $recipient, ?Viewable $among, ViewsQuery $query, bool $includeSeen, ?int $limit = null, ?CarbonInterface $rememberUntil = null): array
+    {
+        if ($among instanceof Viewable && ViewableKey::of($among) !== null) {
+            throw InvalidViewable::cannotRecommendAmongOne($among);
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof RanksRecommendations) {
+            throw UnsupportedBySource::recommended($source);
+        }
+
+        $request = new RecommendationRequest(
+            $recipient,
+            $among,
+            $this->config->recommendationsMaxSeeds(),
+            $this->config->alsoViewedMinimumVisitors(),
+            $this->config->recommendationsMaxVisitors(),
+            $includeSeen,
+        );
+
+        $scorer = new Scorer(
+            new ExponentialDecay($this->config->recommendationsHalfLife()->toInterval()),
+            Similarity::from($this->config->recommendationsSimilarity()),
+        );
+
+        return $scorer->score(
+            $source->recommendationPairs($request, $query->withViewer(null)),
+            $query->period?->getEndDateTime() ?? Carbon::now(),
+            $limit,
+        );
+    }
+
+    /**
+     * @return array<int, int>
+     *
+     * @throws UnsupportedBySource
+     */
+    private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil): array
+    {
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsVisitFrequency) {
+            throw UnsupportedBySource::visitFrequency($source);
+        }
+
+        return $source->visitFrequency($viewable, $query);
+    }
+
+    /**
+     * @throws InvalidBaseline
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     * @throws UnsupportedBySource
+     */
+    private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?CarbonInterface $rememberUntil): CountsByWindow
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, $method);
+        }
+
+        if ($minimum < 1) {
+            throw InvalidBaseline::minimumBelowOne($minimum, $method);
+        }
+
+        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
+            throw InvalidViewable::cannotRankOne($viewable);
+        }
+
+        $source = $this->source($rememberUntil);
+
+        if (! $source instanceof CountsByWindow) {
+            throw UnsupportedBySource::growth($source);
+        }
+
+        return $source;
+    }
+
+    /**
+     * This is the source itself when the call does not ask to remember the
+     * result, and the source behind the cache until that moment when it does.
+     */
+    private function source(?CarbonInterface $rememberUntil): ViewSource
+    {
+        if (! $rememberUntil instanceof CarbonInterface) {
+            return $this->source;
+        }
+
+        return new RememberingSource($this->source, $this->cache, $rememberUntil, $this->config->cacheKey(), $this->identity());
+    }
+
+    /**
+     * The identity is the driver name, followed by what the source reports
+     * about itself when it implements `IdentifiesSource`.
+     */
+    private function identity(): string
+    {
+        $driver = $this->config->sourceDriver();
+
+        if (! $this->source instanceof IdentifiesSource) {
+            return $driver;
+        }
+
+        return "{$driver}:{$this->source->cacheIdentity()}";
+    }
+
+    /**
+     * @param  array<string, int>  $counts
+     * @return array<string, int>
+     */
+    private function sortByCountThenName(array $counts): array
+    {
+        ksort($counts, SORT_STRING);
+        arsort($counts);
+
+        return $counts;
+    }
+
+    /** @throws InvalidInterval */
+    private function guardIntervalCap(Granularity $granularity, CarbonInterface $startDateTime, CarbonInterface $endDateTime): void
+    {
+        $intervals = $granularity->countBetween($startDateTime, $endDateTime);
+        $maximum = $this->config->maxIntervals();
+
+        if ($intervals > $maximum) {
+            throw InvalidInterval::producesTooManyIntervals($intervals, $maximum);
+        }
+    }
+}

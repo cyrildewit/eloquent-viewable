@@ -23,29 +23,49 @@
     ],
     "require": {
         "php": "^8.5",
+        "illuminate/bus": "^13.0",
         "illuminate/cache": "^13.0",
+        "illuminate/console": "^13.0",
+        "illuminate/container": "^13.0",
         "illuminate/contracts": "^13.0",
         "illuminate/cookie": "^13.0",
         "illuminate/database": "^13.0",
         "illuminate/http": "^13.0",
+        "illuminate/queue": "^13.0",
+        "illuminate/routing": "^13.0",
         "illuminate/support": "^13.0",
         "jaybizzle/crawler-detect": "^1.0",
         "nesbot/carbon": "^3.0"
     },
     "require-dev": {
+        "deptrac/deptrac": "^4.7",
+        "fruitcake/laravel-debugbar": "^4.4",
         "illuminate/config": "^13.0",
+        "illuminate/redis": "^13.0",
         "larastan/larastan": "^3.0",
+        "laravel/octane": "^2.20",
         "laravel/pint": "^1.21",
         "mockery/mockery": "^1.2.4",
         "orchestra/testbench": "^11.0",
         "pestphp/pest": "^5.0",
         "pestphp/pest-plugin-rector": "^5.0",
         "pestphp/pest-plugin-type-coverage": "^5.0",
+        "phpbench/phpbench": "^1.7",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/php-code-coverage": "^14.4",
+        "predis/predis": "^3.3",
         "rector/rector": "^2.3"
+    },
+    "suggest": {
+        "fruitcake/laravel-debugbar": "Lists the views recorded and skipped in each request in a Debugbar tab (^4.4).",
+        "illuminate/redis": "Required by the redis store driver (^13.0). Part of laravel/framework.",
+        "predis/predis": "A Redis client for the redis store driver (^3.3), when the phpredis extension is not installed."
     },
     "autoload": {
         "psr-4": {
-            "CyrildeWit\\EloquentViewable\\": "src/"
+            "CyrildeWit\\EloquentViewable\\": "src/",
+            "CyrildeWit\\EloquentViewable\\Database\\Factories\\": "database/factories/"
         },
         "files": [
             "src/helpers.php"
@@ -53,30 +73,35 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "CyrildeWit\\EloquentViewable\\Benchmarks\\": "benchmarks/",
+            "CyrildeWit\\EloquentViewable\\Samples\\": "samples/",
             "CyrildeWit\\EloquentViewable\\Tests\\": "tests/"
         }
     },
     "scripts": {
-        "lint": "pint",
-        "test:lint": "pint --test",
-        "test": "pest",
-        "test:arch": "pest --testsuite=Architecture",
+        "lint": "pint --parallel",
+        "test:lint": "pint --test --parallel",
+        "test": "pest --parallel",
+        "test:serial": "pest",
+        "test:arch": "pest --testsuite=Arch",
         "test:unit": "pest --testsuite=Unit",
         "test:feature": "pest --testsuite=Feature",
-        "test:coverage": "pest --coverage-clover build/coverage.xml --min=100",
+        "test:samples": "pest --testsuite=Samples",
+        "test:coverage": "pest --parallel --coverage --coverage-clover build/coverage.xml --min=100",
         "test:types": "phpstan analyse --memory-limit=512M",
         "test:type-coverage": "pest --type-coverage --memory-limit=512M --min=100",
         "test:mutation": "pest --mutate --everything --covered-only --min=80",
+        "deptrac:graph": "sh scripts/deptrac-graph.sh",
+        "bench": "phpbench run --report=aggregate",
+        "bench:seed": "php benchmarks/seed.php",
+        "bench:indexes": "php benchmarks/indexes.php",
+        "bench:explain": "php benchmarks/explain.php",
+        "bench:describe": "php benchmarks/describe.php",
         "rector": "rector",
-        "ready": [
-            "@rector",
-            "@lint",
-            "@test:types",
-            "@test:type-coverage",
-            "@test"
-        ]
+        "ready": "sh scripts/ready.sh"
     },
     "config": {
+        "process-timeout": 0,
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true

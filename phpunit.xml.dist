@@ -13,8 +13,8 @@
          backupStaticProperties="false"
 >
     <testsuites>
-        <testsuite name="Architecture">
-            <directory>./tests/Architecture</directory>
+        <testsuite name="Arch">
+            <directory>./tests/Arch</directory>
         </testsuite>
         <testsuite name="Unit">
             <directory>./tests/Unit</directory>
@@ -22,13 +22,21 @@
         <testsuite name="Feature">
             <directory>./tests/Feature</directory>
         </testsuite>
+        <testsuite name="Samples">
+            <directory>./samples</directory>
+        </testsuite>
     </testsuites>
+    <php>
+        <ini name="memory_limit" value="512M"/>
+        <env name="APP_KEY" value="base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE="/>
+    </php>
     <logging>
         <junit outputFile="build/report.junit.xml"/>
     </logging>
     <source>
         <include>
             <directory suffix=".php">./src</directory>
+            <directory suffix=".php">./database/factories</directory>
         </include>
     </source>
 </phpunit>

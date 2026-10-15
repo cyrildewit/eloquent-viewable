@@ -1,0 +1,260 @@
+# Draws the dependencies between the layers of src/. Run `make deptrac-graph`
+# to render build/deptrac.png. The Pest arch tests in tests/Arch enforce the
+# rules; this file only feeds the picture.
+#
+# Layers, from the top down:
+#
+#   EntryPoints   service provider, facade, trait, helpers, middleware
+#   Testing       the fake behind Views::fake(), stands in for both sides
+#   Views         the builder that ties recording and counting together
+#   Doctor        checks the setup of every module below it and says what
+#                 to fix
+#   Maintenance   the scheduled work: rolls up, anonymises, prunes and
+#                 recounts in order, under one lock and one deadline
+#   Retention     anonymises and prunes old views, above querying for the
+#                 rollup watermarks it clamps to
+#   Debugging     shows what recording did in Debugbar, above recording for
+#                 the events it listens to
+#   Erasure       forgets, anonymises and exports one person's views, above
+#                 recording and retention for the buffer and the anonymised
+#                 prefix
+#   Milestones    fires an event once a counter column crosses a threshold,
+#                 above querying for the recounts it listens to
+#   Spikes        fires an event when a model spikes, drops or settles,
+#                 above querying for the growth rankings it reads
+#   Recording, Querying, Cooldowns, Visitors, Crawlers
+#   Dimensions    turns the facts of a request into short values to count
+#                 views by, below recording, which records them, and
+#                 querying, which counts by them
+#   Presence      who is looking right now, below recording, which keeps it
+#                 up to date, and above querying for the rankings it builds
+#   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
+#
+# The ruleset lets each layer depend on any layer below it. An edge that points
+# up, or sideways between two modules, breaks it and is drawn in red.
+
+deptrac:
+  paths:
+    - ./src
+    - ./database/factories
+
+  cache_file: ./build/.deptrac.cache
+
+  layers:
+    - name: Foundation
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(Support|Data|Models|Database\\Factories|Contracts|Exceptions)\\.*
+
+    - name: Crawlers
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Crawlers\\.*
+
+    - name: Visitors
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Visitors\\.*
+
+    - name: Dimensions
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Dimensions\\.*
+
+    - name: Cooldowns
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Cooldowns\\.*
+
+    - name: Recording
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Recording\\.*
+
+    - name: Querying
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Querying\\.*
+
+    - name: Presence
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Presence\\.*
+
+    - name: Retention
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Retention\\.*
+
+    - name: Debugging
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Debugging\\.*
+    - name: Maintenance
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Maintenance\\.*
+    - name: Doctor
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Doctor\\.*
+
+    - name: Erasure
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Erasure\\.*
+
+    - name: Milestones
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Milestones\\.*
+
+    - name: Spikes
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Spikes\\.*
+
+    # The builder behind the facade. It records views as well as counting them,
+    # so it sits above both.
+    - name: Views
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Views$
+
+    - name: Testing
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\Testing\\.*
+
+    - name: EntryPoints
+      collectors:
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider$
+        - type: classLike
+          value: ^CyrildeWit\\EloquentViewable\\(Facades|Concerns|Http)\\.*
+        - type: directory
+          value: src/helpers\.php
+
+    # Third-party code. Only packages that a layer wraps get one, so the rules
+    # can say who may touch them.
+    - name: CrawlerDetect
+      collectors:
+        - type: classLike
+          value: ^Jaybizzle\\.*
+
+    - name: Debugbar
+      collectors:
+        - type: classLike
+          value: ^(Fruitcake\\LaravelDebugbar|DebugBar)\\.*
+
+  ruleset:
+    Foundation: ~
+    # "Is this a bot": a verdict on a user agent string. A leaf.
+    Crawlers:
+      - Foundation
+      - CrawlerDetect
+    # "Who is viewing": facts about the request. A leaf; it judges nothing.
+    Visitors:
+      - Foundation
+    # "What kind of view is this": a value per dimension, read from the
+    # visitor's facts and the detector's verdict.
+    Dimensions:
+      - Foundation
+      - Visitors
+      - Crawlers
+    Cooldowns:
+      - Foundation
+    # The guards read the visitor's facts, ask the detector for a verdict and
+    # push cooldowns. Every view that passes keeps the visitor's presence and
+    # is given its dimensions.
+    Recording:
+      - Foundation
+      - Visitors
+      - Crawlers
+      - Cooldowns
+      - Presence
+      - Dimensions
+    # Counts by the dimensions in config, through their definitions.
+    Querying:
+      - Foundation
+      - Dimensions
+    # Ranks what is looked at right now with the rankings of querying.
+    Presence:
+      - Foundation
+      - Querying
+    # Clamps its cutoffs to the rollup watermarks, so nothing is destroyed
+    # before a rollup has captured it.
+    Retention:
+      - Foundation
+      - Querying
+      - Dimensions
+    # Listens to the recording events and hands them to Debugbar. Only this
+    # layer knows Debugbar.
+    Debugging:
+      - Foundation
+      - Recording
+      - Debugbar
+    # Runs the steps of querying and retention in the order that keeps them
+    # safe, and keeps the counter columns in step with both.
+    Maintenance:
+      - +Retention
+      - Querying
+    # Lands the buffer through the recording contracts, matches viewers by
+    # their visitor id and shares the anonymised prefix with retention. The
+    # service provider forgets and recounts the counts it changed.
+    Erasure:
+      - Foundation
+      - Recording
+      - Visitors
+      - Retention
+      - Dimensions
+    # Compares the counter columns a recount wrote with their thresholds, and
+    # keeps what it armed them with in the state table of retention.
+    Milestones:
+      - Foundation
+      - Querying
+    # Ranks the watched models with the growth rankings of querying, and keeps
+    # an episode per model while it spikes or drops.
+    Spikes:
+      - Foundation
+      - Querying
+    # Reads the config, schema and state every module relies on, and nothing
+    # below it knows the doctor exists.
+    Doctor:
+      - +Maintenance
+      - +Recording
+    Views:
+      - +Recording
+      - +Querying
+    Testing:
+      - +Recording
+      - +Querying
+    EntryPoints:
+      - +Views
+      - Testing
+      - +Maintenance
+      - Debugging
+      - +Erasure
+      - +Milestones
+      - +Spikes
+      - +Doctor
+      # The service provider binds the crawler adapter and the CrawlerDetect
+      # instance it wraps. Wiring is its job, so it may know both.
+      - CrawlerDetect
+
+  formatters:
+    graphviz:
+      groups:
+        Modules:
+          - Debugging
+          - Recording
+          - Presence
+          - Querying
+          - Retention
+          - Maintenance
+          - Erasure
+          - Doctor
+          - Cooldowns
+          - Dimensions
+          - Visitors
+          - Crawlers

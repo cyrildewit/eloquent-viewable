@@ -1,0 +1,11 @@
+{
+    "$schema": "./vendor/phpbench/phpbench/phpbench.schema.json",
+    "runner.bootstrap": "vendor/autoload.php",
+    "runner.path": "benchmarks",
+    "runner.file_pattern": "*Bench.php",
+    "runner.time_unit": "milliseconds",
+    "runner.retry_threshold": 5,
+    "runner.php_config": {"opcache.enable_cli": "1", "opcache.file_cache": "/tmp"},
+    "runner.env_enabled_providers": ["opcache", "php", "uname", "unix_sysload"],
+    "storage.xml_storage_path": "build/benchmarks/storage"
+}
