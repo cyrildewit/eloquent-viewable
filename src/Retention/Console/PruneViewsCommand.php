@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Retention\Console;
 
 use Carbon\CarbonInterface;
-use Carbon\Exceptions\InvalidFormatException;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
+use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
 use CyrildeWit\EloquentViewable\Support\Deadline;
-use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Support\Carbon;
 
-final class PruneViewsCommand extends RetentionCommand
+final class PruneViewsCommand extends MaintenanceCommand
 {
+    use ReportsRetention;
+
     #[\Override]
     protected $signature = 'views:prune
         {--older-than= : Delete views older than this, such as 90d, instead of retention.prune.after}
@@ -25,30 +29,12 @@ final class PruneViewsCommand extends RetentionCommand
     #[\Override]
     protected $description = 'Delete old views';
 
-    public function handle(PruneViews $prune, RetentionPolicy $policy): int
+    /** @throws InvalidOption */
+    public function handle(PruneViews $prune, RetentionPolicy $policy, RunLock $lock): int
     {
-        $chunk = $this->chunk($policy);
-        $after = $this->olderThan($policy->pruneAfter);
-        $before = $this->before();
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
+        $cutoff = $this->before() ?? $this->duration('older-than', $policy->pruneAfter)?->before(Carbon::now());
         $deadline = $this->deadline();
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
-
-        if ($deadline === false) {
-            return self::FAILURE;
-        }
-
-        if ($after === false) {
-            return self::FAILURE;
-        }
-
-        if ($before === false) {
-            return self::FAILURE;
-        }
-
-        $cutoff = $before ?? $this->olderThanCutoff($after);
 
         if (! $cutoff instanceof CarbonInterface) {
             $this->components->info('Nothing to prune, `retention.prune.after` is not set.');
@@ -56,45 +42,22 @@ final class PruneViewsCommand extends RetentionCommand
             return self::SUCCESS;
         }
 
-        return $this->exclusively(function (Deadline $deadline) use ($prune, $cutoff, $chunk): int {
-            $this->report('deleted', $prune->handle($cutoff, $chunk, $this->isDryRun(), $deadline));
+        return $this->exclusively($lock, function (Deadline $deadline) use ($prune, $cutoff, $chunk): int {
+            $this->reportRetention('deleted', $prune->handle($cutoff, $chunk, $this->isDryRun(), $deadline));
 
             return self::SUCCESS;
         }, $deadline);
     }
 
-    private function olderThanCutoff(?Duration $after): ?CarbonInterface
+    /** @throws InvalidOption */
+    private function before(): ?CarbonInterface
     {
-        if (! $after instanceof Duration) {
-            return null;
+        $before = $this->date('before', '2026-01-01');
+
+        if ($before instanceof CarbonInterface && $this->option('older-than') !== null) {
+            throw new InvalidOption('Pass either --before or --older-than, not both.');
         }
 
-        return $after->before(Carbon::now());
-    }
-
-    /**
-     * It returns false once the error is reported.
-     */
-    private function before(): CarbonInterface|false|null
-    {
-        $before = $this->option('before');
-
-        if (! is_string($before)) {
-            return null;
-        }
-
-        if ($this->option('older-than') !== null) {
-            $this->components->error('Pass either --before or --older-than, not both.');
-
-            return false;
-        }
-
-        try {
-            return Carbon::parse($before);
-        } catch (InvalidFormatException) {
-            $this->components->error('The --before option must be a date such as `2026-01-01`.');
-
-            return false;
-        }
+        return $before;
     }
 }

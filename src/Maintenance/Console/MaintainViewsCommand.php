@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Maintenance\Console;
 
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\MaintainViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\Concerns\ReportsRecounts;
 use CyrildeWit\EloquentViewable\Maintenance\Data\MaintenanceRun;
 use CyrildeWit\EloquentViewable\Maintenance\Data\RecountRun;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\Concerns\ReportsRollups;
-use CyrildeWit\EloquentViewable\Retention\Console\RetentionCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
 
-final class MaintainViewsCommand extends RetentionCommand
+final class MaintainViewsCommand extends MaintenanceCommand
 {
     use ReportsRecounts;
+    use ReportsRetention;
     use ReportsRollups;
 
     #[\Override]
@@ -27,18 +30,11 @@ final class MaintainViewsCommand extends RetentionCommand
     #[\Override]
     protected $description = 'Roll up, anonymise and delete old views and recount counter columns as configured';
 
+    /** @throws InvalidOption */
     public function handle(MaintainViews $maintain, RetentionPolicy $policy): int
     {
-        $chunk = $this->chunk($policy);
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
         $deadline = $this->deadline();
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
-
-        if ($deadline === false) {
-            return self::FAILURE;
-        }
 
         if (! $maintain->isConfigured()) {
             $this->components->info('Nothing to maintain, neither `retention.rollups`, `retention.anonymise.after`, `retention.prune.after` nor `querying.counters` is set.');
@@ -49,7 +45,7 @@ final class MaintainViewsCommand extends RetentionCommand
         $run = $maintain->handle($chunk, $deadline, $this->isDryRun());
 
         if (! $run instanceof MaintenanceRun) {
-            $this->components->warn('Another run is in progress, so this one was skipped.');
+            $this->reportSkipped();
 
             return self::SUCCESS;
         }
@@ -70,11 +66,11 @@ final class MaintainViewsCommand extends RetentionCommand
         }
 
         if ($run->anonymised instanceof RetentionRun) {
-            $this->report('anonymised', $run->anonymised);
+            $this->reportRetention('anonymised', $run->anonymised);
         }
 
         if ($run->pruned instanceof RetentionRun) {
-            $this->report('deleted', $run->pruned);
+            $this->reportRetention('deleted', $run->pruned);
         }
 
         if ($run->recounted instanceof RecountRun) {

@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Erasure\Console;
 
 use CyrildeWit\EloquentViewable\Erasure\Actions\ForgetViewHistory;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 
 final class ForgetVisitorCommand extends ErasureCommand
 {
@@ -18,24 +19,18 @@ final class ForgetVisitorCommand extends ErasureCommand
     #[\Override]
     protected $description = 'Delete every view of one visitor';
 
+    /** @throws InvalidOption */
     public function handle(ForgetViewHistory $forget): int
     {
         $chunk = $this->chunk();
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
 
         if (! $this->confirmInProduction()) {
             return self::FAILURE;
         }
 
-        $visitor = $this->argument('visitor');
-        $visitor = is_string($visitor) ? $visitor : '';
-
         $this->comment('Forgetting the views of the visitor...');
 
-        $views = $forget->handle(Subject::visitor($visitor), chunk: $chunk);
+        $views = $forget->handle(Subject::visitor($this->stringArgument('visitor')), chunk: $chunk);
 
         $this->components->info("Deleted {$views} views of the visitor.");
 
