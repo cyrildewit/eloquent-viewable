@@ -4,33 +4,27 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Erasure\Console;
 
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
-use Illuminate\Console\Command;
+use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
 
 /** @internal */
-abstract class ErasureCommand extends Command
+abstract class ErasureCommand extends MaintenanceCommand
 {
     use ConfirmsInProduction;
 
     private const int Chunk = 1000;
 
-    /** It returns null once the error is reported. */
-    protected function chunk(): ?int
+    /** @throws InvalidOption */
+    protected function chunk(): int
     {
-        $option = $this->option('chunk');
+        return $this->positiveInteger('chunk', self::Chunk);
+    }
 
-        if ($option === null) {
-            return self::Chunk;
-        }
+    protected function stringArgument(string $name): string
+    {
+        $value = $this->argument($name);
 
-        $chunk = filter_var($option, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-
-        if ($chunk === false) {
-            $this->components->error('The --chunk option must be a positive integer.');
-
-            return null;
-        }
-
-        return $chunk;
+        return is_string($value) ? $value : '';
     }
 }

@@ -111,6 +111,7 @@ arch('the foundation is a leaf layer')
         ...FOUNDATION,
         'Carbon',
         'Illuminate',
+        'Symfony\\Component\\Console',
     ]);
 
 arch('crawlers is a leaf module')

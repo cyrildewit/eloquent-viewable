@@ -6,6 +6,7 @@ namespace CyrildeWit\EloquentViewable\Erasure\Console;
 
 use CyrildeWit\EloquentViewable\Erasure\Actions\ForgetViewHistory;
 use CyrildeWit\EloquentViewable\Erasure\Subject;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use Illuminate\Database\Eloquent\Model;
 
 final class ForgetViewerCommand extends ErasureCommand
@@ -21,13 +22,10 @@ final class ForgetViewerCommand extends ErasureCommand
     #[\Override]
     protected $description = 'Delete every view of one viewer';
 
+    /** @throws InvalidOption */
     public function handle(ForgetViewHistory $forget): int
     {
         $chunk = $this->chunk();
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
 
         if (! $this->confirmInProduction()) {
             return self::FAILURE;
@@ -56,12 +54,5 @@ final class ForgetViewerCommand extends ErasureCommand
         }
 
         return $type;
-    }
-
-    private function stringArgument(string $name): string
-    {
-        $value = $this->argument($name);
-
-        return is_string($value) ? $value : '';
     }
 }

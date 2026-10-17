@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Retention\Console;
 
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
+use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Support\Carbon;
 
-final class AnonymiseViewsCommand extends RetentionCommand
+final class AnonymiseViewsCommand extends MaintenanceCommand
 {
+    use ReportsRetention;
+
     #[\Override]
     protected $signature = 'views:anonymise
         {--older-than= : Anonymise views older than this, such as 30d, instead of retention.anonymise.after}
@@ -22,23 +28,12 @@ final class AnonymiseViewsCommand extends RetentionCommand
     #[\Override]
     protected $description = 'Take what ties a view to a person out of old views';
 
-    public function handle(AnonymiseViews $anonymise, RetentionPolicy $policy): int
+    /** @throws InvalidOption */
+    public function handle(AnonymiseViews $anonymise, RetentionPolicy $policy, RunLock $lock): int
     {
-        $chunk = $this->chunk($policy);
-        $after = $this->olderThan($policy->anonymiseAfter);
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
+        $after = $this->duration('older-than', $policy->anonymiseAfter);
         $deadline = $this->deadline();
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
-
-        if ($deadline === false) {
-            return self::FAILURE;
-        }
-
-        if ($after === false) {
-            return self::FAILURE;
-        }
 
         if (! $after instanceof Duration) {
             $this->components->info('Nothing to anonymise, `retention.anonymise.after` is not set.');
@@ -46,8 +41,8 @@ final class AnonymiseViewsCommand extends RetentionCommand
             return self::SUCCESS;
         }
 
-        return $this->exclusively(function (Deadline $deadline) use ($anonymise, $policy, $after, $chunk): int {
-            $this->report('anonymised', $anonymise->handle($after->before(Carbon::now()), $policy->anonymiseColumns, $chunk, $this->isDryRun(), $deadline));
+        return $this->exclusively($lock, function (Deadline $deadline) use ($anonymise, $policy, $after, $chunk): int {
+            $this->reportRetention('anonymised', $anonymise->handle($after->before(Carbon::now()), $policy->anonymiseColumns, $chunk, $this->isDryRun(), $deadline));
 
             return self::SUCCESS;
         }, $deadline);
