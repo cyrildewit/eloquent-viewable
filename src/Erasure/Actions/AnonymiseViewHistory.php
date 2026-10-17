@@ -13,7 +13,9 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Collection;
@@ -53,26 +55,30 @@ final readonly class AnonymiseViewHistory
         $zone = $this->zone();
         $touched = new TouchedViewables;
         $salts = [];
-        $views = 0;
         $after = 0;
 
-        do {
-            $rows = $this->history
-                ->query($selection)
-                ->where('id', '>', $after)
-                ->orderBy('id')
-                ->limit($chunk)
-                ->get(['id', 'viewable_type', 'viewable_id', 'visitor', 'viewed_at']);
+        $views = Chunks::run(
+            Deadline::none(),
+            $chunk,
+            function () use ($selection, $chunk, &$after): Collection {
+                return $this->history
+                    ->query($selection)
+                    ->where('id', '>', $after)
+                    ->orderBy('id')
+                    ->limit($chunk)
+                    ->get(['id', 'viewable_type', 'viewable_id', 'visitor', 'viewed_at']);
+            },
+            function (Collection $rows) use ($touched, $zone, &$salts, &$after): int {
+                foreach ($rows as $row) {
+                    $touched->add($row->viewable_type, $row->viewable_id);
+                    $after = $row->id;
+                }
 
-            foreach ($rows as $row) {
-                $touched->add($row->viewable_type, $row->viewable_id);
-                $after = $row->id;
-            }
+                $this->anonymise($rows, $zone, $salts);
 
-            $this->anonymise($rows, $zone, $salts);
-
-            $views += $rows->count();
-        } while ($rows->count() === $chunk);
+                return $rows->count();
+            },
+        )->count;
 
         $this->events->dispatch($touched->countsChanged());
 

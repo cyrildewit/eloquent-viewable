@@ -16,8 +16,10 @@ use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use CyrildeWit\EloquentViewable\Support\Progress;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
@@ -86,11 +88,11 @@ final readonly class AnonymiseViews
         $cursor = $from;
 
         while (($day = $this->nextDay($cursor, $until, $columns)) instanceof CarbonInterface) {
-            $result = $this->anonymiseDay($day, $columns, $chunk, $deadline);
-            $views += $result['views'];
+            $progress = $this->anonymiseDay($day, $columns, $chunk, $deadline);
+            $views += $progress->count;
 
-            if (! $result['finished']) {
-                return $this->stopped($from, $day, $views, $clamped);
+            if ($progress->stopped) {
+                return $this->finish($from, $day, $views, $clamped, stopped: true);
             }
 
             $cursor = $this->nextMidnight($day);
@@ -100,24 +102,20 @@ final readonly class AnonymiseViews
 
         $this->state->putMoment(self::Mark, $until);
 
+        return $this->finish($from, $until, $views, $clamped, stopped: false);
+    }
+
+    /**
+     * A stopped run ends at the start of the day in progress, which is as
+     * far as every view is anonymised.
+     */
+    private function finish(?CarbonInterface $from, CarbonInterface $until, int $views, bool $clamped, bool $stopped): RetentionRun
+    {
         if ($views > 0) {
             $this->events->dispatch(new ViewsAnonymised($from, $until, $views));
         }
 
-        return new RetentionRun($from, $until, $views, $clamped, false);
-    }
-
-    /**
-     * The mark stays at the start of the day in progress, which is as far as
-     * every view is anonymised.
-     */
-    private function stopped(?CarbonInterface $from, Carbon $day, int $views, bool $clamped): RetentionRun
-    {
-        if ($views > 0) {
-            $this->events->dispatch(new ViewsAnonymised($from, $day, $views));
-        }
-
-        return new RetentionRun($from, $day, $views, $clamped, false, stopped: true);
+        return new RetentionRun($from, $until, $views, $clamped, false, stopped: $stopped);
     }
 
     /**
@@ -143,42 +141,42 @@ final readonly class AnonymiseViews
      * deadline stopped it halfway.
      *
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
-     * @return array{views: int, finished: bool}
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
-    private function anonymiseDay(Carbon $day, array $columns, int $chunk, Deadline $deadline): array
+    private function anonymiseDay(Carbon $day, array $columns, int $chunk, Deadline $deadline): Progress
     {
         $name = self::Salt.$day->avoidMutation()->setTimezone($this->zone())->toDateString();
         $salt = $this->saltOfDayInProgress($name);
         $end = $this->nextMidnight($day);
-        $views = 0;
+        /** @var int|string|null $last */
         $last = null;
 
-        do {
-            if ($deadline->passed()) {
-                return ['views' => $views, 'finished' => false];
-            }
-
-            $visitors = $this->pending($day, $end, $columns)
-                ->when($last, fn (Builder $query, int|string $last): Builder => $query->where('id', '>', $last))
-                ->orderBy('id')
-                ->limit($chunk)
-                ->pluck('visitor', 'id')
-                ->all();
-
-            if ($visitors !== []) {
+        $progress = Chunks::run(
+            $deadline,
+            $chunk,
+            function () use ($day, $end, $columns, $chunk, &$last): array {
+                return $this->pending($day, $end, $columns)
+                    ->when($last !== null, fn (Builder $query): Builder => $query->where('id', '>', $last))
+                    ->orderBy('id')
+                    ->limit($chunk)
+                    ->pluck('visitor', 'id')
+                    ->all();
+            },
+            function (array $visitors) use ($columns, $salt, &$last): int {
                 $this->update($visitors, $columns, $salt);
                 $last = array_key_last($visitors);
-            }
 
-            $views += count($visitors);
-        } while (count($visitors) === $chunk);
+                return count($visitors);
+            },
+        );
 
-        $this->state->forget($name);
+        if (! $progress->stopped) {
+            $this->state->forget($name);
+        }
 
-        return ['views' => $views, 'finished' => true];
+        return $progress;
     }
 
     /**
@@ -249,7 +247,7 @@ final readonly class AnonymiseViews
      * linear in the size of the chunk. The visitors are keyed by the id of
      * their view.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors
+     * @param  array<int|string, mixed>  $visitors
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
@@ -266,7 +264,7 @@ final readonly class AnonymiseViews
      * The views whose visitor is not re-hashed, such as those without one, go
      * with the first statement.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors
+     * @param  array<int|string, mixed>  $visitors
      * @param  array<string, string>  $hashes
      * @return list<array{non-empty-list<int|string>, array<string, string>}>
      */

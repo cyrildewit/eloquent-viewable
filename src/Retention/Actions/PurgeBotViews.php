@@ -10,6 +10,8 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
 use CyrildeWit\EloquentViewable\Retention\Bots\BurstDetector;
 use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
+use CyrildeWit\EloquentViewable\Support\Chunks;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Generator;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
@@ -170,7 +172,7 @@ final readonly class PurgeBotViews
         } while ($rows->count() === $chunk);
     }
 
-    /** @param  list<int|string>  $ids */
+    /** @param  array<int|string>  $ids */
     private function delete(array $ids, bool $dryRun): int
     {
         if ($ids === []) {
@@ -192,16 +194,22 @@ final readonly class PurgeBotViews
      */
     private function deleteOfVisitors(CarbonInterface $from, CarbonInterface $until, bool $includeViewers, array $visitors, int $chunk): int
     {
-        $views = 0;
+        return Chunks::run(
+            Deadline::none(),
+            $chunk,
+            fn (): array => $this->idsOfVisitors($from, $until, $includeViewers, $visitors, $chunk),
+            fn (array $ids): int => $this->delete($ids, false),
+        )->count;
+    }
 
-        do {
-            /** @var list<int|string> $ids */
-            $ids = $this->ofVisitors($from, $until, $includeViewers, $visitors)->limit($chunk)->pluck('id')->all();
-
-            $views += $this->delete($ids, false);
-        } while (count($ids) === $chunk);
-
-        return $views;
+    /**
+     * @param  list<string>  $visitors
+     * @return list<int|string>
+     */
+    private function idsOfVisitors(CarbonInterface $from, CarbonInterface $until, bool $includeViewers, array $visitors, int $chunk): array
+    {
+        /** @var list<int|string> */
+        return $this->ofVisitors($from, $until, $includeViewers, $visitors)->limit($chunk)->pluck('id')->all();
     }
 
     /** @param  list<string>  $visitors */

@@ -9,7 +9,10 @@ use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Erasure\TouchedViewables;
 use CyrildeWit\EloquentViewable\Erasure\ViewHistory;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Support\Chunks;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * This action deletes every view of a subject, buffered or stored, and
@@ -40,25 +43,25 @@ final readonly class ForgetViewHistory
         }
 
         $touched = new TouchedViewables;
-        $views = 0;
 
-        do {
-            $rows = $this->history
+        $views = Chunks::run(
+            Deadline::none(),
+            $chunk,
+            fn (): Collection => $this->history
                 ->query($selection)
                 ->orderBy('id')
                 ->limit($chunk)
-                ->get(['id', 'viewable_type', 'viewable_id']);
+                ->get(['id', 'viewable_type', 'viewable_id']),
+            function (Collection $rows) use ($touched): int {
+                foreach ($rows as $row) {
+                    $touched->add($row->viewable_type, $row->viewable_id);
+                }
 
-            foreach ($rows as $row) {
-                $touched->add($row->viewable_type, $row->viewable_id);
-            }
-
-            if ($rows->isNotEmpty()) {
                 $this->view->newQuery()->toBase()->whereIn('id', $rows->modelKeys())->delete();
-            }
 
-            $views += $rows->count();
-        } while ($rows->count() === $chunk);
+                return $rows->count();
+            },
+        )->count;
 
         $this->events->dispatch($touched->countsChanged());
 

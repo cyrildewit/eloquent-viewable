@@ -19,9 +19,11 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\HotScore;
+use CyrildeWit\EloquentViewable\Support\Progress;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Model;
@@ -82,10 +84,10 @@ final readonly class RecountChangedViews
         $recounted = [];
 
         foreach ($this->config->counters() as $class => $columns) {
-            $result = $this->recountClass(new $class, $columns, $chunk, $deadline, $full);
-            $recounted[$class] = $result['models'];
+            $progress = $this->recountClass(new $class, $columns, $chunk, $deadline, $full);
+            $recounted[$class] = $progress->count;
 
-            if (! $result['finished']) {
+            if ($progress->stopped) {
                 return new RecountRun($recounted, stopped: true);
             }
         }
@@ -172,14 +174,13 @@ final readonly class RecountChangedViews
 
     /**
      * @param  array<string, ViewsQuery>  $columns
-     * @return array{models: int, finished: bool}
      *
      * @throws InvalidConfiguration
      * @throws InvalidPeriod
      * @throws JsonException
      * @throws UnsupportedBySource
      */
-    private function recountClass(Model&Viewable $model, array $columns, int $chunk, Deadline $deadline, bool $full): array
+    private function recountClass(Model&Viewable $model, array $columns, int $chunk, Deadline $deadline, bool $full): Progress
     {
         /** @var ?Snapshot $committed */
         $committed = $this->read($this->name($model));
@@ -200,37 +201,33 @@ final readonly class RecountChangedViews
             ? null
             : $this->changedKeys($model, $columns, $committed, $pending['target']);
         $after = $pending['after'];
-        $recounted = 0;
 
-        while (true) {
-            if ($deadline->passed()) {
-                $this->write($this->name($model).self::Pending, [...$pending, 'after' => $after]);
+        $progress = Chunks::run(
+            $deadline,
+            $chunk,
+            function () use ($keys, $model, $chunk, &$after): array {
+                return $keys === null
+                    ? $this->recount->keysAfter($model, $after, $chunk)
+                    : $this->changedAfter($keys, $after, $chunk);
+            },
+            function (array $batch) use ($model, &$after): int {
+                $this->recount->recount($model, $batch);
+                $after = array_last($batch);
 
-                return ['models' => $recounted, 'finished' => false];
-            }
+                return count($batch);
+            },
+        );
 
-            $batch = $keys === null
-                ? $this->recount->keysAfter($model, $after, $chunk)
-                : $this->changedAfter($keys, $after, $chunk);
+        if ($progress->stopped) {
+            $this->write($this->name($model).self::Pending, [...$pending, 'after' => $after]);
 
-            if ($batch === []) {
-                break;
-            }
-
-            $this->recount->recount($model, $batch);
-
-            $recounted += count($batch);
-            $after = end($batch);
-
-            if (count($batch) < $chunk) {
-                break;
-            }
+            return $progress;
         }
 
         $this->write($this->name($model), $pending['target']);
         $this->state->forget($this->name($model).self::Pending);
 
-        return ['models' => $recounted, 'finished' => true];
+        return $progress;
     }
 
     /**
