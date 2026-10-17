@@ -11,8 +11,10 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Snapshot;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\Progress;
 use Illuminate\Database\Query\Builder;
 
 /**
@@ -66,11 +68,11 @@ final readonly class ExpireTiers
                     continue;
                 }
 
-                $result = $this->drop($definition->name, $tier, $cutoff, $chunk, $deadline);
+                $progress = $this->drop($definition->name, $tier, $cutoff, $chunk, $deadline);
 
-                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, ...$result];
+                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $progress->count, 'stopped' => $progress->stopped];
 
-                if ($result['stopped']) {
+                if ($progress->stopped) {
                     return $dropped;
                 }
 
@@ -99,24 +101,14 @@ final readonly class ExpireTiers
         return $coarser->floor($cutoff->min($folded), $zone);
     }
 
-    /** @return array{rows: int, stopped: bool} */
-    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk, Deadline $deadline): array
+    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk, Deadline $deadline): Progress
     {
-        $dropped = 0;
-
-        do {
-            if ($deadline->passed()) {
-                return ['rows' => $dropped, 'stopped' => true];
-            }
-
-            $ids = $this->expired($rollup, $tier, $cutoff)->limit($chunk)->pluck('id')->all();
-
-            if ($ids !== []) {
-                $dropped += $this->rollup->newQuery()->toBase()->whereIn('id', $ids)->delete();
-            }
-        } while (count($ids) === $chunk);
-
-        return ['rows' => $dropped, 'stopped' => false];
+        return Chunks::run(
+            $deadline,
+            $chunk,
+            fn (): array => $this->expired($rollup, $tier, $cutoff)->limit($chunk)->pluck('id')->all(),
+            fn (array $ids): int => $this->rollup->newQuery()->toBase()->whereIn('id', $ids)->delete(),
+        );
     }
 
     private function expired(string $rollup, Tier $tier, CarbonImmutable $cutoff): Builder
