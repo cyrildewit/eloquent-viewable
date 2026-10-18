@@ -122,6 +122,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `models.view.class` config option to use your own `View` model
 - Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract
 - Added `Views::fake()` with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `UnsupportedBySource` under the fake, apart from `recommendedFor()`, which reads the fake
+- Added `Querying\Sources\ArraySource`, which counts view records held in memory the way the `database` source counts the views table. `Views::fake()` reads through it
 - Added `View::factory()` with the `fromVisitor()`, `inCollection()`, `viewedAt()`, `by()` and `withContext()` states
 - Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws, and the `InvalidConfiguration`, `InvalidViewable`, `InvalidViewer` and `InvalidTimezone` exceptions
 - Added Laravel Boost guidelines and the `eloquent-viewable-development` skill in `resources/boost`, which `boost:install` offers to coding agents
