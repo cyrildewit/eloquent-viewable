@@ -45,12 +45,11 @@ final readonly class Recorder
     ) {}
 
     /**
-     * A guard that limits repeats, such as the cooldown, does not stop the
-     * other guards from being asked, so the view is only skipped by it once
-     * every other guard allowed it. The visitor is then still kept active.
+     * A view skipped by a guard that limits repeats still keeps the visitor
+     * active.
      *
      * The dimensions are resolved once every guard has allowed the view, so
-     * a skipped view costs nothing, and before it is queued, because the
+     * a skipped view costs no dimension work, and before it is queued, because the
      * request is gone by the time a worker stores it.
      *
      * @throws RecordingFailed

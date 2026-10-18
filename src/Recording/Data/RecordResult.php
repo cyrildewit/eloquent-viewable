@@ -7,14 +7,12 @@ namespace CyrildeWit\EloquentViewable\Recording\Data;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use JsonSerializable;
 
-/**
- * Present is true when the attempt kept the visitor active for the live
- * counts, which a view skipped by a cooldown or the throttle still does. The
- * dimensions are the values a recorded view was given, by name.
- */
 final readonly class RecordResult implements JsonSerializable
 {
-    /** @param  array<string, ?string>  $dimensions */
+    /**
+     * @param  bool  $present  true when the attempt kept the visitor active for the live counts, which a view skipped by a cooldown or the throttle still does
+     * @param  array<string, ?string>  $dimensions  the values a recorded view was given, by name
+     */
     private function __construct(
         public bool $recorded,
         public bool $queued,

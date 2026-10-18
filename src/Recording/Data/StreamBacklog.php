@@ -11,6 +11,10 @@ use Carbon\CarbonImmutable;
  */
 class StreamBacklog
 {
+    /**
+     * @param  int  $pending  entries a flush has taken but not acknowledged
+     * @param  int  $stalled  pending entries idle long enough for the next flush to claim them, counted up to one page
+     */
     public function __construct(
         public int $length,
         public int $pending,

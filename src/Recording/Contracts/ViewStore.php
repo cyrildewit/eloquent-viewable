@@ -18,7 +18,7 @@ interface ViewStore
     public function store(ViewRecord $record): void;
 
     /**
-     * Store a batch of records in as few writes as the store allows.
+     * Stores a batch of records in as few writes as the store allows.
      *
      * @param  iterable<ViewRecord>  $records
      */

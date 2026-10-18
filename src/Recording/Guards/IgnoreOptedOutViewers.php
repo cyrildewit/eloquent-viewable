@@ -9,7 +9,8 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 
 /**
- * The signed-in user is asked even when `recording.viewer.enabled` is off,
+ * Drops the views of a viewer whose model implements `ViewerCanOptOut` and
+ * returns false from `tracksViews()`. The signed-in user is asked even when `recording.viewer.enabled` is off,
  * because the visitor cookie still ties their views together.
  */
 final readonly class IgnoreOptedOutViewers implements RecordingGuard

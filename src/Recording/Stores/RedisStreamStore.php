@@ -56,8 +56,9 @@ final readonly class RedisStreamStore implements BufferedViewStore
 
     /**
      * The entries are found by scanning what has not landed yet, like
-     * forget() does. A range only returns entries that still hold their
-     * fields. They are inserted before they are deleted, so a crash in between
+     * forget() does. `entries()` reads with `XRANGE`, which never returns an
+     * entry without fields, so unlike `flush()` no entry needs an `isEmpty()`
+     * check here. They are inserted before they are deleted, so a crash in between
      * lands them twice rather than not at all.
      *
      * @param  Closure(ViewRecord): bool  $filter

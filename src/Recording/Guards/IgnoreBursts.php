@@ -79,6 +79,9 @@ final readonly class IgnoreBursts implements RecordingGuard
                 ? $this->identity->of($attempt->visitor, $attempt->viewer)
                 : $this->fingerprint->of($attempt->visitor);
 
+            // With the `fingerprint` identity a guest's visitor id is the same
+            // fingerprint as the network key, so the key is counted once
+            // instead of twice.
             if (in_array("{$prefix}:{$id}", $keys, true)) {
                 continue;
             }
@@ -90,20 +93,24 @@ final readonly class IgnoreBursts implements RecordingGuard
     }
 
     /**
-     * It returns the estimated number of different viewables within the
-     * window, or zero when this viewable was already counted in it.
+     * The estimated number of different viewables within the window, or 0
+     * when this viewable was already counted in it.
      */
     private function count(string $key, string $viewable): float
     {
         $window = $this->config->burstSeconds() * 1000;
         $now = Carbon::now()->getTimestampMs();
         $bucket = intdiv($now, $window);
+        // Two windows, so the previous bucket is still there to weigh in the
+        // sliding estimate.
         $ttl = $this->config->burstSeconds() * 2;
 
         if (! $this->cache->add("{$key}:{$bucket}:{$viewable}", true, $ttl)) {
             return 0;
         }
 
+        // Some stores, such as Redis, create a missing key in increment()
+        // without a TTL, so add() creates the counter with one first.
         $this->cache->add("{$key}:{$bucket}", 0, $ttl);
 
         $previousBucket = $bucket - 1;
