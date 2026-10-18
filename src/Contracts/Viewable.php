@@ -19,7 +19,7 @@ interface Viewable
     /**
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
-     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
+     * @param  array<string, string|list<string>>  $dimensions
      * @return Builder<static&Model>
      */
     public function scopeOrderByViews(
@@ -35,7 +35,7 @@ interface Viewable
     /**
      * @param  Builder<static&Model>  $query
      * @param  'asc'|'desc'  $direction
-     * @param  array<string, string|list<string>>  $dimensions  one value or a list of values per dimension
+     * @param  array<string, string|list<string>>  $dimensions
      * @return Builder<static&Model>
      */
     public function scopeOrderByUniqueViews(

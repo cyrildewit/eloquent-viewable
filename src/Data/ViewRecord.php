@@ -106,7 +106,8 @@ final readonly class ViewRecord
     }
 
     /**
-     * The dimensions travel as one key, so a stream entry only gains a field.
+     * All dimensions travel as one JSON field, so a new dimension does not add
+     * a field to the stream entry.
      *
      * @return array{viewable_id: int|string, viewable_type: string, viewer_type: ?string, viewer_id: int|string|null, visitor: ?string, collection: ?string, context: ?string, viewed_at: string, dimensions: ?string}
      *

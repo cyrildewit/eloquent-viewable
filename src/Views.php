@@ -260,7 +260,7 @@ class Views
     }
 
     /**
-     * Ranked by views weighed by their age, so something taking off now ranks
+     * It ranks by views weighed by their age, so something taking off now ranks
      * above something that was busy last week. Pass a half-life or a curve to
      * override the configured one for this call.
      *
@@ -281,8 +281,9 @@ class Views
     /**
      * It ranks by how much the count grew against the period before, so
      * something taking off ranks above something that is busy every day.
-     * Only what grew and got at least the minimum in either period counts,
-     * so going from 1 to 4 views never wins.
+     * Only a model that grew, and that has at least $minimum views in one of
+     * the two periods, is ranked. With the default minimum of 10, a rise from
+     * 1 to 4 views is not ranked.
      *
      * @throws InvalidBaseline
      * @throws InvalidLimit
@@ -354,8 +355,9 @@ class Views
     }
 
     /**
-     * Who is looking right now. A model reads that model, a model class its
-     * type, and no viewable, as on the facade, the whole site.
+     * The visitors who are looking now. For a saved model, it counts that
+     * model. For a model class, it counts every model of that type. With no
+     * viewable, as on the facade, it counts the whole site.
      */
     public function live(): LiveViews
     {
@@ -396,7 +398,8 @@ class Views
      * What the visitors of the models the viewer viewed recently also viewed,
      * for the viewer `viewedBy()` names or, without one, for the current
      * visitor. A model type given to `views()` ranks only models of that
-     * type. What the viewer viewed before is left out unless it is included.
+     * type. The models the viewer viewed are left out unless $includeSeen is
+     * true.
      *
      * @throws InvalidConfiguration
      * @throws InvalidDecay
@@ -432,8 +435,9 @@ class Views
     }
 
     /**
-     * Also forgets the remembered totals and rankings that include the
-     * viewable. A viewable without a key forgets its whole type.
+     * It forgets the cached counts of the viewable, and the cached totals and
+     * rankings that include it. A viewable without a key forgets the cache of
+     * its whole type.
      */
     public function forgetCache(): void
     {
@@ -445,6 +449,7 @@ class Views
         $this->cacheVersions->flushCache();
     }
 
+    /** An integer is a number of minutes. */
     public function cooldown(DateTimeInterface|int|null $cooldown): self
     {
         $this->cooldown = $cooldown === null ? null : $this->resolveLifetime($cooldown);
@@ -547,6 +552,7 @@ class Views
         return $this;
     }
 
+    /** An integer is a number of minutes. */
     public function remember(DateTimeInterface|int|null $lifetime = null): self
     {
         $this->cacheLifetime = $lifetime === null ? null : $this->resolveLifetime($lifetime);
