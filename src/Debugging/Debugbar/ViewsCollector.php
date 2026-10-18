@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Model;
  * every dimension a recorded view was given.
  *
  * Debugbar resets the messages at the start of every Octane request, so a
- * worker never shows the views of the request before.
+ * worker never shows the views of the previous request.
  */
 class ViewsCollector extends MessagesCollector
 {
