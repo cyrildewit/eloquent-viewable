@@ -41,9 +41,9 @@ final readonly class ForgetChangedCounts
 
     /**
      * Erasure names the models whose counts it changed, so their remembered
-     * counts are forgotten and their counter columns recounted. When it names
-     * none, it touched too many, so every count is forgotten and every model
-     * is recounted on the next run.
+     * counts are forgotten and their counter columns recounted. When $viewables
+     * is null, the erasure touched too many models to list, so every count is
+     * forgotten and every model is recounted on the next run.
      *
      * @throws InvalidConfiguration
      * @throws InvalidPeriod

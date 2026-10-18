@@ -25,9 +25,9 @@ use Illuminate\Support\Carbon;
  * `$includeViewers` is set.
  *
  * The views are read in the order they were viewed, through the `viewed_at`
- * index, a chunk at a time. Once views are deleted, the rollups are folded
- * again from the first of them, and the start is clamped to where they can
- * still be.
+ * index, a chunk at a time. After a delete, the rollups are folded again from
+ * the earliest deleted view. The start of the purge is clamped to the floor
+ * of the refolder, because a rollup before it can no longer be folded again.
  */
 final readonly class PurgeBotViews
 {
@@ -226,8 +226,9 @@ final readonly class PurgeBotViews
 
     /**
      * The scan reads timestamps as UTC so that the gaps between views stay
-     * correct across a change to daylight saving time. This turns a timestamp
-     * back into a moment through UTC in the same way.
+     * correct across a change to daylight saving time. This method reverses that
+     * step: it formats the timestamp as a UTC wall-clock time and parses that
+     * time in the app timezone, so the result equals the stored `viewed_at`.
      */
     private function moment(int $timestamp): CarbonInterface
     {

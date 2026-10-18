@@ -34,10 +34,10 @@ use JsonException;
  * anonymised since. Everything else about a count stays the same between two
  * runs, so the rest of the table is left alone.
  *
- * Every model is recounted on the first run, after the columns or the source
- * changed, through a source that does not track the viewables a count may
- * have changed for, on request, and after views were pruned when the source
- * says a count changes with them.
+ * Every model is recounted when one of these is true: it is the first run,
+ * the columns or the source changed, the source does not implement
+ * TracksChangedViewables, the caller passes $full, or views were pruned and
+ * the source says counts change with pruning.
  *
  * What a recount saw is kept in the state table. A run that reaches its
  * deadline keeps where it got to, and the next run finishes that recount
