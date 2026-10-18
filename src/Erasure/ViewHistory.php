@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Erasure;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Contracts\BufferedViewStore;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
-use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Database\Eloquent\Builder;
 
