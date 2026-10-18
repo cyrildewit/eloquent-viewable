@@ -10,7 +10,9 @@ use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector;
  * The kind of device: `bot` when the crawler detector says so, the same
  * detector the `IgnoreCrawlers` guard asks, otherwise `tablet`, `mobile` or
  * `desktop` from the user agent. Bots only show up when that guard is off.
- * Each user agent is judged once per request.
+ * Each user agent is judged once per container scope, which is a request
+ * or a queued job. The memo holds at most `Remembered` user agents and is
+ * cleared when it is full.
  */
 final class Device extends Dimension
 {

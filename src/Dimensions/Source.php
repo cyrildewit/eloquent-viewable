@@ -7,9 +7,11 @@ namespace CyrildeWit\EloquentViewable\Dimensions;
 use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
 
 /**
- * Where the visitor came from: `utm_source` or `ref` when the link carries
- * one, then the name the source list gives the referring host, then the bare
- * host. `Direct` when there is neither.
+ * Where the visitor came from. A `utm_source` or `ref` value on the link
+ * comes first. It is read through the source aliases and then the source
+ * list, so `fb` becomes `Facebook`, and is kept as it is when neither knows
+ * it. Without one, it is the name the source list gives the referring host,
+ * or that host without `www.`. `Direct` when there is neither.
  */
 final class Source extends Dimension
 {

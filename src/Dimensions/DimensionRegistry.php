@@ -127,7 +127,7 @@ final readonly class DimensionRegistry
 
     /**
      * The columns anonymising clears. A personal dimension kept in `context`
-     * is cleared with it.
+     * is not listed, because anonymising clears the whole `context` column.
      *
      * @return list<string>
      */

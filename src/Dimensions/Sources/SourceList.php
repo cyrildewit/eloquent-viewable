@@ -17,7 +17,7 @@ final readonly class SourceList
 {
     /**
      * @param  array<string, array{string, string}>  $hosts  a source name and medium by host
-     * @param  array<string, string>  $aliases  a source name by lowercased `utm_source` value
+     * @param  array<string, string>  $aliases  a source name by lowercased `utm_source` or `ref` value
      */
     public function __construct(
         private array $hosts = [],

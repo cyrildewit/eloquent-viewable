@@ -8,8 +8,8 @@ use CyrildeWit\EloquentViewable\Dimensions\Contracts\Dimension as DimensionContr
 
 /**
  * Extend this for a dimension of your own and write `resolve()`. The value is
- * kept in a column named after the dimension, rollups keep its top twenty
- * values per bucket, and anonymising leaves it alone. A config entry changes
+ * kept in a column named after the dimension, rollups keep its top
+ * `MaxValues` values per bucket, and anonymising leaves it alone. A config entry changes
  * any of those by name, such as `[PlanDimension::class, 'json' => 'context->plan']`.
  *
  * A subclass with a constructor of its own passes these three on.

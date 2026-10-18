@@ -15,7 +15,8 @@ interface Dimension
 {
     /**
      * The value for this view, or null for none. It is trimmed, stripped of
-     * control characters and cut at 64 characters after this returns.
+     * control characters and cut at `Normaliser::MaxLength` characters after
+     * this returns.
      */
     public function resolve(DimensionInput $input): ?string;
 
