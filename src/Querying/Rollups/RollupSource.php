@@ -37,6 +37,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\PlannedRead;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Planner;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Segment;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Querying\Sources\Rows;
 use CyrildeWit\EloquentViewable\Querying\Sources\WindowTotals;
 use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -83,13 +84,9 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return $this->raw->count($viewable, $query);
         }
 
-        $total = 0;
+        $raw = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => ['total' => $this->raw->count($viewable, $segment)]);
 
-        foreach ($read->plan->raw() as $segment) {
-            $total += $this->raw->count($viewable, $this->narrow($query, $segment));
-        }
-
-        return $total + (int) $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)->sum($this->column($query));
+        return ($raw['total'] ?? 0) + (int) $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)->sum($this->column($query));
     }
 
     /**
@@ -108,18 +105,14 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return $this->raw->countByInterval($viewable, $query, $granularity);
         }
 
-        $counts = [];
-
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countByInterval($viewable, $this->narrow($query, $segment), $granularity));
-        }
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByInterval($viewable, $segment, $granularity));
 
         $zone = $this->seriesZone($query);
         $start = $this->rollup->qualifyColumn('bucket_start');
         $tier = $this->rollup->qualifyColumn('tier');
 
         $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($tier)} as tier, {$this->wrap($start)} as bucket_start, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->selectRaw("{$this->wrap($tier)} as tier, {$this->wrap($start)} as bucket_start, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($tier, $start)
             ->get();
 
@@ -149,27 +142,9 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return $this->raw->countByCollection($viewable, $query);
         }
 
-        $counts = [];
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByCollection($viewable, $segment));
 
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countByCollection($viewable, $this->narrow($query, $segment)));
-        }
-
-        $collection = $this->rollup->qualifyColumn('collection');
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($collection)} as collection, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($collection)
-            ->pluck('aggregate', 'collection');
-
-        $rollups = [];
-
-        foreach ($rows as $name => $count) {
-            $rollups[(string) $name] = (int) $count;
-        }
-
-        return $this->add($counts, $rollups);
+        return $this->add($counts, $this->summed($this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query), 'collection', $query));
     }
 
     /**
@@ -194,27 +169,9 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return $this->raw->countByDimension($viewable, $query, $dimension);
         }
 
-        $counts = [];
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByDimension($viewable, $segment, $dimension));
 
-        foreach ($read->plan->raw() as $segment) {
-            $counts = self::add($counts, $this->raw->countByDimension($viewable, $this->narrow($query, $segment), $dimension));
-        }
-
-        $column = $this->rollup->qualifyColumn('dimension');
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query, perDimension: true)
-            ->selectRaw("{$this->wrap($column)} as dimension, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($column)
-            ->pluck('aggregate', 'dimension');
-
-        $rollups = [];
-
-        foreach ($rows as $value => $count) {
-            $rollups[(string) $value] = (int) $count;
-        }
-
-        return self::add($counts, $rollups);
+        return $this->add($counts, $this->summed($this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query, perDimension: true), 'dimension', $query));
     }
 
     /**
@@ -243,7 +200,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         $column = $this->rollup->qualifyColumn('dimension');
 
         $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($column)} as dimension, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->selectRaw("{$this->wrap($column)} as dimension, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($column)
             ->get();
 
@@ -272,29 +229,12 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return $this->raw->countMany($viewable, $keys, $query);
         }
 
-        $counts = [];
-
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countMany($viewable, $keys, $this->narrow($query, $segment)));
-        }
-
-        $id = $this->rollup->qualifyColumn('viewable_id');
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countMany($viewable, $keys, $segment));
 
         foreach (array_chunk($keys, self::Chunk) as $chunk) {
-            /** @var Collection<int|string, int|string> $rows */
-            $rows = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)
-                ->whereIn($id, $chunk)
-                ->selectRaw("{$this->wrap($id)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-                ->groupBy($id)
-                ->pluck('aggregate', 'viewable_id');
+            $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)->whereIn($this->rollup->qualifyColumn('viewable_id'), $chunk);
 
-            $rollups = [];
-
-            foreach ($rows as $key => $count) {
-                $rollups[$key] = (int) $count;
-            }
-
-            $counts = $this->add($counts, $rollups);
+            $counts = $this->add($counts, $this->summed($rollups, 'viewable_id', $query));
         }
 
         return $counts;
@@ -324,7 +264,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
 
         $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)
             ->whereColumn($this->rollup->qualifyColumn('viewable_id'), $viewable->getQualifiedKeyName())
-            ->selectRaw("coalesce(sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}), 0)"); // @phpstan-ignore argument.type (a wrapped identifier, not user input)
+            ->selectRaw("coalesce({$this->sum($query)}, 0)"); // @phpstan-ignore argument.type (a wrapped identifier, not user input)
 
         $parts[] = "({$rollups->toSql()})";
 
@@ -398,39 +338,9 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         $type = $viewable?->getMorphClass();
-        $branches = array_map(fn (Segment $segment): Builder => $this->rawRanking($type, $this->narrow($query, $segment)), $read->plan->raw());
+        $branches = [...$this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->countedPerViewable($type, $segment)), $this->countedRollups($type, $grouping, $read, $query)];
 
-        $rollupType = $this->rollup->qualifyColumn('viewable_type');
-        $rollupId = $this->rollup->qualifyColumn('viewable_id');
-
-        $branches[] = $this->rollups($type, null, $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($rollupType, $rollupId);
-
-        $union = array_shift($branches);
-
-        foreach ($branches as $branch) {
-            $union->unionAll($branch);
-        }
-
-        $rows = $this->view->getConnection()->query()
-            ->fromSub($union, 'ranked')
-            ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate')
-            ->groupBy('viewable_type', 'viewable_id')
-            ->orderByDesc('aggregate')
-            ->orderBy('viewable_type')
-            ->orderBy('viewable_id')
-            ->limit($limit)
-            ->get();
-
-        $ranking = [];
-
-        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
-        foreach ($rows as $row) {
-            $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
-        }
-
-        return $ranking;
+        return Rows::ranked($this->ranked($branches, 'sum(aggregate) as aggregate', 'aggregate', $limit));
     }
 
     /**
@@ -477,7 +387,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         $type = $viewable?->getMorphClass();
-        $branches = array_map(fn (Segment $segment): Builder => $this->raw->trendingRows($type, $this->narrow($query, $segment), $decay), $read->plan->raw());
+        $branches = $this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->trendingRows($type, $segment, $decay));
 
         $rollupType = $this->rollup->qualifyColumn('viewable_type');
         $rollupId = $this->rollup->qualifyColumn('viewable_id');
@@ -488,23 +398,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$column}) as aggregate, sum({$weight} * {$column}) as score", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
             ->groupBy($rollupType, $rollupId);
 
-        $union = array_shift($branches);
-
-        foreach ($branches as $branch) {
-            $union->unionAll($branch);
-        }
-
-        $rows = $this->view->getConnection()->query()
-            ->fromSub($union, 'ranked')
-            ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate, sum(score) as score')
-            ->groupBy('viewable_type', 'viewable_id')
-            ->orderByDesc('score')
-            ->orderBy('viewable_type')
-            ->orderBy('viewable_id')
-            ->limit($limit)
-            ->get();
-
-        return DatabaseSource::scored($rows);
+        return Rows::scored($this->ranked($branches, 'sum(aggregate) as aggregate, sum(score) as score', 'score', $limit));
     }
 
     /**
@@ -539,7 +433,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
 
         $parts[] = "({$rollups->toSql()})";
 
-        return DatabaseSource::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
+        return Decay::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
     }
 
     /**
@@ -561,16 +455,102 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             return [$this->raw->countedPerViewable($type, $query)];
         }
 
-        $branches = array_map(fn (Segment $segment): Builder => $this->raw->countedPerViewable($type, $this->narrow($query, $segment)), $read->plan->raw());
+        return [...$this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->countedPerViewable($type, $segment)), $this->countedRollups($type, $grouping, $read, $query)];
+    }
 
+    /**
+     * The rollup rows per viewable, as `viewable_type`, `viewable_id` and
+     * `aggregate`, so they union with the branches of the views table.
+     */
+    private function countedRollups(?string $type, Grouping $grouping, PlannedRead $read, ViewsQuery $query): Builder
+    {
         $rollupType = $this->rollup->qualifyColumn('viewable_type');
         $rollupId = $this->rollup->qualifyColumn('viewable_id');
 
-        $branches[] = $this->rollups($type, null, $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+        return $this->rollups($type, null, $grouping, $read, $query)
+            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($rollupType, $rollupId);
+    }
 
-        return $branches;
+    /**
+     * The branches of the views table and the rollups added up per viewable
+     * in one statement, the highest first.
+     *
+     * @param  non-empty-list<Builder>  $branches
+     * @return Collection<int, stdClass>
+     */
+    private function ranked(array $branches, string $sums, string $orderBy, int $limit): Collection
+    {
+        return $this->view->getConnection()->query()
+            ->fromSub(Rows::union($branches), 'ranked')
+            ->selectRaw("viewable_type, viewable_id, {$sums}") // @phpstan-ignore argument.type (package-formatted literals, not user input)
+            ->groupBy('viewable_type', 'viewable_id')
+            ->orderByDesc($orderBy)
+            ->orderBy('viewable_type')
+            ->orderBy('viewable_id')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * What the views table answers for each segment of the plan it covers.
+     *
+     * @param  Closure(ViewsQuery): Builder  $branch
+     * @return list<Builder>
+     *
+     * @throws InvalidPeriod
+     */
+    private function rawBranches(PlannedRead $read, ViewsQuery $query, Closure $branch): array
+    {
+        return array_map(fn (Segment $segment): Builder => $branch($this->narrow($query, $segment)), $read->plan->raw());
+    }
+
+    /**
+     * The counts the views table answers for the segments of the plan it
+     * covers, added up.
+     *
+     * @template TKey of array-key
+     *
+     * @param  Closure(ViewsQuery): array<TKey, int>  $count
+     * @return array<TKey, int>
+     *
+     * @throws InvalidPeriod
+     */
+    private function rawCounts(PlannedRead $read, ViewsQuery $query, Closure $count): array
+    {
+        $counts = [];
+
+        foreach ($read->plan->raw() as $segment) {
+            $counts = $this->add($counts, $count($this->narrow($query, $segment)));
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The rollup rows added up per value of a column.
+     *
+     * @return array<string, int>
+     */
+    private function summed(Builder $rollups, string $column, ViewsQuery $query): array
+    {
+        $qualified = $this->rollup->qualifyColumn($column);
+
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $rollups
+            ->selectRaw("{$this->wrap($qualified)} as {$column}, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->groupBy($qualified)
+            ->pluck('aggregate', $column);
+
+        return Rows::ints($rows);
+    }
+
+    /**
+     * The sum of the column that holds the count the query asks for.
+     */
+    private function sum(ViewsQuery $query): string
+    {
+        return "sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))})";
     }
 
     /** @throws ResolutionUnavailable */
@@ -953,28 +933,6 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         return DimensionCounts::from($values, $none, $other);
-    }
-
-    private function rawRanking(?string $type, ViewsQuery $query): Builder
-    {
-        $builder = $this->view->newQuery()->matching($query)->toBase();
-        $viewableType = $this->view->qualifyColumn('viewable_type');
-        $viewableId = $this->view->qualifyColumn('viewable_id');
-        $aggregate = $this->aggregate($query);
-
-        return $builder
-            ->when($type !== null, fn (Builder $builder): Builder => $builder->where($viewableType, $type))
-            ->selectRaw("{$this->wrap($viewableType)} as viewable_type, {$this->wrap($viewableId)} as viewable_id, {$aggregate} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($viewableType, $viewableId);
-    }
-
-    private function aggregate(ViewsQuery $query): string
-    {
-        if (! $query->unique) {
-            return 'count(*)';
-        }
-
-        return "count(distinct {$this->wrap($this->view->qualifyColumn('visitor'))})";
     }
 
     private function column(ViewsQuery $query): string

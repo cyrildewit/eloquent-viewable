@@ -14,6 +14,7 @@ use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use DateTimeZone;
+use Illuminate\Database\Query\Builder;
 
 /**
  * The weights of a trending window, one per step, worked out in PHP so the
@@ -48,6 +49,20 @@ final readonly class Decay
      *
      * @throws InvalidDecay
      */
+    /**
+     * Selects an integer score scaled back. The divisor is a floating point
+     * literal: SQLite and Postgres truncate integer division, and MySQL keeps
+     * only four decimals when dividing by a decimal.
+     *
+     * @param  list<mixed>  $bindings
+     *
+     * @internal
+     */
+    public static function scaled(Builder $builder, string $score, array $bindings): Builder
+    {
+        return $builder->selectRaw("{$score} / 1e6", $bindings); // @phpstan-ignore argument.type (subqueries built by the sources, their values are bound)
+    }
+
     public static function for(ViewsQuery $query, DecayCurve $curve, ?Granularity $step, int $maxSteps, DateTimeZone $timezone): self
     {
         $end = CarbonImmutable::instance($query->period?->getEndDateTime() ?? CarbonImmutable::now());
