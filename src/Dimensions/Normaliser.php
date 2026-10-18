@@ -12,7 +12,8 @@ final class Normaliser
     public const int MaxLength = 64;
 
     /**
-     * The value rollups store for the views folded away by the cap. It starts
+     * The value rollups store for the views folded away once a bucket holds
+     * `maxValues()` values. It starts
      * with a control character, which no normalised value can hold, so it
      * never clashes with a real value.
      */
