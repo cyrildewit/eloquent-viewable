@@ -18,7 +18,7 @@ class CreateViewRetentionStateTable extends Migration
 
     public function up(): void
     {
-        // The rollups migration creates it too, whichever runs first.
+        // The rollups and milestones migrations create it too, so whichever runs first creates it.
         if (! $this->schema->hasTable('view_retention_state')) {
             $this->schema->create('view_retention_state', function (Blueprint $table) {
                 $table->string('name')->primary();
@@ -29,9 +29,12 @@ class CreateViewRetentionStateTable extends Migration
 
     public function down(): void
     {
-        // Rollups keep their marks in the state table.
-        if ($this->schema->hasTable(config('eloquent-viewable.retention.rollups.table'))) {
-            return;
+        // Rollups keep their marks and milestones keep their thresholds in the state table, so it stays
+        // while either of their tables exists.
+        foreach (['retention.rollups.table', 'milestones.table'] as $key) {
+            if ($this->schema->hasTable(config("eloquent-viewable.{$key}"))) {
+                return;
+            }
         }
 
         $this->schema->dropIfExists('view_retention_state');
