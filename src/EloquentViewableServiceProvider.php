@@ -31,6 +31,7 @@ use CyrildeWit\EloquentViewable\Milestones\Console\SeedMilestonesCommand;
 use CyrildeWit\EloquentViewable\Milestones\Listeners\CheckAfterRecount;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
@@ -74,6 +75,7 @@ use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ConfigReader;
 use CyrildeWit\EloquentViewable\Support\OptionalTable;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
@@ -193,7 +195,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             'middleware' => $config->beaconMiddleware(),
         ]);
 
-        if (! $config->presenceEnabled()) {
+        if (! new PresenceConfig($this->app->make('config'))->enabled()) {
             return;
         }
 
@@ -287,6 +289,11 @@ class EloquentViewableServiceProvider extends ServiceProvider
         // Scoped, so an Octane worker reads the config repository of the
         // request it serves rather than the one it booted with.
         $this->app->scoped(Config::class);
+        $this->app->scoped(PresenceConfig::class);
+
+        // Each driver manager reads its default from the config of its module.
+        $this->app->when([StoreManager::class, SourceManager::class, CooldownManager::class])->needs(ConfigReader::class)->give(Config::class);
+        $this->app->when(PresenceManager::class)->needs(ConfigReader::class)->give(PresenceConfig::class);
 
         $this->app->bind(View::class, function (Application $app): View {
             $model = $app->make(Config::class)->viewModel();
@@ -331,6 +338,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $app->make(RecordsViewsContract::class),
                 $app->make(VisitorIdentity::class),
                 $app->make(PresenceStore::class),
+                $app->make(PresenceConfig::class),
                 $app->make(DimensionResolver::class),
             );
         });

@@ -15,12 +15,14 @@ use Illuminate\Support\Str;
  * "Driver [x] not supported".
  *
  * @template TDriver of object
+ * @template TConfig of ConfigReader
  *
  * @internal
  */
 abstract class PackageManager extends Manager
 {
-    public function __construct(Container $container, protected readonly Config $packageConfig)
+    /** @param  TConfig  $packageConfig */
+    public function __construct(Container $container, protected readonly ConfigReader $packageConfig)
     {
         parent::__construct($container);
     }

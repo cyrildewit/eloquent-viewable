@@ -4,31 +4,20 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
-use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Typed access to the keys of the package config file.
- *
- * Defaults live in `config/eloquent-viewable.php` and are merged in by the
- * service provider, so they are not repeated here. A key that has to hold a
- * value throws when it is missing or empty, because there is no fallback that
- * would be correct; a boolean or list key falls back to the shipped default,
- * because there is.
+ * Typed access to the keys of the package config file that no module reads
+ * through a config of its own yet.
  *
  * @internal
  */
-final readonly class Config
+final readonly class Config extends ConfigReader
 {
-    public function __construct(
-        private Repository $config,
-    ) {}
-
     /**
      * @return class-string<View>
      *
@@ -168,7 +157,7 @@ final readonly class Config
 
     public function queueEnabled(): bool
     {
-        return (bool) $this->get('recording.queue.enabled', false);
+        return $this->bool('recording.queue.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -185,7 +174,7 @@ final readonly class Config
 
     public function viewerEnabled(): bool
     {
-        return (bool) $this->get('recording.viewer.enabled', false);
+        return $this->bool('recording.viewer.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -196,7 +185,7 @@ final readonly class Config
 
     public function beaconEnabled(): bool
     {
-        return (bool) $this->get('recording.beacon.enabled', false);
+        return $this->bool('recording.beacon.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -353,7 +342,7 @@ final readonly class Config
 
     public function pairsEnabled(): bool
     {
-        return (bool) $this->get('querying.pairs.enabled', false);
+        return $this->bool('querying.pairs.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -734,7 +723,7 @@ final readonly class Config
 
     public function rollupsStrict(): bool
     {
-        return (bool) $this->get('retention.rollups.strict', false);
+        return $this->bool('retention.rollups.strict');
     }
 
     /**
@@ -749,7 +738,7 @@ final readonly class Config
 
     public function sampleEnabled(): bool
     {
-        return (bool) $this->get('doctor.sample.enabled', false);
+        return $this->bool('doctor.sample.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -774,218 +763,6 @@ final readonly class Config
         }
 
         return (float) $value;
-    }
-
-    public function presenceEnabled(): bool
-    {
-        return (bool) $this->get('presence.enabled', false);
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceDriver(): string
-    {
-        return $this->nonEmptyString('presence.driver');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceWindow(): int
-    {
-        return $this->positiveInteger('presence.window');
-    }
-
-    /**
-     * @return 'exact'|'approximate'
-     *
-     * @throws InvalidConfiguration
-     */
-    public function presencePrecision(): string
-    {
-        return $this->oneOf('presence.precision', ['exact', 'approximate'], 'exact');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceHeartbeat(): int
-    {
-        return $this->positiveInteger('presence.heartbeat');
-    }
-
-    public function presenceExposesCount(): bool
-    {
-        return (bool) $this->get('presence.expose_count', false);
-    }
-
-    public function presenceTracksViewers(): bool
-    {
-        return (bool) $this->get('presence.viewers', false);
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceMaxCandidates(): int
-    {
-        return $this->positiveInteger('presence.max_candidates');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceRedisConnection(): ?string
-    {
-        return $this->string('presence.redis.connection');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceRedisPrefix(): string
-    {
-        return $this->nonEmptyString('presence.redis.prefix');
-    }
-
-    private function get(string $key, mixed $default = null): mixed
-    {
-        return $this->config->get("eloquent-viewable.{$key}", $default);
-    }
-
-    /**
-     * A single string is read as a list of one.
-     *
-     * @return list<string>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function strings(string $key): array
-    {
-        $value = (array) $this->get($key, []);
-
-        foreach ($value as $item) {
-            if (! is_string($item)) {
-                throw InvalidConfiguration::mustBeListOfStrings($key, $item);
-            }
-        }
-
-        /** @var list<string> */
-        return array_values($value);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function string(string $key): ?string
-    {
-        $value = $this->get($key);
-
-        if ($value !== null && ! is_string($value)) {
-            throw InvalidConfiguration::mustBeStringOrNull($key, $value);
-        }
-
-        return $value;
-    }
-
-    /** @throws InvalidConfiguration */
-    private function nonEmptyString(string $key): string
-    {
-        $value = $this->get($key);
-
-        if (! is_string($value) || $value === '') {
-            throw InvalidConfiguration::mustBeNonEmptyString($key, $value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * A string among the allowed ones, with the default for a key that is
-     * not set.
-     *
-     * @template TOption of string
-     *
-     * @param  non-empty-list<TOption>  $allowed
-     * @param  TOption  $default
-     * @return TOption
-     *
-     * @throws InvalidConfiguration
-     */
-    private function oneOf(string $key, array $allowed, string $default): string
-    {
-        $value = $this->get($key, $default);
-
-        if (! in_array($value, $allowed, true)) {
-            throw InvalidConfiguration::mustBeOneOf($key, $allowed, $value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * A list of class names.
-     *
-     * @return list<class-string>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function classes(string $key, mixed $default = null): array
-    {
-        $value = $this->get($key, $default);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeListOfClasses($key, $value);
-        }
-
-        foreach ($value as $class) {
-            if (! is_string($class) || ! class_exists($class)) {
-                throw InvalidConfiguration::mustBeListOfClasses($key, $class);
-            }
-        }
-
-        /** @var list<class-string> */
-        return array_values($value);
-    }
-
-    /**
-     * An array keyed by name. The exception is built for the value as a
-     * whole, or for a key that is not a string.
-     *
-     * @param  Closure(string, mixed): InvalidConfiguration  $exception
-     * @return array<string, mixed>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function map(string $key, Closure $exception): array
-    {
-        $value = $this->get($key, []);
-
-        if (! is_array($value)) {
-            throw $exception($key, $value);
-        }
-
-        $map = [];
-
-        foreach ($value as $name => $entry) {
-            if (! is_string($name)) {
-                throw $exception($key, $name);
-            }
-
-            $map[$name] = $entry;
-        }
-
-        return $map;
-    }
-
-    /**
-     * The class when it names a viewable model, or null.
-     *
-     * @return ?class-string<Model&Viewable>
-     */
-    private function viewableClass(mixed $class): ?string
-    {
-        if (! is_string($class) || ! is_a($class, Model::class, true) || ! is_a($class, Viewable::class, true)) {
-            return null;
-        }
-
-        return $class;
-    }
-
-    /**
-     * @param  array<mixed>  $options
-     * @param  list<string>  $allowed
-     */
-    private function optionsAmong(array $options, array $allowed): bool
-    {
-        return array_diff(array_keys($options), $allowed) === [];
     }
 
     /**
@@ -1196,88 +973,5 @@ final readonly class Config
         }
 
         return new HotScore($from, $duration);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function duration(string $key): ?Duration
-    {
-        $value = $this->get($key);
-
-        if ($value === null) {
-            return null;
-        }
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeDuration($key, $value);
-        }
-
-        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value);
-    }
-
-    /**
-     * @param  list<string>  $allowed
-     * @param  list<string>  $default
-     * @return list<string>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function subsetOf(string $key, array $allowed, array $default): array
-    {
-        $value = $this->get($key, $default);
-
-        if (! is_array($value) || $value === []) {
-            throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $value);
-        }
-
-        foreach ($value as $item) {
-            if (! in_array($item, $allowed, true)) {
-                throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $item);
-            }
-        }
-
-        return array_values(array_intersect($allowed, $value));
-    }
-
-    /** @throws InvalidConfiguration */
-    private function requiredDuration(string $key): Duration
-    {
-        $value = $this->get($key);
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
-        }
-
-        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function positiveIntegerOrNull(string $key): ?int
-    {
-        $value = $this->get($key);
-
-        if ($value === null) {
-            return null;
-        }
-
-        $integer = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-
-        if ($integer === false) {
-            throw InvalidConfiguration::mustBePositiveIntegerOrNull($key, $value);
-        }
-
-        return $integer;
-    }
-
-    /** @throws InvalidConfiguration */
-    private function positiveInteger(string $key): int
-    {
-        $value = $this->get($key);
-        $integer = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-
-        if ($integer === false) {
-            throw InvalidConfiguration::mustBePositiveInteger($key, $value);
-        }
-
-        return $integer;
     }
 }

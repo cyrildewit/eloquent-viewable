@@ -9,10 +9,11 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\UnsupportedRedisClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\Clients\ClientFactory;
 use CyrildeWit\EloquentViewable\Recording\Streams\ViewStream;
+use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 
-/** @extends PackageManager<ViewStore> */
+/** @extends PackageManager<ViewStore, Config> */
 final class StoreManager extends PackageManager
 {
     public function getDefaultDriver(): string

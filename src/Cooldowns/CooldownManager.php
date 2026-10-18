@@ -7,11 +7,12 @@ namespace CyrildeWit\EloquentViewable\Cooldowns;
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Stores\CacheStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Stores\SessionStore;
+use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Session\Session;
 
-/** @extends PackageManager<CooldownStore> */
+/** @extends PackageManager<CooldownStore, Config> */
 final class CooldownManager extends PackageManager
 {
     public function getDefaultDriver(): string

@@ -18,7 +18,6 @@ use CyrildeWit\EloquentViewable\Presence\Exceptions\InvalidWindow;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
-use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\MorphLoader;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewableSet;
@@ -35,7 +34,7 @@ final readonly class LiveViews
 {
     public function __construct(
         private PresenceStore $store,
-        private Config $config,
+        private PresenceConfig $config,
         private ViewableLoader $loader,
         private ?Viewable $viewable = null,
         private ?ViewableSet $viewables = null,
@@ -64,7 +63,7 @@ final readonly class LiveViews
     public function within(CarbonInterval|int $seconds): self
     {
         $seconds = $seconds instanceof CarbonInterval ? (int) $seconds->totalSeconds : $seconds;
-        $window = $this->config->presenceWindow();
+        $window = $this->config->window();
 
         if ($seconds < 1 || $seconds > $window) {
             throw InvalidWindow::outOfRange($seconds, $window);
@@ -122,7 +121,7 @@ final readonly class LiveViews
         $type = $this->type();
         $since = $this->since();
 
-        $candidates = $this->store->active($type, $since, $this->config->presenceMaxCandidates());
+        $candidates = $this->store->active($type, $since, $this->config->maxCandidates());
 
         if ($candidates === []) {
             return new Ranking(new Collection);
@@ -161,7 +160,7 @@ final readonly class LiveViews
      */
     public function viewers(int $limit = 100): EloquentCollection
     {
-        if (! $this->config->presenceTracksViewers()) {
+        if (! $this->config->tracksViewers()) {
             throw InvalidConfiguration::presenceViewersDisabled();
         }
 
@@ -201,10 +200,10 @@ final readonly class LiveViews
     /** @throws InvalidConfiguration */
     private function since(): CarbonInterface
     {
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->config->enabled()) {
             throw InvalidConfiguration::presenceDisabled();
         }
 
-        return Carbon::now()->subSeconds($this->within ?? $this->config->presenceWindow());
+        return Carbon::now()->subSeconds($this->within ?? $this->config->window());
     }
 }
