@@ -46,15 +46,7 @@ final readonly class Duration
 
     public function toInterval(): CarbonInterval
     {
-        return match ($this->interval) {
-            PeriodInterval::Seconds => CarbonInterval::seconds($this->value),
-            PeriodInterval::Minutes => CarbonInterval::minutes($this->value),
-            PeriodInterval::Hours => CarbonInterval::hours($this->value),
-            PeriodInterval::Days => CarbonInterval::days($this->value),
-            PeriodInterval::Weeks => CarbonInterval::weeks($this->value),
-            PeriodInterval::Months => CarbonInterval::months($this->value),
-            PeriodInterval::Years => CarbonInterval::years($this->value),
-        };
+        return $this->interval->unit()->interval($this->value);
     }
 
     public function shorthand(): string

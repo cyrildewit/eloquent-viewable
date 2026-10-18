@@ -245,7 +245,7 @@ it('throws when the retention migration has not run', function (): void {
     config()->set('eloquent-viewable.models.view.connection', 'bare');
 
     anonymiseBefore('2026-03-15');
-})->throws(RetentionNotInstalled::class, 'The `view_retention_state` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-retention` and run `php artisan migrate`.');
+})->throws(RetentionNotInstalled::class, 'Retention is configured, but the `view_retention_state` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-retention` and run `php artisan migrate`.');
 
 it('anonymises a day in chunks that each start after the last', function (): void {
     foreach (range(1, 5) as $number) {

@@ -50,7 +50,7 @@ final readonly class DecayFactory
             $curve ?? $this->curve(),
             $this->config->trendingStep(),
             $this->config->trendingMaxSteps(),
-            Timezone::from($this->config->rollupTimezone() ?? Timezone::application()),
+            Timezone::named($this->config->rollupTimezone()),
         );
     }
 

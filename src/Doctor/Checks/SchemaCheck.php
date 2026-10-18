@@ -13,12 +13,12 @@ use CyrildeWit\EloquentViewable\Doctor\Support\TableSize;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\OptionalTable;
 use Generator;
 use Illuminate\Database\Schema\Builder;
 
@@ -49,7 +49,6 @@ class SchemaCheck implements Check
         protected Config $config,
         protected RetentionPolicy $retention,
         protected RollupPolicy $rollups,
-        protected RetentionState $state,
         protected DimensionRegistry $dimensions,
     ) {}
 
@@ -68,11 +67,8 @@ class SchemaCheck implements Check
     {
         yield from $this->viewsTable();
         yield from $this->jsonDimensions();
-        yield from $this->retentionTable();
-        yield from $this->rollupTable();
         yield from $this->counterColumns();
-        yield from $this->milestonesTable();
-        yield from $this->spikesTable();
+        yield from $this->optionalTables();
     }
 
     /** @return Generator<int, Finding> */
@@ -167,49 +163,6 @@ class SchemaCheck implements Check
         }
     }
 
-    /** @return Generator<int, Finding> */
-    protected function retentionTable(): Generator
-    {
-        if (! $this->retention->anonymiseAfter instanceof Duration && ! $this->retention->pruneAfter instanceof Duration) {
-            return;
-        }
-
-        if ($this->state->installed()) {
-            yield Finding::pass('The retention state table exists.');
-
-            return;
-        }
-
-        $table = RetentionState::Table;
-
-        yield Finding::failure(
-            "Retention is configured, but the `{$table}` table does not exist.",
-            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-retention"` and run `php artisan migrate`.',
-        );
-    }
-
-    /** @return Generator<int, Finding> */
-    protected function rollupTable(): Generator
-    {
-        if (! $this->rollups->isEnabled()) {
-            return;
-        }
-
-        $rollup = new ViewRollup;
-        $table = $rollup->getTable();
-
-        if ($rollup->getConnection()->getSchemaBuilder()->hasTable($table)) {
-            yield Finding::pass("The `{$table}` table exists.");
-
-            return;
-        }
-
-        yield Finding::failure(
-            "Rollups are configured, but the `{$table}` table does not exist.",
-            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-rollups"` and run `php artisan migrate`.',
-        );
-    }
-
     /**
      * @return Generator<int, Finding>
      *
@@ -241,54 +194,50 @@ class SchemaCheck implements Check
     }
 
     /**
+     * The tables of the features that are configured, each published under
+     * a tag of its own.
+     *
      * @return Generator<int, Finding>
      *
      * @throws InvalidConfiguration
      * @throws InvalidPeriod
      */
-    protected function milestonesTable(): Generator
+    protected function optionalTables(): Generator
     {
-        if ($this->config->milestones() === []) {
-            return;
+        $schema = $this->view->getConnection()->getSchemaBuilder();
+
+        foreach (OptionalTable::cases() as $optional) {
+            $table = $this->tableOf($optional);
+
+            if ($table === null) {
+                continue;
+            }
+
+            if ($schema->hasTable($table)) {
+                yield Finding::pass("The `{$table}` table exists.");
+
+                continue;
+            }
+
+            yield Finding::failure($optional->missing($table), $optional->advice());
         }
-
-        $table = $this->config->milestonesTable();
-
-        if ($this->view->getConnection()->getSchemaBuilder()->hasTable($table)) {
-            yield Finding::pass("The `{$table}` table exists.");
-
-            return;
-        }
-
-        yield Finding::failure(
-            "Milestones are configured, but the `{$table}` table does not exist.",
-            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-milestones"` and run `php artisan migrate`.',
-        );
     }
 
     /**
-     * @return Generator<int, Finding>
+     * The table of a feature, or null while the feature is not configured.
      *
      * @throws InvalidConfiguration
+     * @throws InvalidPeriod
      */
-    protected function spikesTable(): Generator
+    protected function tableOf(OptionalTable $table): ?string
     {
-        if ($this->config->spikes() === []) {
-            return;
-        }
-
-        $table = $this->config->spikesTable();
-
-        if ($this->view->getConnection()->getSchemaBuilder()->hasTable($table)) {
-            yield Finding::pass("The `{$table}` table exists.");
-
-            return;
-        }
-
-        yield Finding::failure(
-            "Spikes are configured, but the `{$table}` table does not exist.",
-            'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-spikes"` and run `php artisan migrate`.',
-        );
+        return match ($table) {
+            OptionalTable::Retention => $this->retention->anonymiseAfter instanceof Duration || $this->retention->pruneAfter instanceof Duration ? RetentionState::Table : null,
+            OptionalTable::Rollups => $this->rollups->isEnabled() ? $this->rollups->table : null,
+            OptionalTable::Pairs => $this->config->pairsEnabled() ? $this->config->pairsTable() : null,
+            OptionalTable::Milestones => $this->config->milestones() === [] ? null : $this->config->milestonesTable(),
+            OptionalTable::Spikes => $this->config->spikes() === [] ? null : $this->config->spikesTable(),
+        };
     }
 
     /**

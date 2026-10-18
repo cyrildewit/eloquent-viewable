@@ -537,7 +537,7 @@ final readonly class FoldViews
         }
 
         if (! $this->state->installed()) {
-            throw RollupsNotInstalled::missingTable('view_retention_state');
+            throw RollupsNotInstalled::missingStateTable('view_retention_state');
         }
     }
 }

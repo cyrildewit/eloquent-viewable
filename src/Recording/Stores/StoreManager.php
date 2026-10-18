@@ -9,41 +9,20 @@ use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\UnsupportedRedisClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\Clients\ClientFactory;
 use CyrildeWit\EloquentViewable\Recording\Streams\ViewStream;
-use CyrildeWit\EloquentViewable\Support\Config;
-use Illuminate\Contracts\Container\Container;
+use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
-use Illuminate\Support\Manager;
-use Illuminate\Support\Str;
 
-/** @method ViewStore driver(?string $driver = null) */
-final class StoreManager extends Manager
+/** @extends PackageManager<ViewStore> */
+final class StoreManager extends PackageManager
 {
-    public function __construct(Container $container, private readonly Config $packageConfig)
-    {
-        parent::__construct($container);
-    }
-
     public function getDefaultDriver(): string
     {
         return $this->packageConfig->storeDriver();
     }
 
-    /**
-     * @param  string  $driver
-     *
-     * @throws InvalidConfiguration
-     */
-    #[\Override]
-    protected function createDriver($driver): ViewStore
+    protected function configKey(): string
     {
-        if (! isset($this->customCreators[$driver]) && ! method_exists($this, 'create'.Str::studly($driver).'Driver')) {
-            throw InvalidConfiguration::unknownDriver('recording.store.driver', $driver);
-        }
-
-        /** @var ViewStore $store */
-        $store = parent::createDriver($driver);
-
-        return $store;
+        return 'recording.store.driver';
     }
 
     protected function createDatabaseDriver(): DatabaseStore

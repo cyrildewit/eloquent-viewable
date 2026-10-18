@@ -74,6 +74,7 @@ use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\OptionalTable;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
@@ -147,34 +148,26 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $timestamp = date('Y_m_d_His', time());
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_retention_state_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_retention_state_table.php"),
-        ], 'eloquent-viewable-retention');
+        foreach (OptionalTable::cases() as $table) {
+            $this->publishes([
+                __DIR__."/../database/migrations/{$table->migration()}.php.stub" => $this->app->databasePath("migrations/{$timestamp}_{$table->migration()}.php"),
+            ], $table->tag());
+        }
+    }
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_rollups_table.php"),
-        ], 'eloquent-viewable-rollups');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_pairs_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_pairs_table.php"),
-        ], 'eloquent-viewable-pairs');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_milestones_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_milestones_table.php"),
-        ], 'eloquent-viewable-milestones');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_spikes_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_spikes_table.php"),
-        ], 'eloquent-viewable-spikes');
+    /**
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests.
+     */
+    protected function config(): Config
+    {
+        return new Config($this->app->make('config'));
     }
 
     /**
      * The directive is there whenever Blade is, so a page that prints it while
      * the beacon is off fails with the reason rather than a missing directive.
      * The presence routes sit next to the beacon's and need both turned on.
-     *
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests.
      *
      * @throws InvalidConfiguration
      */
@@ -188,7 +181,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             });
         });
 
-        $config = new Config($this->app->make('config'));
+        $config = $this->config();
 
         if (! $config->beaconEnabled()) {
             return;
@@ -299,15 +292,12 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests,
-     * and the sampler is resolved from the container of the request.
+     * The sampler is resolved from the container of the request, so under
+     * Octane it does not stay behind in the worker.
      */
     protected function sampleGuardOutcomes(): void
     {
-        $config = new Config($this->app->make('config'));
-
-        if (! $config->sampleEnabled()) {
+        if (! $this->config()->sampleEnabled()) {
             return;
         }
 
@@ -320,16 +310,11 @@ class EloquentViewableServiceProvider extends ServiceProvider
     /**
      * A policy that contradicts itself fails at boot rather than in the first
      * scheduled run.
-     *
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests.
      */
     protected function validateRetentionPolicies(): void
     {
-        $config = new Config($this->app->make('config'));
-
-        RetentionPolicy::fromConfig($config);
-        RollupPolicy::fromConfig($config);
+        RetentionPolicy::fromConfig($this->config());
+        RollupPolicy::fromConfig($this->config());
     }
 
     /**
