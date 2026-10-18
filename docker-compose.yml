@@ -59,8 +59,8 @@ services:
       BENCH_SQLITE_PATH: /var/lib/benchmarks/benchmark.sqlite
 
   # The buffer behind the `redis` store driver. Every `php` and `composer` run
-  # starts it, because the suite's Redis tests need a real stream and the
-  # service is up in well under a second.
+  # starts it, because the suite's Redis tests need a real stream, and
+  # starting Redis adds almost nothing to a run.
   redis:
     image: redis:7-alpine
     # Two databases per parallel worker, see tests/Feature/TestCase.php. The

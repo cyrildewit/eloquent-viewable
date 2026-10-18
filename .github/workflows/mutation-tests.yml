@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Monthly (1st at 04:00 UTC). Mutation testing is slow and must run
-    # serially, so we track the score on a cadence rather than gating pushes.
+    # serially, so the workflow tracks the score once a month instead of gating pushes.
     - cron: '0 4 1 * *'
 
 permissions:
