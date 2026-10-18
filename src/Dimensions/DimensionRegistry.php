@@ -152,7 +152,7 @@ final readonly class DimensionRegistry
         }
 
         if (strlen($name) > self::MaxNameLength) {
-            throw InvalidConfiguration::invalidDimension($name, 'must be named in at most 32 characters');
+            throw InvalidConfiguration::invalidDimension($name, 'must be named in at most '.self::MaxNameLength.' characters');
         }
 
         if (in_array(strtolower($name), self::ReservedNames, true)) {
