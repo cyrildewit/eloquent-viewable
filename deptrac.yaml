@@ -29,8 +29,8 @@
 #                 up to date, and above querying for the rankings it builds
 #   Foundation    Support, Data, Models, Database\Factories, Contracts, Exceptions
 #
-# The ruleset lets each layer depend on any layer below it. An edge that points
-# up, or sideways between two modules, breaks it and is drawn in red.
+# The ruleset lists, for each layer, the layers it may depend on. An edge to
+# any other layer breaks the ruleset and is drawn in red.
 
 deptrac:
   paths:
@@ -185,7 +185,8 @@ deptrac:
       - Querying
     # Clamps its cutoffs to the rollup watermarks, so nothing is destroyed
     # before a rollup has captured it. Hashes visitors the way the visitors
-    # module says an anonymised id looks.
+    # module says an anonymised id looks, and clears the columns of the
+    # dimensions marked personal.
     Retention:
       - Foundation
       - Querying
@@ -203,7 +204,8 @@ deptrac:
       - +Retention
       - Querying
     # Lands the buffer through the recording contracts and matches viewers by
-    # their visitor id. The service provider forgets and recounts the counts
+    # their visitor id. Exports the dimension columns and clears the ones
+    # marked personal. The service provider forgets and recounts the counts
     # it changed.
     Erasure:
       - Foundation
@@ -211,7 +213,8 @@ deptrac:
       - Visitors
       - Dimensions
     # Compares the counter columns a recount wrote with their thresholds, and
-    # keeps what it armed them with in the state table of retention.
+    # keeps what it armed them with in the rollup state table, through
+    # `Querying\Rollups\Contracts\StateStore`.
     Milestones:
       - Foundation
       - Querying
