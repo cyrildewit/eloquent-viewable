@@ -32,7 +32,7 @@ final readonly class DimensionCounts implements Arrayable, JsonSerializable
         private int $other,
         private int $total,
     ) {
-        $this->counts = $this->sorted($counts);
+        $this->counts = self::sorted($counts);
     }
 
     /**
@@ -144,10 +144,14 @@ final readonly class DimensionCounts implements Arrayable, JsonSerializable
     }
 
     /**
+     * Most counted first, then by name, so the order is the same on every
+     * driver. Sorting in SQL would place the default collection, stored as
+     * null, differently per database.
+     *
      * @param  array<string, int>  $counts
      * @return array<string, int>
      */
-    private function sorted(array $counts): array
+    public static function sorted(array $counts): array
     {
         ksort($counts, SORT_STRING);
         arsort($counts);

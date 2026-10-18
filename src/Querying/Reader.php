@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
@@ -36,17 +35,14 @@ use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
 use CyrildeWit\EloquentViewable\Querying\Growth\GrowthRanking;
 use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
-use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\ExponentialDecay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\Scorer;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\Similarity;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommender;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -71,6 +67,7 @@ final readonly class Reader
         private ViewableLoader $loader,
         private DecayFactory $decays,
         private RecommendationLoader $recommendations,
+        private Recommender $recommender,
         private GrowthRanking $growth = new GrowthRanking,
     ) {}
 
@@ -157,7 +154,7 @@ final readonly class Reader
         $this->guardIntervalCap(
             $granularity,
             $startDateTime->avoidMutation()->setTimezone($timezone),
-            ($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone),
+            $period->endOrNow()->avoidMutation()->setTimezone($timezone),
         );
 
         $counts = $this->source($rememberUntil)->countByInterval($viewable, $query, $granularity);
@@ -174,9 +171,7 @@ final readonly class Reader
      */
     public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
     {
-        $counts = $this->source($rememberUntil)->countByCollection($viewable, $query);
-
-        return $this->sortByCountThenName($counts);
+        return DimensionCounts::sorted($this->source($rememberUntil)->countByCollection($viewable, $query));
     }
 
     /**
@@ -188,9 +183,7 @@ final readonly class Reader
      */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
     {
-        $counts = $this->requires(CountsByDimension::class, $rememberUntil)->countByDimension($viewable, $query, $dimension);
-
-        return $this->sortByCountThenName($counts);
+        return DimensionCounts::sorted($this->requires(CountsByDimension::class, $rememberUntil)->countByDimension($viewable, $query, $dimension));
     }
 
     /**
@@ -330,7 +323,6 @@ final readonly class Reader
      * a viewer it names is the recipient, not a narrowing.
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidLimit
      * @throws InvalidViewable
      * @throws UnsupportedBySource
@@ -349,7 +341,6 @@ final readonly class Reader
      * @return array<int|string, float>
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
@@ -368,7 +359,6 @@ final readonly class Reader
      * @return list<array{type: string, id: int|string, score: float, because: list<array{type: string, id: int|string}>}>
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
@@ -378,25 +368,7 @@ final readonly class Reader
             throw InvalidViewable::cannotRecommendAmongOne($among);
         }
 
-        $request = new RecommendationRequest(
-            $recipient,
-            $among,
-            $this->config->recommendationsMaxSeeds(),
-            $this->config->alsoViewedMinimumVisitors(),
-            $this->config->recommendationsMaxVisitors(),
-            $includeSeen,
-        );
-
-        $scorer = new Scorer(
-            new ExponentialDecay($this->config->recommendationsHalfLife()->toInterval()),
-            Similarity::from($this->config->recommendationsSimilarity()),
-        );
-
-        return $scorer->score(
-            $this->requires(RanksRecommendations::class, $rememberUntil)->recommendationPairs($request, $query->withViewer(null)),
-            $query->period?->getEndDateTime() ?? Carbon::now(),
-            $limit,
-        );
+        return $this->recommender->score($this->requires(RanksRecommendations::class, $rememberUntil), $recipient, $among, $query, $includeSeen, $limit);
     }
 
     /**
@@ -498,18 +470,6 @@ final readonly class Reader
         }
 
         return "{$driver}:{$this->source->cacheIdentity()}";
-    }
-
-    /**
-     * @param  array<string, int>  $counts
-     * @return array<string, int>
-     */
-    private function sortByCountThenName(array $counts): array
-    {
-        ksort($counts, SORT_STRING);
-        arsort($counts);
-
-        return $counts;
     }
 
     /** @throws InvalidInterval */

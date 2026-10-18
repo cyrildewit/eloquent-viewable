@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Sources;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
@@ -653,7 +652,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             from: Timezone::application(),
             to: $query->timezone,
             start: $start,
-            end: $period->getEndDateTime() ?? Carbon::now(),
+            end: $period->endOrNow(),
         );
 
         return $conversion->isNoop() ? null : $conversion;

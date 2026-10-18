@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Series;
 
-use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
@@ -59,7 +58,7 @@ final readonly class ViewSeries implements Arrayable, IteratorAggregate, JsonSer
         $timezone ??= Timezone::application();
 
         $start = self::toNaiveClock($granularity->floor($startDateTime->avoidMutation()->setTimezone($timezone)));
-        $end = self::toNaiveClock(($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone));
+        $end = self::toNaiveClock($period->endOrNow()->avoidMutation()->setTimezone($timezone));
 
         /** @var Collection<int, Bucket> $intervals */
         $intervals = new Collection;
