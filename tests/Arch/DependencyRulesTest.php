@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -195,6 +196,7 @@ arch('retention knows querying only through the rollup contracts')
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Retention',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        AnonymisedVisitor::class,
         DimensionRegistry::class,
         'Carbon',
         'Illuminate',
@@ -245,6 +247,7 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Erasure',
         'CyrildeWit\EloquentViewable\Recording\Contracts',
+        AnonymisedVisitor::class,
         VisitorIdentity::class,
         DimensionRegistry::class,
         'Carbon',

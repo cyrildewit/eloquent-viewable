@@ -23,13 +23,13 @@ use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Step;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
-use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -115,7 +115,7 @@ final readonly class ArraySource implements CountsBy, CountsByWindow, CountsVisi
         $timezone = $query->timezone ?? Timezone::application();
 
         $days = $this->matching($viewable, $query)
-            ->filter(static fn (ViewRecord $record): bool => $record->visitor !== null && ! str_starts_with($record->visitor, AnonymisedVisitor::Prefix))
+            ->filter(static fn (ViewRecord $record): bool => $record->visitor !== null && ! AnonymisedVisitor::isAnonymised($record->visitor))
             ->groupBy(static fn (ViewRecord $record): string => (string) $record->visitor)
             ->map(static fn (Collection $views): int => $views->map(static fn (ViewRecord $record): string => $record->viewedAt->avoidMutation()->setTimezone($timezone)->format('Y-m-d'))->unique()->count());
 
