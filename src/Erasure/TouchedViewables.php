@@ -7,9 +7,10 @@ namespace CyrildeWit\EloquentViewable\Erasure;
 use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
 
 /**
- * It collects the viewables whose counts an erasure changed. Past the limit
- * forgetting and recounting them one by one costs more than doing so for
- * every count, so that is what happens instead.
+ * It collects the viewables whose counts an erasure changed. Past the limit,
+ * forgetting and recounting the viewables one by one costs more than
+ * forgetting and recounting every count, so the collector gives up the list
+ * and reports every count as changed.
  *
  * @internal
  */

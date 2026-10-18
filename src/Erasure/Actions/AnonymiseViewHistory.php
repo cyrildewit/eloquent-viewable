@@ -22,8 +22,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
 /**
- * This action keeps the views of a subject but takes what ties them to it
- * out, the way retention anonymises old views: `visitor` is re-hashed under
+ * This action keeps the views of a subject but removes what ties them to
+ * it, the way retention anonymises old views: `visitor` is re-hashed under
  * a salt per day on the clock of `retention.rollups.timezone`, which is
  * thrown away after the run, and `viewer`, `context` and the dimensions
  * marked personal become null. Counts and daily unique visitors stay the
@@ -40,8 +40,10 @@ final readonly class AnonymiseViewHistory
     ) {}
 
     /**
-     * An anonymised view no longer matches, but a visitor id that was
-     * anonymised already keeps matching, so the run walks the ids.
+     * The run pages by id instead of re-reading the selection from the start.
+     * A view anonymised in this run still matches when its visitor id was
+     * already anonymised, so re-reading the selection would return it again
+     * and the run would never end.
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
@@ -89,7 +91,6 @@ final readonly class AnonymiseViewHistory
 
     /**
      * The views that get the same visitor id are updated in one statement.
-     * The salts are keyed by the day.
      *
      * @param  Collection<int, View>  $rows
      * @param  array<string, string>  $salts
