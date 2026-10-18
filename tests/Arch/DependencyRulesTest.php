@@ -112,6 +112,7 @@ arch('the foundation is a leaf layer')
         'Carbon',
         'Illuminate',
         'Symfony\\Component\\Console',
+        Redis::class,
     ]);
 
 arch('crawlers is a leaf module')

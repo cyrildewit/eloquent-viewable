@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
+use CyrildeWit\EloquentViewable\Http\RecordingOptions;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Views;
@@ -81,27 +82,12 @@ final readonly class PresenceController
      */
     private function views(Request $request, string $type, string $key): Views|int
     {
-        if (! $this->urls->hasValidSignature($request, absolute: false)) {
-            return Response::HTTP_FORBIDDEN;
-        }
-
-        $viewable = $this->find($type, $key);
+        $viewable = $this->resolve($request, $type, $key);
 
         if (! $viewable instanceof Viewable) {
-            return Response::HTTP_NOT_FOUND;
+            return $viewable;
         }
 
-        $views = $this->container->make(Views::class)->forViewable($viewable);
-
-        if ($request->query->has('collection')) {
-            $views->collection($request->query->getString('collection'));
-        }
-
-        return $views;
-    }
-
-    private function respond(int $status): Response
-    {
-        return new Response(status: $status, headers: ['Cache-Control' => 'no-store']);
+        return RecordingOptions::fromQuery($request->query)->applyTo($this->container->make(Views::class)->forViewable($viewable));
     }
 }

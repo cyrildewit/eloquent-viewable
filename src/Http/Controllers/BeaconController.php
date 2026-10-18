@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Http\Controllers;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\Arrival;
 use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
+use CyrildeWit\EloquentViewable\Http\RecordingOptions;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Contracts\Container\Container;
@@ -44,14 +45,10 @@ final readonly class BeaconController
      */
     public function __invoke(Request $request, string $type, string $key): Response
     {
-        if (! $this->urls->hasValidSignature($request, absolute: false)) {
-            return $this->respond(Response::HTTP_FORBIDDEN);
-        }
-
-        $viewable = $this->find($type, $key);
+        $viewable = $this->resolve($request, $type, $key);
 
         if (! $viewable instanceof Viewable) {
-            return $this->respond(Response::HTTP_NOT_FOUND);
+            return $this->respond($viewable);
         }
 
         $this->views($request)->forViewable($viewable)->attempt();
@@ -68,26 +65,9 @@ final readonly class BeaconController
      */
     private function views(Request $request): Views
     {
-        $views = $this->container->make(Views::class);
-
-        $views->arrivedFrom(Arrival::fromUrls(
-            $this->posted($request, 'referrer'),
-            $this->posted($request, 'landing'),
-        ));
-
-        if ($request->query->has('collection')) {
-            $views->collection($request->query->getString('collection'));
-        }
-
-        if ($request->query->has('cooldown')) {
-            $views->cooldown($request->query->getInt('cooldown'));
-        }
-
-        if ($request->query->has('queue')) {
-            $views->queue($request->query->getBoolean('queue'));
-        }
-
-        return $views;
+        return RecordingOptions::fromQuery($request->query)
+            ->applyTo($this->container->make(Views::class))
+            ->arrivedFrom(Arrival::fromUrls($this->posted($request, 'referrer'), $this->posted($request, 'landing')));
     }
 
     /**
@@ -103,10 +83,5 @@ final readonly class BeaconController
         }
 
         return substr($value, 0, self::MaxPostedLength);
-    }
-
-    private function respond(int $status): Response
-    {
-        return new Response(status: $status, headers: ['Cache-Control' => 'no-store']);
     }
 }

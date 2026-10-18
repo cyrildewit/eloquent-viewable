@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Streams\Clients;
 
-use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 use Illuminate\Redis\Connections\PredisConnection;
 use Predis\Pipeline\Pipeline;
 use Predis\Response\ServerException;
 
 /** @internal */
-final readonly class PredisClient implements StreamClient
+final readonly class PredisClient extends RedisStreamClient
 {
     public function __construct(private PredisConnection $connection) {}
 
@@ -67,7 +66,7 @@ final readonly class PredisClient implements StreamClient
             return [];
         }
 
-        return $this->fromMap($this->connection->command('xclaim', [$stream, $group, $consumer, $idle, $ids]));
+        return $this->entries($this->connection->command('xclaim', [$stream, $group, $consumer, $idle, $ids]));
     }
 
     /** @return list<StreamEntry> */
@@ -88,14 +87,6 @@ final readonly class PredisClient implements StreamClient
         return $this->fromPairs($first[1] ?? []);
     }
 
-    /** @return list<StreamEntry> */
-    public function range(string $stream, ?string $after, int $count): array
-    {
-        $start = $after === null ? '-' : "({$after}";
-
-        return $this->fromMap($this->connection->command('xrange', [$stream, $start, '+', $count]));
-    }
-
     /** @param  list<string>  $ids */
     public function acknowledge(string $stream, string $group, array $ids): void
     {
@@ -108,27 +99,21 @@ final readonly class PredisClient implements StreamClient
         $this->connection->command('xdel', [$stream, ...$ids]);
     }
 
-    public function length(string $stream): int
-    {
-        $length = $this->connection->command('xlen', [$stream]);
-
-        return is_int($length) ? $length : 0;
-    }
-
-    public function pending(string $stream, string $group): int
-    {
-        $summary = $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group]));
-
-        $count = is_array($summary) ? $summary[0] ?? 0 : 0;
-
-        return is_numeric($count) ? (int) $count : 0;
-    }
-
     public function stalled(string $stream, string $group, int $idle, int $count): int
     {
         $pending = $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group, $idle, '-', '+', $count]));
 
         return is_array($pending) ? count($pending) : 0;
+    }
+
+    protected function connection(): PredisConnection
+    {
+        return $this->connection;
+    }
+
+    protected function pendingSummary(string $stream, string $group): mixed
+    {
+        return $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group]));
     }
 
     /**
@@ -148,25 +133,6 @@ final readonly class PredisClient implements StreamClient
 
             return null;
         }
-    }
-
-    /**
-     * @param  mixed  $map  `[id => [field => value]]`
-     * @return list<StreamEntry>
-     */
-    private function fromMap(mixed $map): array
-    {
-        if (! is_array($map)) {
-            return [];
-        }
-
-        $entries = [];
-
-        foreach ($map as $id => $fields) {
-            $entries[] = StreamEntry::of((string) $id, $fields);
-        }
-
-        return $entries;
     }
 
     /**
