@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Typed access to the keys of the package config file that no module reads
- * through a config of its own yet.
+ * through a config of its own.
  *
  * @internal
  */

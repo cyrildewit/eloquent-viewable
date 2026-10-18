@@ -13,8 +13,7 @@ use JsonException;
 
 /**
  * Every recount names the models whose counter columns it wrote, so their
- * milestones are checked right after. It is resolved for every event, so
- * under Octane the action does not stay behind in the worker.
+ * milestones are checked right after.
  *
  * @internal
  */
