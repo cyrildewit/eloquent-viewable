@@ -13,7 +13,7 @@ interface BufferedViewStore extends ViewStore
     public function flush(int $limit = 1000): int;
 
     /**
-     * Land the buffered views the filter keeps ahead of the next flush, so a
+     * Lands the buffered views the filter keeps ahead of the next flush, so a
      * query on the views table finds them. Returns how many views landed.
      *
      * @param  Closure(ViewRecord): bool  $filter

@@ -91,6 +91,8 @@ final readonly class PhpRedisClient extends RedisStreamClient
         $pending = $this->connection->command('xpending', [$stream, $group, '-', '+', $count]);
 
         if (! is_array($pending)) {
+            // Clears the error phpredis keeps, so the next command does not
+            // read it as its own.
             RedisError::last($this->connection);
 
             return 0;
@@ -116,7 +118,8 @@ final readonly class PhpRedisClient extends RedisStreamClient
 
     /**
      * An unknown group is an error reply, which phpredis returns as `false`
-     * and keeps as the last error until it is cleared.
+     * and keeps as the last error until it is cleared. `RedisError::last()`
+     * clears it before null is returned.
      */
     protected function pendingSummary(string $stream, string $group): mixed
     {

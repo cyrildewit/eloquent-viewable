@@ -7,7 +7,9 @@ namespace CyrildeWit\EloquentViewable\Recording\Contracts;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 
 /**
- * Called once every guard has allowed the view and it has been stored or queued.
+ * A guard that implements this is called once every guard has allowed the
+ * view and it has been stored or queued. It can then start a cooldown or
+ * count a hit only for views that count.
  */
 interface RemembersRecordedViews
 {
