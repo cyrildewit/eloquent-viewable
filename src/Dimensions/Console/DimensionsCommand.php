@@ -11,8 +11,10 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Carbon;
@@ -22,8 +24,11 @@ use Illuminate\Support\Carbon;
  * migration that adds the columns it lacks. With `--backfill`, it copies the
  * values a dimension kept in `context` into its new column instead.
  */
-final class DimensionsCommand extends MaintenanceCommand
+final class DimensionsCommand extends Command
 {
+    use ReadsOptions;
+    use RunsScheduledWork;
+
     #[\Override]
     protected $signature = 'views:dimensions
         {--backfill= : Copy the values of this dimension from `context` into its column}

@@ -7,11 +7,14 @@ namespace CyrildeWit\EloquentViewable\Querying\Pairs\Console;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Actions\PairViews;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 
-final class PairViewsCommand extends MaintenanceCommand
+final class PairViewsCommand extends Command
 {
+    use RunsScheduledWork;
+
     #[\Override]
     protected $signature = 'views:pairs';
 

@@ -6,12 +6,14 @@ namespace CyrildeWit\EloquentViewable\Erasure\Console;
 
 use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use Illuminate\Console\Command;
 
 /** @internal */
-abstract class ErasureCommand extends MaintenanceCommand
+abstract class ErasureCommand extends Command
 {
     use ConfirmsInProduction;
+    use ReadsOptions;
 
     private const int Chunk = 1000;
 

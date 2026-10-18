@@ -9,14 +9,18 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
-final class PruneViewsCommand extends MaintenanceCommand
+final class PruneViewsCommand extends Command
 {
+    use ReadsOptions;
     use ReportsRetention;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:prune

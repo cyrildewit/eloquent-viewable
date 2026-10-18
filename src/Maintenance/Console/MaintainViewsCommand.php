@@ -13,13 +13,17 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Console\Concerns\ReportsRollups
 use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
+use Illuminate\Console\Command;
 
-final class MaintainViewsCommand extends MaintenanceCommand
+final class MaintainViewsCommand extends Command
 {
+    use ReadsOptions;
     use ReportsRecounts;
     use ReportsRetention;
     use ReportsRollups;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:maintain
