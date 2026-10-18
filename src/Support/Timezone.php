@@ -24,7 +24,8 @@ final class Timezone extends DateTimeZone
     }
 
     /**
-     * The zone `viewed_at` is stored as the wall clock of.
+     * The application timezone. `viewed_at` is stored as wall-clock time in
+     * this zone.
      */
     public static function application(): self
     {

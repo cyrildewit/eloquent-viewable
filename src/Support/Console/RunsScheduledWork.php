@@ -12,8 +12,8 @@ use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Console\Command;
 
 /**
- * Runs a command's work under the one lock, and says when a run was skipped
- * because another holds the lock or stopped at its deadline.
+ * Runs a command's work under a run lock. It reports when a run was skipped
+ * because another run holds the lock, and when a run stopped at its deadline.
  *
  * @internal
  *

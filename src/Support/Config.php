@@ -502,8 +502,8 @@ final readonly class Config extends ConfigReader
     }
 
     /**
-     * It returns the counter columns that hold a hot score instead of a
-     * count, by class and column. Their count is the one the other options of
+     * It returns the counter columns with the `hot` option, by class and
+     * column. The score is computed from the count that the other options of
      * the column describe.
      *
      * @return array<class-string<Model&Viewable>, array<string, HotScore>>
@@ -543,7 +543,8 @@ final readonly class Config extends ConfigReader
 
     /**
      * It returns the thresholds of each counter column, in ascending order.
-     * Every column is a counter column without a period or a hot score.
+     * It throws when a column is not a counter column, or when the column
+     * counts a period or holds a hot score.
      *
      * @return array<class-string<Model&Viewable>, array<string, non-empty-list<int>>>
      *
@@ -870,9 +871,9 @@ final readonly class Config extends ConfigReader
     }
 
     /**
-     * Config cannot tell where a dimension is kept, so each filter points at
-     * the column named after it until the registry resolves it before the
-     * count.
+     * The config does not know where a dimension is stored. Each filter
+     * targets the column with the dimension's name, and the dimension
+     * registry replaces that target before the count runs.
      *
      * @return list<DimensionFilter>
      *

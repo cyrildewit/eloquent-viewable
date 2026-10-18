@@ -14,8 +14,8 @@ use Closure;
  * overshoots by at most one unit, and the marks it leaves let the next run
  * pick up from there.
  *
- * Every question also beats the heart of the run, which keeps the lock of a
- * long run from expiring underneath it.
+ * Each call to `passed()` also runs the heartbeat. The heartbeat extends the
+ * lock of a long run, so the lock does not expire while the run still works.
  *
  * @internal
  */
@@ -38,7 +38,8 @@ final readonly class Deadline
     }
 
     /**
-     * The heartbeat runs after any the deadline already has.
+     * The new heartbeat runs after the heartbeat the deadline already has, if
+     * any.
      *
      * @param  Closure(): void  $heartbeat
      */

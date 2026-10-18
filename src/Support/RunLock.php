@@ -24,8 +24,8 @@ final readonly class RunLock
     private const int Seconds = 3600;
 
     /**
-     * A run that is still working pushes the expiry back at most this often,
-     * so a run longer than an hour keeps its lock.
+     * A run that is still working extends the lock at most once in this many
+     * seconds, so a run longer than an hour keeps its lock.
      */
     private const int RefreshEvery = 60;
 

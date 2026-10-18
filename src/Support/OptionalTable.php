@@ -7,7 +7,8 @@ namespace CyrildeWit\EloquentViewable\Support;
 /**
  * The tables a feature needs beyond the views table, each published under a
  * tag of its own, so the shared `migrations` tag keeps publishing only the
- * views table. The doctor and the exceptions name a missing one the same way.
+ * views table. The doctor and the exceptions use the methods below, so they
+ * give one wording for a missing table.
  *
  * @internal
  */
