@@ -41,6 +41,7 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Console\PairViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
@@ -50,7 +51,6 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
-use CyrildeWit\EloquentViewable\Querying\Rollups\RollupRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
@@ -314,7 +314,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     protected function validateRetentionPolicies(): void
     {
         RetentionPolicy::fromConfig($this->config());
-        RollupPolicy::fromConfig($this->config());
+        RollupPolicy::fromConfig($this->config(), $this->app);
     }
 
     /**
@@ -470,7 +470,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     protected function registerRollups(): void
     {
-        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class)));
+        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class), $app));
 
         $this->app->bind(Watermarks::class, function (Application $app): Watermarks {
             if (! $app->make(RollupPolicy::class)->isEnabled()) {
@@ -485,7 +485,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 return new NullRefolder;
             }
 
-            return $app->make(RollupRefolder::class);
+            return $app->make(FoldViews::class);
         });
 
         $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {
