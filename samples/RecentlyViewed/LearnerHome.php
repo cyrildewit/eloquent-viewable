@@ -16,8 +16,8 @@ class LearnerHome
      */
     public function continueWhereYouLeftOff(Learner $learner, int $limit = 5): Collection
     {
-        // `viewed()` is every view of the learner, newest first. One row per
-        // course is wanted here, ordered by its latest view.
+        // `viewed()` is every view of the learner, newest first. This list
+        // needs one row per course, ordered by the latest view of that course.
         $lastOpened = $learner->viewed()
             ->reorder()
             ->where('viewable_type', new Course()->getMorphClass())

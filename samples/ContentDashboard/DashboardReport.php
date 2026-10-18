@@ -27,9 +27,7 @@ final readonly class DashboardReport implements JsonSerializable
         public array $latestGuideViews,
     ) {}
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function jsonSerialize(): array
     {
         return [

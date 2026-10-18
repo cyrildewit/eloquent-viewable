@@ -53,8 +53,8 @@ class ListingStats
                 ->unique()
                 ->remember(self::CacheMinutes)
                 ->count(),
-            // The window against the 30 days before it, each count
-            // remembered under its own key.
+            // The window against the window of the same length before it.
+            // Each of the two counts is remembered under its own key.
             trend: views($listing)
                 ->period($window)
                 ->remember(self::CacheMinutes)

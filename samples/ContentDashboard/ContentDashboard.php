@@ -15,7 +15,7 @@ class ContentDashboard
 {
     /**
      * The editors work in Amsterdam while the application runs in UTC, so
-     * "the past 7 days" starts at midnight on their clock.
+     * a period such as `7d` starts at midnight on their clock.
      */
     private const string Timezone = 'Europe/Amsterdam';
 
@@ -48,7 +48,7 @@ class ContentDashboard
 
     /**
      * Every count of the dashboard reads through this builder, so each one
-     * uses the editors' clock and is remembered for ten minutes.
+     * uses the editors' clock and is remembered for `CacheMinutes`.
      */
     private function query(Period $period): ViewsBuilder
     {
