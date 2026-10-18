@@ -13,15 +13,19 @@ use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-final class PurgeBotViewsCommand extends MaintenanceCommand
+final class PurgeBotViewsCommand extends Command
 {
     use ConfirmsInProduction;
+    use ReadsOptions;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:purge-bots

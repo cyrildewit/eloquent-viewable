@@ -9,13 +9,17 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\Concerns\ReportsRecounts;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 
-final class RecountViewsCommand extends MaintenanceCommand
+final class RecountViewsCommand extends Command
 {
+    use ReadsOptions;
     use ReportsRecounts;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:recount

@@ -13,13 +13,17 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupDefinition;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 
-final class RollupViewsCommand extends MaintenanceCommand
+final class RollupViewsCommand extends Command
 {
+    use ReadsOptions;
     use ReportsRollups;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:rollup

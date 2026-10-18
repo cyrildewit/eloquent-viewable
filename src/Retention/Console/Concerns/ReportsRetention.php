@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Retention\Console\Concerns;
 
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
 /**
  * @internal
  *
- * @phpstan-require-extends MaintenanceCommand
+ * @phpstan-require-extends Command
  */
 trait ReportsRetention
 {
+    abstract protected function reportStopped(): void;
+
     protected function reportRetention(string $verb, RetentionRun $run): void
     {
         $noun = Str::plural('view', $run->views);

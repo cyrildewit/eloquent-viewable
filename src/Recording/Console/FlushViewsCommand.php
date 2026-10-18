@@ -7,11 +7,14 @@ namespace CyrildeWit\EloquentViewable\Recording\Console;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Recording\Buffering\Flusher;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\StoreIsNotBuffered;
-use CyrildeWit\EloquentViewable\Support\Console\MaintenanceCommand;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
-final class FlushViewsCommand extends MaintenanceCommand
+final class FlushViewsCommand extends Command
 {
+    use ReadsOptions;
+
     #[\Override]
     protected $signature = 'views:flush {--batch=1000 : How many views to land per insert}';
 
