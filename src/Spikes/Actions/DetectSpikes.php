@@ -71,7 +71,7 @@ final readonly class DetectSpikes
         $source = $this->source;
 
         if (! $source instanceof CountsByWindow) {
-            throw UnsupportedBySource::growth($source);
+            throw UnsupportedBySource::missing(CountsByWindow::class, $source);
         }
 
         $runs = [];

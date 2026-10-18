@@ -78,11 +78,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof CountsByDimension) {
-            throw UnsupportedBySource::dimension($source);
-        }
+        $source = $this->sourceAs(CountsByDimension::class);
 
         return $this->remember(
             $viewable,
@@ -98,11 +94,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
     {
-        $source = $this->source;
-
-        if (! $source instanceof CountsBy) {
-            throw UnsupportedBySource::countBy($source);
-        }
+        $source = $this->sourceAs(CountsBy::class);
 
         return DimensionCounts::fromArray($this->remember(
             $viewable,
@@ -121,11 +113,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof CountsVisitFrequency) {
-            throw UnsupportedBySource::visitFrequency($source);
-        }
+        $source = $this->sourceAs(CountsVisitFrequency::class);
 
         return $this->remember(
             $viewable,
@@ -184,11 +172,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof RanksAlsoViewed) {
-            throw UnsupportedBySource::alsoViewed($source);
-        }
+        $source = $this->sourceAs(RanksAlsoViewed::class);
 
         return $this->remember(
             $viewable,
@@ -209,11 +193,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function countByWindow(?Viewable $viewable, ViewsQuery $query, array $references, int $minimum): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof CountsByWindow) {
-            throw UnsupportedBySource::growth($source);
-        }
+        $source = $this->sourceAs(CountsByWindow::class);
 
         $offsets = implode(',', array_map(fn (Period $reference): string => $this->offset($query->period, $reference), $references));
 
@@ -235,11 +215,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof RanksTrending) {
-            throw UnsupportedBySource::trending($source);
-        }
+        $source = $this->sourceAs(RanksTrending::class);
 
         return $this->remember(
             $viewable,
@@ -259,11 +235,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
      */
     public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
     {
-        $source = $this->source;
-
-        if (! $source instanceof RanksRecommendations) {
-            throw UnsupportedBySource::recommended($source);
-        }
+        $source = $this->sourceAs(RanksRecommendations::class);
 
         return $this->remember(
             null,
@@ -301,6 +273,23 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
         $width = $end - $start;
 
         return "{$before}+{$width}";
+    }
+
+    /**
+     * @template TContract of object
+     *
+     * @param  class-string<TContract>  $contract
+     * @return TContract&ViewSource
+     *
+     * @throws UnsupportedBySource
+     */
+    private function sourceAs(string $contract): ViewSource
+    {
+        if (! $this->source instanceof $contract) {
+            throw UnsupportedBySource::missing($contract, $this->source);
+        }
+
+        return $this->source;
     }
 
     private function key(?Viewable $viewable): CacheKey

@@ -307,7 +307,7 @@ trait InteractsWithViews
         $source = Container::getInstance()->make(ViewSource::class);
 
         if (! $source instanceof SubquerySource) {
-            throw UnsupportedBySource::scopes($source);
+            throw UnsupportedBySource::missing(SubquerySource::class, $source);
         }
 
         return $source;
@@ -319,7 +319,7 @@ trait InteractsWithViews
         $source = Container::getInstance()->make(ViewSource::class);
 
         if (! $source instanceof TrendingSubquerySource) {
-            throw UnsupportedBySource::trendingScopes($source);
+            throw UnsupportedBySource::missing(TrendingSubquerySource::class, $source);
         }
 
         return $source;
