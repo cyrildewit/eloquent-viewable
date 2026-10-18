@@ -8,13 +8,13 @@ use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Http\RecordingOptions;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class RecordViews
@@ -33,21 +33,7 @@ final readonly class RecordViews
         ?int $cooldown = null,
         ?bool $queue = null,
     ): string {
-        $arguments = (array) $models;
-
-        if ($collection !== null) {
-            $arguments[] = "collection={$collection}";
-        }
-
-        if ($cooldown !== null) {
-            $arguments[] = "cooldown={$cooldown}";
-        }
-
-        if ($queue !== null) {
-            $value = $queue ? 'true' : 'false';
-
-            $arguments[] = "queue={$value}";
-        }
+        $arguments = [...(array) $models, ...new RecordingOptions($collection, $cooldown, $queue)->toMiddlewareArguments()];
 
         if ($arguments === []) {
             return self::Alias;
@@ -83,8 +69,8 @@ final readonly class RecordViews
             return $response;
         }
 
-        $views = $this->views(...$arguments);
-        $selectors = array_filter($arguments, fn (string $argument): bool => ! str_contains($argument, '='));
+        [$options, $selectors] = RecordingOptions::fromMiddlewareArguments($arguments);
+        $views = $options->applyTo($this->container->make(Views::class));
 
         foreach ($this->viewables($route, ...$selectors) as $viewable) {
             try {
@@ -95,40 +81,6 @@ final readonly class RecordViews
         }
 
         return $response;
-    }
-
-    private function views(string ...$arguments): Views
-    {
-        $views = $this->container->make(Views::class);
-
-        foreach ($arguments as $argument) {
-            if (! str_contains($argument, '=')) {
-                continue;
-            }
-
-            $value = Str::after($argument, '=');
-
-            match (Str::before($argument, '=')) {
-                'collection' => $views->collection($value),
-                'cooldown' => $views->cooldown($this->minutes($value, $argument)),
-                'queue' => $views->queue(filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
-                    ?? throw InvalidConfiguration::invalidMiddlewareOption($argument)),
-                default => throw InvalidConfiguration::invalidMiddlewareOption($argument),
-            };
-        }
-
-        return $views;
-    }
-
-    private function minutes(string $value, string $argument): int
-    {
-        $minutes = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-
-        if (! is_int($minutes)) {
-            throw InvalidConfiguration::invalidMiddlewareOption($argument);
-        }
-
-        return $minutes;
     }
 
     /** @return list<Viewable> */

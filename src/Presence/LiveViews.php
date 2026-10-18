@@ -19,12 +19,11 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\MorphLoader;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewableSet;
-use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 
 /**
@@ -56,11 +55,7 @@ final readonly class LiveViews
         $seconds = $seconds instanceof CarbonInterval ? (int) $seconds->totalSeconds : $seconds;
         $window = $this->config->presenceWindow();
 
-        if ($seconds < 1) {
-            throw InvalidWindow::outOfRange($seconds, $window);
-        }
-
-        if ($seconds > $window) {
+        if ($seconds < 1 || $seconds > $window) {
             throw InvalidWindow::outOfRange($seconds, $window);
         }
 
@@ -164,27 +159,11 @@ final readonly class LiveViews
         }
 
         $references = $this->store->viewers(Scope::of($this->viewable, $this->collection), $this->since(), $limit);
-
-        $models = [];
-
-        foreach (new Collection($references)->groupBy('type') as $type => $group) {
-            $class = Relation::getMorphedModel((string) $type) ?? (string) $type;
-
-            if (! is_a($class, Model::class, true)) {
-                continue;
-            }
-
-            foreach (new $class()->newQuery()->whereKey($group->pluck('id')->all())->get() as $model) {
-                $key = ViewerKey::of($model);
-
-                $models["{$type}|{$key}"] = $model;
-            }
-        }
-
+        $models = MorphLoader::load(array_map(static fn (Reference $reference): array => ['type' => $reference->type, 'id' => $reference->id], $references));
         $viewers = new EloquentCollection;
 
         foreach ($references as $reference) {
-            $model = $models["{$reference->type}|{$reference->id}"] ?? null;
+            $model = $models[$reference->type][(string) $reference->id] ?? null;
 
             if ($model instanceof Model) {
                 $viewers->push($model);

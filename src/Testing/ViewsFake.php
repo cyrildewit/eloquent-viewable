@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Testing;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
@@ -392,13 +391,7 @@ final class ViewsFake implements CountsBy, CountsByWindow, CountsVisitFrequency,
         $key = ViewableKey::of($viewable) ?? throw InvalidViewable::presentWithoutKey($viewable::class);
 
         for ($visitor = 1; $visitor <= $visitors; $visitor++) {
-            $this->presence->touch(new Sighting(
-                type: $viewable->getMorphClass(),
-                key: $key,
-                visitor: "fake-visitor-{$visitor}",
-                seenAt: Carbon::now(),
-                collection: $collection,
-            ));
+            $this->presence->touch(Sighting::of($viewable->getMorphClass(), $key, "fake-visitor-{$visitor}", $collection));
         }
 
         return $this;
