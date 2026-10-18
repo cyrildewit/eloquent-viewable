@@ -9,7 +9,7 @@ use Carbon\CarbonImmutable;
 /**
  * A step of a trending window: every view from its start up to the start of
  * the next, newer step weighs the same. The weight is the curve's weight
- * times 1,000,000, so sums stay integers on every driver.
+ * times `Decay::Scale`, so sums stay integers on every driver.
  */
 final readonly class Step
 {

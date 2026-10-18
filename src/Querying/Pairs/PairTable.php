@@ -39,8 +39,9 @@ final readonly class PairTable
     ) {}
 
     /**
-     * The table answers a call over all time and every collection while it
-     * is enabled. A narrower call reads the views table.
+     * The table answers a call over all time, every collection and no filter,
+     * while `querying.pairs.enabled` is on. Any narrower call reads the views
+     * table.
      */
     public function serves(ViewsQuery $query): bool
     {

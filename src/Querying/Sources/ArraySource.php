@@ -36,7 +36,8 @@ use Illuminate\Support\Collection;
 /**
  * Counts view records held in memory the way the database source counts
  * the views table, so a test runs the same reads without a database. It
- * cannot apply the filter of a custom rollup.
+ * cannot apply the filter of a custom rollup, so a query with a filter
+ * throws `UnsupportedBySource`.
  *
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
@@ -81,8 +82,9 @@ final readonly class ArraySource implements CountsBy, CountsByWindow, CountsVisi
 
     /**
      * Counts the recorded views the way the database source counts the views
-     * table: the values past the limit are counted again, so unique visitors
-     * are exact there too.
+     * table: the views of the values past the limit are counted again rather
+     * than subtracted from the total, so `other()` is exact for unique
+     * visitors too.
      */
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
     {
@@ -168,8 +170,6 @@ final readonly class ArraySource implements CountsBy, CountsByWindow, CountsVisi
     }
 
     /**
-     * Counts the recorded views per window, as the database source does in SQL.
-     *
      * @param  non-empty-list<Period>  $references
      * @return list<array{type: string, id: int|string, current: int, references: non-empty-list<int>}>
      */
@@ -211,9 +211,6 @@ final readonly class ArraySource implements CountsBy, CountsByWindow, CountsVisi
     }
 
     /**
-     * Applies the steps of the decay to the recorded views, as the database
-     * source does in SQL.
-     *
      * @return list<array{type: string, id: int|string, count: int, score: float}>
      */
     public function trending(?Viewable $viewable, ViewsQuery $query, Decay $decay, int $limit): array

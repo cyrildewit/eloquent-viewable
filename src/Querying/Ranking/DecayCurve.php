@@ -19,8 +19,8 @@ interface DecayCurve
     public function weight(CarbonInterval $age): float;
 
     /**
-     * The age past which a view no longer counts. It's the window when the
-     * period has no start.
+     * The age past which a view no longer counts. `Decay` uses it as the
+     * window when the period has no start.
      */
     public function horizon(): CarbonInterval;
 

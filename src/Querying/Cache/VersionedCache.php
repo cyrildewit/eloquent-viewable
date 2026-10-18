@@ -52,9 +52,9 @@ final readonly class VersionedCache
     }
 
     /**
-     * It reads many entries of one type in one round trip, then resolves the
-     * values the cache lacks together and writes them in one more. The keys
-     * map the key of each viewable to its cache key, and the resolver receives
+     * Read the entries of many viewables of one type in one round trip.
+     * Resolve the missing values in one call and write them in one more round
+     * trip. $keys maps each viewable key to its cache key. $resolve receives
      * the viewable keys the cache lacks and returns a value for each.
      *
      * @template TValue

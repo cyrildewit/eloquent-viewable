@@ -8,9 +8,9 @@ use Carbon\CarbonImmutable;
 
 /**
  * The `case` expressions that sort a view into the steps of a decay. The step
- * starts are bound and the weights written as integer literals, because
- * Postgres cannot always infer the type of a parameter inside a `case`, and
- * float sums differ per driver.
+ * starts are bound. The weights are written as literals, not bound, because
+ * Postgres cannot always infer the type of a parameter inside a `case`. They
+ * are integers, because float sums differ per driver.
  *
  * @internal
  */
@@ -60,8 +60,9 @@ final readonly class StepCases
     /**
      * The steps are searched as a balanced tree of nested `case` expressions
      * rather than one after another, so a view is compared with the starts
-     * of a few steps instead of every step newer than its own. The SQL for
-     * a year of days stays fast on every driver.
+     * of a few steps instead of every step newer than its own. With n steps a
+     * view goes through about log2(n) comparisons, so a year of daily steps
+     * needs about 9.
      *
      * @param  callable(Step, int): int  $value
      * @return array{string, list<CarbonImmutable>}

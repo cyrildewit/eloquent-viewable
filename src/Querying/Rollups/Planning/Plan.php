@@ -39,8 +39,10 @@ final readonly class Plan
     }
 
     /**
-     * Unique visitors are exact only when a total is summed from one part: one
-     * raw segment or one bucket.
+     * The number of parts a total is summed from: one per raw segment and one
+     * per rollup bucket. A rollup segment without a start or an end returns
+     * PHP_INT_MAX. Unique visitors are exact only when this is 1, because a
+     * visitor seen in two parts is counted in both.
      */
     public function parts(DateTimeZone $zone): int
     {

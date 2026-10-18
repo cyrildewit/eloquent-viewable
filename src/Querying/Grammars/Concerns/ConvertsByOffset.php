@@ -11,8 +11,9 @@ use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
  * number of seconds per stretch between daylight saving transitions, picked
  * by comparing the column against the transition's wall clock. PHP computes
  * the segments, so the database needs no zone tables and the labels agree
- * with the series by construction. The thresholds are formatted by the
- * package, not taken from input.
+ * with the series by construction. The thresholds are wall clocks that
+ * `TimezoneConversion` formats, never input, so they are safe to write into
+ * the SQL as literals.
  */
 trait ConvertsByOffset
 {

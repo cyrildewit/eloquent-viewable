@@ -42,17 +42,10 @@ final readonly class Decay
     ) {}
 
     /**
-     * Resolves the `auto` step and the window from the query's period. The
-     * window is the period, or the curve's horizon when the period has no
-     * start. Ages are measured from the anchor, the end of the period or now.
-     * The step is an hour or a day, or null to pick one.
-     *
-     * @throws InvalidDecay
-     */
-    /**
-     * Selects an integer score scaled back. The divisor is a floating point
-     * literal: SQLite and Postgres truncate integer division, and MySQL keeps
-     * only four decimals when dividing by a decimal.
+     * Selects the integer score divided by `Decay::Scale`. The divisor is
+     * written as the floating point literal `1e6`, because SQLite and Postgres
+     * truncate integer division and MySQL keeps only four decimals when it
+     * divides by a decimal. Keep the literal equal to `Scale`.
      *
      * @param  list<mixed>  $bindings
      *
@@ -63,6 +56,14 @@ final readonly class Decay
         return $builder->selectRaw("{$score} / 1e6", $bindings); // @phpstan-ignore argument.type (subqueries built by the sources, their values are bound)
     }
 
+    /**
+     * Resolves the `auto` step and the window from the query's period. The
+     * window is the period, or the curve's horizon when the period has no
+     * start. Ages are measured from the anchor, the end of the period or now.
+     * The step is an hour or a day, or null to pick one.
+     *
+     * @throws InvalidDecay
+     */
     public static function for(ViewsQuery $query, DecayCurve $curve, ?Granularity $step, int $maxSteps, DateTimeZone $timezone): self
     {
         $end = CarbonImmutable::instance($query->period?->getEndDateTime() ?? CarbonImmutable::now());

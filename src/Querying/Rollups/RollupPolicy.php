@@ -68,8 +68,8 @@ final readonly class RollupPolicy
     }
 
     /**
-     * The container builds the custom rollups and the dimension registry
-     * the dimension rollups are named from.
+     * The custom rollups and the dimensions are made through the container,
+     * so their constructors can have dependencies injected.
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
@@ -177,9 +177,9 @@ final readonly class RollupPolicy
 
     /**
      * A definition per dimension in `retention.rollups.dimensions`, with the
-     * tiers and groupings of the built-in rollup. The dimensions are only
-     * built when one is folded, so a policy read at boot costs nothing more
-     * without them.
+     * tiers and groupings of the built-in rollup. The dimension registry is
+     * only built when `retention.rollups.dimensions` lists a dimension, so a
+     * policy without dimension rollups builds nothing extra at boot.
      *
      * @param  array<'hour'|'day'|'month'|'year', ?Duration>  $tiers
      * @return list<RollupDefinition>

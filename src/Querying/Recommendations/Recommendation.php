@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The score compares only within one call. The reasons are the models the
+ * A score is only comparable with the other scores of the same call, because
+ * it depends on the seeds and audiences that call read. The reasons are the models the
  * recipient viewed that added the most to it, most first.
  */
 final readonly class Recommendation

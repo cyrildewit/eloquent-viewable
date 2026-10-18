@@ -49,7 +49,8 @@ final class Rows
     }
 
     /**
-     * The rows of a trending ranking, the integer score scaled back.
+     * The rows of a trending ranking, with the integer score divided by
+     * `Decay::Scale`.
      *
      * @param  iterable<int, mixed>  $rows  `viewable_type`, `viewable_id`, `aggregate` and `score`
      * @return list<array{type: string, id: int|string, count: int, score: float}>

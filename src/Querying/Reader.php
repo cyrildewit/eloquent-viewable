@@ -102,7 +102,7 @@ final readonly class Reader
     }
 
     /**
-     * The visitors who viewed on two days or more.
+     * The number of visitors who viewed on two or more days.
      *
      * @throws UnsupportedBySource
      */
@@ -163,9 +163,7 @@ final readonly class Reader
     }
 
     /**
-     * Most viewed first, then by name, so the order is the same on every
-     * driver. Sorting in SQL would place the default collection, stored as
-     * null, differently per database.
+     * Sorted like `DimensionCounts::sorted()`.
      *
      * @return array<string, int>
      */
@@ -229,9 +227,9 @@ final readonly class Reader
     }
 
     /**
-     * It ranks by how many times the count of the period before the count in
-     * the period is, highest first. Only what grew and reached the minimum in
-     * either period is ranked.
+     * Ranked by the count in the period divided by the count in the previous
+     * period, highest first. Only a viewable that grew, and reached the
+     * minimum in one of the two periods, is ranked.
      *
      * @throws InvalidBaseline
      * @throws InvalidLimit
