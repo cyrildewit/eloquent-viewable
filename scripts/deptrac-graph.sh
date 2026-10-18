@@ -15,9 +15,10 @@ png_file=build/deptrac.png
 mkdir -p build
 rm -f "$dot_file"
 
-# Deptrac exits non-zero when an edge breaks the ruleset. That is what the red
-# edges show, so only stop when it wrote no file at all. phpdocumentor/graphviz
-# still uses ${var} interpolation, which PHP 8.5 reports as deprecated.
+# Deptrac exits non-zero when an edge breaks the ruleset, and the red edges
+# already show that, so only stop when it wrote no file at all.
+# -d hides E_DEPRECATED because phpdocumentor/graphviz uses ${var}
+# interpolation, which PHP 8.5 deprecates.
 php -d error_reporting='E_ALL & ~E_DEPRECATED' vendor/bin/deptrac analyse \
     --no-progress --formatter=graphviz-dot --output="$dot_file" || test -f "$dot_file"
 

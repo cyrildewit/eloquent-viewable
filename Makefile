@@ -1,5 +1,5 @@
-# Well documented Makefiles
-DEFAULT_GOAL := help
+# `make help` lists every target that has a `## description`, grouped under the `##@` headings.
+.DEFAULT_GOAL := help
 
 # None of these targets produce a file. `build` in particular would otherwise
 # clash with the build/ directory and never run.
@@ -87,8 +87,8 @@ db-stop: ## Stop the database services, the benchmark ones included
 ##@ [Benchmarks]
 # phpbench against a seeded dataset, see benchmarks/README.md. DRIVER picks the
 # database: sqlite (default) uses a file on a named volume, the others start
-# their bench-* service first. Xdebug is turned off, the default coverage mode
-# would slow PHP down several times over and make the numbers meaningless.
+# their bench-* service first. The targets turn Xdebug off, because its default
+# coverage mode slows PHP down several times over and makes the timings meaningless.
 #
 #   make bench-seed DRIVER=mysql SIZE=medium
 #   make bench DRIVER=mysql ARGS="--group=read"

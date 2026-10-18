@@ -17,9 +17,9 @@ final readonly class ListingReport
         public ViewSeries $visitorsPerDay,
         /** Distinct visitors over the whole window, which is less than the sum of the days. */
         public int $visitors,
-        /** The views of the window against the 30 days before it. */
+        /** The views of the window against the window of the same length before it. */
         public ViewComparison $trend,
-        /** The views per source, the five largest by name and the rest in `other()`. */
+        /** The views per source, the `ListingStats::TopSources` largest by name and the rest in `other()`. */
         public DimensionCounts $sources,
     ) {}
 

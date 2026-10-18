@@ -12,46 +12,32 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 {
     public static function mustBePositiveInteger(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a positive integer, {$given} given.");
+        return self::must($key, 'be a positive integer', $value);
     }
 
     public static function mustBePositiveIntegerOrNull(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a positive integer or null, {$given} given.");
+        return self::must($key, 'be a positive integer or null', $value);
     }
 
     public static function mustBeNonEmptyString(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a non-empty string, {$given} given.");
+        return self::must($key, 'be a non-empty string', $value);
     }
 
     public static function mustBeStringOrNull(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a string or null, {$given} given.");
+        return self::must($key, 'be a string or null', $value);
     }
 
     public static function mustBeListOfStrings(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a list of strings, {$given} given.");
+        return self::must($key, 'be a list of strings', $value);
     }
 
     public static function mustBeViewModel(string $key, mixed $value): self
     {
-        $view = View::class;
-
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be the name of a class that extends `{$view}`, {$given} given.");
+        return self::must($key, 'be the name of a class that extends `'.View::class.'`', $value);
     }
 
     public static function unknownDriver(string $key, string $driver): self
@@ -66,9 +52,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeListOfClasses(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a list of class names, {$given} given.");
+        return self::must($key, 'be a list of class names', $value);
     }
 
     public static function mustImplement(string $key, string $interface, string $class): self
@@ -79,28 +63,18 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     /** @param  list<string>  $allowed */
     public static function mustBeOneOf(string $key, array $allowed, mixed $value): self
     {
-        $options = implode('`, `', $allowed);
-
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be one of `{$options}`, {$given} given.");
+        return self::must($key, 'be one of `'.implode('`, `', $allowed).'`', $value);
     }
 
     public static function mustBeDuration(string $key, mixed $value, bool $nullable = true): self
     {
-        $given = self::describe($value);
-        $null = $nullable ? ', or null' : '';
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a duration such as `30d` or `2y`{$null}, {$given} given.");
+        return self::must($key, 'be a duration such as `30d` or `2y`'.($nullable ? ', or null' : ''), $value);
     }
 
     /** @param  list<string>  $allowed */
     public static function mustBeSubsetOf(string $key, array $allowed, mixed $value): self
     {
-        $options = implode('`, `', $allowed);
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a list of `{$options}`, {$given} given.");
+        return self::must($key, 'be a list of `'.implode('`, `', $allowed).'`', $value);
     }
 
     public static function anonymisedAfterPruned(string $anonymise, string $prune): self
@@ -110,9 +84,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeTiers(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map `hour`, `day`, `month` or `year` to a duration or null, {$given} given.");
+        return self::must($key, 'map `hour`, `day`, `month` or `year` to a duration or null', $value);
     }
 
     public static function coarserTierKeptShorter(string $rollup, string $coarser, string $finer): self
@@ -132,26 +104,22 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeCounters(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period`, `collection`, `hot` and `dimensions`, {$given} given.");
+        return self::must($key, 'map viewable model classes to their counter columns, each listed by name or mapped to options of `unique`, `period`, `collection`, `hot` and `dimensions`', $value);
     }
 
     public static function mustBeMilestones(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to their counter columns, each with a list of thresholds in ascending order, {$given} given.");
+        return self::must($key, 'map viewable model classes to their counter columns, each with a list of thresholds in ascending order', $value);
     }
 
     public static function milestoneWithoutCounter(string $class, string $column): self
     {
-        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which is not one of its counter columns in `querying.counters`.");
+        return self::milestoneNames($class, $column, 'is not one of its counter columns in `querying.counters`');
     }
 
     public static function milestoneOnPeriod(string $class, string $column): self
     {
-        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which counts a period. A count over a period goes up and down, so it cannot cross a milestone once.");
+        return self::milestoneNames($class, $column, 'counts a period. A count over a period goes up and down, so it cannot cross a milestone once');
     }
 
     public static function mustBeHotScore(string $column, mixed $value): self
@@ -163,7 +131,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function milestoneOnHotScore(string $class, string $column): self
     {
-        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which holds a hot score rather than a count.");
+        return self::milestoneNames($class, $column, 'holds a hot score rather than a count');
     }
 
     public static function withoutHotScore(string $class): self
@@ -173,9 +141,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeSpikes(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map viewable model classes to options of `window`, `seasonality`, `samples`, `threshold`, `minimum`, `drops` and `cooldown`, {$given} given.");
+        return self::must($key, 'map viewable model classes to options of `window`, `seasonality`, `samples`, `threshold`, `minimum`, `drops` and `cooldown`', $value);
     }
 
     public static function invalidSpikeOption(string $class, string $option, string $expected, mixed $value): self
@@ -207,9 +173,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeClassOrNull(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be the name of a class, or null, {$given} given.");
+        return self::must($key, 'be the name of a class, or null', $value);
     }
 
     public static function mustNameClassImplementing(string $key, string $interface, string $class): self
@@ -219,9 +183,7 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeShare(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must be a number above 0 and at most 1, {$given} given.");
+        return self::must($key, 'be a number above 0 and at most 1', $value);
     }
 
     public static function invalidDimension(string $name, string $problem, ?Throwable $previous = null): self
@@ -231,23 +193,17 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
 
     public static function mustBeDimensions(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map dimension names to a class name, or to an array of the class name and its options, {$given} given.");
+        return self::must($key, 'map dimension names to a class name, or to an array of the class name and its options', $value);
     }
 
     public static function mustBeSourceList(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map hosts to a pair of a source name and a medium, such as `['Example', 'referral']`, {$given} given.");
+        return self::must($key, "map hosts to a pair of a source name and a medium, such as `['Example', 'referral']`", $value);
     }
 
     public static function mustMapStrings(string $key, mixed $value): self
     {
-        $given = self::describe($value);
-
-        return new self("The `eloquent-viewable.{$key}` config value must map strings to strings, {$given} given.");
+        return self::must($key, 'map strings to strings', $value);
     }
 
     public static function unknownDimension(string $key, string $name): self
@@ -258,6 +214,18 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
     public static function dimensionsWithoutTiers(): self
     {
         return new self('The `eloquent-viewable.retention.rollups.dimensions` config value folds dimensions, but `retention.rollups.tiers` keeps no tier to fold them into.');
+    }
+
+    private static function must(string $key, string $expectation, mixed $value): self
+    {
+        $given = self::describe($value);
+
+        return new self("The `eloquent-viewable.{$key}` config value must {$expectation}, {$given} given.");
+    }
+
+    private static function milestoneNames(string $class, string $column, string $problem): self
+    {
+        return new self("The `eloquent-viewable.milestones.thresholds` config value names the `{$column}` column of `{$class}`, which {$problem}.");
     }
 
     private static function describe(mixed $value): string

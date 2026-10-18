@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
@@ -39,16 +40,16 @@ final readonly class Recorder
         private RecordsViews $action,
         private VisitorIdentity $identity,
         private PresenceStore $presence,
+        private PresenceConfig $presenceConfig,
         private DimensionResolver $dimensions,
     ) {}
 
     /**
-     * A guard that limits repeats, such as the cooldown, does not stop the
-     * other guards from being asked, so the view is only skipped by it once
-     * every other guard allowed it. The visitor is then still kept active.
+     * A view skipped by a guard that limits repeats still keeps the visitor
+     * active.
      *
      * The dimensions are resolved once every guard has allowed the view, so
-     * a skipped view costs nothing, and before it is queued, because the
+     * a skipped view costs no dimension work, and before it is queued, because the
      * request is gone by the time a worker stores it.
      *
      * @throws RecordingFailed
@@ -57,30 +58,14 @@ final readonly class Recorder
     {
         $key = $this->keyOf($attempt);
         $attempt = $this->withViewer($attempt);
-        $limitedBy = null;
+        $refusal = $this->refusedBy($attempt, $this->guards);
 
-        foreach ($this->guards as $guard) {
-            if ($guard->allows($attempt)) {
-                continue;
-            }
+        if ($refusal instanceof RecordingGuard) {
+            $this->events->dispatch(new ViewSkipped($attempt, $refusal));
 
-            if ($guard instanceof LimitsRepeats) {
-                $limitedBy ??= $guard;
+            $present = $refusal instanceof LimitsRepeats && $this->sight($attempt, $key);
 
-                continue;
-            }
-
-            $this->events->dispatch(new ViewSkipped($attempt, $guard));
-
-            return $this->attempted($attempt, RecordResult::skipped($guard));
-        }
-
-        if ($limitedBy instanceof RecordingGuard) {
-            $this->events->dispatch(new ViewSkipped($attempt, $limitedBy));
-
-            $present = $this->sight($attempt, $key);
-
-            return $this->attempted($attempt, RecordResult::skipped($limitedBy)->withPresence($present));
+            return $this->attempted($attempt, RecordResult::skipped($refusal)->withPresence($present));
         }
 
         $viewer = $attempt->viewer;
@@ -101,11 +86,7 @@ final readonly class Recorder
 
         $result = $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
 
-        foreach ($this->guards as $guard) {
-            if ($guard instanceof RemembersRecordedViews) {
-                $guard->remember($attempt);
-            }
-        }
+        $this->remember($attempt);
 
         $present = $this->sight($attempt, $key, $visitor);
 
@@ -124,18 +105,14 @@ final readonly class Recorder
         $key = $this->keyOf($attempt);
         $attempt = $this->withViewer($attempt);
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return false;
         }
 
-        foreach ($this->guards as $guard) {
-            if ($guard instanceof LimitsRepeats) {
-                continue;
-            }
+        $guards = array_values(array_filter($this->guards, static fn (RecordingGuard $guard): bool => ! $guard instanceof LimitsRepeats));
 
-            if (! $guard->allows($attempt)) {
-                return false;
-            }
+        if ($this->refusedBy($attempt, $guards) instanceof RecordingGuard) {
+            return false;
         }
 
         return $this->sight($attempt, $key);
@@ -152,11 +129,46 @@ final readonly class Recorder
         $key = $this->keyOf($attempt);
         $attempt = $this->withViewer($attempt);
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return;
         }
 
         $this->presence->leave($this->sightingOf($attempt, $key, $this->identity->of($attempt->visitor, $attempt->viewer)));
+    }
+
+    /**
+     * The guard that refuses the view, if any. A guard that refuses it for
+     * good wins over one that only limits repeats, so the view is only
+     * skipped by the latter once every other guard allowed it.
+     *
+     * @param  list<RecordingGuard>  $guards
+     */
+    private function refusedBy(ViewAttempt $attempt, array $guards): ?RecordingGuard
+    {
+        $limitedBy = null;
+
+        foreach ($guards as $guard) {
+            if ($guard->allows($attempt)) {
+                continue;
+            }
+
+            if (! $guard instanceof LimitsRepeats) {
+                return $guard;
+            }
+
+            $limitedBy ??= $guard;
+        }
+
+        return $limitedBy;
+    }
+
+    private function remember(ViewAttempt $attempt): void
+    {
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof RemembersRecordedViews) {
+                $guard->remember($attempt);
+            }
+        }
     }
 
     /** @throws RecordingFailed */
@@ -178,7 +190,7 @@ final readonly class Recorder
 
     private function sight(ViewAttempt $attempt, int|string $key, ?string $visitor = null): bool
     {
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return false;
         }
 
@@ -189,26 +201,15 @@ final readonly class Recorder
         return true;
     }
 
-    /**
-     * The visitor id is hashed, so presence never keeps the id that the
-     * views table and the cooldowns are keyed on.
-     */
     private function sightingOf(ViewAttempt $attempt, int|string $key, string $visitor): Sighting
     {
         $viewer = $attempt->viewer;
 
-        $reference = $viewer instanceof Model && $this->config->presenceTracksViewers()
+        $reference = $viewer instanceof Model && $this->presenceConfig->tracksViewers()
             ? new Reference($viewer->getMorphClass(), ViewerKey::of($viewer))
             : null;
 
-        return new Sighting(
-            type: $attempt->viewable->getMorphClass(),
-            key: $key,
-            visitor: hash('xxh128', $visitor),
-            seenAt: Carbon::now(),
-            collection: $attempt->collection,
-            viewer: $reference,
-        );
+        return Sighting::of($attempt->viewable->getMorphClass(), $key, $visitor, $attempt->collection, $reference);
     }
 
     /**

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Presence\Data;
 
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
- * One moment a visitor was seen on a viewable. The visitor is a hash of their
- * visitor id, so presence never keeps the id itself. The viewer is only set
- * when `presence.viewers` is on.
+ * One moment a visitor was seen on a viewable. The visitor is an xxh128 hash
+ * of their visitor id, so presence never stores the id that the views table
+ * and the cooldowns are keyed on. The viewer is only set when
+ * `presence.viewers` is on.
  */
 final readonly class Sighting
 {
@@ -21,6 +23,11 @@ final readonly class Sighting
         public ?string $collection = null,
         public ?Reference $viewer = null,
     ) {}
+
+    public static function of(string $type, int|string $key, string $visitorId, ?string $collection = null, ?Reference $viewer = null): self
+    {
+        return new self($type, $key, hash('xxh128', $visitorId), Carbon::now(), $collection, $viewer);
+    }
 
     public function viewable(): Reference
     {

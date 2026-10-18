@@ -22,7 +22,8 @@ interface StateStore
     public function installed(): bool;
 
     /**
-     * It reads the values of the names that are set in one round trip.
+     * Read the values of many names in one round trip. A name without a value
+     * is left out of the result.
      *
      * @param  list<string>  $names
      * @return array<string, string>

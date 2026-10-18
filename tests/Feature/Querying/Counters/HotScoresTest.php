@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The guide was written a day before the release notes and got ten times the
- * views, so with a tenfold every day the two score the same. The draft has no
- * timestamp and scores on its views alone.
+ * views. With `every` set to `1d`, a post one day older needs ten times the
+ * views to score the same, so the two tie. The draft has no timestamp and
+ * scores on its views alone.
  */
 beforeEach(function (): void {
     $this->travelTo(Carbon::parse('2026-10-08 12:00:00'));

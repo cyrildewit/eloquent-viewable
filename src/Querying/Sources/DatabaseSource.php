@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Sources;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
@@ -20,6 +19,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TracksChangedViewables;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
@@ -30,11 +30,11 @@ use CyrildeWit\EloquentViewable\Querying\Pairs\PairTable;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
-use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Support\Collection;
@@ -44,7 +44,7 @@ use stdClass;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class DatabaseSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TracksChangedViewables, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -70,58 +70,16 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
         $builder = $this->view->newQueryFor($viewable, $query)->toBase();
-        $grammar = $builder->getGrammar();
-        $bucketGrammar = $this->grammars->for($this->view->getConnection()->getDriverName());
 
-        $column = $grammar->wrap('viewed_at');
-        $conversion = $this->conversion($query);
-
-        if ($conversion instanceof TimezoneConversion) {
-            $column = $bucketGrammar->convertTimezone($column, $conversion);
-        }
-
-        $expression = $bucketGrammar->truncate($column, $granularity);
-        $aggregate = $this->aggregate($query, $grammar);
-
-        // Grouped by the alias, which every driver accepts and MariaDB needs:
-        // its full-group-by check cannot match a case expression repeated verbatim.
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $builder
-            ->selectRaw("{$expression} as interval_start, {$aggregate} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers and package-formatted literals, not user input)
-            ->groupBy('interval_start')
-            ->pluck('aggregate', 'interval_start');
-
-        $counts = [];
-
-        foreach ($rows as $label => $count) {
-            $counts[(string) $label] = (int) $count;
-        }
-
-        return $counts;
+        return $this->countGrouped($builder, $query, $this->bucket($builder, $query, $granularity, 'viewed_at'), 'interval_start');
     }
 
     /** @return array<string, int> */
     public function countByCollection(Viewable $viewable, ViewsQuery $query): array
     {
         $builder = $this->view->newQueryFor($viewable, $query)->toBase();
-        $grammar = $builder->getGrammar();
 
-        $column = $grammar->wrap($this->view->qualifyColumn('collection'));
-        $aggregate = $this->aggregate($query, $grammar);
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $builder
-            ->selectRaw("{$column} as collection, {$aggregate} as aggregate") // @phpstan-ignore argument.type (built from wrapped identifiers, not user input)
-            ->groupBy('collection')
-            ->pluck('aggregate', 'collection');
-
-        $counts = [];
-
-        foreach ($rows as $name => $count) {
-            $counts[(string) $name] = (int) $count;
-        }
-
-        return $counts;
+        return $this->countGrouped($builder, $query, $builder->getGrammar()->wrap($this->view->qualifyColumn('collection')), 'collection');
     }
 
     /**
@@ -133,24 +91,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension): array
     {
         $builder = $this->view->newQueryFor($viewable, $query)->toBase();
-        $grammar = $builder->getGrammar();
 
-        $column = $grammar->wrap($dimension);
-        $aggregate = $this->aggregate($query, $grammar);
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $builder
-            ->selectRaw("{$column} as dimension, {$aggregate} as aggregate") // @phpstan-ignore argument.type (a column or JSON path the application names, not user input)
-            ->groupBy('dimension')
-            ->pluck('aggregate', 'dimension');
-
-        $counts = [];
-
-        foreach ($rows as $value => $count) {
-            $counts[(string) $value] = (int) $count;
-        }
-
-        return $counts;
+        return $this->countGrouped($builder, $query, $builder->getGrammar()->wrap($dimension), 'dimension');
     }
 
     /**
@@ -175,12 +117,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             ->when($limit !== null, fn (Builder $builder): Builder => $builder->limit((int) $limit))
             ->pluck('aggregate', 'dimension');
 
-        $counts = [];
-
-        foreach ($rows as $value => $count) {
-            $counts[(string) $value] = (int) $count;
-        }
-
+        $counts = Rows::ints($rows);
         $total = $this->countOf($views(), $query);
         $none = $this->countOf($views()->whereNull($target), $query);
 
@@ -205,18 +142,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     public function visitFrequency(Viewable $viewable, ViewsQuery $query): array
     {
         $builder = $this->view->newQueryFor($viewable, $query)->toBase();
-        $grammar = $builder->getGrammar();
-        $bucketGrammar = $this->grammars->for($this->view->getConnection()->getDriverName());
-
         $visitor = $this->view->qualifyColumn('visitor');
-        $column = $grammar->wrap($this->view->qualifyColumn('viewed_at'));
-        $conversion = $this->conversion($query);
-
-        if ($conversion instanceof TimezoneConversion) {
-            $column = $bucketGrammar->convertTimezone($column, $conversion);
-        }
-
-        $day = $bucketGrammar->truncate($column, Granularity::Day);
+        $day = $this->bucket($builder, $query, Granularity::Day, $this->view->qualifyColumn('viewed_at'));
 
         $visitors = $builder
             ->whereNotNull($visitor)
@@ -249,19 +176,10 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
         $counts = [];
 
         foreach (array_chunk($keys, self::Chunk) as $chunk) {
-            $branches = array_map(fn (int|string $key): Builder => $this->countOne($viewable, $key, $query), $chunk);
-            $statement = array_shift($branches);
-
-            foreach ($branches as $branch) {
-                $statement->unionAll($branch);
-            }
-
             /** @var Collection<int|string, int|string> $rows */
-            $rows = $statement->pluck('aggregate', 'viewable_id');
+            $rows = Rows::union(array_map(fn (int|string $key): Builder => $this->countOne($viewable, $key, $query), $chunk))->pluck('aggregate', 'viewable_id');
 
-            foreach ($rows as $key => $count) {
-                $counts[$key] = (int) $count;
-            }
+            $counts += Rows::ints($rows);
         }
 
         return $counts;
@@ -293,7 +211,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     }
 
     /**
-     * Two databases behind one cache store keep their entries apart.
+     * The connection and database name keep the cached counts of two
+     * databases apart when they share one cache store.
      *
      * @throws JsonException
      */
@@ -326,14 +245,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             ->limit($limit)
             ->get();
 
-        $ranking = [];
-
-        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
-        foreach ($rows as $row) {
-            $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
-        }
-
-        return $ranking;
+        return Rows::ranked($rows);
     }
 
     /**
@@ -387,7 +299,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             ->limit($limit)
             ->get();
 
-        return self::scored($rows);
+        return Rows::scored($rows);
     }
 
     /**
@@ -440,21 +352,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     {
         $weighted = $this->weightedSubquery($viewable, $decay->narrow($query), $decay);
 
-        return self::scaled($this->view->getConnection()->query(), "({$weighted->toSql()})", $weighted->getBindings());
-    }
-
-    /**
-     * Selects an integer score scaled back. The divisor is a floating point
-     * literal: SQLite and Postgres truncate integer division, and MySQL keeps
-     * only four decimals when dividing by a decimal.
-     *
-     * @param  list<mixed>  $bindings
-     *
-     * @internal
-     */
-    public static function scaled(Builder $builder, string $score, array $bindings): Builder
-    {
-        return $builder->selectRaw("{$score} / 1e6", $bindings); // @phpstan-ignore argument.type (subqueries built by the sources, their values are bound)
+        return Decay::scaled($this->view->getConnection()->query(), "({$weighted->toSql()})", $weighted->getBindings());
     }
 
     /**
@@ -495,36 +393,11 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     }
 
     /**
-     * The rows of a trending ranking, the integer score scaled back.
-     *
-     * @param  iterable<int, mixed>  $rows
-     * @return list<array{type: string, id: int|string, count: int, score: float}>
-     *
-     * @internal
-     */
-    public static function scored(iterable $rows): array
-    {
-        $ranking = [];
-
-        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string, score: int|string|float} $row */
-        foreach ($rows as $row) {
-            $ranking[] = [
-                'type' => $row->viewable_type,
-                'id' => $row->viewable_id,
-                'count' => (int) $row->aggregate,
-                'score' => (float) $row->score / Decay::Scale,
-            ];
-        }
-
-        return $ranking;
-    }
-
-    /**
      * Joins the views table to the visitors of the viewable, read as a
      * derived table so the cap on the visitors works on every driver: MySQL
      * refuses a limit inside `in (...)`. Views without a visitor never pair.
-     * The pairs table answers instead when it is enabled and the query names
-     * no period and no collection.
+     * The pairs table answers instead when `PairTable::serves()` accepts the
+     * query.
      *
      * @return list<array{type: string, id: int|string, count: int}>
      *
@@ -588,8 +461,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
 
     /**
      * The seeds always come from the views table. The pairs come from the
-     * pairs table when it is enabled and the query names no period and no
-     * collection.
+     * pairs table when `PairTable::serves()` accepts the query.
      *
      * @return RecommendationPairs
      *
@@ -653,10 +525,72 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             from: Timezone::application(),
             to: $query->timezone,
             start: $start,
-            end: $period->getEndDateTime() ?? Carbon::now(),
+            end: $period->endOrNow(),
         );
 
         return $conversion->isNoop() ? null : $conversion;
+    }
+
+    /**
+     * The views per value of an expression, grouped by the alias, which every
+     * driver accepts and MariaDB needs: its full-group-by check cannot match
+     * a case expression repeated verbatim.
+     *
+     * @return array<string, int>
+     */
+    private function countGrouped(Builder $builder, ViewsQuery $query, string $expression, string $alias): array
+    {
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $builder
+            ->selectRaw("{$expression} as {$alias}, {$this->aggregate($query, $builder->getGrammar())} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, a JSON path the application names and package-formatted literals, not user input)
+            ->groupBy($alias)
+            ->pluck('aggregate', $alias);
+
+        return Rows::ints($rows);
+    }
+
+    /**
+     * The bucket a timestamp column falls in, on the clock of the query's
+     * timezone.
+     *
+     * @throws InvalidInterval
+     */
+    private function bucket(Builder $builder, ViewsQuery $query, Granularity $granularity, string $column): string
+    {
+        $grammar = $this->grammars->for($this->view->getConnection()->getDriverName());
+        $column = $builder->getGrammar()->wrap($column);
+        $conversion = $this->conversion($query);
+
+        if ($conversion instanceof TimezoneConversion) {
+            $column = $grammar->convertTimezone($column, $conversion);
+        }
+
+        return $grammar->truncate($column, $granularity);
+    }
+
+    /** @return list<int|string> */
+    public function keysViewedBetween(string $type, ?string $from, ?string $until): array
+    {
+        /** @var list<int|string> */
+        return $this->view
+            ->newQuery()
+            ->toBase()
+            ->where('viewable_type', $type)
+            ->when($from, fn (Builder $query, string $from): Builder => $query->where('viewed_at', '>=', $from))
+            ->when($until, fn (Builder $query, string $until): Builder => $query->where('viewed_at', '<', $until))
+            ->distinct()
+            ->pluck('viewable_id')
+            ->all();
+    }
+
+    /**
+     * A pruned view is deleted, so `keysViewedBetween()` cannot name the
+     * viewables whose count dropped, and the recount of changed views
+     * recounts every model.
+     */
+    public function countsChangeWhenPruned(): bool
+    {
+        return true;
     }
 
     private function countOf(Builder $builder, ViewsQuery $query): int

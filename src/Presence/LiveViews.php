@@ -18,13 +18,11 @@ use CyrildeWit\EloquentViewable\Presence\Exceptions\InvalidWindow;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
-use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\MorphLoader;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewableSet;
-use CyrildeWit\EloquentViewable\Support\ViewerKey;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 
 /**
@@ -36,13 +34,24 @@ final readonly class LiveViews
 {
     public function __construct(
         private PresenceStore $store,
-        private Config $config,
+        private PresenceConfig $config,
         private ViewableLoader $loader,
         private ?Viewable $viewable = null,
         private ?ViewableSet $viewables = null,
         private ?string $collection = null,
         private ?int $within = null,
     ) {}
+
+    /**
+     * The same reader, over a model, a type, a set of models or the whole
+     * site, within a collection or every one.
+     *
+     * @internal
+     */
+    public function scoped(?Viewable $viewable, ?ViewableSet $viewables, ?string $collection): self
+    {
+        return new self($this->store, $this->config, $this->loader, $viewable, $viewables, $collection, $this->within);
+    }
 
     /**
      * Counts only the visitors seen in the last given seconds, at most the
@@ -54,13 +63,9 @@ final readonly class LiveViews
     public function within(CarbonInterval|int $seconds): self
     {
         $seconds = $seconds instanceof CarbonInterval ? (int) $seconds->totalSeconds : $seconds;
-        $window = $this->config->presenceWindow();
+        $window = $this->config->window();
 
-        if ($seconds < 1) {
-            throw InvalidWindow::outOfRange($seconds, $window);
-        }
-
-        if ($seconds > $window) {
+        if ($seconds < 1 || $seconds > $window) {
             throw InvalidWindow::outOfRange($seconds, $window);
         }
 
@@ -81,7 +86,8 @@ final readonly class LiveViews
     }
 
     /**
-     * The active visitors of every viewable of the set, keyed by its key.
+     * The number of active visitors of each viewable in the set, keyed by the
+     * key of the viewable.
      *
      * @return Collection<int|string, int>
      *
@@ -116,7 +122,7 @@ final readonly class LiveViews
         $type = $this->type();
         $since = $this->since();
 
-        $candidates = $this->store->active($type, $since, $this->config->presenceMaxCandidates());
+        $candidates = $this->store->active($type, $since, $this->config->maxCandidates());
 
         if ($candidates === []) {
             return new Ranking(new Collection);
@@ -155,7 +161,7 @@ final readonly class LiveViews
      */
     public function viewers(int $limit = 100): EloquentCollection
     {
-        if (! $this->config->presenceTracksViewers()) {
+        if (! $this->config->tracksViewers()) {
             throw InvalidConfiguration::presenceViewersDisabled();
         }
 
@@ -164,27 +170,11 @@ final readonly class LiveViews
         }
 
         $references = $this->store->viewers(Scope::of($this->viewable, $this->collection), $this->since(), $limit);
-
-        $models = [];
-
-        foreach (new Collection($references)->groupBy('type') as $type => $group) {
-            $class = Relation::getMorphedModel((string) $type) ?? (string) $type;
-
-            if (! is_a($class, Model::class, true)) {
-                continue;
-            }
-
-            foreach (new $class()->newQuery()->whereKey($group->pluck('id')->all())->get() as $model) {
-                $key = ViewerKey::of($model);
-
-                $models["{$type}|{$key}"] = $model;
-            }
-        }
-
+        $models = MorphLoader::load(array_map(static fn (Reference $reference): array => ['type' => $reference->type, 'id' => $reference->id], $references));
         $viewers = new EloquentCollection;
 
         foreach ($references as $reference) {
-            $model = $models["{$reference->type}|{$reference->id}"] ?? null;
+            $model = $models[$reference->type][(string) $reference->id] ?? null;
 
             if ($model instanceof Model) {
                 $viewers->push($model);
@@ -211,10 +201,10 @@ final readonly class LiveViews
     /** @throws InvalidConfiguration */
     private function since(): CarbonInterface
     {
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->config->enabled()) {
             throw InvalidConfiguration::presenceDisabled();
         }
 
-        return Carbon::now()->subSeconds($this->within ?? $this->config->presenceWindow());
+        return Carbon::now()->subSeconds($this->within ?? $this->config->window());
     }
 }

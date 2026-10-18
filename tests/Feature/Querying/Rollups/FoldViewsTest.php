@@ -344,7 +344,7 @@ it('throws when the rollup table is missing', function (): void {
     config()->set('eloquent-viewable.retention.rollups.table', 'missing_rollups');
 
     fold();
-})->throws(RollupsNotInstalled::class, 'The `missing_rollups` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-rollups` and run `php artisan migrate`.');
+})->throws(RollupsNotInstalled::class, 'Rollups are configured, but the `missing_rollups` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-rollups` and run `php artisan migrate`.');
 
 it('throws when the state table is missing', function (): void {
     config()->set('database.connections.bare', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
@@ -352,7 +352,7 @@ it('throws when the state table is missing', function (): void {
     app('db')->connection('bare')->getSchemaBuilder()->create('view_rollups', fn ($table) => $table->id());
 
     fold();
-})->throws(RollupsNotInstalled::class, 'The `view_retention_state` table does not exist.');
+})->throws(RollupsNotInstalled::class, 'Rollups are configured, but the `view_retention_state` table does not exist. Publish its migration with `php artisan vendor:publish --tag=eloquent-viewable-retention` and run `php artisan migrate`.');
 
 it('stops before the next bucket at the deadline and carries on from there', function (): void {
     viewAt($this->post, '2026-01-10 10:00:00');

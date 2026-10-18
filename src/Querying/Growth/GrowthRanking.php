@@ -11,9 +11,9 @@ use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 /**
- * It ranks the viewables of a type by how their count in the period of the
- * query compares with a reference: the period before it for `rising()`, and
- * the same period on past days or weeks for `anomalies()`. The source counts
+ * Ranks the viewables of a type by how their count in the period of the query
+ * compares with a reference: the period before it for `rising()`, and the
+ * same period on past days or weeks for `anomalies()`. The source counts
  * every window in one go, and the scores are worked out here, so every source
  * scores the same way.
  *

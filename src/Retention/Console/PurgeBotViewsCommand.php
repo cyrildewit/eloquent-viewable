@@ -7,18 +7,25 @@ namespace CyrildeWit\EloquentViewable\Retention\Console;
 use Carbon\CarbonInterface;
 use Carbon\Exceptions\InvalidFormatException;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Retention\Actions\PurgeBotViews;
 use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Console\ConfirmsInProduction;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use CyrildeWit\EloquentViewable\Support\RunLock;
+use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-final class PurgeBotViewsCommand extends RetentionCommand
+final class PurgeBotViewsCommand extends Command
 {
     use ConfirmsInProduction;
+    use ReadsOptions;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:purge-bots
@@ -35,48 +42,28 @@ final class PurgeBotViewsCommand extends RetentionCommand
     #[\Override]
     protected $description = 'Delete the views of bots that opened many models within seconds';
 
-    /** @throws InvalidConfiguration */
-    public function handle(PurgeBotViews $purge, RetentionPolicy $policy, Config $config): int
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidOption
+     */
+    public function handle(PurgeBotViews $purge, RetentionPolicy $policy, Config $config, RunLock $lock): int
     {
         $since = $this->since();
         $max = $this->positiveInteger('max', $config->burstMax());
         $seconds = $this->positiveInteger('seconds', $config->burstSeconds());
         $minBursts = $this->positiveInteger('min-bursts', 3);
-        $chunk = $this->chunk($policy);
-
-        if (! $since instanceof CarbonInterface) {
-            return self::FAILURE;
-        }
-
-        if ($max === false) {
-            return self::FAILURE;
-        }
-
-        if ($seconds === false) {
-            return self::FAILURE;
-        }
-
-        if ($minBursts === false) {
-            return self::FAILURE;
-        }
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
-
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
         $wholeVisitor = (bool) $this->option('whole-visitor');
 
         if ($this->sharesVisitorIds($wholeVisitor, $config)) {
-            $this->components->error('The --whole-visitor option cannot be used with the `fingerprint` identity, because people on one network with the same browser share a visitor id.');
-
-            return self::FAILURE;
+            throw new InvalidOption('The --whole-visitor option cannot be used with the `fingerprint` identity, because people on one network with the same browser share a visitor id.');
         }
 
         if (! $this->confirmed()) {
             return self::FAILURE;
         }
 
-        return $this->exclusively(function () use ($purge, $config, $since, $max, $seconds, $minBursts, $chunk, $wholeVisitor): int {
+        return $this->exclusively($lock, function () use ($purge, $config, $since, $max, $seconds, $minBursts, $chunk, $wholeVisitor): int {
             $run = $purge->handle(
                 since: $since,
                 max: $max,
@@ -93,10 +80,8 @@ final class PurgeBotViewsCommand extends RetentionCommand
         });
     }
 
-    /**
-     * It returns null once the error is reported.
-     */
-    private function since(): ?CarbonInterface
+    /** @throws InvalidOption */
+    private function since(): CarbonInterface
     {
         $option = $this->option('since');
         $option = is_string($option) ? $option : '1d';
@@ -110,9 +95,7 @@ final class PurgeBotViewsCommand extends RetentionCommand
         try {
             return Carbon::parse($option);
         } catch (InvalidFormatException) {
-            $this->components->error('The --since option must be a duration such as `7d` or a date such as `2026-01-01`.');
-
-            return null;
+            throw new InvalidOption('The --since option must be a duration such as `7d` or a date such as `2026-01-01`.');
         }
     }
 

@@ -8,12 +8,14 @@ use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * What a count is read over. The timezone is the clock bucket boundaries are
- * aligned to when counting by interval, and a relative period built without
- * a zone of its own is re-anchored on it, so one `timezone()` call covers
- * both. A plain count ignores it, because a period is a pair of instants.
- * The filter narrows the views counted, the way a custom rollup was folded,
- * and every dimension filter narrows them further.
+ * The options a count is read with.
+ *
+ * The timezone has two uses, so one `timezone()` call covers both. Bucket
+ * boundaries in a count by interval follow its wall clock, and a relative
+ * period built without a timezone of its own is re-anchored on it. A plain
+ * count does not use the timezone, because a period is a pair of instants.
+ *
+ * The filter and every dimension filter narrow the views counted.
  */
 final readonly class ViewsQuery
 {

@@ -14,15 +14,15 @@ use Carbon\CarbonInterface;
 interface Watermarks
 {
     /**
-     * It returns the cutoff moved back to where every rollup has folded the
-     * views before it, or the cutoff itself when nothing waits on them.
+     * The cutoff, moved back to where every rollup has folded the views before
+     * it. The cutoff itself when no rollup waits on the views.
      */
     public function clamp(CarbonInterface $cutoff): CarbonInterface;
 
     /**
-     * It returns these watermarks as they will stand once a run has folded
-     * every rollup up to now, so a dry run that folds nothing first can tell
-     * how far the real run would get.
+     * These watermarks as they will stand once a run has folded every rollup
+     * up to now, so a dry run that folds nothing first can tell how far the
+     * real run would get.
      */
     public function afterFolding(): self;
 }

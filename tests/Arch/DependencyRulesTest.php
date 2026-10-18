@@ -15,8 +15,8 @@ use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
-use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Views;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -111,6 +111,8 @@ arch('the foundation is a leaf layer')
         ...FOUNDATION,
         'Carbon',
         'Illuminate',
+        'Symfony\\Component\\Console',
+        Redis::class,
     ]);
 
 arch('crawlers is a leaf module')
@@ -194,6 +196,7 @@ arch('retention knows querying only through the rollup contracts')
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Retention',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        AnonymisedVisitor::class,
         DimensionRegistry::class,
         'Carbon',
         'Illuminate',
@@ -224,6 +227,8 @@ arch('maintenance runs querying and retention and nothing else')
         'CyrildeWit\EloquentViewable\Maintenance',
         'CyrildeWit\EloquentViewable\Querying',
         'CyrildeWit\EloquentViewable\Retention',
+        'CyrildeWit\EloquentViewable\Recording\Events',
+        'CyrildeWit\EloquentViewable\Erasure\Events',
         'Carbon',
         'Illuminate',
     ]);
@@ -242,8 +247,8 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Erasure',
         'CyrildeWit\EloquentViewable\Recording\Contracts',
+        AnonymisedVisitor::class,
         VisitorIdentity::class,
-        AnonymiseViews::class,
         DimensionRegistry::class,
         'Carbon',
         'Illuminate',
@@ -259,6 +264,7 @@ arch('milestones read the counter columns and the state table, and nothing else'
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Milestones',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        'CyrildeWit\EloquentViewable\Querying\Counters\Events',
         'Illuminate',
     ]);
 

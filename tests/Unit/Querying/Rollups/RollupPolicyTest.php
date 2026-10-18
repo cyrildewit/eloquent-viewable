@@ -8,6 +8,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Illuminate\Config\Repository;
+use Illuminate\Container\Container;
 
 /** @param  array<string, mixed>  $retention */
 function rollupPolicy(array $rollups = [], array $retention = []): RollupPolicy
@@ -15,7 +16,7 @@ function rollupPolicy(array $rollups = [], array $retention = []): RollupPolicy
     return RollupPolicy::fromConfig(new Config(new Repository(['eloquent-viewable' => ['retention' => [
         ...$retention,
         'rollups' => ['table' => 'view_rollups', 'settle' => '1h', ...$rollups],
-    ]]])));
+    ]]])), new Container);
 }
 
 it('is off without tiers', function (): void {

@@ -12,10 +12,10 @@ use CyrildeWit\EloquentViewable\Presence\Data\Scope;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
 use CyrildeWit\EloquentViewable\Presence\Exceptions\PresenceFailed;
 use CyrildeWit\EloquentViewable\Presence\Precision;
+use CyrildeWit\EloquentViewable\Support\RedisError;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Redis\Connections\PredisConnection;
-use Redis;
 use Throwable;
 
 /**
@@ -307,24 +307,9 @@ final readonly class RedisPresenceStore implements PresenceStore
         $result = $this->connection->eval($script, count($keys), ...$keys, ...array_map(strval(...), $arguments));
 
         if ($result === false) {
-            throw PresenceFailed::redisScript($this->lastError());
+            throw PresenceFailed::redisScript(RedisError::last($this->connection, 'no error was given'));
         }
 
         return $result;
-    }
-
-    private function lastError(): string
-    {
-        $client = $this->connection->client();
-
-        if (! $client instanceof Redis) {
-            return 'no error was given';
-        }
-
-        $error = (string) $client->getLastError();
-
-        $client->clearLastError();
-
-        return $error;
     }
 }

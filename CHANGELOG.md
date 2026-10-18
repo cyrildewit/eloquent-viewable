@@ -114,12 +114,15 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
+- `views:doctor` checks that the pairs table exists once `querying.pairs.enabled` is on
+- Added the `Querying\Contracts\TracksChangedViewables` contract, which lets a source of your own say which viewables a count may have changed for, so `views:recount` recounts only those
 
 #### Models and testing
 
 - Added the `models.view.class` config option to use your own `View` model
 - Added `shouldRemoveViewsOnDelete()` to the `Viewable` contract
 - Added `Views::fake()` with `assertRecorded()`, `assertNotRecorded()`, `assertNothingRecorded()`, `assertForgotten()` and `recorded()`. The scopes throw `UnsupportedBySource` under the fake, apart from `recommendedFor()`, which reads the fake
+- Added `Querying\Sources\ArraySource`, which counts view records held in memory the way the `database` source counts the views table. `Views::fake()` reads through it
 - Added `View::factory()` with the `fromVisitor()`, `inCollection()`, `viewedAt()`, `by()` and `withContext()` states
 - Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws, and the `InvalidConfiguration`, `InvalidViewable`, `InvalidViewer` and `InvalidTimezone` exceptions
 - Added Laravel Boost guidelines and the `eloquent-viewable-development` skill in `resources/boost`, which `boost:install` offers to coding agents
@@ -143,10 +146,13 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Cooldowns are keyed by visitor id and stored in a new format, so cooldowns running at upgrade end early once
 - `Models\View` prefers its own `$table` and `$connection` properties over the config
 - The `withViewsCount()` and `orderByViews()` scopes count with a correlated subselect from the source instead of `withAggregate()`, with the same results
-- The `Views` constructor takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`
+- The `Views` constructor takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews`, `Querying\Cache\CacheVersions`, `Dimensions\DimensionRegistry`, `Presence\LiveViews` and the container
 - `Recording\Jobs\RecordViewJob` has no static `dispatch()` method. Use `dispatch(new RecordViewJob($record))`
 - The package requires the `illuminate/bus`, `illuminate/container`, `illuminate/queue` and `illuminate/routing` components and no longer uses `Illuminate\Foundation`
 - The migration stub is published from `database/migrations/`, with no change for existing installations
+- `Period::parse()` refuses a shorthand of zero, such as `0d`, the way a config duration already did
+- The exception thrown when the retention, rollups, milestones or spikes table is missing names the feature that needs it, and the one `views:rollup` throws for a missing state table points at the `eloquent-viewable-retention` tag that publishes it
+- The `presence` keys are read through `Presence\PresenceConfig`, which `Recording\Recorder`, `Http\Beacon`, `Presence\LiveViews` and the presence controller take instead of `Support\Config`
 - Development only: the test suite runs against SQLite, MySQL, MariaDB and Postgres, including models keyed by UUID and ULID, and a phpbench suite in `benchmarks/` times the queries against millions of views
 
 ### Removed

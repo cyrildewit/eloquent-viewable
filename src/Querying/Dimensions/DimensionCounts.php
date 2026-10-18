@@ -9,9 +9,9 @@ use JsonSerializable;
 
 /**
  * The views per value of one dimension, most first, then by value, so two
- * reads give the same order. Views without a value are counted apart, in
- * `none()`, and views folded away by a rollup's cap or by a limit in
- * `other()`. A share is rounded to three decimals and null when there were
+ * reads give the same order. Views without a value are counted in `none()`.
+ * Views folded away by a rollup's cap or by a limit are counted in `other()`.
+ * A share is rounded to three decimals and null when there were
  * no views.
  *
  * With `unique()`, every number counts distinct visitors, so they do not add
@@ -32,7 +32,7 @@ final readonly class DimensionCounts implements Arrayable, JsonSerializable
         private int $other,
         private int $total,
     ) {
-        $this->counts = $this->sorted($counts);
+        $this->counts = self::sorted($counts);
     }
 
     /**
@@ -144,10 +144,15 @@ final readonly class DimensionCounts implements Arrayable, JsonSerializable
     }
 
     /**
+     * Most counted first, then by value, so the order is the same on every
+     * driver. `arsort()` is stable, so the `ksort()` before it keeps ties
+     * ordered by value. Sorting in SQL would place the default collection,
+     * stored as null, differently per database.
+     *
      * @param  array<string, int>  $counts
      * @return array<string, int>
      */
-    private function sorted(array $counts): array
+    public static function sorted(array $counts): array
     {
         ksort($counts, SORT_STRING);
         arsort($counts);

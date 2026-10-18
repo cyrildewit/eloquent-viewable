@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
@@ -35,6 +36,12 @@ final readonly class PruneViews
         private Dispatcher $events,
     ) {}
 
+    /** The same action, clamped to other watermarks. */
+    public function withWatermarks(Watermarks $watermarks): self
+    {
+        return new self($this->view, $this->state, $watermarks, $this->events);
+    }
+
     /** @throws RetentionNotInstalled */
     public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
     {
@@ -49,36 +56,22 @@ final readonly class PruneViews
             return new RetentionRun($from, $until, $this->expired($until)->count(), $clamped, true);
         }
 
-        $views = 0;
+        $progress = Chunks::run(
+            $deadline,
+            $chunk,
+            fn (): array => $this->expiredIds($until, $chunk),
+            fn (array $ids): int => $this->view->newQuery()->toBase()->whereIn('id', $ids)->delete(),
+        );
 
-        do {
-            if ($deadline->passed()) {
-                return $this->stopped($from, $until, $views, $clamped);
-            }
-
-            $ids = $this->expiredIds($until, $chunk);
-
-            if ($ids !== []) {
-                $views += $this->view->newQuery()->toBase()->whereIn('id', $ids)->delete();
-            }
-        } while (count($ids) === $chunk);
-
-        $this->moveMarkForward($from, $until);
-
-        if ($views > 0) {
-            $this->events->dispatch(new ViewsPruned($from, $until, $views));
+        if (! $progress->stopped) {
+            $this->moveMarkForward($from, $until);
         }
 
-        return new RetentionRun($from, $until, $views, $clamped, false);
-    }
-
-    private function stopped(?CarbonInterface $from, CarbonInterface $until, int $views, bool $clamped): RetentionRun
-    {
-        if ($views > 0) {
-            $this->events->dispatch(new ViewsPruned($from, $until, $views));
+        if ($progress->count > 0) {
+            $this->events->dispatch(new ViewsPruned($from, $until, $progress->count));
         }
 
-        return new RetentionRun($from, $until, $views, $clamped, false, stopped: true);
+        return new RetentionRun($from, $until, $progress->count, $clamped, false, stopped: $progress->stopped);
     }
 
     /**

@@ -72,8 +72,8 @@ final class RollupReadsBench extends BenchCase
     }
 
     /**
-     * The last day before the anchor against the same day on the four weeks
-     * before, which the day tier answers.
+     * The last day before the anchor against the default baseline of
+     * `anomalies()`, which the day tier answers.
      */
     public function benchAnomalies(): void
     {

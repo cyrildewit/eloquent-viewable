@@ -4,42 +4,21 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Sources;
 
-use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Support\Config;
-use Illuminate\Contracts\Container\Container;
-use Illuminate\Support\Manager;
-use Illuminate\Support\Str;
+use CyrildeWit\EloquentViewable\Support\PackageManager;
 
-/** @method ViewSource driver(?string $driver = null) */
-final class SourceManager extends Manager
+/** @extends PackageManager<ViewSource, Config> */
+final class SourceManager extends PackageManager
 {
-    public function __construct(Container $container, private readonly Config $packageConfig)
-    {
-        parent::__construct($container);
-    }
-
     public function getDefaultDriver(): string
     {
         return $this->packageConfig->sourceDriver();
     }
 
-    /**
-     * @param  string  $driver
-     *
-     * @throws InvalidConfiguration
-     */
-    #[\Override]
-    protected function createDriver($driver): ViewSource
+    protected function configKey(): string
     {
-        if (! isset($this->customCreators[$driver]) && ! method_exists($this, 'create'.Str::studly($driver).'Driver')) {
-            throw InvalidConfiguration::unknownDriver('querying.source.driver', $driver);
-        }
-
-        /** @var ViewSource $source */
-        $source = parent::createDriver($driver);
-
-        return $source;
+        return 'querying.source.driver';
     }
 
     protected function createDatabaseDriver(): DatabaseSource

@@ -61,8 +61,8 @@ trait HasViewHistory
 
     /**
      * Recommend what the visitors of the models this model viewed recently
-     * also viewed, of the given class or of any. What it viewed before is
-     * left out unless it is included.
+     * also viewed. Pass $among to rank only models of that class. The models
+     * this model viewed are left out unless $includeSeen is true.
      *
      * @param  ?class-string<Model&Viewable>  $among
      *
@@ -85,8 +85,9 @@ trait HasViewHistory
     }
 
     /**
-     * Delete every view this model made, and with guest views also the views
-     * of the browsers it was signed in on. Returns how many were deleted.
+     * Delete every view this model made. With $includeGuestViews, also delete
+     * the guest views of every visitor id this model was signed in as.
+     * Returns how many were deleted.
      *
      * @throws InvalidViewer
      */
@@ -96,8 +97,8 @@ trait HasViewHistory
     }
 
     /**
-     * Keep the views this model made in the counts, but take what ties them
-     * to it out. Returns how many were anonymised.
+     * Remove what ties this model's views to it, and keep the views in the
+     * counts. Returns how many were anonymised.
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone

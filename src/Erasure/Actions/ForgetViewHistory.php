@@ -9,15 +9,19 @@ use CyrildeWit\EloquentViewable\Erasure\Subject;
 use CyrildeWit\EloquentViewable\Erasure\TouchedViewables;
 use CyrildeWit\EloquentViewable\Erasure\ViewHistory;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Support\Chunks;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * This action deletes every view of a subject, buffered or stored, and
  * forgets and recounts the counts that included them. Rollups hold no one's
  * identity, so the history they keep is left as it is.
  *
- * With guest views included, the views carrying a visitor id the viewer
- * recorded under go too, which on a shared browser are someone else's.
+ * With guest views included, the action also deletes every view that
+ * carries a visitor id the viewer recorded under. On a shared browser, some
+ * of those views belong to another person.
  */
 final readonly class ForgetViewHistory
 {
@@ -36,29 +40,31 @@ final readonly class ForgetViewHistory
         if ($includeGuestViews) {
             $selection = $selection->withVisitors($this->history->visitorsOf($selection));
 
+            // Land again, because guest views under the visitor ids just found
+            // can still wait in the buffer.
             $this->history->land($selection);
         }
 
         $touched = new TouchedViewables;
-        $views = 0;
 
-        do {
-            $rows = $this->history
+        $views = Chunks::run(
+            Deadline::none(),
+            $chunk,
+            fn (): Collection => $this->history
                 ->query($selection)
                 ->orderBy('id')
                 ->limit($chunk)
-                ->get(['id', 'viewable_type', 'viewable_id']);
+                ->get(['id', 'viewable_type', 'viewable_id']),
+            function (Collection $rows) use ($touched): int {
+                foreach ($rows as $row) {
+                    $touched->add($row->viewable_type, $row->viewable_id);
+                }
 
-            foreach ($rows as $row) {
-                $touched->add($row->viewable_type, $row->viewable_id);
-            }
-
-            if ($rows->isNotEmpty()) {
                 $this->view->newQuery()->toBase()->whereIn('id', $rows->modelKeys())->delete();
-            }
 
-            $views += $rows->count();
-        } while ($rows->count() === $chunk);
+                return $rows->count();
+            },
+        )->count;
 
         $this->events->dispatch($touched->countsChanged());
 

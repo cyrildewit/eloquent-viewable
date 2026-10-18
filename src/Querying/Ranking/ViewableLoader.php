@@ -6,9 +6,8 @@ namespace CyrildeWit\EloquentViewable\Querying\Ranking;
 
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
-use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\MorphLoader;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 
 final readonly class ViewableLoader
@@ -41,33 +40,14 @@ final readonly class ViewableLoader
     {
         $models = [];
 
-        foreach (new Collection($rows)->groupBy('type') as $type => $group) {
-            $instance = $this->instanceFor((string) $type);
-
-            if (! $instance instanceof Model) {
-                continue;
-            }
-
-            $query = $instance->newQuery();
-
-            foreach ($query->whereKey($group->pluck('id')->unique()->values()->all())->get() as $model) {
+        foreach (MorphLoader::load($rows) as $type => $loaded) {
+            foreach ($loaded as $key => $model) {
                 if ($model instanceof Viewable) {
-                    $models[(string) $type][(string) ViewableKey::of($model)] = $model;
+                    $models[$type][$key] = $model;
                 }
             }
         }
 
         return $models;
-    }
-
-    private function instanceFor(string $type): ?Model
-    {
-        $class = Relation::getMorphedModel($type) ?? $type;
-
-        if (! class_exists($class) || ! is_a($class, Model::class, true) || ! is_a($class, Viewable::class, true)) {
-            return null;
-        }
-
-        return new $class;
     }
 }

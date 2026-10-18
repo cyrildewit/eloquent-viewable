@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Http;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use Illuminate\Routing\UrlGenerator;
@@ -32,6 +33,7 @@ final readonly class Beacon
     public function __construct(
         private UrlGenerator $urls,
         private Config $config,
+        private PresenceConfig $presence,
     ) {}
 
     /**
@@ -48,17 +50,7 @@ final readonly class Beacon
             throw InvalidConfiguration::beaconDisabled();
         }
 
-        $parameters = $this->parameters($viewable, $collection);
-
-        if ($cooldown !== null) {
-            $parameters['cooldown'] = $cooldown;
-        }
-
-        if ($queue !== null) {
-            $parameters['queue'] = $queue ? 1 : 0;
-        }
-
-        return $this->urls->signedRoute(self::RouteName, $parameters, absolute: false);
+        return $this->urls->signedRoute(self::RouteName, $this->parameters($viewable, new RecordingOptions($collection, $cooldown, $queue)), absolute: false);
     }
 
     /**
@@ -71,7 +63,7 @@ final readonly class Beacon
     {
         $this->ensurePresenceIsEnabled();
 
-        return $this->urls->signedRoute(self::PresenceRouteName, $this->parameters($viewable, $collection), absolute: false);
+        return $this->urls->signedRoute(self::PresenceRouteName, $this->parameters($viewable, new RecordingOptions($collection)), absolute: false);
     }
 
     /**
@@ -84,7 +76,7 @@ final readonly class Beacon
     {
         $this->ensurePresenceIsEnabled();
 
-        return $this->urls->signedRoute(self::LeaveRouteName, $this->parameters($viewable, $collection), absolute: false);
+        return $this->urls->signedRoute(self::LeaveRouteName, $this->parameters($viewable, new RecordingOptions($collection)), absolute: false);
     }
 
     /**
@@ -118,7 +110,7 @@ final readonly class Beacon
             return $this->liveScript($url, $this->json([
                 'heartbeat' => $this->presenceUrl($viewable, $collection),
                 'leave' => $this->leaveUrl($viewable, $collection),
-                'interval' => $this->config->presenceHeartbeat() * 1000,
+                'interval' => $this->presence->heartbeat() * 1000,
             ]));
         }
 
@@ -231,7 +223,7 @@ final readonly class Beacon
      *
      * @throws InvalidViewable
      */
-    private function parameters(Viewable $viewable, ?string $collection): array
+    private function parameters(Viewable $viewable, RecordingOptions $options): array
     {
         $key = ViewableKey::of($viewable);
 
@@ -239,16 +231,7 @@ final readonly class Beacon
             throw InvalidViewable::beaconWithoutKey($viewable::class);
         }
 
-        $parameters = [
-            'type' => $viewable->getMorphClass(),
-            'key' => $key,
-        ];
-
-        if ($collection !== null) {
-            $parameters['collection'] = $collection;
-        }
-
-        return $parameters;
+        return ['type' => $viewable->getMorphClass(), 'key' => $key, ...$options->toQuery()];
     }
 
     /** @throws InvalidConfiguration */
@@ -258,7 +241,7 @@ final readonly class Beacon
             throw InvalidConfiguration::beaconDisabled();
         }
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presence->enabled()) {
             throw InvalidConfiguration::presenceDisabled();
         }
     }

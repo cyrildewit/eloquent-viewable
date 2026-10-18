@@ -28,8 +28,8 @@ use Illuminate\Contracts\Events\Dispatcher;
 
 /**
  * This action compares each watched model's views in the last closed window,
- * the hours before the current one began, with the same window on past days
- * or weeks. A model that leaves its baseline opens an episode and dispatches
+ * the `window` hours that end where the current hour starts, with the same
+ * window on past days or weeks. A model that leaves its baseline opens an episode and dispatches
  * one event; while it stays out, the episode keeps its peak. Once it has been
  * back to normal for the cooldown, the episode settles with one more event.
  * Every event is dispatched after the row it reports is written. Spikes and
@@ -71,7 +71,7 @@ final readonly class DetectSpikes
         $source = $this->source;
 
         if (! $source instanceof CountsByWindow) {
-            throw UnsupportedBySource::growth($source);
+            throw UnsupportedBySource::missing(CountsByWindow::class, $source);
         }
 
         $runs = [];

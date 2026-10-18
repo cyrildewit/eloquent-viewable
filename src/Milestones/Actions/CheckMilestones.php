@@ -48,8 +48,7 @@ final readonly class CheckMilestones
     ) {}
 
     /**
-     * Check the models with these keys, after their counter columns were
-     * written.
+     * Call after the counter columns of these keys are written.
      *
      * @param  class-string<Model&Viewable>  $class
      * @param  list<int|string>  $keys

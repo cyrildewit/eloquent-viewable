@@ -10,18 +10,16 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Maintenance\Data\RecountRun;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TracksChangedViewables;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Grouping;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
-use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
-use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
-use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\HotScore;
+use CyrildeWit\EloquentViewable\Support\Progress;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Model;
@@ -36,11 +34,10 @@ use JsonException;
  * anonymised since. Everything else about a count stays the same between two
  * runs, so the rest of the table is left alone.
  *
- * Every model is recounted on the first run, after the columns or the source
- * changed, through a source other than the shipped two, on request, and after
- * views were pruned under the `database` source, because a deleted view no
- * longer says whose it was. Under the `rollup` source pruning changes no
- * count, because nothing is pruned before it is folded.
+ * Every model is recounted when one of these is true: it is the first run,
+ * the columns or the source changed, the source does not implement
+ * TracksChangedViewables, the caller passes $full, or views were pruned and
+ * the source says counts change with pruning.
  *
  * What a recount saw is kept in the state table. A run that reaches its
  * deadline keeps where it got to, and the next run finishes that recount
@@ -63,7 +60,6 @@ final readonly class RecountChangedViews
         private Config $config,
         private StateStore $state,
         private View $view,
-        private ViewRollup $rollup,
     ) {}
 
     /**
@@ -82,10 +78,10 @@ final readonly class RecountChangedViews
         $recounted = [];
 
         foreach ($this->config->counters() as $class => $columns) {
-            $result = $this->recountClass(new $class, $columns, $chunk, $deadline, $full);
-            $recounted[$class] = $result['models'];
+            $progress = $this->recountClass(new $class, $columns, $chunk, $deadline, $full);
+            $recounted[$class] = $progress->count;
 
-            if (! $result['finished']) {
+            if ($progress->stopped) {
                 return new RecountRun($recounted, stopped: true);
             }
         }
@@ -172,65 +168,62 @@ final readonly class RecountChangedViews
 
     /**
      * @param  array<string, ViewsQuery>  $columns
-     * @return array{models: int, finished: bool}
      *
      * @throws InvalidConfiguration
      * @throws InvalidPeriod
      * @throws JsonException
      * @throws UnsupportedBySource
      */
-    private function recountClass(Model&Viewable $model, array $columns, int $chunk, Deadline $deadline, bool $full): array
+    private function recountClass(Model&Viewable $model, array $columns, int $chunk, Deadline $deadline, bool $full): Progress
     {
         /** @var ?Snapshot $committed */
         $committed = $this->read($this->name($model));
         /** @var ?Pending $pending */
         $pending = $full ? null : $this->read($this->name($model).self::Pending);
 
+        $tracking = $this->source instanceof TracksChangedViewables ? $this->source : null;
+
         if ($pending === null) {
             $target = $this->snapshot($model, $columns);
 
             $pending = [
                 'target' => $target,
-                'full' => $full || $committed === null || $this->needsEveryModel($committed, $target),
+                'full' => $full || $committed === null || $tracking === null || $this->needsEveryModel($tracking, $committed, $target),
                 'after' => null,
             ];
         }
 
-        $keys = $pending['full'] || $committed === null
+        $keys = $pending['full'] || $committed === null || $tracking === null
             ? null
-            : $this->changedKeys($model, $columns, $committed, $pending['target']);
+            : $this->changedKeys($tracking, $model, $columns, $committed, $pending['target']);
         $after = $pending['after'];
-        $recounted = 0;
 
-        while (true) {
-            if ($deadline->passed()) {
-                $this->write($this->name($model).self::Pending, [...$pending, 'after' => $after]);
+        $progress = Chunks::run(
+            $deadline,
+            $chunk,
+            function () use ($keys, $model, $chunk, &$after): array {
+                return $keys === null
+                    ? $this->recount->keysAfter($model, $after, $chunk)
+                    : $this->changedAfter($keys, $after, $chunk);
+            },
+            function (array $batch) use ($model, &$after): int {
+                $this->recount->recount($model, $batch);
+                $after = array_last($batch);
 
-                return ['models' => $recounted, 'finished' => false];
-            }
+                return count($batch);
+            },
+        );
 
-            $batch = $keys === null
-                ? $this->recount->keysAfter($model, $after, $chunk)
-                : $this->changedAfter($keys, $after, $chunk);
+        if ($progress->stopped) {
+            $this->write($this->name($model).self::Pending, [...$pending, 'after' => $after]);
 
-            if ($batch === []) {
-                break;
-            }
-
-            $this->recount->recount($model, $batch);
-
-            $recounted += count($batch);
-            $after = end($batch);
-
-            if (count($batch) < $chunk) {
-                break;
-            }
+            return $progress;
         }
 
         $this->write($this->name($model), $pending['target']);
         $this->state->forget($this->name($model).self::Pending);
 
-        return ['models' => $recounted, 'finished' => true];
+        return $progress;
     }
 
     /**
@@ -287,34 +280,13 @@ final readonly class RecountChangedViews
      * @param  Snapshot  $committed
      * @param  Snapshot  $target
      */
-    private function needsEveryModel(array $committed, array $target): bool
+    private function needsEveryModel(TracksChangedViewables $source, array $committed, array $target): bool
     {
-        if (! $this->isShippedSource()) {
-            return true;
-        }
-
         if ($committed['signature'] !== $target['signature']) {
             return true;
         }
 
-        if (! $this->source instanceof DatabaseSource) {
-            return false;
-        }
-
-        return $committed['pruned'] !== $target['pruned'];
-    }
-
-    /**
-     * The shipped sources are the ones whose counts change only in the ways
-     * this action looks for.
-     */
-    private function isShippedSource(): bool
-    {
-        if ($this->source instanceof DatabaseSource) {
-            return true;
-        }
-
-        return $this->source instanceof RollupSource;
+        return $source->countsChangeWhenPruned() && $committed['pruned'] !== $target['pruned'];
     }
 
     /**
@@ -327,17 +299,21 @@ final readonly class RecountChangedViews
      * @param  Snapshot  $target
      * @return list<int|string>
      */
-    private function changedKeys(Model&Viewable $model, array $columns, array $committed, array $target): array
+    private function changedKeys(TracksChangedViewables $source, Model&Viewable $model, array $columns, array $committed, array $target): array
     {
         $type = $model->getMorphClass();
         $keys = $this->viewedAfter($type, $committed['id'], $target['id']);
 
         foreach (array_keys($columns) as $column) {
-            $keys = [...$keys, ...$this->viewedBetween($type, $committed['starts'][$column] ?? null, $target['starts'][$column] ?? null, rollups: true)];
+            [$from, $until] = [$committed['starts'][$column] ?? null, $target['starts'][$column] ?? null];
+
+            if ($until !== null && $from !== $until) {
+                $keys = [...$keys, ...$source->keysViewedBetween($type, $from, $until)];
+            }
         }
 
         if ($this->hasUniqueColumn($columns)) {
-            $keys = [...$keys, ...$this->viewedBetween($type, $committed['anonymised'], $target['anonymised'], rollups: false)];
+            $keys = [...$keys, ...$this->anonymisedBetween($type, $committed['anonymised'], $target['anonymised'])];
         }
 
         $keys = array_values(array_unique($keys));
@@ -373,24 +349,20 @@ final readonly class RecountChangedViews
     }
 
     /**
-     * Finds the models with views in `[from, until)`. Under the `rollup`
-     * source the views may be gone already, so the buckets that start in it
-     * count too.
+     * Finds the models with views anonymised since the last run, which are
+     * in the views table whatever the source, because anonymising rewrites
+     * the views themselves.
      *
      * @return list<int|string>
      */
-    private function viewedBetween(string $type, ?string $from, ?string $until, bool $rollups): array
+    private function anonymisedBetween(string $type, ?string $from, ?string $until): array
     {
-        if ($until === null) {
+        if ($until === null || $from === $until) {
             return [];
         }
 
-        if ($from === $until) {
-            return [];
-        }
-
-        /** @var list<int|string> $keys */
-        $keys = $this->view
+        /** @var list<int|string> */
+        return $this->view
             ->newQuery()
             ->toBase()
             ->where('viewable_type', $type)
@@ -399,29 +371,6 @@ final readonly class RecountChangedViews
             ->distinct()
             ->pluck('viewable_id')
             ->all();
-
-        if (! $rollups) {
-            return $keys;
-        }
-
-        if (! $this->source instanceof RollupSource) {
-            return $keys;
-        }
-
-        /** @var list<int|string> $buckets */
-        $buckets = $this->rollup
-            ->newQuery()
-            ->toBase()
-            ->where('rollup', RollupPolicy::BuiltIn)
-            ->whereIn('grouping', [Grouping::Viewable->stored(), Grouping::ViewableCollection->stored()])
-            ->where('viewable_type', $type)
-            ->when($from, fn (Builder $query, string $from): Builder => $query->where('bucket_start', '>=', $from))
-            ->where('bucket_start', '<', $until)
-            ->distinct()
-            ->pluck('viewable_id')
-            ->all();
-
-        return [...$keys, ...$buckets];
     }
 
     /**

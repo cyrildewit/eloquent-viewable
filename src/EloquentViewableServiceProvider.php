@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Closure;
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
@@ -14,7 +15,7 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
 use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
-use CyrildeWit\EloquentViewable\Doctor\Sampling\GuardSamples;
+use CyrildeWit\EloquentViewable\Doctor\Sampling\Listeners\SampleGuardOutcomes;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
 use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
@@ -23,13 +24,14 @@ use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
-use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
-use CyrildeWit\EloquentViewable\Milestones\Actions\CheckMilestones;
+use CyrildeWit\EloquentViewable\Maintenance\Listeners\ForgetChangedCounts;
 use CyrildeWit\EloquentViewable\Milestones\Console\SeedMilestonesCommand;
+use CyrildeWit\EloquentViewable\Milestones\Listeners\CheckAfterRecount;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
@@ -41,7 +43,7 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
 use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Console\PairViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
@@ -50,7 +52,6 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
-use CyrildeWit\EloquentViewable\Querying\Rollups\RollupRefolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupWatermarks;
 use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
@@ -74,6 +75,8 @@ use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ConfigReader;
+use CyrildeWit\EloquentViewable\Support\OptionalTable;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
@@ -97,13 +100,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->registerBeacon();
-        $this->forgetCountsOfDestroyedViews();
-        $this->forgetCountsOfErasedViews();
-        $this->checkMilestonesAfterRecounts();
-        $this->flushCountsAfterRetentionRuns();
+        $this->listen();
         $this->validateRetentionPolicies();
         $this->registerDebugbarCollector();
-        $this->sampleGuardOutcomes();
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -139,42 +138,30 @@ class EloquentViewableServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Each migration has a tag of its own, so the shared `migrations` tag
-     * keeps publishing only the views table.
-     */
     protected function publishOptInMigrations(): void
     {
         $timestamp = date('Y_m_d_His', time());
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_retention_state_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_retention_state_table.php"),
-        ], 'eloquent-viewable-retention');
+        foreach (OptionalTable::cases() as $table) {
+            $this->publishes([
+                __DIR__."/../database/migrations/{$table->migration()}.php.stub" => $this->app->databasePath("migrations/{$timestamp}_{$table->migration()}.php"),
+            ], $table->tag());
+        }
+    }
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_rollups_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_rollups_table.php"),
-        ], 'eloquent-viewable-rollups');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_pairs_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_pairs_table.php"),
-        ], 'eloquent-viewable-pairs');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_milestones_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_milestones_table.php"),
-        ], 'eloquent-viewable-milestones');
-
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_view_spikes_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_view_spikes_table.php"),
-        ], 'eloquent-viewable-spikes');
+    /**
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests.
+     */
+    protected function config(): Config
+    {
+        return new Config($this->app->make('config'));
     }
 
     /**
      * The directive is there whenever Blade is, so a page that prints it while
      * the beacon is off fails with the reason rather than a missing directive.
      * The presence routes sit next to the beacon's and need both turned on.
-     *
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests.
      *
      * @throws InvalidConfiguration
      */
@@ -188,7 +175,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             });
         });
 
-        $config = new Config($this->app->make('config'));
+        $config = $this->config();
 
         if (! $config->beaconEnabled()) {
             return;
@@ -204,7 +191,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
             'middleware' => $config->beaconMiddleware(),
         ]);
 
-        if (! $config->presenceEnabled()) {
+        if (! new PresenceConfig($this->app->make('config'))->enabled()) {
             return;
         }
 
@@ -224,112 +211,47 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The recount is resolved from the container of the request, so under
-     * Octane the view source it builds does not stay behind in the worker.
+     * The reactions of one module to the events of another.
      */
-    protected function forgetCountsOfDestroyedViews(): void
+    protected function listen(): void
     {
-        $this->app->make(EventDispatcher::class)->listen(
-            ViewsDestroyed::class,
-            function (ViewsDestroyed $event): void {
-                $this->app->make(ForgetRollups::class)->handle($event->viewable);
-                $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
-                Container::getInstance()->make(RecountChangedViews::class)->destroyed($event->viewable);
-            },
-        );
-    }
-
-    /**
-     * Erasure names the models whose counts it changed, so their remembered
-     * counts are forgotten and their counter columns recounted. When it names
-     * none, it touched too many, so every count is forgotten and every model
-     * is recounted on the next run.
-     */
-    protected function forgetCountsOfErasedViews(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            CountsChanged::class,
-            function (CountsChanged $event): void {
-                $versions = $this->app->make(CacheVersions::class);
-                $recount = Container::getInstance()->make(RecountChangedViews::class);
-
-                if ($event->viewables === null) {
-                    $versions->flushCache();
-                    $recount->recountEveryModelNextRun();
-
-                    return;
-                }
-
-                foreach ($event->viewables as $type => $keys) {
-                    foreach ($keys as $key) {
-                        $versions->forgetModel($type, $key);
-                    }
-
-                    $recount->erased($type, $keys);
-                }
-            },
-        );
-    }
-
-    /**
-     * Every recount names the models whose counter columns it wrote, so their
-     * milestones are checked right after. The action is resolved from the
-     * container of the request, so under Octane it does not stay behind in
-     * the worker.
-     */
-    protected function checkMilestonesAfterRecounts(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            CountersRecounted::class,
-            fn (CountersRecounted $event) => Container::getInstance()->make(CheckMilestones::class)->recounted($event->class, $event->keys),
-        );
-    }
-
-    protected function flushCountsAfterRetentionRuns(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            [ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
-            fn () => $this->app->make(CacheVersions::class)->flushCache(),
-        );
-
-        $this->app->make(EventDispatcher::class)->listen(
-            BotViewsPurged::class,
-            fn () => Container::getInstance()->make(RecountChangedViews::class)->recountEveryModelNextRun(),
-        );
-    }
-
-    /**
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests,
-     * and the sampler is resolved from the container of the request.
-     */
-    protected function sampleGuardOutcomes(): void
-    {
-        $config = new Config($this->app->make('config'));
-
-        if (! $config->sampleEnabled()) {
-            return;
-        }
-
         $events = $this->app->make(EventDispatcher::class);
 
-        $events->listen(ViewRecorded::class, fn () => Container::getInstance()->make(GuardSamples::class)->countRecorded());
-        $events->listen(ViewSkipped::class, fn (ViewSkipped $event) => Container::getInstance()->make(GuardSamples::class)->countRefused($event->guard));
+        $events->listen(ViewsDestroyed::class, $this->listener(ForgetChangedCounts::class, 'viewsDestroyed'));
+        $events->listen(CountsChanged::class, $this->listener(ForgetChangedCounts::class, 'countsChanged'));
+        $events->listen([ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class], $this->listener(ForgetChangedCounts::class, 'viewsChanged'));
+        $events->listen(BotViewsPurged::class, $this->listener(ForgetChangedCounts::class, 'botViewsPurged'));
+        $events->listen(CountersRecounted::class, $this->listener(CheckAfterRecount::class, '__invoke'));
+
+        if ($this->config()->sampleEnabled()) {
+            $events->listen(ViewRecorded::class, $this->listener(SampleGuardOutcomes::class, 'recorded'));
+            $events->listen(ViewSkipped::class, $this->listener(SampleGuardOutcomes::class, 'refused'));
+        }
+    }
+
+    /**
+     * A listener resolved from the container of the request for every event,
+     * rather than the one the dispatcher booted with, so under Octane what it
+     * builds, such as the view source, does not stay behind in the worker.
+     *
+     * @param  class-string  $listener
+     * @return Closure(object): void
+     */
+    protected function listener(string $listener, string $method): Closure
+    {
+        return static function (object $event) use ($listener, $method): void {
+            Container::getInstance()->call("{$listener}@{$method}", [$event::class => $event]);
+        };
     }
 
     /**
      * A policy that contradicts itself fails at boot rather than in the first
      * scheduled run.
-     *
-     * The config is read through an instance of its own, so nothing is left
-     * in the container that an Octane worker would share between requests.
      */
     protected function validateRetentionPolicies(): void
     {
-        $config = new Config($this->app->make('config'));
-
-        RetentionPolicy::fromConfig($config);
-        RollupPolicy::fromConfig($config);
+        RetentionPolicy::fromConfig($this->config());
+        RollupPolicy::fromConfig($this->config(), $this->app);
     }
 
     /**
@@ -363,6 +285,11 @@ class EloquentViewableServiceProvider extends ServiceProvider
         // Scoped, so an Octane worker reads the config repository of the
         // request it serves rather than the one it booted with.
         $this->app->scoped(Config::class);
+        $this->app->scoped(PresenceConfig::class);
+
+        // Each driver manager reads its default from the config of its module.
+        $this->app->when([StoreManager::class, SourceManager::class, CooldownManager::class])->needs(ConfigReader::class)->give(Config::class);
+        $this->app->when(PresenceManager::class)->needs(ConfigReader::class)->give(PresenceConfig::class);
 
         $this->app->bind(View::class, function (Application $app): View {
             $model = $app->make(Config::class)->viewModel();
@@ -407,6 +334,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 $app->make(RecordsViewsContract::class),
                 $app->make(VisitorIdentity::class),
                 $app->make(PresenceStore::class),
+                $app->make(PresenceConfig::class),
                 $app->make(DimensionResolver::class),
             );
         });
@@ -485,7 +413,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
      */
     protected function registerRollups(): void
     {
-        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class)));
+        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class), $app));
 
         $this->app->bind(Watermarks::class, function (Application $app): Watermarks {
             if (! $app->make(RollupPolicy::class)->isEnabled()) {
@@ -500,7 +428,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 return new NullRefolder;
             }
 
-            return $app->make(RollupRefolder::class);
+            return $app->make(FoldViews::class);
         });
 
         $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {

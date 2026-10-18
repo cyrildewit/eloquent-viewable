@@ -60,10 +60,10 @@ final readonly class Period implements UrlRoutable
     {
         $timezone = $timezone === null ? null : Timezone::from($timezone);
 
-        if (preg_match('/^(\d+)([a-z]+)$/', $period, $matches) === 1) {
-            $interval = PeriodInterval::fromShorthand($matches[2]) ?? throw InvalidPeriod::unparsable($period);
+        $duration = Duration::tryParse($period);
 
-            return self::relative($interval->anchor(), $interval, (int) $matches[1], $timezone);
+        if ($duration instanceof Duration) {
+            return self::relative($duration->interval->anchor(), $duration->interval, $duration->value, $timezone);
         }
 
         $bounds = explode(self::RangeSeparator, $period);
@@ -174,8 +174,17 @@ final readonly class Period implements UrlRoutable
     }
 
     /**
-     * A stable string that identifies this period for caching, immune to
-     * wall-clock drift for relative periods.
+     * The end of the period, or now for one that is still open.
+     */
+    public function endOrNow(): CarbonInterface
+    {
+        return $this->endDateTime ?? Carbon::now();
+    }
+
+    /**
+     * It identifies the period in a cache key. A relative period signs by
+     * what it was asked for, such as `past7days`, so its key stays the same
+     * as the clock moves on.
      *
      * @internal
      */
@@ -186,8 +195,8 @@ final readonly class Period implements UrlRoutable
     }
 
     /**
-     * What `parse()` reads back. The timezone a relative period was built in
-     * is not part of it; hand it to `parse()` again on the way back.
+     * What `parse()` reads back. It leaves out the timezone a relative period
+     * was built in, so pass that timezone to `parse()` again.
      */
     public function getRouteKey(): string
     {
@@ -218,9 +227,10 @@ final readonly class Period implements UrlRoutable
     /**
      * The window right before this one, as wide as it and ending where it
      * starts. A relative period steps back by its own unit, so `pastMonths(1)`
-     * gives the month before and `pastDays(7)` the seven whole days before;
-     * since the current window runs on past now, it also holds today so far.
-     * An absolute period steps back by its exact duration.
+     * gives the month before, and `pastDays(7)` gives the seven whole days
+     * before. The current window of a relative period has no end, so it also
+     * holds today up to now. An absolute period steps back by its exact
+     * duration.
      *
      * @throws InvalidPeriod when the period lacks a bound and so has no width
      */

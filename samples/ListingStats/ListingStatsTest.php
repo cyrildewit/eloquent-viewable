@@ -24,6 +24,7 @@ function viewListing(Listing $listing, string $at, string $visitor = 'visitor', 
 }
 
 /**
+ * @param  iterable<Bucket>  $series
  * @return array<string, int> the count of each bucket, keyed by its date
  */
 function countsByDay(iterable $series): array
@@ -31,7 +32,6 @@ function countsByDay(iterable $series): array
     $counts = [];
 
     foreach ($series as $bucket) {
-        /** @var Bucket $bucket */
         $counts[$bucket->start->toDateString()] = $bucket->count;
     }
 

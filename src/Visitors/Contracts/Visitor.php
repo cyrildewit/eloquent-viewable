@@ -41,8 +41,8 @@ interface Visitor
     public function isPrefetch(): bool;
 
     /**
-     * Whether the request is a `HEAD` request, which asks for the headers of
-     * a page without its body.
+     * Whether the request is a `HEAD` request. A HEAD request receives no page,
+     * so no one saw it.
      */
     public function isHeadRequest(): bool;
 }

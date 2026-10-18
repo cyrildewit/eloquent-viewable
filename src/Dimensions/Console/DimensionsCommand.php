@@ -8,9 +8,11 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\Normaliser;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\LimitsRunTime;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
@@ -24,7 +26,8 @@ use Illuminate\Support\Carbon;
  */
 final class DimensionsCommand extends Command
 {
-    use LimitsRunTime;
+    use ReadsOptions;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:dimensions
@@ -35,7 +38,10 @@ final class DimensionsCommand extends Command
     #[\Override]
     protected $description = 'Write a migration that adds a column for every dimension the views table lacks';
 
-    /** @throws InvalidConfiguration */
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidOption
+     */
     public function handle(DimensionRegistry $registry, View $view, Config $config, Filesystem $files): int
     {
         $schema = $view->getConnection()->getSchemaBuilder();
@@ -146,6 +152,7 @@ final class DimensionsCommand extends Command
      * carries on where the first stopped.
      *
      * @throws InvalidConfiguration
+     * @throws InvalidOption
      */
     private function backfill(DimensionRegistry $registry, View $view, Config $config, string $name): int
     {
@@ -172,10 +179,6 @@ final class DimensionsCommand extends Command
         }
 
         $deadline = $this->deadline();
-
-        if ($deadline === false) {
-            return self::FAILURE;
-        }
 
         $this->components->info("Copying `{$from}` into the `{$name}` column...");
 

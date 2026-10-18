@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Closure;
-use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Dimensions\Normaliser;
@@ -22,11 +20,11 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TracksChangedViewables;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
-use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
@@ -34,18 +32,17 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailabl
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Plan;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\PlannedRead;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Planner;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\ReadPlanner;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Segment;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
+use CyrildeWit\EloquentViewable\Querying\Sources\Rows;
 use CyrildeWit\EloquentViewable\Querying\Sources\WindowTotals;
-use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use DateTimeZone;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use JsonException;
@@ -58,7 +55,7 @@ use stdClass;
  *
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class RollupSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TracksChangedViewables, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -67,7 +64,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         private View $view,
         private ViewRollup $rollup,
         private RollupPolicy $policy,
-        private RollupState $state,
+        private ReadPlanner $planner,
     ) {}
 
     /**
@@ -77,19 +74,15 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function count(Viewable $viewable, ViewsQuery $query): int
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->count($viewable, $query);
         }
 
-        $total = 0;
+        $raw = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => ['total' => $this->raw->count($viewable, $segment)]);
 
-        foreach ($read->plan->raw() as $segment) {
-            $total += $this->raw->count($viewable, $this->narrow($query, $segment));
-        }
-
-        return $total + (int) $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)->sum($this->column($query));
+        return ($raw['total'] ?? 0) + (int) $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)->sum($this->column($query));
     }
 
     /**
@@ -102,24 +95,20 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query, $granularity);
+        $read = $this->planner->plan($grouping, $query, $granularity);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByInterval($viewable, $query, $granularity);
         }
 
-        $counts = [];
-
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countByInterval($viewable, $this->narrow($query, $segment), $granularity));
-        }
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByInterval($viewable, $segment, $granularity));
 
         $zone = $this->seriesZone($query);
         $start = $this->rollup->qualifyColumn('bucket_start');
         $tier = $this->rollup->qualifyColumn('tier');
 
         $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($tier)} as tier, {$this->wrap($start)} as bucket_start, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->selectRaw("{$this->wrap($tier)} as tier, {$this->wrap($start)} as bucket_start, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($tier, $start)
             ->get();
 
@@ -143,38 +132,20 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countByCollection(Viewable $viewable, ViewsQuery $query): array
     {
         $grouping = Grouping::for($viewable, true);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByCollection($viewable, $query);
         }
 
-        $counts = [];
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByCollection($viewable, $segment));
 
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countByCollection($viewable, $this->narrow($query, $segment)));
-        }
-
-        $collection = $this->rollup->qualifyColumn('collection');
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($collection)} as collection, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($collection)
-            ->pluck('aggregate', 'collection');
-
-        $rollups = [];
-
-        foreach ($rows as $name => $count) {
-            $rollups[(string) $name] = (int) $count;
-        }
-
-        return $this->add($counts, $rollups);
+        return $this->add($counts, $this->summed($this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query), 'collection', $query));
     }
 
     /**
-     * Only the dimension of the custom rollup the query reads through is read
-     * from the rollups.
+     * Only the dimension of the rollup the query reads through is held in the
+     * rollups. Any other dimension is counted from the views table.
      *
      * @return array<string, int>
      *
@@ -188,33 +159,15 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByDimension($viewable, $query, $dimension);
         }
 
-        $counts = [];
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countByDimension($viewable, $segment, $dimension));
 
-        foreach ($read->plan->raw() as $segment) {
-            $counts = self::add($counts, $this->raw->countByDimension($viewable, $this->narrow($query, $segment), $dimension));
-        }
-
-        $column = $this->rollup->qualifyColumn('dimension');
-
-        /** @var Collection<int|string, int|string> $rows */
-        $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query, perDimension: true)
-            ->selectRaw("{$this->wrap($column)} as dimension, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($column)
-            ->pluck('aggregate', 'dimension');
-
-        $rollups = [];
-
-        foreach ($rows as $value => $count) {
-            $rollups[(string) $value] = (int) $count;
-        }
-
-        return self::add($counts, $rollups);
+        return $this->add($counts, $this->summed($this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query, perDimension: true), 'dimension', $query));
     }
 
     /**
@@ -228,7 +181,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query, counted: $dimension->name);
+        $read = $this->planner->plan($grouping, $query, counted: $dimension->name);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countBy($viewable, $query, $dimension, $limit);
@@ -243,7 +196,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         $column = $this->rollup->qualifyColumn('dimension');
 
         $rows = $this->rollups($viewable->getMorphClass(), ViewableKey::of($viewable), $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($column)} as dimension, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->selectRaw("{$this->wrap($column)} as dimension, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($column)
             ->get();
 
@@ -266,35 +219,18 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countMany($viewable, $keys, $query);
         }
 
-        $counts = [];
-
-        foreach ($read->plan->raw() as $segment) {
-            $counts = $this->add($counts, $this->raw->countMany($viewable, $keys, $this->narrow($query, $segment)));
-        }
-
-        $id = $this->rollup->qualifyColumn('viewable_id');
+        $counts = $this->rawCounts($read, $query, fn (ViewsQuery $segment): array => $this->raw->countMany($viewable, $keys, $segment));
 
         foreach (array_chunk($keys, self::Chunk) as $chunk) {
-            /** @var Collection<int|string, int|string> $rows */
-            $rows = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)
-                ->whereIn($id, $chunk)
-                ->selectRaw("{$this->wrap($id)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-                ->groupBy($id)
-                ->pluck('aggregate', 'viewable_id');
+            $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)->whereIn($this->rollup->qualifyColumn('viewable_id'), $chunk);
 
-            $rollups = [];
-
-            foreach ($rows as $key => $count) {
-                $rollups[$key] = (int) $count;
-            }
-
-            $counts = $this->add($counts, $rollups);
+            $counts = $this->add($counts, $this->summed($rollups, 'viewable_id', $query));
         }
 
         return $counts;
@@ -307,7 +243,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countSubquery($viewable, $query);
@@ -324,7 +260,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
 
         $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)
             ->whereColumn($this->rollup->qualifyColumn('viewable_id'), $viewable->getQualifiedKeyName())
-            ->selectRaw("coalesce(sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}), 0)"); // @phpstan-ignore argument.type (a wrapped identifier, not user input)
+            ->selectRaw("coalesce({$this->sum($query)}, 0)"); // @phpstan-ignore argument.type (a wrapped identifier, not user input)
 
         $parts[] = "({$rollups->toSql()})";
 
@@ -376,6 +312,38 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         return $this->raw->recommendationPairs($request, $query);
     }
 
+    /**
+     * The views may be gone already, so the buckets of the built-in rollup
+     * that start in the window count too.
+     *
+     * @return list<int|string>
+     */
+    public function keysViewedBetween(string $type, ?string $from, ?string $until): array
+    {
+        /** @var list<int|string> $buckets */
+        $buckets = $this->rollup
+            ->newQuery()
+            ->toBase()
+            ->where('rollup', RollupPolicy::BuiltIn)
+            ->whereIn('grouping', [Grouping::Viewable->stored(), Grouping::ViewableCollection->stored()])
+            ->where('viewable_type', $type)
+            ->when($from, fn (Builder $query, string $from): Builder => $query->where('bucket_start', '>=', $from))
+            ->when($until, fn (Builder $query, string $until): Builder => $query->where('bucket_start', '<', $until))
+            ->distinct()
+            ->pluck('viewable_id')
+            ->all();
+
+        return [...$this->raw->keysViewedBetween($type, $from, $until), ...$buckets];
+    }
+
+    /**
+     * Nothing is pruned before it is folded, so a count stays the same.
+     */
+    public function countsChangeWhenPruned(): bool
+    {
+        return false;
+    }
+
     /** @throws JsonException */
     public function cacheIdentity(): string
     {
@@ -391,46 +359,16 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->top($viewable, $query, $limit);
         }
 
         $type = $viewable?->getMorphClass();
-        $branches = array_map(fn (Segment $segment): Builder => $this->rawRanking($type, $this->narrow($query, $segment)), $read->plan->raw());
+        $branches = [...$this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->countedPerViewable($type, $segment)), $this->countedRollups($type, $grouping, $read, $query)];
 
-        $rollupType = $this->rollup->qualifyColumn('viewable_type');
-        $rollupId = $this->rollup->qualifyColumn('viewable_id');
-
-        $branches[] = $this->rollups($type, null, $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($rollupType, $rollupId);
-
-        $union = array_shift($branches);
-
-        foreach ($branches as $branch) {
-            $union->unionAll($branch);
-        }
-
-        $rows = $this->view->getConnection()->query()
-            ->fromSub($union, 'ranked')
-            ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate')
-            ->groupBy('viewable_type', 'viewable_id')
-            ->orderByDesc('aggregate')
-            ->orderBy('viewable_type')
-            ->orderBy('viewable_id')
-            ->limit($limit)
-            ->get();
-
-        $ranking = [];
-
-        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, aggregate: int|string} $row */
-        foreach ($rows as $row) {
-            $ranking[] = ['type' => $row->viewable_type, 'id' => $row->viewable_id, 'count' => (int) $row->aggregate];
-        }
-
-        return $ranking;
+        return Rows::ranked($this->ranked($branches, 'sum(aggregate) as aggregate', 'aggregate', $limit));
     }
 
     /**
@@ -470,14 +408,14 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     {
         $query = $decay->narrow($query);
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->trendingPlan($grouping, $query, $decay);
+        $read = $this->planner->trendingPlan($grouping, $query, $decay);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->trending($viewable, $query, $decay, $limit);
         }
 
         $type = $viewable?->getMorphClass();
-        $branches = array_map(fn (Segment $segment): Builder => $this->raw->trendingRows($type, $this->narrow($query, $segment), $decay), $read->plan->raw());
+        $branches = $this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->trendingRows($type, $segment, $decay));
 
         $rollupType = $this->rollup->qualifyColumn('viewable_type');
         $rollupId = $this->rollup->qualifyColumn('viewable_id');
@@ -488,23 +426,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$column}) as aggregate, sum({$weight} * {$column}) as score", $bindings) // @phpstan-ignore argument.type (wrapped identifiers and integer literals, the step starts are bound)
             ->groupBy($rollupType, $rollupId);
 
-        $union = array_shift($branches);
-
-        foreach ($branches as $branch) {
-            $union->unionAll($branch);
-        }
-
-        $rows = $this->view->getConnection()->query()
-            ->fromSub($union, 'ranked')
-            ->selectRaw('viewable_type, viewable_id, sum(aggregate) as aggregate, sum(score) as score')
-            ->groupBy('viewable_type', 'viewable_id')
-            ->orderByDesc('score')
-            ->orderBy('viewable_type')
-            ->orderBy('viewable_id')
-            ->limit($limit)
-            ->get();
-
-        return DatabaseSource::scored($rows);
+        return Rows::scored($this->ranked($branches, 'sum(aggregate) as aggregate, sum(score) as score', 'score', $limit));
     }
 
     /**
@@ -515,7 +437,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     {
         $query = $decay->narrow($query);
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->trendingPlan($grouping, $query, $decay);
+        $read = $this->planner->trendingPlan($grouping, $query, $decay);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->trendingSubquery($viewable, $query, $decay);
@@ -539,7 +461,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
 
         $parts[] = "({$rollups->toSql()})";
 
-        return DatabaseSource::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
+        return Decay::scaled($this->view->getConnection()->query(), '('.implode(' + ', $parts).')', [...$bindings, ...$rollups->getBindings()]);
     }
 
     /**
@@ -555,321 +477,113 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     private function countedPerViewable(?string $type, ViewsQuery $query): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return [$this->raw->countedPerViewable($type, $query)];
         }
 
-        $branches = array_map(fn (Segment $segment): Builder => $this->raw->countedPerViewable($type, $this->narrow($query, $segment)), $read->plan->raw());
+        return [...$this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->countedPerViewable($type, $segment)), $this->countedRollups($type, $grouping, $read, $query)];
+    }
 
+    /**
+     * The rollup rows per viewable, as `viewable_type`, `viewable_id` and
+     * `aggregate`, so they union with the branches of the views table.
+     */
+    private function countedRollups(?string $type, Grouping $grouping, PlannedRead $read, ViewsQuery $query): Builder
+    {
         $rollupType = $this->rollup->qualifyColumn('viewable_type');
         $rollupId = $this->rollup->qualifyColumn('viewable_id');
 
-        $branches[] = $this->rollups($type, null, $grouping, $read, $query)
-            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))}) as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+        return $this->rollups($type, null, $grouping, $read, $query)
+            ->selectRaw("{$this->wrap($rollupType)} as viewable_type, {$this->wrap($rollupId)} as viewable_id, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($rollupType, $rollupId);
-
-        return $branches;
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function plan(Grouping $grouping, ViewsQuery $query, ?Granularity $granularity = null, ?string $counted = null): ?PlannedRead
-    {
-        $definition = $this->definition($grouping, $query, $counted);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        $tiers = $definition->tiers();
-
-        if ($granularity instanceof Granularity) {
-            $tiers = array_values(array_filter($tiers, static fn (Tier $tier): bool => $tier->fits($granularity)));
-        }
-
-        if ($tiers === []) {
-            return null;
-        }
-
-        $plan = new Planner($this->policy->timezone)->plan(
-            $this->state->snapshot($definition->name),
-            $tiers,
-            $query->period?->getStartDateTime(),
-            $query->period?->getEndDateTime(),
-            $query->unique,
-            $this->alignToSeries($query, $granularity),
-        );
-
-        if ($plan->isRawOnly()) {
-            return null;
-        }
-
-        if ($this->policy->strict) {
-            $this->guard($plan, $query, $granularity);
-        }
-
-        return new PlannedRead($plan, $definition);
     }
 
     /**
-     * Only the tiers no coarser than the step answer, and for unique visitors
-     * only the tier of the step itself, so no visitor is counted twice in a
-     * step. With none left the views table answers, or strict refuses.
+     * The branches of the views table and the rollups added up per viewable
+     * in one statement, the highest first.
      *
-     * @throws ResolutionUnavailable
+     * @param  non-empty-list<Builder>  $branches
+     * @return Collection<int, stdClass>
      */
-    private function trendingPlan(Grouping $grouping, ViewsQuery $query, Decay $decay): ?PlannedRead
+    private function ranked(array $branches, string $sums, string $orderBy, int $limit): Collection
     {
-        $definition = $this->definition($grouping, $query);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        $step = $decay->step();
-        $tiers = array_values(array_filter(
-            $definition->tiers(),
-            static fn (Tier $tier): bool => $query->unique ? $tier->granularity() === $step : $tier->fits($step),
-        ));
-
-        if ($tiers === []) {
-            if ($this->policy->strict) {
-                throw ResolutionUnavailable::trendingStep($step->value);
-            }
-
-            return null;
-        }
-
-        $zone = $this->policy->timezone;
-
-        $plan = new Planner($zone)->plan(
-            $this->state->snapshot($definition->name),
-            $tiers,
-            $query->period?->getStartDateTime(),
-            $query->period?->getEndDateTime(),
-            $query->unique,
-            static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($step->floor($moment->setTimezone($zone)))
-                ->setTimezone($moment->getTimezone()),
-        );
-
-        if ($plan->isRawOnly()) {
-            return null;
-        }
-
-        if ($this->policy->strict && ! $plan->isExact()) {
-            throw ResolutionUnavailable::partialBucket();
-        }
-
-        return new PlannedRead($plan, $definition);
+        return $this->view->getConnection()->query()
+            ->fromSub(Rows::union($branches), 'ranked')
+            ->selectRaw("viewable_type, viewable_id, {$sums}") // @phpstan-ignore argument.type (package-formatted literals, not user input)
+            ->groupBy('viewable_type', 'viewable_id')
+            ->orderByDesc($orderBy)
+            ->orderBy('viewable_type')
+            ->orderBy('viewable_id')
+            ->limit($limit)
+            ->get();
     }
 
     /**
-     * The rollup the query reads through, unless the rollups cannot answer
-     * it: a read narrowed to a viewer, or one by a grouping not kept. A read
-     * that narrows or counts by a dimension goes through that dimension's
-     * rollup.
+     * What the views table answers for each segment of the plan it covers.
      *
-     * @throws ResolutionUnavailable
+     * @param  Closure(ViewsQuery): Builder  $branch
+     * @return list<Builder>
+     *
+     * @throws InvalidPeriod
      */
-    private function definition(Grouping $grouping, ViewsQuery $query, ?string $counted = null): ?RollupDefinition
+    private function rawBranches(PlannedRead $read, ViewsQuery $query, Closure $branch): array
     {
-        $names = $query->dimensionNames();
-
-        if ($counted !== null && ! in_array($counted, $names, true)) {
-            $names[] = $counted;
-        }
-
-        if ($names !== []) {
-            return $this->dimensionDefinition($grouping, $query, $names);
-        }
-
-        $definition = $this->policy->for($query);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        if ($query->viewer instanceof Model) {
-            return null;
-        }
-
-        if (! $definition->keeps($grouping)) {
-            return null;
-        }
-
-        return $definition;
+        return array_map(fn (Segment $segment): Builder => $branch($this->narrow($query, $segment)), $read->plan->raw());
     }
 
     /**
-     * Only a dimension's own rollup holds its values, so it answers when that
-     * dimension is the only one the read names, the read is not narrowed by
-     * a custom rollup or a viewer, and unique visitors are not summed across
-     * values. Any other read goes to the views table, which only holds the
-     * whole period until views are pruned.
+     * The counts the views table answers for the segments of the plan it
+     * covers, added up.
      *
-     * @param  non-empty-list<string>  $names
+     * @template TKey of array-key
      *
-     * @throws ResolutionUnavailable
+     * @param  Closure(ViewsQuery): array<TKey, int>  $count
+     * @return array<TKey, int>
+     *
+     * @throws InvalidPeriod
      */
-    private function dimensionDefinition(Grouping $grouping, ViewsQuery $query, array $names): ?RollupDefinition
+    private function rawCounts(PlannedRead $read, ViewsQuery $query, Closure $count): array
     {
-        $definition = count($names) === 1 ? $this->policy->forDimension($names[0]) : null;
+        $counts = [];
 
-        if ($this->answers($definition, $grouping, $query)) {
-            return $definition;
+        foreach ($read->plan->raw() as $segment) {
+            $counts = $this->add($counts, $count($this->narrow($query, $segment)));
         }
 
-        $this->guardViewsTable($query, $names);
-
-        return null;
-    }
-
-    /** @phpstan-assert-if-true RollupDefinition $definition */
-    private function answers(?RollupDefinition $definition, Grouping $grouping, ViewsQuery $query): bool
-    {
-        if (! $definition instanceof RollupDefinition) {
-            return false;
-        }
-
-        if ($query->filter instanceof FiltersViews) {
-            return false;
-        }
-
-        if ($query->viewer instanceof Model) {
-            return false;
-        }
-
-        if (! $definition->keeps($grouping)) {
-            return false;
-        }
-
-        if (! $query->unique) {
-            return true;
-        }
-
-        return array_all($query->dimensions, static fn (DimensionFilter $filter): bool => count($filter->values) === 1);
+        return $counts;
     }
 
     /**
-     * Refuses a read the views table can no longer answer for the whole
-     * period, rather than count only the views it still holds.
+     * The rollup rows added up per value of a column.
      *
-     * @param  non-empty-list<string>  $names
-     *
-     * @throws ResolutionUnavailable
+     * @return array<string, int>
      */
-    private function guardViewsTable(ViewsQuery $query, array $names): void
+    private function summed(Builder $rollups, string $column, ViewsQuery $query): array
     {
-        $pruned = $this->state->snapshot(RollupPolicy::BuiltIn)->pruned;
+        $qualified = $this->rollup->qualifyColumn($column);
 
-        if (! $pruned instanceof CarbonImmutable) {
-            return;
-        }
+        /** @var Collection<int|string, int|string> $rows */
+        $rows = $rollups
+            ->selectRaw("{$this->wrap($qualified)} as {$column}, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
+            ->groupBy($qualified)
+            ->pluck('aggregate', $column);
 
-        $start = $query->period?->getStartDateTime();
+        return Rows::ints($rows);
+    }
 
-        if ($start instanceof CarbonInterface && $start >= $pruned) {
-            return;
-        }
-
-        if ($this->policy->strict) {
-            throw ResolutionUnavailable::dimensionHistory($names, $pruned);
-        }
-
-        throw UnsupportedBySource::dimensionHistory($names, $pruned);
+    private function sum(ViewsQuery $query): string
+    {
+        return "sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))})";
     }
 
     /**
-     * The hand-over to the views table moves onto the edge of a series bucket,
-     * so no bucket of the series is summed from both.
-     *
-     * @return (Closure(CarbonImmutable): CarbonImmutable)|null
-     */
-    private function alignToSeries(ViewsQuery $query, ?Granularity $granularity): ?Closure
-    {
-        if (! $granularity instanceof Granularity) {
-            return null;
-        }
-
-        $zone = $this->seriesZone($query);
-
-        return static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($granularity->floor($moment->setTimezone($zone)))
-            ->setTimezone($moment->getTimezone());
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function guard(Plan $plan, ViewsQuery $query, ?Granularity $granularity): void
-    {
-        if (! $plan->isExact()) {
-            throw ResolutionUnavailable::partialBucket();
-        }
-
-        if (! $granularity instanceof Granularity) {
-            $this->guardCount($plan, $query);
-
-            return;
-        }
-
-        $zone = $this->seriesZone($query);
-
-        if ($zone->getName() !== $this->policy->timezone->getName()) {
-            $this->guardOtherTimezone($plan, $zone);
-        }
-
-        if (! $query->unique) {
-            return;
-        }
-
-        foreach ($plan->rollups() as $segment) {
-            if ($segment->tier?->granularity() !== $granularity) {
-                throw ResolutionUnavailable::summedUniques();
-            }
-        }
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function guardCount(Plan $plan, ViewsQuery $query): void
-    {
-        if (! $query->unique) {
-            return;
-        }
-
-        if ($plan->parts($this->policy->timezone) > 1) {
-            throw ResolutionUnavailable::summedUniques();
-        }
-    }
-
-    /**
-     * Only hour buckets fit a series in another zone, and only while the zones
-     * are whole hours apart.
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function guardOtherTimezone(Plan $plan, DateTimeZone $zone): void
-    {
-        foreach ($plan->rollups() as $segment) {
-            if ($segment->tier === Tier::Hour && $this->alignsByTheHour($segment, $zone)) {
-                continue;
-            }
-
-            throw ResolutionUnavailable::otherTimezone($zone->getName(), $this->policy->timezone->getName());
-        }
-    }
-
-    private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
-    {
-        return array_all(
-            array_filter([$segment->start, $segment->end]),
-            fn (CarbonImmutable $moment): bool => ($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 === 0,
-        );
-    }
-
-    /**
-     * This is where a bucket lands on the clock of a series. An hour is converted, so
-     * a series in a zone a whole number of hours away stays exact. A coarser
-     * bucket keeps its label: January on the rollup clock is January in the
-     * series, rather than the last hours of December.
+     * Where a bucket lands on the clock of a series. An hour bucket is
+     * converted to the zone of the series, so a series in a zone a whole
+     * number of hours away stays exact. A coarser bucket keeps its wall-clock
+     * label, so January on the rollup clock stays January in the series and
+     * does not become the last hours of December.
      */
     private function place(Tier $tier, CarbonImmutable $start, DateTimeZone $zone): CarbonImmutable
     {
@@ -953,28 +667,6 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         return DimensionCounts::from($values, $none, $other);
-    }
-
-    private function rawRanking(?string $type, ViewsQuery $query): Builder
-    {
-        $builder = $this->view->newQuery()->matching($query)->toBase();
-        $viewableType = $this->view->qualifyColumn('viewable_type');
-        $viewableId = $this->view->qualifyColumn('viewable_id');
-        $aggregate = $this->aggregate($query);
-
-        return $builder
-            ->when($type !== null, fn (Builder $builder): Builder => $builder->where($viewableType, $type))
-            ->selectRaw("{$this->wrap($viewableType)} as viewable_type, {$this->wrap($viewableId)} as viewable_id, {$aggregate} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
-            ->groupBy($viewableType, $viewableId);
-    }
-
-    private function aggregate(ViewsQuery $query): string
-    {
-        if (! $query->unique) {
-            return 'count(*)';
-        }
-
-        return "count(distinct {$this->wrap($this->view->qualifyColumn('visitor'))})";
     }
 
     private function column(ViewsQuery $query): string

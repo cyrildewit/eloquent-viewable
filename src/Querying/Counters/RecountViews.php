@@ -60,6 +60,8 @@ final readonly class RecountViews
 
                 $this->recount($model, $keys);
 
+                // MySQL reports only the rows whose value changed, so count the
+                // keys instead of the rows updated.
                 $recounted[$class] += count($keys);
                 $after = end($keys);
             } while (count($keys) === $chunk);
@@ -69,8 +71,6 @@ final readonly class RecountViews
     }
 
     /**
-     * Writes every counter column of the models with these keys.
-     *
      * @param  list<int|string>  $keys
      *
      * @throws InvalidConfiguration
@@ -98,8 +98,8 @@ final readonly class RecountViews
     }
 
     /**
-     * Returns the next chunk of keys in the model's table, in the order the
-     * database sorts them.
+     * The next `$chunk` keys greater than `$after`, in key order, so the last
+     * key of one chunk is the cursor for the next.
      *
      * @return list<int|string>
      */
@@ -224,8 +224,7 @@ final readonly class RecountViews
 
     /**
      * The table is read without the model's scopes, so trashed models are
-     * counted too. MySQL reports only the rows whose value changed, so callers
-     * count the keys instead of the rows updated.
+     * counted too.
      */
     private function table(Model $model): Builder
     {

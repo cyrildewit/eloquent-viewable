@@ -15,10 +15,12 @@ use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
-use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
+use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use CyrildeWit\EloquentViewable\Support\Progress;
 use CyrildeWit\EloquentViewable\Support\Timezone;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
@@ -39,8 +41,6 @@ final readonly class AnonymiseViews
 {
     public const string Mark = StateStore::Anonymised;
 
-    public const string Prefix = AnonymisedVisitor::Prefix;
-
     private const string Salt = 'anonymise:salt:';
 
     private const int VisitorsPerStatement = 100;
@@ -53,6 +53,12 @@ final readonly class AnonymiseViews
         private Config $config,
         private DimensionRegistry $dimensions,
     ) {}
+
+    /** The same action, clamped to other watermarks. */
+    public function withWatermarks(Watermarks $watermarks): self
+    {
+        return new self($this->view, $this->state, $watermarks, $this->events, $this->config, $this->dimensions);
+    }
 
     /**
      * The cutoff moves back to midnight, so a day is never split across two
@@ -86,11 +92,11 @@ final readonly class AnonymiseViews
         $cursor = $from;
 
         while (($day = $this->nextDay($cursor, $until, $columns)) instanceof CarbonInterface) {
-            $result = $this->anonymiseDay($day, $columns, $chunk, $deadline);
-            $views += $result['views'];
+            $progress = $this->anonymiseDay($day, $columns, $chunk, $deadline);
+            $views += $progress->count;
 
-            if (! $result['finished']) {
-                return $this->stopped($from, $day, $views, $clamped);
+            if ($progress->stopped) {
+                return $this->finish($from, $day, $views, $clamped, stopped: true);
             }
 
             $cursor = $this->nextMidnight($day);
@@ -100,24 +106,20 @@ final readonly class AnonymiseViews
 
         $this->state->putMoment(self::Mark, $until);
 
+        return $this->finish($from, $until, $views, $clamped, stopped: false);
+    }
+
+    /**
+     * A stopped run ends at the start of the day in progress, which is as
+     * far as every view is anonymised.
+     */
+    private function finish(?CarbonInterface $from, CarbonInterface $until, int $views, bool $clamped, bool $stopped): RetentionRun
+    {
         if ($views > 0) {
             $this->events->dispatch(new ViewsAnonymised($from, $until, $views));
         }
 
-        return new RetentionRun($from, $until, $views, $clamped, false);
-    }
-
-    /**
-     * The mark stays at the start of the day in progress, which is as far as
-     * every view is anonymised.
-     */
-    private function stopped(?CarbonInterface $from, Carbon $day, int $views, bool $clamped): RetentionRun
-    {
-        if ($views > 0) {
-            $this->events->dispatch(new ViewsAnonymised($from, $day, $views));
-        }
-
-        return new RetentionRun($from, $day, $views, $clamped, false, stopped: true);
+        return new RetentionRun($from, $until, $views, $clamped, false, stopped: $stopped);
     }
 
     /**
@@ -139,46 +141,47 @@ final readonly class AnonymiseViews
 
     /**
      * Each chunk starts after the last id of the one before, so a day is read
-     * once instead of once per chunk. The day is not finished when the
-     * deadline stopped it halfway.
+     * once instead of once per chunk. When the deadline stops the day halfway,
+     * the day is not finished, so its salt stays in the state table for the
+     * next run.
      *
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
-     * @return array{views: int, finished: bool}
      *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
-    private function anonymiseDay(Carbon $day, array $columns, int $chunk, Deadline $deadline): array
+    private function anonymiseDay(Carbon $day, array $columns, int $chunk, Deadline $deadline): Progress
     {
         $name = self::Salt.$day->avoidMutation()->setTimezone($this->zone())->toDateString();
         $salt = $this->saltOfDayInProgress($name);
         $end = $this->nextMidnight($day);
-        $views = 0;
+        /** @var int|string|null $last */
         $last = null;
 
-        do {
-            if ($deadline->passed()) {
-                return ['views' => $views, 'finished' => false];
-            }
-
-            $visitors = $this->pending($day, $end, $columns)
-                ->when($last, fn (Builder $query, int|string $last): Builder => $query->where('id', '>', $last))
-                ->orderBy('id')
-                ->limit($chunk)
-                ->pluck('visitor', 'id')
-                ->all();
-
-            if ($visitors !== []) {
+        $progress = Chunks::run(
+            $deadline,
+            $chunk,
+            function () use ($day, $end, $columns, $chunk, &$last): array {
+                return $this->pending($day, $end, $columns)
+                    ->when($last !== null, fn (Builder $query): Builder => $query->where('id', '>', $last))
+                    ->orderBy('id')
+                    ->limit($chunk)
+                    ->pluck('visitor', 'id')
+                    ->all();
+            },
+            function (array $visitors) use ($columns, $salt, &$last): int {
                 $this->update($visitors, $columns, $salt);
                 $last = array_key_last($visitors);
-            }
 
-            $views += count($visitors);
-        } while (count($visitors) === $chunk);
+                return count($visitors);
+            },
+        );
 
-        $this->state->forget($name);
+        if (! $progress->stopped) {
+            $this->state->forget($name);
+        }
 
-        return ['views' => $views, 'finished' => true];
+        return $progress;
     }
 
     /**
@@ -231,13 +234,7 @@ final readonly class AnonymiseViews
      */
     private function zone(): Timezone
     {
-        $zone = $this->config->rollupTimezone();
-
-        if ($zone === null) {
-            return Timezone::application();
-        }
-
-        return new Timezone($zone);
+        return Timezone::named($this->config->rollupTimezone());
     }
 
     /**
@@ -246,10 +243,9 @@ final readonly class AnonymiseViews
      * row, so one statement for a whole chunk would cost the rows times the
      * visitors. The chunk is split into statements of at most
      * `VisitorsPerStatement` visitors each instead, which keeps that cost
-     * linear in the size of the chunk. The visitors are keyed by the id of
-     * their view.
+     * linear in the size of the chunk.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors
+     * @param  array<int|string, mixed>  $visitors  the visitor of each view, keyed by the id of the view
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
@@ -266,7 +262,7 @@ final readonly class AnonymiseViews
      * The views whose visitor is not re-hashed, such as those without one, go
      * with the first statement.
      *
-     * @param  non-empty-array<int|string, mixed>  $visitors
+     * @param  array<int|string, mixed>  $visitors
      * @param  array<string, string>  $hashes
      * @return list<array{non-empty-list<int|string>, array<string, string>}>
      */
@@ -358,11 +354,11 @@ final readonly class AnonymiseViews
                 continue;
             }
 
-            if (str_starts_with($visitor, self::Prefix)) {
+            if (AnonymisedVisitor::isAnonymised($visitor)) {
                 continue;
             }
 
-            $hashes[$visitor] = self::Prefix.hash_hmac('sha256', $visitor, $salt);
+            $hashes[$visitor] = AnonymisedVisitor::hash($visitor, $salt);
         }
 
         return $hashes;
@@ -380,7 +376,7 @@ final readonly class AnonymiseViews
                 if (in_array('visitor', $columns, true)) {
                     $query->orWhere(fn (Builder $query): Builder => $query
                         ->whereNotNull('visitor')
-                        ->where('visitor', 'not like', self::Prefix.'%'));
+                        ->where('visitor', 'not like', AnonymisedVisitor::Prefix.'%'));
                 }
 
                 if (in_array('viewer', $columns, true)) {

@@ -31,9 +31,6 @@ return [
     */
     'models' => [
 
-        /*
-         * Here you can configure the default `View` model.
-         */
         'view' => [
 
             /*
@@ -116,11 +113,10 @@ return [
          * list a class of your own that implements
          * `Recording\Contracts\RecordingGuard`.
          *
-         * Out of the box crawlers, requests without a user agent, `HEAD`
-         * requests, `ignored_ip_addresses`, pages the browser only prefetches,
-         * viewers who opted out and bursts of views are dropped, and
-         * `EnforceCooldown` is listed because `cooldown()` does nothing
-         * without it. Uncomment the others to turn them on:
+         * Out of the box every guard below is listed except `ThrottleVisitors`,
+         * `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl`. Uncomment those
+         * to turn them on. `EnforceCooldown` is listed because `cooldown()`
+         * does nothing without it.
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
@@ -137,6 +133,8 @@ return [
          *   IgnoreBursts                drops a visitor that opens many
          *                               different models within seconds, see
          *                               `bursts`
+         *   EnforceCooldown             drops a repeat view while a
+         *                               `cooldown()` runs
          *   ThrottleVisitors            caps the views of one visitor per
          *                               minute, see `throttle`
          *   IgnoreDoNotTrack            honours the `DNT: 1` header
@@ -249,15 +247,13 @@ return [
         /*
          * When enabled, views are dispatched to the queue and stored by a
          * worker instead of during the request. This defers the database
-         * write to speed up response times. You may also queue individual
-         * views on the fly using the `queue()` method:
-         * `views($post)->queue()->record()`.
+         * write to speed up response times. `views($post)->queue()->record()`
+         * queues one view, whatever this is set to.
          */
         'queue' => [
 
             /*
-             * Whether views should be queued before they are stored by
-             * default.
+             * Whether a view is queued when the call does not say.
              */
             'enabled' => false,
 
@@ -407,13 +403,13 @@ return [
         'cache' => [
 
             /*
-             * Everything will be stored under the following key.
+             * The cache key prefix every cached count is kept under.
              */
             'key' => 'cyrildewit.eloquent-viewable.cache',
 
             /*
-             * Here you may define the cache store that should be used. When
-             * `null`, the application's default cache store is used.
+             * The cache store cached counts are kept in. When `null`, the
+             * application's default cache store is used.
              */
             'store' => null,
 
@@ -520,8 +516,9 @@ return [
          * `null` halves it every `half_life`, or name a class implementing
          * `Querying\Ranking\DecayCurve`, resolved from the container.
          *
-         * Views are weighed per `step`. `auto` weighs per hour, or per day
-         * when hours would exceed `max_steps`.
+         * Views are weighed per `step`. `1h` weighs per hour and `1d` per
+         * day. `auto` weighs per hour, or per day when hours would exceed
+         * `max_steps`.
          */
         'trending' => [
 
@@ -564,8 +561,9 @@ return [
             'after' => null,
 
             /*
-             * Which of `visitor`, `viewer`, `context` and `dimensions`, the
-             * dimensions marked personal, are anonymised.
+             * The columns anonymising clears or re-hashes: any of `visitor`,
+             * `viewer`, `context` and `dimensions`. `dimensions` stands for
+             * the dimensions marked personal.
              */
             'columns' => ['visitor', 'viewer', 'context', 'dimensions'],
 
@@ -581,7 +579,10 @@ return [
         ],
 
         /*
-         * How many views one statement anonymises or deletes.
+         * How many views one statement reads or writes in `views:anonymise`,
+         * `views:prune`, `views:purge-bots`, `views:recount`, `views:rollup`,
+         * `views:maintain` and the `views:dimensions` backfill. The `--chunk`
+         * option of a command overrides it for one run.
          */
         'chunk' => 5_000,
 
@@ -876,16 +877,17 @@ return [
         'viewers' => false,
 
         /*
-         * The most recently seen viewables `live()->top()` ranks. A busy site
-         * can raise it; it is the number of counts one ranking reads.
+         * The most recently seen viewables `live()->top()` ranks. One ranking
+         * reads one count per candidate, so a higher value ranks more
+         * viewables at the cost of more reads per call.
          */
         'max_candidates' => 1_000,
 
         'redis' => [
 
             /*
-             * The Redis connection from `config/database.php`. When `null`,
-             * the default connection is used.
+             * The Redis connection from `database.redis`. When `null`, the
+             * default connection is used.
              */
             'connection' => null,
 
@@ -907,8 +909,8 @@ return [
     'cooldown' => [
 
         /*
-         * Where running cooldowns are kept: `session`, as in v8, or `cache`,
-         * which also works on routes without a session. Register your own
+         * Where running cooldowns are kept: `session`, which needs a session
+         * on the route, or `cache`, which does not. Register your own
          * driver with `CooldownManager::extend()`.
          */
         'store' => 'session',
@@ -921,7 +923,10 @@ return [
         'cache' => [
 
             /*
-             * When `null`, the application's default cache store is used.
+             * The cache store cooldowns are kept in when `store` is `cache`.
+             * Every server that records views must share it, or a cooldown
+             * started on one server is not seen by another. When `null`, the
+             * application's default cache store is used.
              */
             'store' => null,
 

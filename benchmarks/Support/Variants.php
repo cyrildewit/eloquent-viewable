@@ -33,15 +33,21 @@ use Traversable;
 final readonly class Variants
 {
     /**
-     * The autoload rule for the directory, from composer.json.
+     * Kept in sync with the `autoload-dev` PSR-4 rule for `benchmarks/` in
+     * composer.json. Update both together.
      */
     private const string Namespace = 'CyrildeWit\\EloquentViewable\\Benchmarks\\';
 
     /**
-     * phpbench's `runner.file_pattern` and `runner.subject_pattern`.
+     * The regex form of `runner.file_pattern` in phpbench.json. If that
+     * pattern changes, discovery here no longer finds the files phpbench runs.
      */
     private const string FilePattern = '/Bench\.php$/';
 
+    /**
+     * phpbench's default `runner.subject_pattern`, which phpbench.json does
+     * not override.
+     */
     private const string SubjectPattern = '/^bench/';
 
     /**

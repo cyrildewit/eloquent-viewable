@@ -8,26 +8,16 @@ use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Typed access to the keys of the package config file.
- *
- * Defaults live in `config/eloquent-viewable.php` and are merged in by the
- * service provider, so they are not repeated here. A key that has to hold a
- * value throws when it is missing or empty, because there is no fallback that
- * would be correct; a boolean or list key falls back to the shipped default,
- * because there is.
+ * Typed access to the keys of the package config file that no module reads
+ * through a config of its own.
  *
  * @internal
  */
-final readonly class Config
+final readonly class Config extends ConfigReader
 {
-    public function __construct(
-        private Repository $config,
-    ) {}
-
     /**
      * @return class-string<View>
      *
@@ -37,11 +27,7 @@ final readonly class Config
     {
         $value = $this->get('models.view.class', View::class);
 
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeViewModel('models.view.class', $value);
-        }
-
-        if (! is_a($value, View::class, true)) {
+        if (! is_string($value) || ! is_a($value, View::class, true)) {
             throw InvalidConfiguration::mustBeViewModel('models.view.class', $value);
         }
 
@@ -97,24 +83,7 @@ final readonly class Config
      */
     public function guards(): array
     {
-        $value = $this->get('recording.guards');
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $value);
-        }
-
-        foreach ($value as $guard) {
-            if (! is_string($guard)) {
-                throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $guard);
-            }
-
-            if (! class_exists($guard)) {
-                throw InvalidConfiguration::mustBeListOfClasses('recording.guards', $guard);
-            }
-        }
-
-        /** @var list<class-string> */
-        return array_values($value);
+        return $this->classes('recording.guards');
     }
 
     /**
@@ -188,7 +157,7 @@ final readonly class Config
 
     public function queueEnabled(): bool
     {
-        return (bool) $this->get('recording.queue.enabled', false);
+        return $this->bool('recording.queue.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -205,7 +174,7 @@ final readonly class Config
 
     public function viewerEnabled(): bool
     {
-        return (bool) $this->get('recording.viewer.enabled', false);
+        return $this->bool('recording.viewer.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -216,7 +185,7 @@ final readonly class Config
 
     public function beaconEnabled(): bool
     {
-        return (bool) $this->get('recording.beacon.enabled', false);
+        return $this->bool('recording.beacon.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -242,19 +211,9 @@ final readonly class Config
      */
     public function dimensions(): array
     {
-        $value = $this->get('dimensions.definitions', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeDimensions('dimensions.definitions', $value);
-        }
-
         $dimensions = [];
 
-        foreach ($value as $name => $entry) {
-            if (! is_string($name)) {
-                throw InvalidConfiguration::mustBeDimensions('dimensions.definitions', $name);
-            }
-
+        foreach ($this->map('dimensions.definitions', InvalidConfiguration::mustBeDimensions(...)) as $name => $entry) {
             $dimensions[$name] = $this->dimension($name, $entry);
         }
 
@@ -288,19 +247,9 @@ final readonly class Config
      */
     public function sourceHosts(): array
     {
-        $value = $this->get('dimensions.sources', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $value);
-        }
-
         $sources = [];
 
-        foreach ($value as $host => $source) {
-            if (! is_string($host)) {
-                throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
-            }
-
+        foreach ($this->map('dimensions.sources', InvalidConfiguration::mustBeSourceList(...)) as $host => $source) {
             $sources[strtolower($host)] = $this->source($host, $source);
         }
 
@@ -314,19 +263,9 @@ final readonly class Config
      */
     public function sourceAliases(): array
     {
-        $value = $this->get('dimensions.source_aliases', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $value);
-        }
-
         $aliases = [];
 
-        foreach ($value as $alias => $name) {
-            if (! is_string($alias)) {
-                throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $alias);
-            }
-
+        foreach ($this->map('dimensions.source_aliases', InvalidConfiguration::mustMapStrings(...)) as $alias => $name) {
             if (! is_string($name)) {
                 throw InvalidConfiguration::mustMapStrings('dimensions.source_aliases', $alias);
             }
@@ -398,18 +337,12 @@ final readonly class Config
      */
     public function recommendationsSimilarity(): string
     {
-        $value = $this->get('querying.recommendations.similarity', 'cosine');
-
-        if (! in_array($value, ['cosine', 'count'], true)) {
-            throw InvalidConfiguration::mustBeOneOf('querying.recommendations.similarity', ['cosine', 'count'], $value);
-        }
-
-        return $value;
+        return $this->oneOf('querying.recommendations.similarity', ['cosine', 'count'], 'cosine');
     }
 
     public function pairsEnabled(): bool
     {
-        return (bool) $this->get('querying.pairs.enabled', false);
+        return $this->bool('querying.pairs.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -502,13 +435,7 @@ final readonly class Config
      */
     public function visitorIdentity(): string
     {
-        $value = $this->get('visitor.identity', 'cookie');
-
-        if (! in_array($value, ['cookie', 'viewer', 'fingerprint'], true)) {
-            throw InvalidConfiguration::mustBeOneOf('visitor.identity', ['cookie', 'viewer', 'fingerprint'], $value);
-        }
-
-        return $value;
+        return $this->oneOf('visitor.identity', ['cookie', 'viewer', 'fingerprint'], 'cookie');
     }
 
     /** @throws InvalidConfiguration */
@@ -530,13 +457,7 @@ final readonly class Config
      */
     public function fingerprintRotation(): string
     {
-        $value = $this->get('visitor.fingerprint.rotation', 'day');
-
-        if (! in_array($value, ['day', 'week', 'month'], true)) {
-            throw InvalidConfiguration::mustBeOneOf('visitor.fingerprint.rotation', ['day', 'week', 'month'], $value);
-        }
-
-        return $value;
+        return $this->oneOf('visitor.fingerprint.rotation', ['day', 'week', 'month'], 'day');
     }
 
     /** @throws InvalidConfiguration */
@@ -565,16 +486,10 @@ final readonly class Config
      */
     public function counters(): array
     {
-        $value = $this->get('querying.counters', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $value);
-        }
-
         $counters = [];
 
-        foreach ($value as $class => $columns) {
-            $model = $this->counterModel($class);
+        foreach ($this->map('querying.counters', InvalidConfiguration::mustBeCounters(...)) as $class => $columns) {
+            $model = $this->viewableClass($class) ?? throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
 
             if (! is_array($columns) || $columns === []) {
                 throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
@@ -587,8 +502,8 @@ final readonly class Config
     }
 
     /**
-     * It returns the counter columns that hold a hot score instead of a
-     * count, by class and column. Their count is the one the other options of
+     * It returns the counter columns with the `hot` option, by class and
+     * column. The score is computed from the count that the other options of
      * the column describe.
      *
      * @return array<class-string<Model&Viewable>, array<string, HotScore>>
@@ -628,7 +543,8 @@ final readonly class Config
 
     /**
      * It returns the thresholds of each counter column, in ascending order.
-     * Every column is a counter column without a period or a hot score.
+     * It throws when a column is not a counter column, or when the column
+     * counts a period or holds a hot score.
      *
      * @return array<class-string<Model&Viewable>, array<string, non-empty-list<int>>>
      *
@@ -637,26 +553,13 @@ final readonly class Config
      */
     public function milestones(): array
     {
-        $value = $this->get('milestones.thresholds', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $value);
-        }
-
+        $value = $this->map('milestones.thresholds', InvalidConfiguration::mustBeMilestones(...));
         $counters = $value === [] ? [] : $this->counters();
         $hotScores = $value === [] ? [] : $this->hotScores();
         $milestones = [];
 
         foreach ($value as $class => $columns) {
-            if (! is_string($class)) {
-                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
-            }
-
-            if (! is_array($columns)) {
-                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
-            }
-
-            if ($columns === []) {
+            if (! is_array($columns) || $columns === []) {
                 throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $class);
             }
 
@@ -699,37 +602,17 @@ final readonly class Config
      */
     public function spikes(): array
     {
-        $value = $this->get('spikes.types', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeSpikes('spikes.types', $value);
-        }
-
         $spikes = [];
 
-        foreach ($value as $class => $options) {
-            if (! is_string($class)) {
-                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
-            }
+        foreach ($this->map('spikes.types', InvalidConfiguration::mustBeSpikes(...)) as $class => $options) {
+            $model = $this->viewableClass($class) ?? throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
 
-            if (! is_a($class, Model::class, true)) {
-                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
-            }
-
-            if (! is_a($class, Viewable::class, true)) {
-                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
-            }
-
-            if (! is_array($options)) {
-                throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
-            }
-
-            if (array_diff(array_keys($options), ['window', 'seasonality', 'samples', 'threshold', 'minimum', 'drops', 'cooldown']) !== []) {
+            if (! is_array($options) || ! $this->optionsAmong($options, ['window', 'seasonality', 'samples', 'threshold', 'minimum', 'drops', 'cooldown'])) {
                 throw InvalidConfiguration::mustBeSpikes('spikes.types', $class);
             }
 
             /** @var array<string, mixed> $options */
-            $spikes[$class] = $options;
+            $spikes[$model] = $options;
         }
 
         return $spikes;
@@ -791,17 +674,10 @@ final readonly class Config
      */
     public function rollupTiers(): array
     {
-        $allowed = ['hour', 'day', 'month', 'year'];
-        $value = $this->get('retention.rollups.tiers', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeTiers('retention.rollups.tiers', $value);
-        }
-
         $tiers = [];
 
-        foreach ($value as $tier => $keep) {
-            if (! in_array($tier, $allowed, true)) {
+        foreach (array_keys($this->map('retention.rollups.tiers', InvalidConfiguration::mustBeTiers(...))) as $tier) {
+            if (! in_array($tier, ['hour', 'day', 'month', 'year'], true)) {
                 throw InvalidConfiguration::mustBeTiers('retention.rollups.tiers', $tier);
             }
 
@@ -833,24 +709,7 @@ final readonly class Config
      */
     public function customRollups(): array
     {
-        $value = $this->get('retention.rollups.custom', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $value);
-        }
-
-        foreach ($value as $class) {
-            if (! is_string($class)) {
-                throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $class);
-            }
-
-            if (! class_exists($class)) {
-                throw InvalidConfiguration::mustBeListOfClasses('retention.rollups.custom', $class);
-            }
-        }
-
-        /** @var list<class-string> */
-        return array_values($value);
+        return $this->classes('retention.rollups.custom', []);
     }
 
     /**
@@ -865,7 +724,7 @@ final readonly class Config
 
     public function rollupsStrict(): bool
     {
-        return (bool) $this->get('retention.rollups.strict', false);
+        return $this->bool('retention.rollups.strict');
     }
 
     /**
@@ -875,29 +734,12 @@ final readonly class Config
      */
     public function doctorChecks(): array
     {
-        $value = $this->get('doctor.checks', []);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $value);
-        }
-
-        foreach ($value as $check) {
-            if (! is_string($check)) {
-                throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $check);
-            }
-
-            if (! class_exists($check)) {
-                throw InvalidConfiguration::mustBeListOfClasses('doctor.checks', $check);
-            }
-        }
-
-        /** @var list<class-string> */
-        return array_values($value);
+        return $this->classes('doctor.checks', []);
     }
 
     public function sampleEnabled(): bool
     {
-        return (bool) $this->get('doctor.sample.enabled', false);
+        return $this->bool('doctor.sample.enabled');
     }
 
     /** @throws InvalidConfiguration */
@@ -917,140 +759,11 @@ final readonly class Config
     {
         $value = $this->get('doctor.sample.crawler_share');
 
-        if (! is_int($value) && ! is_float($value)) {
-            throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
-        }
-
-        if ($value <= 0) {
-            throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
-        }
-
-        if ($value > 1) {
+        if ((! is_int($value) && ! is_float($value)) || $value <= 0 || $value > 1) {
             throw InvalidConfiguration::mustBeShare('doctor.sample.crawler_share', $value);
         }
 
         return (float) $value;
-    }
-
-    public function presenceEnabled(): bool
-    {
-        return (bool) $this->get('presence.enabled', false);
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceDriver(): string
-    {
-        return $this->nonEmptyString('presence.driver');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceWindow(): int
-    {
-        return $this->positiveInteger('presence.window');
-    }
-
-    /**
-     * @return 'exact'|'approximate'
-     *
-     * @throws InvalidConfiguration
-     */
-    public function presencePrecision(): string
-    {
-        $value = $this->get('presence.precision', 'exact');
-
-        if (! in_array($value, ['exact', 'approximate'], true)) {
-            throw InvalidConfiguration::mustBeOneOf('presence.precision', ['exact', 'approximate'], $value);
-        }
-
-        return $value;
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceHeartbeat(): int
-    {
-        return $this->positiveInteger('presence.heartbeat');
-    }
-
-    public function presenceExposesCount(): bool
-    {
-        return (bool) $this->get('presence.expose_count', false);
-    }
-
-    public function presenceTracksViewers(): bool
-    {
-        return (bool) $this->get('presence.viewers', false);
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceMaxCandidates(): int
-    {
-        return $this->positiveInteger('presence.max_candidates');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceRedisConnection(): ?string
-    {
-        return $this->string('presence.redis.connection');
-    }
-
-    /** @throws InvalidConfiguration */
-    public function presenceRedisPrefix(): string
-    {
-        return $this->nonEmptyString('presence.redis.prefix');
-    }
-
-    private function get(string $key, mixed $default = null): mixed
-    {
-        return $this->config->get("eloquent-viewable.{$key}", $default);
-    }
-
-    /**
-     * A single string is read as a list of one.
-     *
-     * @return list<string>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function strings(string $key): array
-    {
-        $value = (array) $this->get($key, []);
-
-        foreach ($value as $item) {
-            if (! is_string($item)) {
-                throw InvalidConfiguration::mustBeListOfStrings($key, $item);
-            }
-        }
-
-        /** @var list<string> */
-        return array_values($value);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function string(string $key): ?string
-    {
-        $value = $this->get($key);
-
-        if ($value !== null && ! is_string($value)) {
-            throw InvalidConfiguration::mustBeStringOrNull($key, $value);
-        }
-
-        return $value;
-    }
-
-    /** @throws InvalidConfiguration */
-    private function nonEmptyString(string $key): string
-    {
-        $value = $this->get($key);
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeNonEmptyString($key, $value);
-        }
-
-        if ($value === '') {
-            throw InvalidConfiguration::mustBeNonEmptyString($key, $value);
-        }
-
-        return $value;
     }
 
     /**
@@ -1071,11 +784,7 @@ final readonly class Config
             unset($options[0]);
         }
 
-        if (! is_string($entry)) {
-            throw InvalidConfiguration::invalidDimension($name, 'must name a class, alone or first in an array of options');
-        }
-
-        if (! class_exists($entry)) {
+        if (! is_string($entry) || ! class_exists($entry)) {
             throw InvalidConfiguration::invalidDimension($name, 'must name a class, alone or first in an array of options');
         }
 
@@ -1096,48 +805,18 @@ final readonly class Config
      */
     private function source(string $host, mixed $source): array
     {
-        if (! is_array($source)) {
-            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
-        }
-
-        if (array_keys($source) !== [0, 1]) {
+        if (! is_array($source) || array_keys($source) !== [0, 1]) {
             throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
         }
 
         $name = $source[0] ?? null;
         $medium = $source[1] ?? null;
 
-        if (! is_string($name)) {
-            throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
-        }
-
-        if (! is_string($medium)) {
+        if (! is_string($name) || ! is_string($medium)) {
             throw InvalidConfiguration::mustBeSourceList('dimensions.sources', $host);
         }
 
         return [$name, $medium];
-    }
-
-    /**
-     * @return class-string<Model&Viewable>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function counterModel(mixed $class): string
-    {
-        if (! is_string($class)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
-        }
-
-        if (! is_a($class, Model::class, true)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
-        }
-
-        if (! is_a($class, Viewable::class, true)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $class);
-        }
-
-        return $class;
     }
 
     /**
@@ -1172,22 +851,14 @@ final readonly class Config
      */
     private function counterQuery(string $column, mixed $options): ViewsQuery
     {
-        if (! is_array($options)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
-        }
-
-        if (array_diff(array_keys($options), ['unique', 'period', 'collection', 'hot', 'dimensions']) !== []) {
+        if (! is_array($options) || ! $this->optionsAmong($options, ['unique', 'period', 'collection', 'hot', 'dimensions'])) {
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
         $period = $options['period'] ?? null;
         $collection = $options['collection'] ?? null;
 
-        if ($period !== null && ! is_string($period)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
-        }
-
-        if ($collection !== null && ! is_string($collection)) {
+        if (($period !== null && ! is_string($period)) || ($collection !== null && ! is_string($collection))) {
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
         }
 
@@ -1200,9 +871,9 @@ final readonly class Config
     }
 
     /**
-     * Config cannot tell where a dimension is kept, so each filter points at
-     * the column named after it until the registry resolves it before the
-     * count.
+     * The config does not know where a dimension is stored. Each filter
+     * targets the column with the dimension's name, and the dimension
+     * registry replaces that target before the count runs.
      *
      * @return list<DimensionFilter>
      *
@@ -1238,18 +909,8 @@ final readonly class Config
             return [$values];
         }
 
-        if (! is_array($values)) {
+        if (! is_array($values) || ! array_is_list($values) || array_any($values, static fn (mixed $value): bool => ! is_string($value))) {
             throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
-        }
-
-        if (! array_is_list($values)) {
-            throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
-        }
-
-        foreach ($values as $value) {
-            if (! is_string($value)) {
-                throw InvalidConfiguration::mustBeCounters('querying.counters', $column);
-            }
         }
 
         /** @var list<string> $values */
@@ -1263,26 +924,14 @@ final readonly class Config
      */
     private function thresholds(mixed $thresholds): array
     {
-        if (! is_array($thresholds)) {
-            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
-        }
-
-        if (! array_is_list($thresholds)) {
-            throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
-        }
-
-        if ($thresholds === []) {
+        if (! is_array($thresholds) || ! array_is_list($thresholds) || $thresholds === []) {
             throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $thresholds);
         }
 
         $previous = 0;
 
         foreach ($thresholds as $threshold) {
-            if (! is_int($threshold)) {
-                throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $threshold);
-            }
-
-            if ($threshold <= $previous) {
+            if (! is_int($threshold) || $threshold <= $previous) {
                 throw InvalidConfiguration::mustBeMilestones('milestones.thresholds', $threshold);
             }
 
@@ -1308,11 +957,7 @@ final readonly class Config
             $hot = ['from' => $hot];
         }
 
-        if (! is_array($hot)) {
-            throw InvalidConfiguration::mustBeHotScore($column, $hot);
-        }
-
-        if (array_diff(array_keys($hot), ['from', 'every']) !== []) {
+        if (! is_array($hot) || ! $this->optionsAmong($hot, ['from', 'every'])) {
             throw InvalidConfiguration::mustBeHotScore($column, $hot);
         }
 
@@ -1320,11 +965,7 @@ final readonly class Config
         $every = $hot['every'] ?? '12h';
         $duration = is_string($every) ? Duration::tryParse($every) : null;
 
-        if (! is_string($from)) {
-            throw InvalidConfiguration::mustBeHotScore($column, $from);
-        }
-
-        if ($from === '') {
+        if (! is_string($from) || $from === '') {
             throw InvalidConfiguration::mustBeHotScore($column, $from);
         }
 
@@ -1333,100 +974,5 @@ final readonly class Config
         }
 
         return new HotScore($from, $duration);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function duration(string $key): ?Duration
-    {
-        $value = $this->get($key);
-
-        if ($value === null) {
-            return null;
-        }
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeDuration($key, $value);
-        }
-
-        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value);
-    }
-
-    /**
-     * @param  list<string>  $allowed
-     * @param  list<string>  $default
-     * @return list<string>
-     *
-     * @throws InvalidConfiguration
-     */
-    private function subsetOf(string $key, array $allowed, array $default): array
-    {
-        $value = $this->get($key, $default);
-
-        if (! is_array($value)) {
-            throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $value);
-        }
-
-        if ($value === []) {
-            throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $value);
-        }
-
-        foreach ($value as $item) {
-            if (! in_array($item, $allowed, true)) {
-                throw InvalidConfiguration::mustBeSubsetOf($key, $allowed, $item);
-            }
-        }
-
-        return array_values(array_intersect($allowed, $value));
-    }
-
-    /** @throws InvalidConfiguration */
-    private function requiredDuration(string $key): Duration
-    {
-        $value = $this->get($key);
-
-        if (! is_string($value)) {
-            throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
-        }
-
-        return Duration::tryParse($value) ?? throw InvalidConfiguration::mustBeDuration($key, $value, nullable: false);
-    }
-
-    /** @throws InvalidConfiguration */
-    private function positiveIntegerOrNull(string $key): ?int
-    {
-        $value = $this->get($key);
-
-        if ($value === null) {
-            return null;
-        }
-
-        $integer = filter_var($value, FILTER_VALIDATE_INT);
-
-        if ($integer === false) {
-            throw InvalidConfiguration::mustBePositiveIntegerOrNull($key, $value);
-        }
-
-        if ($integer < 1) {
-            throw InvalidConfiguration::mustBePositiveIntegerOrNull($key, $value);
-        }
-
-        return $integer;
-    }
-
-    /** @throws InvalidConfiguration */
-    private function positiveInteger(string $key): int
-    {
-        $value = $this->get($key);
-        $integer = filter_var($value, FILTER_VALIDATE_INT);
-
-        if ($integer === false) {
-            throw InvalidConfiguration::mustBePositiveInteger($key, $value);
-        }
-
-        if ($integer < 1) {
-            throw InvalidConfiguration::mustBePositiveInteger($key, $value);
-        }
-
-        return $integer;
     }
 }

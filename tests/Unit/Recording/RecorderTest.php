@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Scope;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Presence\Stores\ArrayPresenceStore;
 use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
@@ -47,13 +48,14 @@ const RECORDER_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
  */
 function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array $queue = [], ?EventDispatcher $events = null, bool $viewerEnabled = false, string $identity = 'cookie', ?PresenceStore $presence = null, array $presenceConfig = [], ?DimensionRegistry $dimensions = null): Recorder
 {
-    $config = new Config(new Repository([
+    $repository = new Repository([
         'eloquent-viewable' => [
             'recording' => ['queue' => $queue, 'viewer' => ['enabled' => $viewerEnabled]],
             'visitor' => ['identity' => $identity],
             'presence' => $presenceConfig,
         ],
-    ]));
+    ]);
+    $config = new Config($repository);
 
     return new Recorder(
         $guards,
@@ -63,6 +65,7 @@ function recorder(array $guards, BusDispatcher $bus, RecordsViews $action, array
         $action,
         new VisitorIdentity($config, new Encrypter(RECORDER_KEY, 'AES-256-CBC'), new Fingerprint($config, Mockery::mock(CacheFactory::class))),
         $presence ?? new ArrayPresenceStore,
+        new PresenceConfig($repository),
         new DimensionResolver($dimensions ?? new DimensionRegistry, $config, Request::create('https://example.com/posts/1'), Mockery::mock(ExceptionHandler::class)),
     );
 }

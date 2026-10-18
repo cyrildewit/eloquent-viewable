@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Recording\Streams\Clients;
 
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RedisStreamFailed;
-use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
+use CyrildeWit\EloquentViewable\Support\RedisError;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Redis;
 
 /** @internal */
-final readonly class PhpRedisClient implements StreamClient
+final readonly class PhpRedisClient extends RedisStreamClient
 {
     public function __construct(private PhpRedisConnection $connection) {}
 
@@ -38,7 +38,7 @@ final readonly class PhpRedisClient implements StreamClient
             return;
         }
 
-        $error = $this->lastError();
+        $error = RedisError::last($this->connection);
 
         if (! str_contains($error, 'BUSYGROUP')) {
             throw RedisStreamFailed::creatingGroup($stream, $group, $error);
@@ -70,14 +70,6 @@ final readonly class PhpRedisClient implements StreamClient
         return $this->entries(array_first($response) ?? []);
     }
 
-    /** @return list<StreamEntry> */
-    public function range(string $stream, ?string $after, int $count): array
-    {
-        $start = $after === null ? '-' : "({$after}";
-
-        return $this->entries($this->connection->command('xrange', [$stream, $start, '+', $count]));
-    }
-
     /** @param  list<string>  $ids */
     public function acknowledge(string $stream, string $group, array $ids): void
     {
@@ -90,32 +82,6 @@ final readonly class PhpRedisClient implements StreamClient
         $this->connection->command('xdel', [$stream, $ids]);
     }
 
-    public function length(string $stream): int
-    {
-        $length = $this->connection->command('xlen', [$stream]);
-
-        return is_int($length) ? $length : 0;
-    }
-
-    /**
-     * An unknown group is an error reply, which phpredis returns as `false`
-     * and keeps as the last error until it is cleared.
-     */
-    public function pending(string $stream, string $group): int
-    {
-        $summary = $this->connection->command('xpending', [$stream, $group]);
-
-        if (! is_array($summary)) {
-            $this->lastError();
-
-            return 0;
-        }
-
-        $count = $summary[0] ?? 0;
-
-        return is_numeric($count) ? (int) $count : 0;
-    }
-
     /**
      * The entries are filtered by their idle time here, because phpredis
      * leaves the connection unusable after an `XPENDING` with `IDLE`.
@@ -125,7 +91,9 @@ final readonly class PhpRedisClient implements StreamClient
         $pending = $this->connection->command('xpending', [$stream, $group, '-', '+', $count]);
 
         if (! is_array($pending)) {
-            $this->lastError();
+            // Clears the error phpredis keeps, so the next command does not
+            // read it as its own.
+            RedisError::last($this->connection);
 
             return 0;
         }
@@ -143,37 +111,26 @@ final readonly class PhpRedisClient implements StreamClient
         return $stalled;
     }
 
-    private function lastError(): string
+    protected function connection(): PhpRedisConnection
     {
-        $client = $this->connection->client();
-
-        if (! $client instanceof Redis) {
-            return '';
-        }
-
-        $error = (string) $client->getLastError();
-
-        $client->clearLastError();
-
-        return $error;
+        return $this->connection;
     }
 
     /**
-     * @param  mixed  $map  `[id => [field => value]]`, or `false` for an error reply
-     * @return list<StreamEntry>
+     * An unknown group is an error reply, which phpredis returns as `false`
+     * and keeps as the last error until it is cleared. `RedisError::last()`
+     * clears it before null is returned.
      */
-    private function entries(mixed $map): array
+    protected function pendingSummary(string $stream, string $group): mixed
     {
-        if (! is_array($map)) {
-            return [];
+        $summary = $this->connection->command('xpending', [$stream, $group]);
+
+        if (! is_array($summary)) {
+            RedisError::last($this->connection);
+
+            return null;
         }
 
-        $entries = [];
-
-        foreach ($map as $id => $fields) {
-            $entries[] = StreamEntry::of((string) $id, $fields);
-        }
-
-        return $entries;
+        return $summary;
     }
 }

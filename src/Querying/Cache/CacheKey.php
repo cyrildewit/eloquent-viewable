@@ -13,22 +13,19 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  * Builds the cache key under which a view count, a series or a ranking is
  * memoized.
  *
- * The key is a hybrid of two parts joined by a colon:
+ * The key is a readable head and a digest, joined by a colon:
  *
- *   {prefix}:{morph class}:{key}:{digest}
+ *   {prefix}:{morph class}:{key}:{digest}  one viewable
+ *   {prefix}:type:{morph class}:{digest}   every viewable of a type
+ *   {prefix}:top:{digest}                  a ranking across types
  *
- * The head ({prefix}:{morph class}:{key}) is a human-readable, best-effort
- * label that keeps entries identifiable when inspecting the cache store. It is
- * not relied upon for uniqueness. The digest is a collision-safe hash over the
- * full identity of the count being cached, so two configurations only ever
- * share a key when they are genuinely the same count. The source is part of
- * that identity: its driver name, and whatever the source reports through
- * `IdentifiesSource`, such as the connection the database source reads, so
- * switching either starts fresh entries rather than serving counts the old
- * source produced.
- *
- * A type without a key stands for every viewable of the type, and no type at
- * all for every type, which only a ranking asks for.
+ * The head only makes entries recognisable in the cache store, and nothing
+ * relies on it being unique. The digest hashes the full identity of the
+ * count, so two reads share a key only when they ask for the same count. The
+ * source is part of that identity: its driver name, and whatever the source
+ * reports through `IdentifiesSource`, such as the connection the database
+ * source reads. Switching either starts fresh entries rather than serving
+ * counts the old source produced.
  *
  * @internal
  */

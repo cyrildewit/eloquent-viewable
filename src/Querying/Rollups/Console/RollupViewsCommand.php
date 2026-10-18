@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Rollups\Console;
 
-use Carbon\CarbonImmutable;
-use Carbon\Exceptions\InvalidFormatException;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ExpireTiers;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\Concerns\ReportsRollups;
@@ -13,15 +13,17 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupDefinition;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Config;
-use CyrildeWit\EloquentViewable\Support\Console\LimitsRunTime;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\RunLock;
 use Illuminate\Console\Command;
 
 final class RollupViewsCommand extends Command
 {
-    use LimitsRunTime;
+    use ReadsOptions;
     use ReportsRollups;
+    use RunsScheduledWork;
 
     #[\Override]
     protected $signature = 'views:rollup
@@ -35,6 +37,10 @@ final class RollupViewsCommand extends Command
     #[\Override]
     protected $description = 'Fold the views of closed buckets into the rollup tiers and expire old tiers';
 
+    /**
+     * @throws InvalidConfiguration
+     * @throws InvalidOption
+     */
     public function handle(FoldViews $fold, ExpireTiers $expire, RollupPolicy $policy, Config $config, RunLock $lock): int
     {
         if (! $policy->isEnabled()) {
@@ -44,35 +50,13 @@ final class RollupViewsCommand extends Command
         }
 
         $rollup = $this->rollup($policy);
-
-        if ($rollup === false) {
-            return self::FAILURE;
-        }
-
         $tier = $this->tier($policy, $rollup);
-        $from = $this->from();
-        $chunk = $this->chunk($config);
+        $from = $this->date('from', '2025-01-01');
+        $chunk = $this->positiveInteger('chunk', $config->retentionChunk());
         $deadline = $this->deadline();
+        $dryRun = $this->isDryRun();
 
-        if ($tier === false) {
-            return self::FAILURE;
-        }
-
-        if ($from === false) {
-            return self::FAILURE;
-        }
-
-        if ($chunk === null) {
-            return self::FAILURE;
-        }
-
-        if ($deadline === false) {
-            return self::FAILURE;
-        }
-
-        $dryRun = (bool) $this->option('dry-run');
-
-        $result = $lock->run(function (Deadline $deadline) use ($fold, $expire, $tier, $from, $chunk, $dryRun, $rollup): int {
+        return $this->exclusively($lock, function (Deadline $deadline) use ($fold, $expire, $tier, $from, $chunk, $dryRun, $rollup): int {
             foreach ($fold->handle($tier, $from, $dryRun, $rollup?->name, $deadline) as $run) {
                 $this->reportFolded($run, $dryRun);
 
@@ -93,20 +77,10 @@ final class RollupViewsCommand extends Command
 
             return self::SUCCESS;
         }, $deadline);
-
-        if ($result === null) {
-            $this->components->warn('Another run is in progress, so this one was skipped.');
-
-            return self::SUCCESS;
-        }
-
-        return $result;
     }
 
-    /**
-     * It returns false once the error is reported.
-     */
-    private function rollup(RollupPolicy $policy): RollupDefinition|false|null
+    /** @throws InvalidOption */
+    private function rollup(RollupPolicy $policy): ?RollupDefinition
     {
         $name = $this->option('rollup');
 
@@ -122,15 +96,11 @@ final class RollupViewsCommand extends Command
 
         $names = implode('`, `', array_map(static fn (RollupDefinition $definition): string => $definition->name, $policy->definitions()));
 
-        $this->components->error("The --rollup option must name a configured rollup: `{$names}`.");
-
-        return false;
+        throw new InvalidOption("The --rollup option must name a configured rollup: `{$names}`.");
     }
 
-    /**
-     * It returns false once the error is reported.
-     */
-    private function tier(RollupPolicy $policy, ?RollupDefinition $rollup): Tier|false|null
+    /** @throws InvalidOption */
+    private function tier(RollupPolicy $policy, ?RollupDefinition $rollup): ?Tier
     {
         $name = $this->option('tier');
 
@@ -152,56 +122,6 @@ final class RollupViewsCommand extends Command
 
         $names = implode('`, `', $tiers);
 
-        $this->components->error("The --tier option must name a configured tier: `{$names}`.");
-
-        return false;
-    }
-
-    /**
-     * It returns null once the error is reported.
-     */
-    private function chunk(Config $config): ?int
-    {
-        $option = $this->option('chunk');
-
-        if ($option === null) {
-            return $config->retentionChunk();
-        }
-
-        $chunk = filter_var($option, FILTER_VALIDATE_INT);
-
-        if ($chunk === false) {
-            $this->components->error('The --chunk option must be a positive integer.');
-
-            return null;
-        }
-
-        if ($chunk < 1) {
-            $this->components->error('The --chunk option must be a positive integer.');
-
-            return null;
-        }
-
-        return $chunk;
-    }
-
-    /**
-     * It returns false once the error is reported.
-     */
-    private function from(): CarbonImmutable|false|null
-    {
-        $from = $this->option('from');
-
-        if (! is_string($from)) {
-            return null;
-        }
-
-        try {
-            return CarbonImmutable::parse($from);
-        } catch (InvalidFormatException) {
-            $this->components->error('The --from option must be a date such as `2025-01-01`.');
-
-            return false;
-        }
+        throw new InvalidOption("The --tier option must name a configured tier: `{$names}`.");
     }
 }

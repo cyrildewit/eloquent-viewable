@@ -24,11 +24,22 @@ final class Timezone extends DateTimeZone
     }
 
     /**
-     * The zone `viewed_at` is stored as the wall clock of.
+     * The application timezone. `viewed_at` is stored as wall-clock time in
+     * this zone.
      */
     public static function application(): self
     {
         return new self(date_default_timezone_get());
+    }
+
+    /**
+     * The zone of the name, or the application's without one.
+     *
+     * @throws InvalidTimezone
+     */
+    public static function named(?string $timezone): self
+    {
+        return $timezone === null ? self::application() : new self($timezone);
     }
 
     /** @throws InvalidTimezone */

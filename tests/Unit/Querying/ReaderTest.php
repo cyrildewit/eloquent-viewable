@@ -27,6 +27,7 @@ use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Reader;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommender;
 use CyrildeWit\EloquentViewable\Querying\Series\Bucket;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
@@ -60,6 +61,7 @@ function reader(ViewSource $source, ?CacheRepository $cache = null, int $maxInte
         new ViewableLoader,
         new DecayFactory(readerConfig($maxIntervals), new Container),
         new RecommendationLoader(new ViewableLoader),
+        new Recommender(readerConfig($maxIntervals)),
     );
 }
 
@@ -79,7 +81,9 @@ function countingStore(): ArrayStore
         #[Override]
         public function get($key): mixed
         {
-            // many() reads every key through get(), within one round trip.
+            // ArrayStore::many() calls get() once per key. A real store answers
+            // many() in one round trip, so a get() inside many() is not counted
+            // as another read.
             if (! $this->reading) {
                 $this->reads++;
             }

@@ -23,8 +23,13 @@ final readonly class CacheVersions
     }
 
     /**
-     * These are the versions an entry depends on. A type without a key stands
-     * for every viewable of the type, and no type at all for every type.
+     * The version keys an entry is stamped with. Every entry depends on "all".
+     * An entry of one viewable or of a whole type also depends on
+     * "models:{type}", which forgetModel() bumps for the whole type. A
+     * per-viewable entry adds "model:{type}:{key}" and a type-wide entry adds
+     * "type:{type}", and forgetting one viewable bumps both, so the type-wide
+     * totals it is part of are forgotten with it. A ranking across types
+     * depends on "ranking", which every forget bumps.
      *
      * @return list<string>
      */
@@ -42,6 +47,10 @@ final readonly class CacheVersions
     }
 
     /**
+     * A version key the cache lacks, because it was never written or was
+     * evicted, gets a new token that is stored forever. Entries stamped with
+     * the lost token no longer match, so they are read as stale.
+     *
      * @param  list<string>  $keys
      * @param  array<string, mixed>  $read
      * @return array<string, string>
@@ -80,8 +89,8 @@ final readonly class CacheVersions
     }
 
     /**
-     * It works like forgetCache() for a viewable known only by its morph type
-     * and key. Without a key it forgets the whole type.
+     * Forget the entries of a viewable known only by its morph type and key.
+     * Without a key, forget every entry of the type.
      */
     public function forgetModel(string $type, int|string|null $key = null): void
     {

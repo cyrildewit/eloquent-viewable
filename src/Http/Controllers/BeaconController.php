@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Http\Controllers;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\Arrival;
 use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
+use CyrildeWit\EloquentViewable\Http\RecordingOptions;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Contracts\Container\Container;
@@ -18,17 +19,18 @@ use Illuminate\Routing\UrlGenerator;
  * Records a view of the model a signed beacon URL names.
  *
  * The CSRF check of the `web` group refuses a post from another site before
- * it gets here. Every answer is empty and uncached. A view a guard skips
- * still gets a 204, so the response does not tell a visitor what the guards
- * decided.
+ * it gets here. A view a guard skips still gets a 204, so the response does
+ * not tell a visitor what the guards decided.
  */
 final readonly class BeaconController
 {
     use FindsViewables;
 
     /**
-     * How long the referrer and the landing query the script posts may be. A
-     * longer one is cut, which costs no more than a dimension cut short.
+     * How long the referrer and the landing query the script posts may be. The
+     * limit bounds what a visitor can make the app store. A longer value is
+     * cut to this length rather than refused, because a truncated referrer or
+     * landing query only shortens the dimension read from it.
      */
     private const int MaxPostedLength = 2_048;
 
@@ -38,20 +40,17 @@ final readonly class BeaconController
     ) {}
 
     /**
-     * A model found by its key always has one, so recording never fails here.
+     * The model was found by its key, so it has one and attempt() never throws
+     * RecordingFailed here. The tag is kept because attempt() declares it.
      *
      * @throws RecordingFailed
      */
     public function __invoke(Request $request, string $type, string $key): Response
     {
-        if (! $this->urls->hasValidSignature($request, absolute: false)) {
-            return $this->respond(Response::HTTP_FORBIDDEN);
-        }
-
-        $viewable = $this->find($type, $key);
+        $viewable = $this->resolve($request, $type, $key);
 
         if (! $viewable instanceof Viewable) {
-            return $this->respond(Response::HTTP_NOT_FOUND);
+            return $this->respond($viewable);
         }
 
         $this->views($request)->forViewable($viewable)->attempt();
@@ -68,26 +67,9 @@ final readonly class BeaconController
      */
     private function views(Request $request): Views
     {
-        $views = $this->container->make(Views::class);
-
-        $views->arrivedFrom(Arrival::fromUrls(
-            $this->posted($request, 'referrer'),
-            $this->posted($request, 'landing'),
-        ));
-
-        if ($request->query->has('collection')) {
-            $views->collection($request->query->getString('collection'));
-        }
-
-        if ($request->query->has('cooldown')) {
-            $views->cooldown($request->query->getInt('cooldown'));
-        }
-
-        if ($request->query->has('queue')) {
-            $views->queue($request->query->getBoolean('queue'));
-        }
-
-        return $views;
+        return RecordingOptions::fromQuery($request->query)
+            ->applyTo($this->container->make(Views::class))
+            ->arrivedFrom(Arrival::fromUrls($this->posted($request, 'referrer'), $this->posted($request, 'landing')));
     }
 
     /**
@@ -103,10 +85,5 @@ final readonly class BeaconController
         }
 
         return substr($value, 0, self::MaxPostedLength);
-    }
-
-    private function respond(int $status): Response
-    {
-        return new Response(status: $status, headers: ['Cache-Control' => 'no-store']);
     }
 }

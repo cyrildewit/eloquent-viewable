@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Carbon\CarbonInterval;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
@@ -36,17 +35,14 @@ use CyrildeWit\EloquentViewable\Querying\Frequency\VisitFrequency;
 use CyrildeWit\EloquentViewable\Querying\Growth\Baseline;
 use CyrildeWit\EloquentViewable\Querying\Growth\GrowthRanking;
 use CyrildeWit\EloquentViewable\Querying\Growth\Seasonality;
-use CyrildeWit\EloquentViewable\Querying\Ranking\Curves\ExponentialDecay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayCurve;
 use CyrildeWit\EloquentViewable\Querying\Ranking\DecayFactory;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Ranking;
 use CyrildeWit\EloquentViewable\Querying\Ranking\ViewableLoader;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\Recipient;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationLoader;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommendations;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\Scorer;
-use CyrildeWit\EloquentViewable\Querying\Recommendations\Similarity;
+use CyrildeWit\EloquentViewable\Querying\Recommendations\Recommender;
 use CyrildeWit\EloquentViewable\Querying\Series\ViewSeries;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Granularity;
@@ -71,6 +67,7 @@ final readonly class Reader
         private ViewableLoader $loader,
         private DecayFactory $decays,
         private RecommendationLoader $recommendations,
+        private Recommender $recommender,
         private GrowthRanking $growth = new GrowthRanking,
     ) {}
 
@@ -105,7 +102,7 @@ final readonly class Reader
     }
 
     /**
-     * The visitors who viewed on two days or more.
+     * The number of visitors who viewed on two or more days.
      *
      * @throws UnsupportedBySource
      */
@@ -157,7 +154,7 @@ final readonly class Reader
         $this->guardIntervalCap(
             $granularity,
             $startDateTime->avoidMutation()->setTimezone($timezone),
-            ($period->getEndDateTime() ?? Carbon::now())->avoidMutation()->setTimezone($timezone),
+            $period->endOrNow()->avoidMutation()->setTimezone($timezone),
         );
 
         $counts = $this->source($rememberUntil)->countByInterval($viewable, $query, $granularity);
@@ -166,17 +163,13 @@ final readonly class Reader
     }
 
     /**
-     * Most viewed first, then by name, so the order is the same on every
-     * driver. Sorting in SQL would place the default collection, stored as
-     * null, differently per database.
+     * Sorted like `DimensionCounts::sorted()`.
      *
      * @return array<string, int>
      */
     public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
     {
-        $counts = $this->source($rememberUntil)->countByCollection($viewable, $query);
-
-        return $this->sortByCountThenName($counts);
+        return DimensionCounts::sorted($this->source($rememberUntil)->countByCollection($viewable, $query));
     }
 
     /**
@@ -188,15 +181,7 @@ final readonly class Reader
      */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
     {
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsByDimension) {
-            throw UnsupportedBySource::dimension($source);
-        }
-
-        $counts = $source->countByDimension($viewable, $query, $dimension);
-
-        return $this->sortByCountThenName($counts);
+        return DimensionCounts::sorted($this->requires(CountsByDimension::class, $rememberUntil)->countByDimension($viewable, $query, $dimension));
     }
 
     /**
@@ -205,17 +190,9 @@ final readonly class Reader
      */
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?CarbonInterface $rememberUntil = null): DimensionCounts
     {
-        if (($limit ?? 1) < 1) {
-            throw InvalidLimit::belowOne((int) $limit, 'countBy()');
-        }
+        $this->guardLimit($limit ?? 1, 'countBy()');
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsBy) {
-            throw UnsupportedBySource::countBy($source);
-        }
-
-        return $source->countBy($viewable, $query, $dimension, $limit);
+        return $this->requires(CountsBy::class, $rememberUntil)->countBy($viewable, $query, $dimension, $limit);
     }
 
     /**
@@ -224,13 +201,7 @@ final readonly class Reader
      */
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit);
-        }
-
-        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
-            throw InvalidViewable::cannotRankOne($viewable);
-        }
+        $this->guardRanking($viewable, $limit, 'top()');
 
         return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
     }
@@ -248,28 +219,17 @@ final readonly class Reader
      */
     public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'trending()');
-        }
-
-        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
-            throw InvalidViewable::cannotRankOne($viewable);
-        }
+        $this->guardRanking($viewable, $limit, 'trending()');
 
         $decay = $this->decays->make($query, $halfLife, $curve);
-        $source = $this->source($rememberUntil);
 
-        if (! $source instanceof RanksTrending) {
-            throw UnsupportedBySource::trending($source);
-        }
-
-        return $this->loader->load($source->trending($viewable, $query, $decay, $limit));
+        return $this->loader->load($this->requires(RanksTrending::class, $rememberUntil)->trending($viewable, $query, $decay, $limit));
     }
 
     /**
-     * It ranks by how many times the count of the period before the count in
-     * the period is, highest first. Only what grew and reached the minimum in
-     * either period is ranked.
+     * Ranked by the count in the period divided by the count in the previous
+     * period, highest first. Only a viewable that grew, and reached the
+     * minimum in one of the two periods, is ranked.
      *
      * @throws InvalidBaseline
      * @throws InvalidLimit
@@ -334,9 +294,7 @@ final readonly class Reader
      */
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'alsoViewed()');
-        }
+        $this->guardLimit($limit, 'alsoViewed()');
 
         if (ViewableKey::of($viewable) === null) {
             throw InvalidViewable::cannotPairType($viewable);
@@ -346,13 +304,7 @@ final readonly class Reader
             throw InvalidViewer::cannotNarrowAlsoViewed();
         }
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof RanksAlsoViewed) {
-            throw UnsupportedBySource::alsoViewed($source);
-        }
-
-        return $this->loader->load($source->alsoViewed(
+        return $this->loader->load($this->requires(RanksAlsoViewed::class, $rememberUntil)->alsoViewed(
             $viewable,
             $among,
             $query,
@@ -369,16 +321,13 @@ final readonly class Reader
      * a viewer it names is the recipient, not a narrowing.
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidLimit
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
     public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?CarbonInterface $rememberUntil = null): Recommendations
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'recommended()');
-        }
+        $this->guardLimit($limit, 'recommended()');
 
         return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $rememberUntil));
     }
@@ -390,7 +339,6 @@ final readonly class Reader
      * @return array<int|string, float>
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
@@ -409,7 +357,6 @@ final readonly class Reader
      * @return list<array{type: string, id: int|string, score: float, because: list<array{type: string, id: int|string}>}>
      *
      * @throws InvalidConfiguration
-     * @throws InvalidDecay
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
@@ -419,31 +366,7 @@ final readonly class Reader
             throw InvalidViewable::cannotRecommendAmongOne($among);
         }
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof RanksRecommendations) {
-            throw UnsupportedBySource::recommended($source);
-        }
-
-        $request = new RecommendationRequest(
-            $recipient,
-            $among,
-            $this->config->recommendationsMaxSeeds(),
-            $this->config->alsoViewedMinimumVisitors(),
-            $this->config->recommendationsMaxVisitors(),
-            $includeSeen,
-        );
-
-        $scorer = new Scorer(
-            new ExponentialDecay($this->config->recommendationsHalfLife()->toInterval()),
-            Similarity::from($this->config->recommendationsSimilarity()),
-        );
-
-        return $scorer->score(
-            $source->recommendationPairs($request, $query->withViewer(null)),
-            $query->period?->getEndDateTime() ?? Carbon::now(),
-            $limit,
-        );
+        return $this->recommender->score($this->requires(RanksRecommendations::class, $rememberUntil), $recipient, $among, $query, $includeSeen, $limit);
     }
 
     /**
@@ -453,13 +376,7 @@ final readonly class Reader
      */
     private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil): array
     {
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsVisitFrequency) {
-            throw UnsupportedBySource::visitFrequency($source);
-        }
-
-        return $source->visitFrequency($viewable, $query);
+        return $this->requires(CountsVisitFrequency::class, $rememberUntil)->visitFrequency($viewable, $query);
     }
 
     /**
@@ -470,22 +387,56 @@ final readonly class Reader
      */
     private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?CarbonInterface $rememberUntil): CountsByWindow
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, $method);
-        }
+        $this->guardRanking($viewable, $limit, $method);
 
         if ($minimum < 1) {
             throw InvalidBaseline::minimumBelowOne($minimum, $method);
         }
 
+        return $this->requires(CountsByWindow::class, $rememberUntil);
+    }
+
+    /** @throws InvalidLimit */
+    private function guardLimit(int $limit, string $method): void
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, $method);
+        }
+    }
+
+    /**
+     * A ranking is read across a type, or across every type, never for one
+     * model.
+     *
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    private function guardRanking(?Viewable $viewable, int $limit, string $method): void
+    {
+        $this->guardLimit($limit, $method);
+
         if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
             throw InvalidViewable::cannotRankOne($viewable);
         }
+    }
 
+    /**
+     * The source for a read that needs one of the optional contracts, behind
+     * the cache when the call asks to remember the result.
+     *
+     * @template TContract of object
+     *
+     * @param  class-string<TContract>  $contract
+     * @return TContract&ViewSource
+     *
+     * @throws UnsupportedBySource
+     */
+    private function requires(string $contract, ?CarbonInterface $rememberUntil): ViewSource
+    {
         $source = $this->source($rememberUntil);
 
-        if (! $source instanceof CountsByWindow) {
-            throw UnsupportedBySource::growth($source);
+        if (! $source instanceof $contract) {
+            throw UnsupportedBySource::missing($contract, $source);
         }
 
         return $source;
@@ -517,18 +468,6 @@ final readonly class Reader
         }
 
         return "{$driver}:{$this->source->cacheIdentity()}";
-    }
-
-    /**
-     * @param  array<string, int>  $counts
-     * @return array<string, int>
-     */
-    private function sortByCountThenName(array $counts): array
-    {
-        ksort($counts, SORT_STRING);
-        arsort($counts);
-
-        return $counts;
     }
 
     /** @throws InvalidInterval */

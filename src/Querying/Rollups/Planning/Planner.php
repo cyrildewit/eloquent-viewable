@@ -16,10 +16,11 @@ use DateTimeZone;
  *
  * Views after the last folded bucket are always read raw, and so are unique
  * visitors back to where the views table stops being exact. Older history is
- * read from the coarsest tier that holds whole buckets of it, its edges from
- * finer tiers, and what no tier holds whole from the views table while it
- * still has it. An edge that is left goes to the finest tier that holds it,
- * counted by the buckets that start inside it, which is inexact.
+ * read from the coarsest tier that holds whole buckets of it. Its edges come
+ * from finer tiers. What no tier holds whole comes from the views table while
+ * the views table still holds it. A remaining edge goes to the finest tier
+ * that holds it. That tier counts the buckets that start inside the edge, so
+ * the segment is marked inexact.
  *
  * @internal
  */
@@ -101,7 +102,7 @@ final readonly class Planner
 
     /**
      * @param  list<Tier>  $tiers  the tiers left to try, coarse to fine
-     * @param  list<Tier>  $all
+     * @param  list<Tier>  $all  every tier, coarse to fine, for leftover() to fall back on
      * @return list<Segment>
      */
     private function cover(Snapshot $state, array $tiers, array $all, ?CarbonImmutable $rawFloor, ?CarbonImmutable $from, CarbonImmutable $until): array

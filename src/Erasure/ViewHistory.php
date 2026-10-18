@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Erasure;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Recording\Contracts\BufferedViewStore;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
-use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
+use CyrildeWit\EloquentViewable\Visitors\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -25,9 +25,9 @@ final readonly class ViewHistory
     ) {}
 
     /**
-     * A viewer is matched by its columns and by the visitor id derived from
-     * it under the `viewer` and `fingerprint` identities, which outlives
-     * detaching the viewer columns by hand.
+     * A viewer is matched by its viewer columns and by the visitor id the
+     * `viewer` and `fingerprint` identities derive from it. The visitor id
+     * still matches after someone nulls the viewer columns by hand.
      */
     public function select(Subject $subject): Selection
     {
@@ -73,7 +73,7 @@ final readonly class ViewHistory
             return [];
         }
 
-        $anonymised = AnonymiseViews::Prefix;
+        $anonymised = AnonymisedVisitor::Prefix;
 
         $visitors = $this->view
             ->newQuery()

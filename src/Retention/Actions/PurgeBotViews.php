@@ -10,6 +10,8 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
 use CyrildeWit\EloquentViewable\Retention\Bots\BurstDetector;
 use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
+use CyrildeWit\EloquentViewable\Support\Chunks;
+use CyrildeWit\EloquentViewable\Support\Deadline;
 use Generator;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
@@ -23,9 +25,9 @@ use Illuminate\Support\Carbon;
  * `$includeViewers` is set.
  *
  * The views are read in the order they were viewed, through the `viewed_at`
- * index, a chunk at a time. Once views are deleted, the rollups are folded
- * again from the first of them, and the start is clamped to where they can
- * still be.
+ * index, a chunk at a time. After a delete, the rollups are folded again from
+ * the earliest deleted view. The start of the purge is clamped to the floor
+ * of the refolder, because a rollup before it can no longer be folded again.
  */
 final readonly class PurgeBotViews
 {
@@ -170,7 +172,7 @@ final readonly class PurgeBotViews
         } while ($rows->count() === $chunk);
     }
 
-    /** @param  list<int|string>  $ids */
+    /** @param  array<int|string>  $ids */
     private function delete(array $ids, bool $dryRun): int
     {
         if ($ids === []) {
@@ -192,16 +194,22 @@ final readonly class PurgeBotViews
      */
     private function deleteOfVisitors(CarbonInterface $from, CarbonInterface $until, bool $includeViewers, array $visitors, int $chunk): int
     {
-        $views = 0;
+        return Chunks::run(
+            Deadline::none(),
+            $chunk,
+            fn (): array => $this->idsOfVisitors($from, $until, $includeViewers, $visitors, $chunk),
+            fn (array $ids): int => $this->delete($ids, false),
+        )->count;
+    }
 
-        do {
-            /** @var list<int|string> $ids */
-            $ids = $this->ofVisitors($from, $until, $includeViewers, $visitors)->limit($chunk)->pluck('id')->all();
-
-            $views += $this->delete($ids, false);
-        } while (count($ids) === $chunk);
-
-        return $views;
+    /**
+     * @param  list<string>  $visitors
+     * @return list<int|string>
+     */
+    private function idsOfVisitors(CarbonInterface $from, CarbonInterface $until, bool $includeViewers, array $visitors, int $chunk): array
+    {
+        /** @var list<int|string> */
+        return $this->ofVisitors($from, $until, $includeViewers, $visitors)->limit($chunk)->pluck('id')->all();
     }
 
     /** @param  list<string>  $visitors */
@@ -218,8 +226,9 @@ final readonly class PurgeBotViews
 
     /**
      * The scan reads timestamps as UTC so that the gaps between views stay
-     * correct across a change to daylight saving time. This turns a timestamp
-     * back into a moment through UTC in the same way.
+     * correct across a change to daylight saving time. This method reverses that
+     * step: it formats the timestamp as a UTC wall-clock time and parses that
+     * time in the app timezone, so the result equals the stored `viewed_at`.
      */
     private function moment(int $timestamp): CarbonInterface
     {

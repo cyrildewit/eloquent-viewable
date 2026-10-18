@@ -9,8 +9,8 @@ use JsonSerializable;
 
 /**
  * A baseline holds the count of a window and the counts of the windows it is
- * compared with, the closest first, and says how far the count lies from what
- * those windows lead to expect.
+ * compared with, the closest first. zScore() and ratio() tell how far the
+ * count lies from what those windows predict.
  *
  * @implements Arrayable<string, int|float|list<int>>
  */
@@ -30,10 +30,11 @@ final readonly class Baseline implements Arrayable, JsonSerializable
     }
 
     /**
-     * Read how many deviations the count lies above the mean, below it when
-     * negative. The deviation is at least the square root of the mean, the
-     * noise a count of that size has anyway, and at least 1, so a baseline
-     * that never moved does not turn one extra view into a spike.
+     * How many standard deviations the count lies above the mean. A negative
+     * score is below the mean. The divisor is at least the square root of the
+     * mean, which is the Poisson noise a count of that size has anyway, and at
+     * least 1. This keeps a baseline that never moved from turning one extra
+     * view into a spike.
      */
     public function zScore(): float
     {
@@ -41,8 +42,8 @@ final readonly class Baseline implements Arrayable, JsonSerializable
     }
 
     /**
-     * Read how many times the mean the count is. A mean below one counts as
-     * one, so growth from nothing stays finite.
+     * The count as a multiple of the mean. A mean below one counts as one, so
+     * growth from nothing stays finite.
      */
     public function ratio(): float
     {

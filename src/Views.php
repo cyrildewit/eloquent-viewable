@@ -54,7 +54,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
 use DateTimeZone;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
@@ -93,7 +93,7 @@ class Views
     protected ?Arrival $arrival = null;
 
     /** @var list<DimensionFilter> */
-    protected array $dimensions = [];
+    protected array $filters = [];
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -101,6 +101,9 @@ class Views
         protected Reader $reader,
         protected DestroyViews $destroyer,
         protected CacheVersions $cacheVersions,
+        protected DimensionRegistry $dimensions,
+        protected LiveViews $live,
+        protected Container $container,
     ) {}
 
     public function forViewable(Viewable $viewable): self
@@ -239,7 +242,7 @@ class Views
      */
     public function whereDimension(string $dimension, string|array $values): self
     {
-        $this->dimensions[] = Container::getInstance()->make(DimensionRegistry::class)->filter($dimension, $values);
+        $this->filters[] = $this->dimensions->filter($dimension, $values);
 
         return $this;
     }
@@ -257,7 +260,7 @@ class Views
     }
 
     /**
-     * Ranked by views weighed by their age, so something taking off now ranks
+     * It ranks by views weighed by their age, so something taking off now ranks
      * above something that was busy last week. Pass a half-life or a curve to
      * override the configured one for this call.
      *
@@ -278,8 +281,9 @@ class Views
     /**
      * It ranks by how much the count grew against the period before, so
      * something taking off ranks above something that is busy every day.
-     * Only what grew and got at least the minimum in either period counts,
-     * so going from 1 to 4 views never wins.
+     * Only a model that grew, and that has at least $minimum views in one of
+     * the two periods, is ranked. With the default minimum of 10, a rise from
+     * 1 to 4 views is not ranked.
      *
      * @throws InvalidBaseline
      * @throws InvalidLimit
@@ -351,16 +355,13 @@ class Views
     }
 
     /**
-     * Who is looking right now. A model reads that model, a model class its
-     * type, and no viewable, as on the facade, the whole site.
+     * The visitors who are looking now. For a saved model, it counts that
+     * model. For a model class, it counts every model of that type. With no
+     * viewable, as on the facade, it counts the whole site.
      */
     public function live(): LiveViews
     {
-        return Container::getInstance()->make(LiveViews::class, [
-            'viewable' => $this->viewable,
-            'viewables' => $this->viewables,
-            'collection' => $this->collection,
-        ]);
+        return $this->live->scoped($this->viewable, $this->viewables, $this->collection);
     }
 
     /**
@@ -397,7 +398,8 @@ class Views
      * What the visitors of the models the viewer viewed recently also viewed,
      * for the viewer `viewedBy()` names or, without one, for the current
      * visitor. A model type given to `views()` ranks only models of that
-     * type. What the viewer viewed before is left out unless it is included.
+     * type. The models the viewer viewed are left out unless $includeSeen is
+     * true.
      *
      * @throws InvalidConfiguration
      * @throws InvalidDecay
@@ -433,8 +435,9 @@ class Views
     }
 
     /**
-     * Also forgets the remembered totals and rankings that include the
-     * viewable. A viewable without a key forgets its whole type.
+     * It forgets the cached counts of the viewable, and the cached totals and
+     * rankings that include it. A viewable without a key forgets the cache of
+     * its whole type.
      */
     public function forgetCache(): void
     {
@@ -446,6 +449,7 @@ class Views
         $this->cacheVersions->flushCache();
     }
 
+    /** An integer is a number of minutes. */
     public function cooldown(DateTimeInterface|int|null $cooldown): self
     {
         $this->cooldown = $cooldown === null ? null : $this->resolveLifetime($cooldown);
@@ -518,7 +522,7 @@ class Views
             return $this;
         }
 
-        $rollup = Container::getInstance()->make(RollupPolicy::class)->find($name)?->rollup();
+        $rollup = $this->container->make(RollupPolicy::class)->find($name)?->rollup();
 
         if (! $rollup instanceof Rollup) {
             throw UnknownRollup::named($name);
@@ -548,6 +552,7 @@ class Views
         return $this;
     }
 
+    /** An integer is a number of minutes. */
     public function remember(DateTimeInterface|int|null $lifetime = null): self
     {
         $this->cacheLifetime = $lifetime === null ? null : $this->resolveLifetime($lifetime);
@@ -594,7 +599,7 @@ class Views
     /** @throws UnknownDimension */
     protected function dimension(string $name): DimensionDefinition
     {
-        return Container::getInstance()->make(DimensionRegistry::class)->find($name) ?? throw UnknownDimension::named($name);
+        return $this->dimensions->find($name) ?? throw UnknownDimension::named($name);
     }
 
     /** @throws InvalidViewable */
@@ -604,7 +609,7 @@ class Views
             return null;
         }
 
-        $model = Container::getInstance()->make($class);
+        $model = $this->container->make($class);
 
         if (! $model instanceof Viewable) {
             throw InvalidViewable::classDoesNotImplementViewable($class);
@@ -615,7 +620,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup, $this->dimensions);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup, $this->filters);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface
