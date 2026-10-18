@@ -25,15 +25,19 @@ trait FindsViewables
         return $this->find($type, $key) ?? Response::HTTP_NOT_FOUND;
     }
 
-    /** Every answer is empty and uncached. */
+    /**
+     * `no-store` keeps a proxy or the browser from caching the answer and
+     * replaying it, so every beacon and heartbeat reaches the app.
+     */
     protected function respond(int $status): Response
     {
         return new Response(status: $status, headers: ['Cache-Control' => 'no-store']);
     }
 
     /**
-     * The type is the morph class the signed URL names, so a model is only
-     * found when the URL was built for it.
+     * Call this only after the signature is checked. `$type` comes from the
+     * URL and picks the class to query, so an unchecked type would let a
+     * visitor look up any model class.
      */
     protected function find(string $type, string $key): ?Viewable
     {

@@ -12,6 +12,9 @@ use Illuminate\Support\Carbon;
 
 final readonly class Fingerprint
 {
+    // An IPv4 address mapped into IPv6 (::ffff:a.b.c.d) is truncated as IPv4.
+    // Its first 48 bits are all zero, so a /48 would give every such address
+    // the same network.
     private const string MappedIpv4Prefix = "\0\0\0\0\0\0\0\0\0\0\xff\xff";
 
     public function __construct(
@@ -41,6 +44,8 @@ final readonly class Fingerprint
             $packed = substr($packed, strlen(self::MappedIpv4Prefix));
         }
 
+        // Keep the /24 of an IPv4 address and the /48 of an IPv6 address, so
+        // the fingerprint never derives from the full address.
         $kept = strlen($packed) === 4 ? 3 : 6;
 
         return (string) inet_ntop(substr($packed, 0, $kept).str_repeat("\0", strlen($packed) - $kept));

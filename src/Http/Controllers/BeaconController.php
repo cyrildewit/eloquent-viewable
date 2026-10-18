@@ -19,17 +19,18 @@ use Illuminate\Routing\UrlGenerator;
  * Records a view of the model a signed beacon URL names.
  *
  * The CSRF check of the `web` group refuses a post from another site before
- * it gets here. Every answer is empty and uncached. A view a guard skips
- * still gets a 204, so the response does not tell a visitor what the guards
- * decided.
+ * it gets here. A view a guard skips still gets a 204, so the response does
+ * not tell a visitor what the guards decided.
  */
 final readonly class BeaconController
 {
     use FindsViewables;
 
     /**
-     * How long the referrer and the landing query the script posts may be. A
-     * longer one is cut, which costs no more than a dimension cut short.
+     * How long the referrer and the landing query the script posts may be. The
+     * limit bounds what a visitor can make the app store. A longer value is
+     * cut to this length rather than refused, because a truncated referrer or
+     * landing query only shortens the dimension read from it.
      */
     private const int MaxPostedLength = 2_048;
 
@@ -39,7 +40,8 @@ final readonly class BeaconController
     ) {}
 
     /**
-     * A model found by its key always has one, so recording never fails here.
+     * The model was found by its key, so it has one and attempt() never throws
+     * RecordingFailed here. The tag is kept because attempt() declares it.
      *
      * @throws RecordingFailed
      */
