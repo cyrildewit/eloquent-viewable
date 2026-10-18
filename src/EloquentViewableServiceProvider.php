@@ -138,10 +138,6 @@ class EloquentViewableServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Each migration has a tag of its own, so the shared `migrations` tag
-     * keeps publishing only the views table.
-     */
     protected function publishOptInMigrations(): void
     {
         $timestamp = date('Y_m_d_His', time());
