@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
+use Closure;
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
@@ -14,7 +15,7 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
 use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
-use CyrildeWit\EloquentViewable\Doctor\Sampling\GuardSamples;
+use CyrildeWit\EloquentViewable\Doctor\Sampling\Listeners\SampleGuardOutcomes;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
 use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
 use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
@@ -23,11 +24,11 @@ use CyrildeWit\EloquentViewable\Http\Beacon;
 use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
-use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
 use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
-use CyrildeWit\EloquentViewable\Milestones\Actions\CheckMilestones;
+use CyrildeWit\EloquentViewable\Maintenance\Listeners\ForgetChangedCounts;
 use CyrildeWit\EloquentViewable\Milestones\Console\SeedMilestonesCommand;
+use CyrildeWit\EloquentViewable\Milestones\Listeners\CheckAfterRecount;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
@@ -42,7 +43,6 @@ use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Console\PairViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\ForgetRollups;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
@@ -98,13 +98,9 @@ class EloquentViewableServiceProvider extends ServiceProvider
         });
 
         $this->registerBeacon();
-        $this->forgetCountsOfDestroyedViews();
-        $this->forgetCountsOfErasedViews();
-        $this->checkMilestonesAfterRecounts();
-        $this->flushCountsAfterRetentionRuns();
+        $this->listen();
         $this->validateRetentionPolicies();
         $this->registerDebugbarCollector();
-        $this->sampleGuardOutcomes();
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -217,94 +213,37 @@ class EloquentViewableServiceProvider extends ServiceProvider
     }
 
     /**
-     * The recount is resolved from the container of the request, so under
-     * Octane the view source it builds does not stay behind in the worker.
+     * The reactions of one module to the events of another.
      */
-    protected function forgetCountsOfDestroyedViews(): void
+    protected function listen(): void
     {
-        $this->app->make(EventDispatcher::class)->listen(
-            ViewsDestroyed::class,
-            function (ViewsDestroyed $event): void {
-                $this->app->make(ForgetRollups::class)->handle($event->viewable);
-                $this->app->make(CacheVersions::class)->forgetCache($event->viewable);
-                Container::getInstance()->make(RecountChangedViews::class)->destroyed($event->viewable);
-            },
-        );
-    }
-
-    /**
-     * Erasure names the models whose counts it changed, so their remembered
-     * counts are forgotten and their counter columns recounted. When it names
-     * none, it touched too many, so every count is forgotten and every model
-     * is recounted on the next run.
-     */
-    protected function forgetCountsOfErasedViews(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            CountsChanged::class,
-            function (CountsChanged $event): void {
-                $versions = $this->app->make(CacheVersions::class);
-                $recount = Container::getInstance()->make(RecountChangedViews::class);
-
-                if ($event->viewables === null) {
-                    $versions->flushCache();
-                    $recount->recountEveryModelNextRun();
-
-                    return;
-                }
-
-                foreach ($event->viewables as $type => $keys) {
-                    foreach ($keys as $key) {
-                        $versions->forgetModel($type, $key);
-                    }
-
-                    $recount->erased($type, $keys);
-                }
-            },
-        );
-    }
-
-    /**
-     * Every recount names the models whose counter columns it wrote, so their
-     * milestones are checked right after. The action is resolved from the
-     * container of the request, so under Octane it does not stay behind in
-     * the worker.
-     */
-    protected function checkMilestonesAfterRecounts(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            CountersRecounted::class,
-            fn (CountersRecounted $event) => Container::getInstance()->make(CheckMilestones::class)->recounted($event->class, $event->keys),
-        );
-    }
-
-    protected function flushCountsAfterRetentionRuns(): void
-    {
-        $this->app->make(EventDispatcher::class)->listen(
-            [ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class, BotViewsPurged::class],
-            fn () => $this->app->make(CacheVersions::class)->flushCache(),
-        );
-
-        $this->app->make(EventDispatcher::class)->listen(
-            BotViewsPurged::class,
-            fn () => Container::getInstance()->make(RecountChangedViews::class)->recountEveryModelNextRun(),
-        );
-    }
-
-    /**
-     * The sampler is resolved from the container of the request, so under
-     * Octane it does not stay behind in the worker.
-     */
-    protected function sampleGuardOutcomes(): void
-    {
-        if (! $this->config()->sampleEnabled()) {
-            return;
-        }
-
         $events = $this->app->make(EventDispatcher::class);
 
-        $events->listen(ViewRecorded::class, fn () => Container::getInstance()->make(GuardSamples::class)->countRecorded());
-        $events->listen(ViewSkipped::class, fn (ViewSkipped $event) => Container::getInstance()->make(GuardSamples::class)->countRefused($event->guard));
+        $events->listen(ViewsDestroyed::class, $this->listener(ForgetChangedCounts::class, 'viewsDestroyed'));
+        $events->listen(CountsChanged::class, $this->listener(ForgetChangedCounts::class, 'countsChanged'));
+        $events->listen([ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class], $this->listener(ForgetChangedCounts::class, 'viewsChanged'));
+        $events->listen(BotViewsPurged::class, $this->listener(ForgetChangedCounts::class, 'botViewsPurged'));
+        $events->listen(CountersRecounted::class, $this->listener(CheckAfterRecount::class, '__invoke'));
+
+        if ($this->config()->sampleEnabled()) {
+            $events->listen(ViewRecorded::class, $this->listener(SampleGuardOutcomes::class, 'recorded'));
+            $events->listen(ViewSkipped::class, $this->listener(SampleGuardOutcomes::class, 'refused'));
+        }
+    }
+
+    /**
+     * A listener resolved from the container of the request for every event,
+     * rather than the one the dispatcher booted with, so under Octane what it
+     * builds, such as the view source, does not stay behind in the worker.
+     *
+     * @param  class-string  $listener
+     * @return Closure(object): void
+     */
+    protected function listener(string $listener, string $method): Closure
+    {
+        return static function (object $event) use ($listener, $method): void {
+            Container::getInstance()->call("{$listener}@{$method}", [$event::class => $event]);
+        };
     }
 
     /**
