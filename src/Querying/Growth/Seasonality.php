@@ -9,7 +9,6 @@ use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Support\Period;
-use Illuminate\Support\Carbon;
 
 /**
  * A seasonality is the rhythm a baseline follows. A window is compared with
@@ -44,7 +43,7 @@ enum Seasonality: string
         }
 
         $start = CarbonImmutable::instance($start);
-        $end = CarbonImmutable::instance($period->getEndDateTime() ?? Carbon::now());
+        $end = CarbonImmutable::instance($period->endOrNow());
 
         if ($this->back($end, 1) > $start) {
             throw InvalidBaseline::windowLongerThanSeason($this->value);

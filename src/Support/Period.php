@@ -174,6 +174,14 @@ final readonly class Period implements UrlRoutable
     }
 
     /**
+     * The end of the period, or now for one that is still open.
+     */
+    public function endOrNow(): CarbonInterface
+    {
+        return $this->endDateTime ?? Carbon::now();
+    }
+
+    /**
      * A stable string that identifies this period for caching, immune to
      * wall-clock drift for relative periods.
      *

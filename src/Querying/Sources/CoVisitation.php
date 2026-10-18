@@ -45,7 +45,7 @@ final readonly class CoVisitation
             return ['seeds' => [], 'pairs' => [], 'audiences' => []];
         }
 
-        $pairs = $this->pairs($seeds, $query, $request->minimum, $request->maxVisitors, $request->among, $request->recipient, $request->includeSeen);
+        $pairs = $this->pairs($seeds, $query, $request->minimum, $request->maxVisitors, $request);
 
         if ($pairs === []) {
             return ['seeds' => $seeds, 'pairs' => [], 'audiences' => []];
@@ -93,15 +93,20 @@ final readonly class CoVisitation
      * visitors of each seed from the most recent one, which every supported
      * driver runs.
      *
-     * A seed never pairs with itself. Given a recipient, no seed is a
-     * candidate, its visitors never count towards a pair, and unless what it
-     * has seen is included, a candidate it ever viewed is left out.
+     * A seed never pairs with itself. For a recommendation, no seed is a
+     * candidate, the recipient's visitors never count towards a pair, and
+     * unless what it has seen is included, a candidate it ever viewed is
+     * left out.
      *
      * @param  non-empty-list<array{type: string, id: int|string}>  $seeds
      * @return list<Pair>
      */
-    public function pairs(array $seeds, ViewsQuery $query, int $minimum, ?int $maxVisitors, ?Viewable $among = null, ?Recipient $recipient = null, bool $includeSeen = true): array
+    public function pairs(array $seeds, ViewsQuery $query, int $minimum, ?int $maxVisitors, ?RecommendationRequest $for = null): array
     {
+        $recipient = $for?->recipient;
+        $among = $for?->among;
+        $includeSeen = $for->includeSeen ?? true;
+
         $type = $this->view->qualifyColumn('viewable_type');
         $id = $this->view->qualifyColumn('viewable_id');
         $visitor = $this->view->qualifyColumn('visitor');
