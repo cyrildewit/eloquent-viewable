@@ -100,8 +100,8 @@ describe('noop', function (): void {
     });
 
     it('is not a noop when the clocks differ anywhere in the range', function (): void {
-        // Europe/Dublin keeps GMT in winter and IST in summer, London the same, so
-        // they coincide; Africa/Casablanca does not.
+        // London keeps GMT, which equals UTC, in winter and moves to BST in
+        // summer. A January range is a noop, and a range that reaches July is not.
         expect(conversion('UTC', 'Europe/London', '2026-01-01 00:00:00', '2026-02-01 00:00:00')->isNoop())->toBeTrue()
             ->and(conversion('UTC', 'Europe/London', '2026-01-01 00:00:00', '2026-07-01 00:00:00')->isNoop())->toBeFalse();
     });

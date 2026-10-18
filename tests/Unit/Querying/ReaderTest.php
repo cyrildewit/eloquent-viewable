@@ -81,7 +81,9 @@ function countingStore(): ArrayStore
         #[Override]
         public function get($key): mixed
         {
-            // many() reads every key through get(), within one round trip.
+            // ArrayStore::many() calls get() once per key. A real store answers
+            // many() in one round trip, so a get() inside many() is not counted
+            // as another read.
             if (! $this->reading) {
                 $this->reads++;
             }
