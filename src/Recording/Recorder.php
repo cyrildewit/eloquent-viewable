@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Data\Reference;
 use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
@@ -39,6 +40,7 @@ final readonly class Recorder
         private RecordsViews $action,
         private VisitorIdentity $identity,
         private PresenceStore $presence,
+        private PresenceConfig $presenceConfig,
         private DimensionResolver $dimensions,
     ) {}
 
@@ -104,7 +106,7 @@ final readonly class Recorder
         $key = $this->keyOf($attempt);
         $attempt = $this->withViewer($attempt);
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return false;
         }
 
@@ -128,7 +130,7 @@ final readonly class Recorder
         $key = $this->keyOf($attempt);
         $attempt = $this->withViewer($attempt);
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return;
         }
 
@@ -189,7 +191,7 @@ final readonly class Recorder
 
     private function sight(ViewAttempt $attempt, int|string $key, ?string $visitor = null): bool
     {
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presenceConfig->enabled()) {
             return false;
         }
 
@@ -204,7 +206,7 @@ final readonly class Recorder
     {
         $viewer = $attempt->viewer;
 
-        $reference = $viewer instanceof Model && $this->config->presenceTracksViewers()
+        $reference = $viewer instanceof Model && $this->presenceConfig->tracksViewers()
             ? new Reference($viewer->getMorphClass(), ViewerKey::of($viewer))
             : null;
 

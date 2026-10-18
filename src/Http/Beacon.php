@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Http;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use Illuminate\Routing\UrlGenerator;
@@ -32,6 +33,7 @@ final readonly class Beacon
     public function __construct(
         private UrlGenerator $urls,
         private Config $config,
+        private PresenceConfig $presence,
     ) {}
 
     /**
@@ -108,7 +110,7 @@ final readonly class Beacon
             return $this->liveScript($url, $this->json([
                 'heartbeat' => $this->presenceUrl($viewable, $collection),
                 'leave' => $this->leaveUrl($viewable, $collection),
-                'interval' => $this->config->presenceHeartbeat() * 1000,
+                'interval' => $this->presence->heartbeat() * 1000,
             ]));
         }
 
@@ -239,7 +241,7 @@ final readonly class Beacon
             throw InvalidConfiguration::beaconDisabled();
         }
 
-        if (! $this->config->presenceEnabled()) {
+        if (! $this->presence->enabled()) {
             throw InvalidConfiguration::presenceDisabled();
         }
     }

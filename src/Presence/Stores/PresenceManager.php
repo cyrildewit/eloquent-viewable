@@ -7,22 +7,23 @@ namespace CyrildeWit\EloquentViewable\Presence\Stores;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Exceptions\PresenceFailed;
 use CyrildeWit\EloquentViewable\Presence\Precision;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Redis\Connections\PredisConnection;
 
-/** @extends PackageManager<PresenceStore> */
+/** @extends PackageManager<PresenceStore, PresenceConfig> */
 final class PresenceManager extends PackageManager
 {
     public function getDefaultDriver(): string
     {
-        if (! $this->packageConfig->presenceEnabled()) {
+        if (! $this->packageConfig->enabled()) {
             return 'null';
         }
 
-        return $this->packageConfig->presenceDriver();
+        return $this->packageConfig->driver();
     }
 
     protected function configKey(): string
@@ -43,7 +44,7 @@ final class PresenceManager extends PackageManager
     /** @throws PresenceFailed */
     protected function createRedisDriver(): RedisPresenceStore
     {
-        $connection = $this->container->make(RedisFactory::class)->connection($this->packageConfig->presenceRedisConnection());
+        $connection = $this->container->make(RedisFactory::class)->connection($this->packageConfig->redisConnection());
 
         if (! $connection instanceof PhpRedisConnection && ! $connection instanceof PredisConnection) {
             throw PresenceFailed::unsupportedRedisClient($connection::class);
@@ -51,9 +52,9 @@ final class PresenceManager extends PackageManager
 
         return new RedisPresenceStore(
             $connection,
-            $this->packageConfig->presenceRedisPrefix(),
-            $this->packageConfig->presenceWindow(),
-            Precision::from($this->packageConfig->presencePrecision()),
+            $this->packageConfig->redisPrefix(),
+            $this->packageConfig->window(),
+            Precision::from($this->packageConfig->precision()),
             $this->container->make(ExceptionHandler::class),
         );
     }

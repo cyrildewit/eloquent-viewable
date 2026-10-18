@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Sources;
 
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\PackageManager;
 
-/** @extends PackageManager<ViewSource> */
+/** @extends PackageManager<ViewSource, Config> */
 final class SourceManager extends PackageManager
 {
     public function getDefaultDriver(): string

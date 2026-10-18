@@ -9,8 +9,8 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Http\Concerns\FindsViewables;
 use CyrildeWit\EloquentViewable\Http\RecordingOptions;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
-use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +34,7 @@ final readonly class PresenceController
     public function __construct(
         private Container $container,
         private UrlGenerator $urls,
-        private Config $config,
+        private PresenceConfig $presence,
     ) {}
 
     /**
@@ -52,7 +52,7 @@ final readonly class PresenceController
 
         $views->heartbeat();
 
-        if (! $this->config->presenceExposesCount()) {
+        if (! $this->presence->exposesCount()) {
             return $this->respond(Response::HTTP_NO_CONTENT);
         }
 

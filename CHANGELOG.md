@@ -152,6 +152,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - The migration stub is published from `database/migrations/`, with no change for existing installations
 - `Period::parse()` refuses a shorthand of zero, such as `0d`, the way a config duration already did
 - The exception thrown when the retention, rollups, milestones or spikes table is missing names the feature that needs it, and the one `views:rollup` throws for a missing state table points at the `eloquent-viewable-retention` tag that publishes it
+- The `presence` keys are read through `Presence\PresenceConfig`, which `Recording\Recorder`, `Http\Beacon`, `Presence\LiveViews` and the presence controller take instead of `Support\Config`
 - Development only: the test suite runs against SQLite, MySQL, MariaDB and Postgres, including models keyed by UUID and ULID, and a phpbench suite in `benchmarks/` times the queries against millions of views
 
 ### Removed
