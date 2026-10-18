@@ -17,13 +17,13 @@ use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
  */
 final class ArrayPresenceStore implements PresenceStore
 {
-    /** @var array<string, array<string, int>> */
+    /** @var array<string, array<string, int>> the last-seen timestamp of each visitor hash, keyed by scope id */
     private array $visitors = [];
 
-    /** @var array<string, array<string, int>> */
+    /** @var array<string, array<string, int>> the last-seen timestamp of each encoded viewable, keyed by scope id */
     private array $active = [];
 
-    /** @var array<string, array<string, int>> */
+    /** @var array<string, array<string, int>> the last-seen timestamp of each encoded viewer, keyed by scope id */
     private array $viewers = [];
 
     public function touch(Sighting $sighting): void
