@@ -22,8 +22,9 @@ use RuntimeException;
  * `recommended()` and `recommendedFor()` read the most recent articles of one
  * visitor, then do what `alsoViewed()` does for each of them, so their cost
  * follows the number of seeds times the visitors read per seed. The
- * returning visitor has the most views in the dataset and fills every seed;
- * the occasional visitor has a handful.
+ * returning visitor has the most views in the dataset and fills every seed.
+ * The occasional visitor, number 500 in the seeder's skewed pool, has far
+ * fewer.
  */
 #[Groups(['read'])]
 #[BeforeMethods('setUp')]

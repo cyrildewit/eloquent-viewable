@@ -99,6 +99,9 @@ final class DimensionsBench extends BenchCase
     }
 
     /**
+     * Named the way phpbench names the combined `all articles` and `past year`
+     * sets of `benchCountBy`, so the two subjects can be compared set by set.
+     *
      * @return Generator<string, array{rollup: bool}>
      */
     public function provideRollupRead(): Generator

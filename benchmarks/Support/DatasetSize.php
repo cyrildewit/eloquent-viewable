@@ -6,8 +6,8 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 
 /**
  * The presets a dataset can be seeded at. Views spread over the articles on
- * a power law, so the hottest article in a medium dataset carries about a
- * million views and the coldest a few dozen.
+ * a power law, so one article is far hotter than the rest. `make
+ * bench-describe` reports the hot and cold counts of a seeded dataset.
  */
 enum DatasetSize: string
 {

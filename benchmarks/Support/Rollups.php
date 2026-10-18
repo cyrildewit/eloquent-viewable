@@ -13,10 +13,11 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Carbon;
 
 /**
- * These are the day and month rollups of the seeded dataset, folded up to its
- * anchor so every view lies in the rollups and the views table answers
- * nothing but the hand-over. They are folded once per dataset: the seed they
- * were folded from is noted in the state table, so seeding again folds again.
+ * The day and month rollups of the seeded dataset, folded up to its anchor.
+ * Every view is then in a rollup, so a read through the rollup source only
+ * reads the views table for the hand-over after the last bucket. They are
+ * folded once per dataset. The seed they were folded from is noted in the
+ * state table, so seeding again folds again.
  */
 final class Rollups
 {

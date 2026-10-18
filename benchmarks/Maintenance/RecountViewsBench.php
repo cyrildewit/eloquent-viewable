@@ -61,8 +61,8 @@ final class RecountViewsBench extends BenchCase
     }
 
     /**
-     * The first recount runs once, outside the transaction, so later
-     * iterations start from a recount that has seen every view.
+     * Recounts outside the transaction before every iteration, so the timed
+     * recount of changed articles sees only the views this method inserts.
      *
      * @param  array{changed?: int}  $params
      */

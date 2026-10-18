@@ -46,6 +46,8 @@ final class DetectSpikesBench extends BenchCase
             new \CreateViewSpikesTable()->up();
         }
 
+        // Half an hour past the anchor, so the last complete hour ends at the
+        // anchor.
         CarbonImmutable::setTestNow(Dataset::anchor()->addMinutes(30));
         Carbon::setTestNow(Dataset::anchor()->addMinutes(30));
     }

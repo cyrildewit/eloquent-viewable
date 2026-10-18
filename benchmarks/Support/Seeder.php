@@ -32,8 +32,8 @@ use Random\Randomizer;
  *  - one in five views is in a named collection;
  *  - every view has a source and a device, the source from a short head and
  *    a long tail of referring sites, so a capped rollup folds some away.
- *    They are drawn from a generator of their own, so the other columns are
- *    the same as without them.
+ *    They come from a second generator, so adding or changing a dimension
+ *    leaves the values of every other column unchanged.
  */
 final class Seeder
 {
@@ -62,8 +62,7 @@ final class Seeder
     public const array DimensionColumns = ['source', 'medium', 'campaign', 'device', 'country'];
 
     /**
-     * Relative traffic per source. One view in twenty comes from one of
-     * `LongTailSites` sites of its own.
+     * Relative traffic per source.
      */
     private const array SourceWeights = [
         'Google' => 40, 'Direct' => 25, 'Bing' => 6, 'Facebook' => 5, 'X' => 4, 'Reddit' => 4,
@@ -137,10 +136,11 @@ final class Seeder
         $schema->dropIfExists('articles');
         $schema->dropIfExists('videos');
 
-        // The package's own migration, so the table and its indexes are
-        // what an application gets, apart from the index on `viewed_at`:
-        // it is dropped with the other secondary indexes and not built again,
-        // which would change the plans of every benchmark on this dataset.
+        // The package's own migration, so the table and its indexes match
+        // what an application gets. The one exception is the index on
+        // `viewed_at`. `dropSecondaryIndexes()` drops it and
+        // `createSecondaryIndexes()` does not build it again, because it would
+        // change the query plan of every benchmark on this dataset.
         require_once Application::projectPath('database/migrations/create_views_table.php.stub');
 
         new \CreateViewsTable()->up();
@@ -318,9 +318,8 @@ final class Seeder
 
     /**
      * Vose's alias method over Zipf weights, so drawing an article is two
-     * random numbers and a lookup. Article `$i` has weight `1 / $i`, which
-     * gives the first article roughly a tenth of all views and the last a
-     * ten-thousandth of that.
+     * random numbers and a lookup. Article `$i` has weight `1 / $i`, so the
+     * last article is drawn `1 / $articles` as often as the first.
      */
     private function prepareArticleDistribution(int $articles): void
     {
@@ -393,6 +392,10 @@ final class Seeder
         return 1 + ($this->random->nextFloat() < $this->probability[$bucket] ? $bucket : $this->alias[$bucket]);
     }
 
+    /**
+     * One view in twenty comes from one of `LongTailSites` sites of its own.
+     * The rest are drawn from `SourceWeights`.
+     */
     private function drawSource(): string
     {
         if ($this->dimensions->getInt(1, 20) === 1) {

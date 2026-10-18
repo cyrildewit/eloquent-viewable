@@ -44,7 +44,8 @@ final class Application
 
         $config->set('app.timezone', 'UTC');
         // The visitor identity takes its HMAC key from the encrypter, which
-        // refuses to boot without one. Fixed, so derived ids are stable.
+        // refuses to boot without one. The key is fixed so that the derived
+        // visitor ids are the same on every run.
         $config->set('app.key', 'base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=');
         $config->set('database.default', self::Connection);
         $config->set('database.connections.'.self::Connection, self::connection());
@@ -61,8 +62,9 @@ final class Application
             'database' => 0,
         ]);
 
-        // Its own database, so flushing the store after a run leaves the
-        // buffered views and the test suite's keys in database 0 alone.
+        // The benchmark cache store uses Redis database 1, so flushing it
+        // after a run leaves the buffered views and the test suite's keys in
+        // database 0 alone.
         $config->set('database.redis.bench-cache', [
             'host' => (string) Env::get('REDIS_HOST', '127.0.0.1'),
             'port' => (int) Env::get('REDIS_PORT', 6379),

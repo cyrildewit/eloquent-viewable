@@ -18,7 +18,8 @@ use PhpBench\Attributes\Revs;
  * `ViewSeries::fill()`: the PHP side of `countByInterval()`, which walks a
  * cursor over the period and builds a bucket per step. Pure PHP, no
  * application, so it runs anywhere. The largest case is a year of hours,
- * close to the default `max_intervals`.
+ * which stays below the default `querying.max_intervals`, so `fill()` does
+ * not refuse it.
  */
 #[Groups(['php'])]
 #[OutputTimeUnit('milliseconds', 3)]

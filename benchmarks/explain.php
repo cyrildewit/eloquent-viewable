@@ -65,9 +65,6 @@ if ($benchmarks === []) {
     throw new RuntimeException("No benchmark carries the [{$group}] group.");
 }
 
-/**
- * The statement that explains a query on this driver.
- */
 $explain = (static fn (string $sql): string => match ($driver) {
     'sqlite' => "explain query plan {$sql}",
     'pgsql' => $analyze ? "explain (analyze, buffers) {$sql}" : "explain {$sql}",

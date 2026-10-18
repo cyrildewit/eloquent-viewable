@@ -23,9 +23,9 @@ use RuntimeException;
  * `Views::trending()` and `orderByTrending()`, the counterparts of
  * `TopViewedBench` and `OrderByViewsBench` with every view weighed by its
  * age. They read the same rows, so compare a subject with its counterpart to
- * see what the weighing costs. A period without a start reads the curve's
- * horizon, eight days by default, up to the anchor of the dataset. The past
- * day is weighed per hour, the longer periods per day.
+ * see what the weighing costs. A period without a start reads the decay
+ * curve's horizon, `DecayCurve::horizon()`, up to the anchor of the dataset.
+ * The past day is weighed per hour, the longer periods per day.
  */
 #[Groups(['read'])]
 #[BeforeMethods('setUp')]
