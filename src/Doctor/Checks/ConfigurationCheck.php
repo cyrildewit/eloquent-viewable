@@ -139,7 +139,7 @@ class ConfigurationCheck implements Check
 
     /**
      * Only the model of the guard the viewer is read from is known here, so
-     * a viewer passed to `viewedBy()` of another class is not looked at.
+     * a viewer of another class passed to `viewedBy()` is not checked.
      *
      * @return list<Finding>
      *

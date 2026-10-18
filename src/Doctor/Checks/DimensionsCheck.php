@@ -15,9 +15,9 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use Generator;
 
 /**
- * What the dimensions in config need beyond their columns, which the schema
- * check covers: a database that ranks values for the rollups' cap, and
- * rollups that hold the history a count by a dimension reads.
+ * Checks what the configured dimensions need beyond their columns: a database
+ * that can rank values for the cap of the rollups, and rollups that hold the
+ * history that a count by dimension reads. SchemaCheck covers the columns.
  */
 class DimensionsCheck implements Check
 {

@@ -56,8 +56,8 @@ class Doctor
     }
 
     /**
-     * A check that throws, because a database or Redis cannot be reached, is
-     * reported as a failure, so the checks after it still run.
+     * A check that throws, for example because a database or Redis cannot be
+     * reached, is reported as a failure, so the checks after it still run.
      *
      * @return list<Finding>
      */
