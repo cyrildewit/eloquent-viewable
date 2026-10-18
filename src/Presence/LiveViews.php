@@ -86,7 +86,8 @@ final readonly class LiveViews
     }
 
     /**
-     * The active visitors of every viewable of the set, keyed by its key.
+     * The number of active visitors of each viewable in the set, keyed by the
+     * key of the viewable.
      *
      * @return Collection<int|string, int>
      *
