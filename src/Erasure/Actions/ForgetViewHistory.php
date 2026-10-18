@@ -19,8 +19,9 @@ use Illuminate\Database\Eloquent\Collection;
  * forgets and recounts the counts that included them. Rollups hold no one's
  * identity, so the history they keep is left as it is.
  *
- * With guest views included, the views carrying a visitor id the viewer
- * recorded under go too, which on a shared browser are someone else's.
+ * With guest views included, the action also deletes every view that
+ * carries a visitor id the viewer recorded under. On a shared browser, some
+ * of those views belong to another person.
  */
 final readonly class ForgetViewHistory
 {
@@ -39,6 +40,8 @@ final readonly class ForgetViewHistory
         if ($includeGuestViews) {
             $selection = $selection->withVisitors($this->history->visitorsOf($selection));
 
+            // Land again, because guest views under the visitor ids just found
+            // can still wait in the buffer.
             $this->history->land($selection);
         }
 

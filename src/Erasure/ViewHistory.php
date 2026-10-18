@@ -25,9 +25,9 @@ final readonly class ViewHistory
     ) {}
 
     /**
-     * A viewer is matched by its columns and by the visitor id derived from
-     * it under the `viewer` and `fingerprint` identities, which outlives
-     * detaching the viewer columns by hand.
+     * A viewer is matched by its viewer columns and by the visitor id the
+     * `viewer` and `fingerprint` identities derive from it. The visitor id
+     * still matches after someone nulls the viewer columns by hand.
      */
     public function select(Subject $subject): Selection
     {
