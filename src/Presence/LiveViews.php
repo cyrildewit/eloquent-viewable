@@ -44,6 +44,17 @@ final readonly class LiveViews
     ) {}
 
     /**
+     * The same reader, over a model, a type, a set of models or the whole
+     * site, within a collection or every one.
+     *
+     * @internal
+     */
+    public function scoped(?Viewable $viewable, ?ViewableSet $viewables, ?string $collection): self
+    {
+        return new self($this->store, $this->config, $this->loader, $viewable, $viewables, $collection, $this->within);
+    }
+
+    /**
      * Counts only the visitors seen in the last given seconds, at most the
      * configured `presence.window`.
      *

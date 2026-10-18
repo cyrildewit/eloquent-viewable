@@ -290,7 +290,8 @@ A `$table` or `$connection` property on your model now wins over `table_name` an
 move your changes into a macro, a [recording guard](README.md#adding-a-recording-guard), a
 [store](README.md#choosing-where-views-are-stored) or a [source](README.md#customizing-how-views-are-counted). A
 subclass that overrides the constructor needs the new arguments: the visitor, `Recording\Recorder`, `Querying\Reader`,
-`Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`.
+`Recording\Actions\DestroyViews`, `Querying\Cache\CacheVersions`, `Dimensions\DimensionRegistry`, `Presence\LiveViews` and
+the container.
 
 #### `Viewable` without `InteractsWithViews`
 

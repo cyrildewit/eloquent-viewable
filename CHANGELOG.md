@@ -145,7 +145,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Cooldowns are keyed by visitor id and stored in a new format, so cooldowns running at upgrade end early once
 - `Models\View` prefers its own `$table` and `$connection` properties over the config
 - The `withViewsCount()` and `orderByViews()` scopes count with a correlated subselect from the source instead of `withAggregate()`, with the same results
-- The `Views` constructor takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews` and `Querying\Cache\CacheVersions`
+- The `Views` constructor takes the visitor, `Recording\Recorder`, `Querying\Reader`, `Recording\Actions\DestroyViews`, `Querying\Cache\CacheVersions`, `Dimensions\DimensionRegistry`, `Presence\LiveViews` and the container
 - `Recording\Jobs\RecordViewJob` has no static `dispatch()` method. Use `dispatch(new RecordViewJob($record))`
 - The package requires the `illuminate/bus`, `illuminate/container`, `illuminate/queue` and `illuminate/routing` components and no longer uses `Illuminate\Foundation`
 - The migration stub is published from `database/migrations/`, with no change for existing installations

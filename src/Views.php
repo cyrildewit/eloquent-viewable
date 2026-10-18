@@ -54,7 +54,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use DateTimeInterface;
 use DateTimeZone;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Macroable;
@@ -93,7 +93,7 @@ class Views
     protected ?Arrival $arrival = null;
 
     /** @var list<DimensionFilter> */
-    protected array $dimensions = [];
+    protected array $filters = [];
 
     public function __construct(
         protected VisitorContract $visitor,
@@ -101,6 +101,9 @@ class Views
         protected Reader $reader,
         protected DestroyViews $destroyer,
         protected CacheVersions $cacheVersions,
+        protected DimensionRegistry $dimensions,
+        protected LiveViews $live,
+        protected Container $container,
     ) {}
 
     public function forViewable(Viewable $viewable): self
@@ -239,7 +242,7 @@ class Views
      */
     public function whereDimension(string $dimension, string|array $values): self
     {
-        $this->dimensions[] = Container::getInstance()->make(DimensionRegistry::class)->filter($dimension, $values);
+        $this->filters[] = $this->dimensions->filter($dimension, $values);
 
         return $this;
     }
@@ -356,11 +359,7 @@ class Views
      */
     public function live(): LiveViews
     {
-        return Container::getInstance()->make(LiveViews::class, [
-            'viewable' => $this->viewable,
-            'viewables' => $this->viewables,
-            'collection' => $this->collection,
-        ]);
+        return $this->live->scoped($this->viewable, $this->viewables, $this->collection);
     }
 
     /**
@@ -518,7 +517,7 @@ class Views
             return $this;
         }
 
-        $rollup = Container::getInstance()->make(RollupPolicy::class)->find($name)?->rollup();
+        $rollup = $this->container->make(RollupPolicy::class)->find($name)?->rollup();
 
         if (! $rollup instanceof Rollup) {
             throw UnknownRollup::named($name);
@@ -594,7 +593,7 @@ class Views
     /** @throws UnknownDimension */
     protected function dimension(string $name): DimensionDefinition
     {
-        return Container::getInstance()->make(DimensionRegistry::class)->find($name) ?? throw UnknownDimension::named($name);
+        return $this->dimensions->find($name) ?? throw UnknownDimension::named($name);
     }
 
     /** @throws InvalidViewable */
@@ -604,7 +603,7 @@ class Views
             return null;
         }
 
-        $model = Container::getInstance()->make($class);
+        $model = $this->container->make($class);
 
         if (! $model instanceof Viewable) {
             throw InvalidViewable::classDoesNotImplementViewable($class);
@@ -615,7 +614,7 @@ class Views
 
     protected function query(): ViewsQuery
     {
-        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup, $this->dimensions);
+        return new ViewsQuery($this->period, $this->collection, $this->unique, $this->timezone, $this->viewer, $this->rollup, $this->filters);
     }
 
     protected function resolveLifetime(DateTimeInterface|int $lifetime): CarbonInterface

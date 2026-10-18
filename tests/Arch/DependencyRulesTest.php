@@ -225,6 +225,8 @@ arch('maintenance runs querying and retention and nothing else')
         'CyrildeWit\EloquentViewable\Maintenance',
         'CyrildeWit\EloquentViewable\Querying',
         'CyrildeWit\EloquentViewable\Retention',
+        'CyrildeWit\EloquentViewable\Recording\Events',
+        'CyrildeWit\EloquentViewable\Erasure\Events',
         'Carbon',
         'Illuminate',
     ]);
@@ -259,6 +261,7 @@ arch('milestones read the counter columns and the state table, and nothing else'
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Milestones',
         'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
+        'CyrildeWit\EloquentViewable\Querying\Counters\Events',
         'Illuminate',
     ]);
 
