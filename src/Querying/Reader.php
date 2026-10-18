@@ -188,13 +188,7 @@ final readonly class Reader
      */
     public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
     {
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsByDimension) {
-            throw UnsupportedBySource::dimension($source);
-        }
-
-        $counts = $source->countByDimension($viewable, $query, $dimension);
+        $counts = $this->requires(CountsByDimension::class, $rememberUntil)->countByDimension($viewable, $query, $dimension);
 
         return $this->sortByCountThenName($counts);
     }
@@ -205,17 +199,9 @@ final readonly class Reader
      */
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?CarbonInterface $rememberUntil = null): DimensionCounts
     {
-        if (($limit ?? 1) < 1) {
-            throw InvalidLimit::belowOne((int) $limit, 'countBy()');
-        }
+        $this->guardLimit($limit ?? 1, 'countBy()');
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsBy) {
-            throw UnsupportedBySource::countBy($source);
-        }
-
-        return $source->countBy($viewable, $query, $dimension, $limit);
+        return $this->requires(CountsBy::class, $rememberUntil)->countBy($viewable, $query, $dimension, $limit);
     }
 
     /**
@@ -224,13 +210,7 @@ final readonly class Reader
      */
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit);
-        }
-
-        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
-            throw InvalidViewable::cannotRankOne($viewable);
-        }
+        $this->guardRanking($viewable, $limit, 'top()');
 
         return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
     }
@@ -248,22 +228,11 @@ final readonly class Reader
      */
     public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'trending()');
-        }
-
-        if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
-            throw InvalidViewable::cannotRankOne($viewable);
-        }
+        $this->guardRanking($viewable, $limit, 'trending()');
 
         $decay = $this->decays->make($query, $halfLife, $curve);
-        $source = $this->source($rememberUntil);
 
-        if (! $source instanceof RanksTrending) {
-            throw UnsupportedBySource::trending($source);
-        }
-
-        return $this->loader->load($source->trending($viewable, $query, $decay, $limit));
+        return $this->loader->load($this->requires(RanksTrending::class, $rememberUntil)->trending($viewable, $query, $decay, $limit));
     }
 
     /**
@@ -334,9 +303,7 @@ final readonly class Reader
      */
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'alsoViewed()');
-        }
+        $this->guardLimit($limit, 'alsoViewed()');
 
         if (ViewableKey::of($viewable) === null) {
             throw InvalidViewable::cannotPairType($viewable);
@@ -346,13 +313,7 @@ final readonly class Reader
             throw InvalidViewer::cannotNarrowAlsoViewed();
         }
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof RanksAlsoViewed) {
-            throw UnsupportedBySource::alsoViewed($source);
-        }
-
-        return $this->loader->load($source->alsoViewed(
+        return $this->loader->load($this->requires(RanksAlsoViewed::class, $rememberUntil)->alsoViewed(
             $viewable,
             $among,
             $query,
@@ -376,9 +337,7 @@ final readonly class Reader
      */
     public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?CarbonInterface $rememberUntil = null): Recommendations
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, 'recommended()');
-        }
+        $this->guardLimit($limit, 'recommended()');
 
         return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $rememberUntil));
     }
@@ -419,12 +378,6 @@ final readonly class Reader
             throw InvalidViewable::cannotRecommendAmongOne($among);
         }
 
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof RanksRecommendations) {
-            throw UnsupportedBySource::recommended($source);
-        }
-
         $request = new RecommendationRequest(
             $recipient,
             $among,
@@ -440,7 +393,7 @@ final readonly class Reader
         );
 
         return $scorer->score(
-            $source->recommendationPairs($request, $query->withViewer(null)),
+            $this->requires(RanksRecommendations::class, $rememberUntil)->recommendationPairs($request, $query->withViewer(null)),
             $query->period?->getEndDateTime() ?? Carbon::now(),
             $limit,
         );
@@ -453,13 +406,7 @@ final readonly class Reader
      */
     private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil): array
     {
-        $source = $this->source($rememberUntil);
-
-        if (! $source instanceof CountsVisitFrequency) {
-            throw UnsupportedBySource::visitFrequency($source);
-        }
-
-        return $source->visitFrequency($viewable, $query);
+        return $this->requires(CountsVisitFrequency::class, $rememberUntil)->visitFrequency($viewable, $query);
     }
 
     /**
@@ -470,22 +417,56 @@ final readonly class Reader
      */
     private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?CarbonInterface $rememberUntil): CountsByWindow
     {
-        if ($limit < 1) {
-            throw InvalidLimit::belowOne($limit, $method);
-        }
+        $this->guardRanking($viewable, $limit, $method);
 
         if ($minimum < 1) {
             throw InvalidBaseline::minimumBelowOne($minimum, $method);
         }
 
+        return $this->requires(CountsByWindow::class, $rememberUntil);
+    }
+
+    /** @throws InvalidLimit */
+    private function guardLimit(int $limit, string $method): void
+    {
+        if ($limit < 1) {
+            throw InvalidLimit::belowOne($limit, $method);
+        }
+    }
+
+    /**
+     * A ranking is read across a type, or across every type, never for one
+     * model.
+     *
+     * @throws InvalidLimit
+     * @throws InvalidViewable
+     */
+    private function guardRanking(?Viewable $viewable, int $limit, string $method): void
+    {
+        $this->guardLimit($limit, $method);
+
         if ($viewable instanceof Viewable && ViewableKey::of($viewable) !== null) {
             throw InvalidViewable::cannotRankOne($viewable);
         }
+    }
 
+    /**
+     * The source for a read that needs one of the optional contracts, behind
+     * the cache when the call asks to remember the result.
+     *
+     * @template TContract of object
+     *
+     * @param  class-string<TContract>  $contract
+     * @return TContract&ViewSource
+     *
+     * @throws UnsupportedBySource
+     */
+    private function requires(string $contract, ?CarbonInterface $rememberUntil): ViewSource
+    {
         $source = $this->source($rememberUntil);
 
-        if (! $source instanceof CountsByWindow) {
-            throw UnsupportedBySource::growth($source);
+        if (! $source instanceof $contract) {
+            throw UnsupportedBySource::missing($contract, $source);
         }
 
         return $source;
