@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Defaults live in `config/eloquent-viewable.php` and are merged in by the
  * service provider, so they are not repeated here. A key that has to hold a
- * value throws when it is missing or empty, because there is no fallback that
- * would be correct; a boolean or list key falls back to the shipped default,
- * because there is.
+ * value throws when it is missing or empty, because no fallback would be
+ * correct. A boolean or list key falls back to the shipped default, because
+ * that default is correct when the key is missing.
  *
  * @internal
  */
@@ -130,8 +130,9 @@ abstract readonly class ConfigReader
     }
 
     /**
-     * An array keyed by name. The exception is built for the value as a
-     * whole, or for a key that is not a string.
+     * An array keyed by name. $exception receives the config key and the
+     * offending value: the whole value when it is not an array, or the first
+     * key that is not a string.
      *
      * @param  Closure(string, mixed): InvalidConfiguration  $exception
      * @return array<string, mixed>
@@ -159,11 +160,7 @@ abstract readonly class ConfigReader
         return $map;
     }
 
-    /**
-     * The class when it names a viewable model, or null.
-     *
-     * @return ?class-string<Model&Viewable>
-     */
+    /** @return ?class-string<Model&Viewable> */
     protected function viewableClass(mixed $class): ?string
     {
         if (! is_string($class) || ! is_a($class, Model::class, true) || ! is_a($class, Viewable::class, true)) {
