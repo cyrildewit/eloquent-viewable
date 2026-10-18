@@ -12,7 +12,7 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
  * thresholds, after the mark that keeps it from firing again is committed.
  * A model that passed several thresholds since the last recount gets one
  * event, for the highest, with every threshold it passed in ascending order
- * and the count the column holds now. It names the model by its morph type
+ * and the count the column held after the recount. It names the model by its morph type
  * and key, so a queued listener loads it under its own rules, and one deleted
  * since is null.
  */

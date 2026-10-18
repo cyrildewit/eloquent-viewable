@@ -13,12 +13,15 @@ use CyrildeWit\EloquentViewable\Support\PeriodInterval;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * It holds the settings `views:detect-spikes` watches one model class with:
- * how many hours wide the window is, what it is compared with and how many
- * past windows, the z-score a spike starts at, and minus it a drop, the views
- * below which nothing counts, whether drops are watched, and how long a model
- * stays normal before it settles. Every option of `spikes.types` that is left
- * out takes its default.
+ * It holds the settings `views:detect-spikes` watches one model class with.
+ * Every option of `spikes.types` that is left out takes its default.
+ *
+ * `hours` is the width of the window, read from the `window` option.
+ * `seasonality` picks the past windows it is compared with, and `samples`
+ * how many. `threshold` is the z-score a
+ * spike starts at; a drop starts at minus that score. A window below
+ * `minimum` views never counts. `drops` turns on watching for drops.
+ * `cooldown` is how long a model stays normal before its episode settles.
  *
  * @internal
  */

@@ -27,7 +27,8 @@ final readonly class SessionStore implements CooldownStore
     }
 
     /**
-     * Drops the expired cooldowns from the session on the way.
+     * Also writes the session back without the expired cooldowns, so the
+     * session does not grow with every model the visitor views.
      *
      * @return array<string, int>
      */
