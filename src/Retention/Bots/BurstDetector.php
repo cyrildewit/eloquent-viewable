@@ -71,8 +71,6 @@ final class BurstDetector
     }
 
     /**
-     * It returns the visitors with at least this many separate bursts.
-     *
      * @return list<string>
      */
     public function visitorsWithBursts(int $minimum): array

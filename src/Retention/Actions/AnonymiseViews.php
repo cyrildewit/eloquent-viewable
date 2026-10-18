@@ -141,8 +141,9 @@ final readonly class AnonymiseViews
 
     /**
      * Each chunk starts after the last id of the one before, so a day is read
-     * once instead of once per chunk. The day is not finished when the
-     * deadline stopped it halfway.
+     * once instead of once per chunk. When the deadline stops the day halfway,
+     * the day is not finished, so its salt stays in the state table for the
+     * next run.
      *
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      *
@@ -242,10 +243,9 @@ final readonly class AnonymiseViews
      * row, so one statement for a whole chunk would cost the rows times the
      * visitors. The chunk is split into statements of at most
      * `VisitorsPerStatement` visitors each instead, which keeps that cost
-     * linear in the size of the chunk. The visitors are keyed by the id of
-     * their view.
+     * linear in the size of the chunk.
      *
-     * @param  array<int|string, mixed>  $visitors
+     * @param  array<int|string, mixed>  $visitors  the visitor of each view, keyed by the id of the view
      * @param  list<'visitor'|'viewer'|'context'|'dimensions'>  $columns
      */
     private function update(array $visitors, array $columns, string $salt): void
