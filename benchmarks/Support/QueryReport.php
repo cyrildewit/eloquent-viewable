@@ -11,7 +11,7 @@ use stdClass;
  * The queries and plans `bench:explain` collects, in the shape it writes as
  * JSON. The results repository stores the file next to every run and shows
  * the SQL on each benchmark's page, so a key is only ever added, never
- * renamed or removed; bump `SCHEMA_VERSION` when one changes meaning.
+ * renamed or removed; bump `SchemaVersion` when one changes meaning.
  *
  * A query holds its SQL and plan and nothing else, because readers of the
  * first version refuse any other key there. What `--execute` measures goes

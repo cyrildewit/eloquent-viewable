@@ -185,8 +185,9 @@ final readonly class Dataset
     }
 
     /**
-     * The description with its values typed, the shape `bench:describe` prints. The results repository reads it, so
-     * a key is only ever added, never renamed or removed.
+     * The description with its values typed, the shape `bench:describe`
+     * prints. The results repository reads it, so a key is only ever added,
+     * never renamed or removed.
      *
      * @return array<string, int|string|list<string>>
      */

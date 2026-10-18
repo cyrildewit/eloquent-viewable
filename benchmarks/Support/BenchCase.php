@@ -95,8 +95,8 @@ abstract class BenchCase
     /**
      * Xdebug slows PHP down several times over even when it only collects
      * coverage, and the containers enable it by default. The Make targets
-     * turn it off; a run that forgot would produce numbers that compare with
-     * nothing.
+     * turn it off. A run with Xdebug active produces timings that cannot be
+     * compared with any other run, so this method refuses to start it.
      */
     private function guardAgainstXdebug(): void
     {

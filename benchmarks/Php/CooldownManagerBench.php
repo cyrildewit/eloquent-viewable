@@ -62,8 +62,8 @@ final class CooldownManagerBench
         $this->expiresAt = CarbonImmutable::now()->addDay();
 
         // Written straight into the session, the way the store keeps them.
-        // Putting them one by one would sweep the session on every put and
-        // take minutes for the largest case.
+        // Putting them one by one would sweep the session on every put, so
+        // filling it would take time quadratic in the number of entries.
         $running = [];
 
         for ($id = 1; $id <= $params['entries']; $id++) {
