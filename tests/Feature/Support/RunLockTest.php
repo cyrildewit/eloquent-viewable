@@ -18,7 +18,8 @@ beforeEach(function (): void {
 });
 
 /**
- * Binds a cache store whose locks are the given one.
+ * Points the package's cache store at a store whose lock() always returns
+ * `$lock`.
  */
 function storeLocking(LockContract $lock): void
 {

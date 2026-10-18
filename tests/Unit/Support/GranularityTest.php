@@ -46,7 +46,9 @@ describe('floor', function (): void {
         try {
             Carbon::setLocale('en_US');
 
-            // A Sunday. A Sunday-first locale would floor it to itself.
+            // 2026-03-08 is a Sunday. `en_US` starts the week on Sunday, so a
+            // floor that followed the locale would return the same day. Weeks
+            // start on Monday whatever the locale.
             expect(Granularity::Week->floor(Carbon::parse('2026-03-08 15:00:00'))->format('Y-m-d H:i:s'))
                 ->toBe('2026-03-02 00:00:00');
         } finally {

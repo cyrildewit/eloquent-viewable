@@ -25,8 +25,8 @@ function dimensionFindings(?DimensionsCheck $check = null): array
 }
 
 /**
- * The check on a database that reports the driver given, and the version
- * given or its own.
+ * A DimensionsCheck that reports `$driver` as the driver, and `$version` as
+ * the server version, or the real server version when `$version` is null.
  */
 function dimensionsCheckOn(string $driver, ?string $version = null): DimensionsCheck
 {

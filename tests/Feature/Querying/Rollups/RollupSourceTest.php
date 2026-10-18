@@ -231,7 +231,8 @@ it('keeps the unique visitors of whole buckets once the views behind them are an
     app(FoldViews::class)->handle();
     app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-01'), ['visitor', 'viewer', 'context'], 100);
 
-    // The views table now holds one id per visitor per day.
+    // Anonymising gave each visitor a new id per day, so visitor-1, seen on
+    // two January days, counts as two in the views table.
     expect($january())->toBe(3);
 
     readFrom('rollup');
