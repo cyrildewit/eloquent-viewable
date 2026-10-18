@@ -24,7 +24,6 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\RunLock;
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
 use JsonException;
 
@@ -49,7 +48,8 @@ final readonly class MaintainViews
         private Config $config,
         private Watermarks $watermarks,
         private RunLock $lock,
-        private Container $container,
+        private AnonymiseViews $anonymise,
+        private PruneViews $prune,
     ) {}
 
     /** @throws InvalidConfiguration */
@@ -148,14 +148,11 @@ final readonly class MaintainViews
     private function retentionActions(bool $dryRun): array
     {
         if (! $dryRun) {
-            return [$this->container->make(AnonymiseViews::class), $this->container->make(PruneViews::class)];
+            return [$this->anonymise, $this->prune];
         }
 
         $watermarks = $this->watermarks->afterFolding();
 
-        return [
-            $this->container->make(AnonymiseViews::class, ['watermarks' => $watermarks]),
-            $this->container->make(PruneViews::class, ['watermarks' => $watermarks]),
-        ];
+        return [$this->anonymise->withWatermarks($watermarks), $this->prune->withWatermarks($watermarks)];
     }
 }

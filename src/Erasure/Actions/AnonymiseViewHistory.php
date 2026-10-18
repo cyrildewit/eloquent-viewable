@@ -12,7 +12,7 @@ use CyrildeWit\EloquentViewable\Erasure\ViewHistory;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidTimezone;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
+use CyrildeWit\EloquentViewable\Support\AnonymisedVisitor;
 use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Deadline;
@@ -123,13 +123,7 @@ final readonly class AnonymiseViewHistory
      */
     private function anonymisedVisitor(View $view, Timezone $zone, array &$salts): ?string
     {
-        $prefix = AnonymiseViews::Prefix;
-
-        if ($view->visitor === null) {
-            return null;
-        }
-
-        if (str_starts_with($view->visitor, $prefix)) {
+        if ($view->visitor === null || AnonymisedVisitor::isAnonymised($view->visitor)) {
             return $view->visitor;
         }
 
@@ -137,9 +131,7 @@ final readonly class AnonymiseViewHistory
 
         $salts[$day] ??= bin2hex(random_bytes(32));
 
-        $hash = hash_hmac('sha256', $view->visitor, $salts[$day]);
-
-        return "{$prefix}{$hash}";
+        return AnonymisedVisitor::hash($view->visitor, $salts[$day]);
     }
 
     /**

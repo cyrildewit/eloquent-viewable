@@ -15,7 +15,6 @@ use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
 use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
 use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
-use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Views;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
@@ -245,7 +244,6 @@ arch('erasure reaches the other modules through their contracts and a few seams'
         'CyrildeWit\EloquentViewable\Erasure',
         'CyrildeWit\EloquentViewable\Recording\Contracts',
         VisitorIdentity::class,
-        AnonymiseViews::class,
         DimensionRegistry::class,
         'Carbon',
         'Illuminate',

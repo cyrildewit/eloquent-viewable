@@ -2681,6 +2681,12 @@ implements `Querying\Contracts\TrendingSubquerySource`. Without them, they throw
 whose `visitFrequency()` returns the number of visitors per number of days they viewed on. Without it, they throw
 `UnsupportedBySource`.
 
+`views:recount` recounts every model on every run through a source of your own, unless it also implements
+`Querying\Contracts\TracksChangedViewables`: `keysViewedBetween()` returns the keys of the viewables of a type with
+views in a window, counting whatever the source keeps beyond the `views` table, and `countsChangeWhenPruned()` says
+whether a count changes once old views are deleted. With it, only the models whose counts can have changed are
+recounted, as under the `database` and `rollup` sources.
+
 `remember()` keeps the entries of two sources apart by the driver name. A source whose counts depend on settings of its
 own, such as the name of the rollup table, implements `Querying\Contracts\IdentifiesSource` and returns them from
 `cacheIdentity()`, so changing them starts fresh entries.

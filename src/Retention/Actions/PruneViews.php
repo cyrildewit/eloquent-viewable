@@ -36,6 +36,12 @@ final readonly class PruneViews
         private Dispatcher $events,
     ) {}
 
+    /** The same action, clamped to other watermarks. */
+    public function withWatermarks(Watermarks $watermarks): self
+    {
+        return new self($this->view, $this->state, $watermarks, $this->events);
+    }
+
     /** @throws RetentionNotInstalled */
     public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
     {
