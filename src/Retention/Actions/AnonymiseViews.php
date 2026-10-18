@@ -229,13 +229,7 @@ final readonly class AnonymiseViews
      */
     private function zone(): Timezone
     {
-        $zone = $this->config->rollupTimezone();
-
-        if ($zone === null) {
-            return Timezone::application();
-        }
-
-        return new Timezone($zone);
+        return Timezone::named($this->config->rollupTimezone());
     }
 
     /**

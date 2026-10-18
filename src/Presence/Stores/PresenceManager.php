@@ -4,33 +4,18 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Presence\Stores;
 
-use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
 use CyrildeWit\EloquentViewable\Presence\Exceptions\PresenceFailed;
 use CyrildeWit\EloquentViewable\Presence\Precision;
-use CyrildeWit\EloquentViewable\Support\Config;
-use Illuminate\Contracts\Container\Container;
+use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Redis\Connections\PredisConnection;
-use Illuminate\Support\Manager;
-use Illuminate\Support\Str;
 
-/**
- * Hands out the `null` store while presence is off, so recording a view
- * costs nothing extra until it is turned on.
- *
- * @method PresenceStore driver(?string $driver = null)
- */
-final class PresenceManager extends Manager
+/** @extends PackageManager<PresenceStore> */
+final class PresenceManager extends PackageManager
 {
-    public function __construct(Container $container, private readonly Config $packageConfig)
-    {
-        parent::__construct($container);
-    }
-
-    /** @throws InvalidConfiguration */
     public function getDefaultDriver(): string
     {
         if (! $this->packageConfig->presenceEnabled()) {
@@ -40,22 +25,9 @@ final class PresenceManager extends Manager
         return $this->packageConfig->presenceDriver();
     }
 
-    /**
-     * @param  string  $driver
-     *
-     * @throws InvalidConfiguration
-     */
-    #[\Override]
-    protected function createDriver($driver): PresenceStore
+    protected function configKey(): string
     {
-        if (! isset($this->customCreators[$driver]) && ! method_exists($this, 'create'.Str::studly($driver).'Driver')) {
-            throw InvalidConfiguration::unknownDriver('presence.driver', $driver);
-        }
-
-        /** @var PresenceStore $store */
-        $store = parent::createDriver($driver);
-
-        return $store;
+        return 'presence.driver';
     }
 
     protected function createNullDriver(): NullPresenceStore
@@ -68,10 +40,7 @@ final class PresenceManager extends Manager
         return new ArrayPresenceStore;
     }
 
-    /**
-     * @throws InvalidConfiguration
-     * @throws PresenceFailed
-     */
+    /** @throws PresenceFailed */
     protected function createRedisDriver(): RedisPresenceStore
     {
         $connection = $this->container->make(RedisFactory::class)->connection($this->packageConfig->presenceRedisConnection());

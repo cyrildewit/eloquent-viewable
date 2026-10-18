@@ -177,13 +177,7 @@ final readonly class RollupPolicy
     /** @throws InvalidTimezone */
     private static function timezone(Config $config): Timezone
     {
-        $timezone = $config->rollupTimezone();
-
-        if ($timezone === null) {
-            return Timezone::application();
-        }
-
-        return new Timezone($timezone);
+        return Timezone::named($config->rollupTimezone());
     }
 
     /**

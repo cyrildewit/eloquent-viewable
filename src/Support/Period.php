@@ -60,10 +60,10 @@ final readonly class Period implements UrlRoutable
     {
         $timezone = $timezone === null ? null : Timezone::from($timezone);
 
-        if (preg_match('/^(\d+)([a-z]+)$/', $period, $matches) === 1) {
-            $interval = PeriodInterval::fromShorthand($matches[2]) ?? throw InvalidPeriod::unparsable($period);
+        $duration = Duration::tryParse($period);
 
-            return self::relative($interval->anchor(), $interval, (int) $matches[1], $timezone);
+        if ($duration instanceof Duration) {
+            return self::relative($duration->interval->anchor(), $duration->interval, $duration->value, $timezone);
         }
 
         $bounds = explode(self::RangeSeparator, $period);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Support;
 
 use Carbon\CarbonInterface;
+use Carbon\Unit;
 
 enum PeriodInterval: string
 {
@@ -58,18 +59,21 @@ enum PeriodInterval: string
         };
     }
 
+    public function unit(): Unit
+    {
+        return match ($this) {
+            self::Seconds => Unit::Second,
+            self::Minutes => Unit::Minute,
+            self::Hours => Unit::Hour,
+            self::Days => Unit::Day,
+            self::Weeks => Unit::Week,
+            self::Months => Unit::Month,
+            self::Years => Unit::Year,
+        };
+    }
+
     public function subtract(CarbonInterface $dateTime, int $value): CarbonInterface
     {
-        $dateTime = $dateTime->avoidMutation();
-
-        return match ($this) {
-            self::Seconds => $dateTime->subSeconds($value),
-            self::Minutes => $dateTime->subMinutes($value),
-            self::Hours => $dateTime->subHours($value),
-            self::Days => $dateTime->subDays($value),
-            self::Weeks => $dateTime->subWeeks($value),
-            self::Months => $dateTime->subMonths($value),
-            self::Years => $dateTime->subYears($value),
-        };
+        return $dateTime->avoidMutation()->sub($this->unit(), $value);
     }
 }

@@ -31,6 +31,16 @@ final class Timezone extends DateTimeZone
         return new self(date_default_timezone_get());
     }
 
+    /**
+     * The zone of the name, or the application's without one.
+     *
+     * @throws InvalidTimezone
+     */
+    public static function named(?string $timezone): self
+    {
+        return $timezone === null ? self::application() : new self($timezone);
+    }
+
     /** @throws InvalidTimezone */
     public static function from(DateTimeZone|string $timezone): self
     {

@@ -114,6 +114,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
+- `views:doctor` checks that the pairs table exists once `querying.pairs.enabled` is on
 
 #### Models and testing
 
@@ -147,6 +148,8 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - `Recording\Jobs\RecordViewJob` has no static `dispatch()` method. Use `dispatch(new RecordViewJob($record))`
 - The package requires the `illuminate/bus`, `illuminate/container`, `illuminate/queue` and `illuminate/routing` components and no longer uses `Illuminate\Foundation`
 - The migration stub is published from `database/migrations/`, with no change for existing installations
+- `Period::parse()` refuses a shorthand of zero, such as `0d`, the way a config duration already did
+- The exception thrown when the retention, rollups, milestones or spikes table is missing names the feature that needs it, and the one `views:rollup` throws for a missing state table points at the `eloquent-viewable-retention` tag that publishes it
 - Development only: the test suite runs against SQLite, MySQL, MariaDB and Postgres, including models keyed by UUID and ULID, and a phpbench suite in `benchmarks/` times the queries against millions of views
 
 ### Removed
