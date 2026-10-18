@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
+use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,6 +43,25 @@ final readonly class RollupDefinition
     public function keep(Tier $tier): ?Duration
     {
         return $this->tiers[$tier->value] ?? null;
+    }
+
+    /**
+     * A finer tier only expires once a coarser one has captured it, so a
+     * coarser tier must be kept at least as long.
+     *
+     * @throws InvalidConfiguration
+     */
+    public function assertCoarserKeptLonger(CarbonInterface $now): void
+    {
+        $finer = null;
+
+        foreach (array_reverse($this->tiers()) as $tier) {
+            if ($finer instanceof Tier && $this->keptShorter($tier, $finer, $now)) {
+                throw InvalidConfiguration::coarserTierKeptShorter($this->name, $tier->value, $finer->value);
+            }
+
+            $finer = $tier;
+        }
     }
 
     public function coarserThan(Tier $tier): ?Tier
@@ -88,5 +109,21 @@ final readonly class RollupDefinition
     public function rollup(): ?Rollup
     {
         return $this->custom;
+    }
+
+    private function keptShorter(Tier $coarser, Tier $finer, CarbonInterface $now): bool
+    {
+        $coarserKeep = $this->keep($coarser);
+        $finerKeep = $this->keep($finer);
+
+        if (! $coarserKeep instanceof Duration) {
+            return false;
+        }
+
+        if (! $finerKeep instanceof Duration) {
+            return true;
+        }
+
+        return $finerKeep->isLongerThan($coarserKeep, $now);
     }
 }

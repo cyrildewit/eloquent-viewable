@@ -44,21 +44,9 @@ final readonly class ExpireTiers
             $snapshot = $this->state->snapshot($definition->name);
 
             foreach ($definition->tiers() as $tier) {
-                $keep = $definition->keep($tier);
-
-                if (! $keep instanceof Duration) {
-                    continue;
-                }
-
-                $cutoff = $this->cutoff($definition, $tier, $snapshot, CarbonImmutable::instance($keep->before($now)));
+                $cutoff = $this->expiryCutoff($definition, $tier, $snapshot, $now);
 
                 if (! $cutoff instanceof CarbonImmutable) {
-                    continue;
-                }
-
-                $since = $snapshot->since($tier);
-
-                if ($since instanceof CarbonImmutable && $since >= $cutoff) {
                     continue;
                 }
 
@@ -81,6 +69,29 @@ final readonly class ExpireTiers
         }
 
         return $dropped;
+    }
+
+    /**
+     * The moment before which the tier's buckets expire, or null while the
+     * tier is kept for good, the coarser tier has not folded them yet, or
+     * nothing expired since the last run.
+     */
+    private function expiryCutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $now): ?CarbonImmutable
+    {
+        $keep = $definition->keep($tier);
+
+        if (! $keep instanceof Duration) {
+            return null;
+        }
+
+        $cutoff = $this->cutoff($definition, $tier, $snapshot, CarbonImmutable::instance($keep->before($now)));
+        $since = $snapshot->since($tier);
+
+        if ($since instanceof CarbonImmutable && $cutoff instanceof CarbonImmutable && $since >= $cutoff) {
+            return null;
+        }
+
+        return $cutoff;
     }
 
     private function cutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $cutoff): ?CarbonImmutable

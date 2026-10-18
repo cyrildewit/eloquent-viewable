@@ -14,7 +14,7 @@ use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
 
 final readonly class RollupPolicy
@@ -31,49 +31,50 @@ final readonly class RollupPolicy
 
     private const array Groupings = ['viewable', 'viewable_collection', 'type', 'type_collection'];
 
-    /**
-     * @param  list<RollupDefinition>  $definitions
-     *
-     * @throws InvalidConfiguration
-     */
+    /** @param  list<RollupDefinition>  $definitions */
     public function __construct(
         private array $definitions,
         public Timezone $timezone,
         public ?Duration $settle,
         public bool $strict,
         public string $table,
-        ?Duration $pruneAfter = null,
-    ) {
+    ) {}
+
+    /**
+     * A policy whose definitions agree with each other and with how long
+     * views are kept: a coarser tier is kept at least as long as a finer
+     * one, and views are pruned only once the coarsest tier has folded them.
+     *
+     * @param  list<RollupDefinition>  $definitions
+     *
+     * @throws InvalidConfiguration
+     */
+    public static function validated(array $definitions, Timezone $timezone, ?Duration $settle, bool $strict, string $table, ?Duration $pruneAfter): self
+    {
         $now = Carbon::now();
 
-        foreach ($this->definitions as $definition) {
-            $finer = null;
-
-            foreach (array_reverse($definition->tiers()) as $tier) {
-                if ($finer instanceof Tier && $this->keptShorter($definition, $tier, $finer, $now)) {
-                    throw InvalidConfiguration::coarserTierKeptShorter($definition->name, $tier->value, $finer->value);
-                }
-
-                $finer = $tier;
-            }
+        foreach ($definitions as $definition) {
+            $definition->assertCoarserKeptLonger($now);
         }
 
-        $coarsest = $this->coarsestTier();
+        $policy = new self($definitions, $timezone, $settle, $strict, $table);
+        $coarsest = $policy->coarsestTier();
 
-        if ($coarsest instanceof Tier && $pruneAfter instanceof Duration) {
-            $closed = $coarsest->granularity()->add($this->settle?->before($now) ?? $now, -1);
-
-            if ($pruneAfter->before($now) > $closed) {
-                throw InvalidConfiguration::prunedBeforeFolded($pruneAfter->shorthand(), $coarsest->value, $this->settle?->shorthand() ?? 'null');
-            }
+        if ($coarsest instanceof Tier && $pruneAfter instanceof Duration && $pruneAfter->before($now) > $coarsest->granularity()->add($settle?->before($now) ?? $now, -1)) {
+            throw InvalidConfiguration::prunedBeforeFolded($pruneAfter->shorthand(), $coarsest->value, $settle?->shorthand() ?? 'null');
         }
+
+        return $policy;
     }
 
     /**
+     * The container builds the custom rollups and the dimension registry
+     * the dimension rollups are named from.
+     *
      * @throws InvalidConfiguration
      * @throws InvalidTimezone
      */
-    public static function fromConfig(Config $config): self
+    public static function fromConfig(Config $config, Container $container): self
     {
         $definitions = [];
         $tiers = $config->rollupTiers();
@@ -86,12 +87,12 @@ final readonly class RollupPolicy
             );
         }
 
-        foreach (self::dimensions($config, $tiers) as $definition) {
+        foreach (self::dimensions($config, $tiers, $container) as $definition) {
             $definitions[] = $definition;
         }
 
         foreach ($config->customRollups() as $class) {
-            $definition = self::define($class);
+            $definition = self::define($class, $container);
 
             foreach ($definitions as $existing) {
                 if ($existing->name === $definition->name) {
@@ -102,9 +103,9 @@ final readonly class RollupPolicy
             $definitions[] = $definition;
         }
 
-        return new self(
+        return self::validated(
             $definitions,
-            self::timezone($config),
+            Timezone::named($config->rollupTimezone()),
             $config->rollupSettle(),
             $config->rollupsStrict(),
             $config->rollupTable(),
@@ -174,12 +175,6 @@ final readonly class RollupPolicy
         return $coarsest;
     }
 
-    /** @throws InvalidTimezone */
-    private static function timezone(Config $config): Timezone
-    {
-        return Timezone::named($config->rollupTimezone());
-    }
-
     /**
      * A definition per dimension in `retention.rollups.dimensions`, with the
      * tiers and groupings of the built-in rollup. The dimensions are only
@@ -191,7 +186,7 @@ final readonly class RollupPolicy
      *
      * @throws InvalidConfiguration
      */
-    private static function dimensions(Config $config, array $tiers): array
+    private static function dimensions(Config $config, array $tiers, Container $container): array
     {
         $names = $config->rollupDimensions();
 
@@ -203,7 +198,7 @@ final readonly class RollupPolicy
             throw InvalidConfiguration::dimensionsWithoutTiers();
         }
 
-        $registry = DimensionRegistry::fromConfig($config, Container::getInstance());
+        $registry = DimensionRegistry::fromConfig($config, $container);
         $groupings = array_map(Grouping::from(...), $config->rollupGroupings());
         $definitions = [];
 
@@ -227,9 +222,9 @@ final readonly class RollupPolicy
      *
      * @throws InvalidConfiguration
      */
-    private static function define(string $class): RollupDefinition
+    private static function define(string $class, Container $container): RollupDefinition
     {
-        $rollup = Container::getInstance()->make($class);
+        $rollup = $container->make($class);
 
         if (! $rollup instanceof Rollup) {
             $parent = Rollup::class;
@@ -335,21 +330,5 @@ final readonly class RollupPolicy
         }
 
         return $ordered;
-    }
-
-    private function keptShorter(RollupDefinition $definition, Tier $coarser, Tier $finer, Carbon $now): bool
-    {
-        $coarserKeep = $definition->keep($coarser);
-        $finerKeep = $definition->keep($finer);
-
-        if (! $coarserKeep instanceof Duration) {
-            return false;
-        }
-
-        if (! $finerKeep instanceof Duration) {
-            return true;
-        }
-
-        return $finerKeep->isLongerThan($coarserKeep, $now);
     }
 }

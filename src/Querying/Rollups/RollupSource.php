@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Closure;
-use CyrildeWit\EloquentViewable\Contracts\FiltersViews;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
 use CyrildeWit\EloquentViewable\Dimensions\Normaliser;
@@ -26,7 +24,6 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
-use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Ranking\Decay;
 use CyrildeWit\EloquentViewable\Querying\Ranking\StepCases;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
@@ -34,19 +31,17 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailabl
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Plan;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\PlannedRead;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Planner;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\ReadPlanner;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Planning\Segment;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Querying\Sources\Rows;
 use CyrildeWit\EloquentViewable\Querying\Sources\WindowTotals;
-use CyrildeWit\EloquentViewable\Support\DimensionFilter;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\Timezone;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use DateTimeZone;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use JsonException;
@@ -68,7 +63,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         private View $view,
         private ViewRollup $rollup,
         private RollupPolicy $policy,
-        private RollupState $state,
+        private ReadPlanner $planner,
     ) {}
 
     /**
@@ -78,7 +73,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function count(Viewable $viewable, ViewsQuery $query): int
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->count($viewable, $query);
@@ -99,7 +94,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity): array
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query, $granularity);
+        $read = $this->planner->plan($grouping, $query, $granularity);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByInterval($viewable, $query, $granularity);
@@ -136,7 +131,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countByCollection(Viewable $viewable, ViewsQuery $query): array
     {
         $grouping = Grouping::for($viewable, true);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByCollection($viewable, $query);
@@ -163,7 +158,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         }
 
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countByDimension($viewable, $query, $dimension);
@@ -185,7 +180,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null): DimensionCounts
     {
         $grouping = Grouping::for($viewable, $query->collection !== null);
-        $read = $this->plan($grouping, $query, counted: $dimension->name);
+        $read = $this->planner->plan($grouping, $query, counted: $dimension->name);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countBy($viewable, $query, $dimension, $limit);
@@ -223,7 +218,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countMany(Viewable $viewable, array $keys, ViewsQuery $query): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countMany($viewable, $keys, $query);
@@ -247,7 +242,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function countSubquery(Viewable $viewable, ViewsQuery $query): Builder
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->countSubquery($viewable, $query);
@@ -331,7 +326,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function top(?Viewable $viewable, ViewsQuery $query, int $limit): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->top($viewable, $query, $limit);
@@ -380,7 +375,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     {
         $query = $decay->narrow($query);
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->trendingPlan($grouping, $query, $decay);
+        $read = $this->planner->trendingPlan($grouping, $query, $decay);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->trending($viewable, $query, $decay, $limit);
@@ -409,7 +404,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     {
         $query = $decay->narrow($query);
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->trendingPlan($grouping, $query, $decay);
+        $read = $this->planner->trendingPlan($grouping, $query, $decay);
 
         if (! $read instanceof PlannedRead) {
             return $this->raw->trendingSubquery($viewable, $query, $decay);
@@ -449,7 +444,7 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     private function countedPerViewable(?string $type, ViewsQuery $query): array
     {
         $grouping = Grouping::for(null, $query->collection !== null);
-        $read = $this->plan($grouping, $query);
+        $read = $this->planner->plan($grouping, $query);
 
         if (! $read instanceof PlannedRead) {
             return [$this->raw->countedPerViewable($type, $query)];
@@ -551,298 +546,6 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     private function sum(ViewsQuery $query): string
     {
         return "sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))})";
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function plan(Grouping $grouping, ViewsQuery $query, ?Granularity $granularity = null, ?string $counted = null): ?PlannedRead
-    {
-        $definition = $this->definition($grouping, $query, $counted);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        $tiers = $definition->tiers();
-
-        if ($granularity instanceof Granularity) {
-            $tiers = array_values(array_filter($tiers, static fn (Tier $tier): bool => $tier->fits($granularity)));
-        }
-
-        if ($tiers === []) {
-            return null;
-        }
-
-        $plan = new Planner($this->policy->timezone)->plan(
-            $this->state->snapshot($definition->name),
-            $tiers,
-            $query->period?->getStartDateTime(),
-            $query->period?->getEndDateTime(),
-            $query->unique,
-            $this->alignToSeries($query, $granularity),
-        );
-
-        if ($plan->isRawOnly()) {
-            return null;
-        }
-
-        if ($this->policy->strict) {
-            $this->guard($plan, $query, $granularity);
-        }
-
-        return new PlannedRead($plan, $definition);
-    }
-
-    /**
-     * Only the tiers no coarser than the step answer, and for unique visitors
-     * only the tier of the step itself, so no visitor is counted twice in a
-     * step. With none left the views table answers, or strict refuses.
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function trendingPlan(Grouping $grouping, ViewsQuery $query, Decay $decay): ?PlannedRead
-    {
-        $definition = $this->definition($grouping, $query);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        $step = $decay->step();
-        $tiers = array_values(array_filter(
-            $definition->tiers(),
-            static fn (Tier $tier): bool => $query->unique ? $tier->granularity() === $step : $tier->fits($step),
-        ));
-
-        if ($tiers === []) {
-            if ($this->policy->strict) {
-                throw ResolutionUnavailable::trendingStep($step->value);
-            }
-
-            return null;
-        }
-
-        $zone = $this->policy->timezone;
-
-        $plan = new Planner($zone)->plan(
-            $this->state->snapshot($definition->name),
-            $tiers,
-            $query->period?->getStartDateTime(),
-            $query->period?->getEndDateTime(),
-            $query->unique,
-            static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($step->floor($moment->setTimezone($zone)))
-                ->setTimezone($moment->getTimezone()),
-        );
-
-        if ($plan->isRawOnly()) {
-            return null;
-        }
-
-        if ($this->policy->strict && ! $plan->isExact()) {
-            throw ResolutionUnavailable::partialBucket();
-        }
-
-        return new PlannedRead($plan, $definition);
-    }
-
-    /**
-     * The rollup the query reads through, unless the rollups cannot answer
-     * it: a read narrowed to a viewer, or one by a grouping not kept. A read
-     * that narrows or counts by a dimension goes through that dimension's
-     * rollup.
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function definition(Grouping $grouping, ViewsQuery $query, ?string $counted = null): ?RollupDefinition
-    {
-        $names = $query->dimensionNames();
-
-        if ($counted !== null && ! in_array($counted, $names, true)) {
-            $names[] = $counted;
-        }
-
-        if ($names !== []) {
-            return $this->dimensionDefinition($grouping, $query, $names);
-        }
-
-        $definition = $this->policy->for($query);
-
-        if (! $definition instanceof RollupDefinition) {
-            return null;
-        }
-
-        if ($query->viewer instanceof Model) {
-            return null;
-        }
-
-        if (! $definition->keeps($grouping)) {
-            return null;
-        }
-
-        return $definition;
-    }
-
-    /**
-     * Only a dimension's own rollup holds its values, so it answers when that
-     * dimension is the only one the read names, the read is not narrowed by
-     * a custom rollup or a viewer, and unique visitors are not summed across
-     * values. Any other read goes to the views table, which only holds the
-     * whole period until views are pruned.
-     *
-     * @param  non-empty-list<string>  $names
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function dimensionDefinition(Grouping $grouping, ViewsQuery $query, array $names): ?RollupDefinition
-    {
-        $definition = count($names) === 1 ? $this->policy->forDimension($names[0]) : null;
-
-        if ($this->answers($definition, $grouping, $query)) {
-            return $definition;
-        }
-
-        $this->guardViewsTable($query, $names);
-
-        return null;
-    }
-
-    /** @phpstan-assert-if-true RollupDefinition $definition */
-    private function answers(?RollupDefinition $definition, Grouping $grouping, ViewsQuery $query): bool
-    {
-        if (! $definition instanceof RollupDefinition) {
-            return false;
-        }
-
-        if ($query->filter instanceof FiltersViews) {
-            return false;
-        }
-
-        if ($query->viewer instanceof Model) {
-            return false;
-        }
-
-        if (! $definition->keeps($grouping)) {
-            return false;
-        }
-
-        if (! $query->unique) {
-            return true;
-        }
-
-        return array_all($query->dimensions, static fn (DimensionFilter $filter): bool => count($filter->values) === 1);
-    }
-
-    /**
-     * Refuses a read the views table can no longer answer for the whole
-     * period, rather than count only the views it still holds.
-     *
-     * @param  non-empty-list<string>  $names
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function guardViewsTable(ViewsQuery $query, array $names): void
-    {
-        $pruned = $this->state->snapshot(RollupPolicy::BuiltIn)->pruned;
-
-        if (! $pruned instanceof CarbonImmutable) {
-            return;
-        }
-
-        $start = $query->period?->getStartDateTime();
-
-        if ($start instanceof CarbonInterface && $start >= $pruned) {
-            return;
-        }
-
-        if ($this->policy->strict) {
-            throw ResolutionUnavailable::dimensionHistory($names, $pruned);
-        }
-
-        throw UnsupportedBySource::dimensionHistory($names, $pruned);
-    }
-
-    /**
-     * The hand-over to the views table moves onto the edge of a series bucket,
-     * so no bucket of the series is summed from both.
-     *
-     * @return (Closure(CarbonImmutable): CarbonImmutable)|null
-     */
-    private function alignToSeries(ViewsQuery $query, ?Granularity $granularity): ?Closure
-    {
-        if (! $granularity instanceof Granularity) {
-            return null;
-        }
-
-        $zone = $this->seriesZone($query);
-
-        return static fn (CarbonImmutable $moment): CarbonImmutable => CarbonImmutable::instance($granularity->floor($moment->setTimezone($zone)))
-            ->setTimezone($moment->getTimezone());
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function guard(Plan $plan, ViewsQuery $query, ?Granularity $granularity): void
-    {
-        if (! $plan->isExact()) {
-            throw ResolutionUnavailable::partialBucket();
-        }
-
-        if (! $granularity instanceof Granularity) {
-            $this->guardCount($plan, $query);
-
-            return;
-        }
-
-        $zone = $this->seriesZone($query);
-
-        if ($zone->getName() !== $this->policy->timezone->getName()) {
-            $this->guardOtherTimezone($plan, $zone);
-        }
-
-        if (! $query->unique) {
-            return;
-        }
-
-        foreach ($plan->rollups() as $segment) {
-            if ($segment->tier?->granularity() !== $granularity) {
-                throw ResolutionUnavailable::summedUniques();
-            }
-        }
-    }
-
-    /** @throws ResolutionUnavailable */
-    private function guardCount(Plan $plan, ViewsQuery $query): void
-    {
-        if (! $query->unique) {
-            return;
-        }
-
-        if ($plan->parts($this->policy->timezone) > 1) {
-            throw ResolutionUnavailable::summedUniques();
-        }
-    }
-
-    /**
-     * Only hour buckets fit a series in another zone, and only while the zones
-     * are whole hours apart.
-     *
-     * @throws ResolutionUnavailable
-     */
-    private function guardOtherTimezone(Plan $plan, DateTimeZone $zone): void
-    {
-        foreach ($plan->rollups() as $segment) {
-            if ($segment->tier === Tier::Hour && $this->alignsByTheHour($segment, $zone)) {
-                continue;
-            }
-
-            throw ResolutionUnavailable::otherTimezone($zone->getName(), $this->policy->timezone->getName());
-        }
-    }
-
-    private function alignsByTheHour(Segment $segment, DateTimeZone $zone): bool
-    {
-        return array_all(
-            array_filter([$segment->start, $segment->end]),
-            fn (CarbonImmutable $moment): bool => ($zone->getOffset($moment) - $this->policy->timezone->getOffset($moment)) % 3600 === 0,
-        );
     }
 
     /**
