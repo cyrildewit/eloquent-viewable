@@ -11,4 +11,14 @@ namespace CyrildeWit\EloquentViewable\Support;
 final class AnonymisedVisitor
 {
     public const string Prefix = 'a:';
+
+    public static function hash(string $visitor, string $salt): string
+    {
+        return self::Prefix.hash_hmac('sha256', $visitor, $salt);
+    }
+
+    public static function isAnonymised(string $visitor): bool
+    {
+        return str_starts_with($visitor, self::Prefix);
+    }
 }

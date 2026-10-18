@@ -19,6 +19,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TracksChangedViewables;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Data\TimezoneConversion;
@@ -43,7 +44,7 @@ use stdClass;
 /**
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class DatabaseSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class DatabaseSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TracksChangedViewables, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 100;
 
@@ -565,6 +566,30 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
         }
 
         return $grammar->truncate($column, $granularity);
+    }
+
+    /** @return list<int|string> */
+    public function keysViewedBetween(string $type, ?string $from, ?string $until): array
+    {
+        /** @var list<int|string> */
+        return $this->view
+            ->newQuery()
+            ->toBase()
+            ->where('viewable_type', $type)
+            ->when($from, fn (Builder $query, string $from): Builder => $query->where('viewed_at', '>=', $from))
+            ->when($until, fn (Builder $query, string $until): Builder => $query->where('viewed_at', '<', $until))
+            ->distinct()
+            ->pluck('viewable_id')
+            ->all();
+    }
+
+    /**
+     * A deleted view no longer says whose it was, so every count is read
+     * again.
+     */
+    public function countsChangeWhenPruned(): bool
+    {
+        return true;
     }
 
     private function countOf(Builder $builder, ViewsQuery $query): int

@@ -115,6 +115,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
 - `views:doctor` checks that the pairs table exists once `querying.pairs.enabled` is on
+- Added the `Querying\Contracts\TracksChangedViewables` contract, which lets a source of your own say which viewables a count may have changed for, so `views:recount` recounts only those
 
 #### Models and testing
 

@@ -41,8 +41,6 @@ final readonly class AnonymiseViews
 {
     public const string Mark = StateStore::Anonymised;
 
-    public const string Prefix = AnonymisedVisitor::Prefix;
-
     private const string Salt = 'anonymise:salt:';
 
     private const int VisitorsPerStatement = 100;
@@ -55,6 +53,12 @@ final readonly class AnonymiseViews
         private Config $config,
         private DimensionRegistry $dimensions,
     ) {}
+
+    /** The same action, clamped to other watermarks. */
+    public function withWatermarks(Watermarks $watermarks): self
+    {
+        return new self($this->view, $this->state, $watermarks, $this->events, $this->config, $this->dimensions);
+    }
 
     /**
      * The cutoff moves back to midnight, so a day is never split across two
@@ -350,11 +354,11 @@ final readonly class AnonymiseViews
                 continue;
             }
 
-            if (str_starts_with($visitor, self::Prefix)) {
+            if (AnonymisedVisitor::isAnonymised($visitor)) {
                 continue;
             }
 
-            $hashes[$visitor] = self::Prefix.hash_hmac('sha256', $visitor, $salt);
+            $hashes[$visitor] = AnonymisedVisitor::hash($visitor, $salt);
         }
 
         return $hashes;
@@ -372,7 +376,7 @@ final readonly class AnonymiseViews
                 if (in_array('visitor', $columns, true)) {
                     $query->orWhere(fn (Builder $query): Builder => $query
                         ->whereNotNull('visitor')
-                        ->where('visitor', 'not like', self::Prefix.'%'));
+                        ->where('visitor', 'not like', AnonymisedVisitor::Prefix.'%'));
                 }
 
                 if (in_array('viewer', $columns, true)) {

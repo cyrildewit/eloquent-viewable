@@ -20,6 +20,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Contracts\RanksTrending;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
+use CyrildeWit\EloquentViewable\Querying\Contracts\TracksChangedViewables;
 use CyrildeWit\EloquentViewable\Querying\Contracts\TrendingSubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
@@ -54,7 +55,7 @@ use stdClass;
  *
  * @phpstan-import-type RecommendationPairs from RanksRecommendations
  */
-final readonly class RollupSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TrendingSubquerySource, ViewSource
+final readonly class RollupSource implements CountsBy, CountsByDimension, CountsByWindow, CountsVisitFrequency, IdentifiesSource, RanksAlsoViewed, RanksRecommendations, RanksTrending, SubquerySource, TracksChangedViewables, TrendingSubquerySource, ViewSource
 {
     private const int Chunk = 1_000;
 
@@ -309,6 +310,38 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
     {
         return $this->raw->recommendationPairs($request, $query);
+    }
+
+    /**
+     * The views may be gone already, so the buckets of the built-in rollup
+     * that start in the window count too.
+     *
+     * @return list<int|string>
+     */
+    public function keysViewedBetween(string $type, ?string $from, ?string $until): array
+    {
+        /** @var list<int|string> $buckets */
+        $buckets = $this->rollup
+            ->newQuery()
+            ->toBase()
+            ->where('rollup', RollupPolicy::BuiltIn)
+            ->whereIn('grouping', [Grouping::Viewable->stored(), Grouping::ViewableCollection->stored()])
+            ->where('viewable_type', $type)
+            ->when($from, fn (Builder $query, string $from): Builder => $query->where('bucket_start', '>=', $from))
+            ->when($until, fn (Builder $query, string $until): Builder => $query->where('bucket_start', '<', $until))
+            ->distinct()
+            ->pluck('viewable_id')
+            ->all();
+
+        return [...$this->raw->keysViewedBetween($type, $from, $until), ...$buckets];
+    }
+
+    /**
+     * Nothing is pruned before it is folded, so a count stays the same.
+     */
+    public function countsChangeWhenPruned(): bool
+    {
+        return false;
     }
 
     /** @throws JsonException */
