@@ -107,8 +107,6 @@ abstract readonly class ConfigReader
     }
 
     /**
-     * A list of class names.
-     *
      * @return list<class-string>
      *
      * @throws InvalidConfiguration

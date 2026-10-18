@@ -35,7 +35,6 @@ abstract class PackageManager extends Manager
         return parent::driver($driver);
     }
 
-    /** The config key that names the driver. */
     abstract protected function configKey(): string;
 
     /**

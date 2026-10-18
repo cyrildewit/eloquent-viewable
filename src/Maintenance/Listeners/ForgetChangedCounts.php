@@ -15,9 +15,7 @@ use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
 
 /**
  * Keeps the remembered counts, the rollups and the counter columns in step
- * with views that were destroyed, erased or changed by a scheduled run. It
- * is resolved for every event, so under Octane the view source it builds
- * does not stay behind in the worker.
+ * with views that were destroyed, erased or changed by a scheduled run.
  *
  * @internal
  */
