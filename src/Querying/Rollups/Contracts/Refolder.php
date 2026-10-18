@@ -13,9 +13,9 @@ use Carbon\CarbonInterface;
 interface Refolder
 {
     /**
-     * It returns the moment before which a rollup can no longer be folded
-     * again, because the views it was folded from are pruned or anonymised,
-     * or null when every view can be.
+     * The moment before which a rollup can no longer be folded again, because
+     * the views it was folded from are pruned or anonymised. Null when every
+     * view can still be folded again.
      */
     public function floor(): ?CarbonInterface;
 

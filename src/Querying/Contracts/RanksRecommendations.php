@@ -10,8 +10,9 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 /**
  * Implement this on a view source that reads what recommendations for one
  * recipient are scored from. The source only counts; the reader weighs and
- * ranks. It is kept apart from `ViewSource`, so a source of your own keeps
- * working without it.
+ * ranks. It is kept apart from `ViewSource`, so a source of your own that
+ * leaves it out still works, and only the reads that need it throw
+ * `UnsupportedBySource`.
  *
  * @phpstan-type Seed array{type: string, id: int|string, viewed_at: string}
  * @phpstan-type Pair array{seed_type: string, seed_id: int|string, type: string, id: int|string, visitors: int}

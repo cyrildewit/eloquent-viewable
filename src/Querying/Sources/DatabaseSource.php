@@ -211,7 +211,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     }
 
     /**
-     * Two databases behind one cache store keep their entries apart.
+     * The connection and database name keep the cached counts of two
+     * databases apart when they share one cache store.
      *
      * @throws JsonException
      */
@@ -395,8 +396,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      * Joins the views table to the visitors of the viewable, read as a
      * derived table so the cap on the visitors works on every driver: MySQL
      * refuses a limit inside `in (...)`. Views without a visitor never pair.
-     * The pairs table answers instead when it is enabled and the query names
-     * no period and no collection.
+     * The pairs table answers instead when `PairTable::serves()` accepts the
+     * query.
      *
      * @return list<array{type: string, id: int|string, count: int}>
      *
@@ -460,8 +461,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
 
     /**
      * The seeds always come from the views table. The pairs come from the
-     * pairs table when it is enabled and the query names no period and no
-     * collection.
+     * pairs table when `PairTable::serves()` accepts the query.
      *
      * @return RecommendationPairs
      *
@@ -584,8 +584,9 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
     }
 
     /**
-     * A deleted view no longer says whose it was, so every count is read
-     * again.
+     * A pruned view is deleted, so `keysViewedBetween()` cannot name the
+     * viewables whose count dropped, and the recount of changed views
+     * recounts every model.
      */
     public function countsChangeWhenPruned(): bool
     {

@@ -144,8 +144,8 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     }
 
     /**
-     * Only the dimension of the custom rollup the query reads through is read
-     * from the rollups.
+     * Only the dimension of the rollup the query reads through is held in the
+     * rollups. Any other dimension is counted from the views table.
      *
      * @return array<string, int>
      *
@@ -573,19 +573,17 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         return Rows::ints($rows);
     }
 
-    /**
-     * The sum of the column that holds the count the query asks for.
-     */
     private function sum(ViewsQuery $query): string
     {
         return "sum({$this->wrap($this->rollup->qualifyColumn($this->column($query)))})";
     }
 
     /**
-     * This is where a bucket lands on the clock of a series. An hour is converted, so
-     * a series in a zone a whole number of hours away stays exact. A coarser
-     * bucket keeps its label: January on the rollup clock is January in the
-     * series, rather than the last hours of December.
+     * Where a bucket lands on the clock of a series. An hour bucket is
+     * converted to the zone of the series, so a series in a zone a whole
+     * number of hours away stays exact. A coarser bucket keeps its wall-clock
+     * label, so January on the rollup clock stays January in the series and
+     * does not become the last hours of December.
      */
     private function place(Tier $tier, CarbonImmutable $start, DateTimeZone $zone): CarbonImmutable
     {

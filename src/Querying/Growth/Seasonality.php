@@ -22,8 +22,8 @@ enum Seasonality: string
     case Week = 'week';
 
     /**
-     * It returns the same window on each of the past days or weeks, the
-     * closest first. A period without an end runs until now.
+     * The same window on each of the past $samples days or weeks, the closest
+     * first. A period without an end runs until now.
      *
      * @return non-empty-list<Period>
      *

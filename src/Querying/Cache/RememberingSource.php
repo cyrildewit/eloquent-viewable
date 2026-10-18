@@ -262,8 +262,9 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
     }
 
     /**
-     * It returns how far the reference starts before the period, and how wide
-     * it is, in seconds.
+     * How far the reference starts before the period and how wide it is, in
+     * seconds. Neither value depends on the current time, which is what keeps
+     * the key of countByWindow() stable.
      */
     private function offset(?Period $period, Period $reference): string
     {

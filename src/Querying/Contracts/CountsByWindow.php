@@ -12,7 +12,8 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
  * Implement this on a view source that counts every viewable of a type in a
  * window and in the windows it is compared with, for `rising()` and
  * `anomalies()`. It is kept apart from `ViewSource`, so a source of your own
- * keeps working without it.
+ * that leaves it out still works, and only the reads that need it throw
+ * `UnsupportedBySource`.
  */
 interface CountsByWindow
 {

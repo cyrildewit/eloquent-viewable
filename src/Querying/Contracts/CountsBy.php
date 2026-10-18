@@ -12,7 +12,8 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 /**
  * Implement this on a view source that counts views per value of a dimension
  * from `dimensions.definitions`. It is kept apart from `ViewSource`, so a
- * source of your own keeps working without it.
+ * source of your own that leaves it out still works, and only the reads that
+ * need it throw `UnsupportedBySource`.
  */
 interface CountsBy
 {

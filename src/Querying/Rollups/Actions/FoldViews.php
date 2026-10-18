@@ -45,8 +45,9 @@ final readonly class FoldViews implements Refolder
     private const array BucketPlaceholders = ['pgsql' => 'cast(? as timestamp)'];
 
     /**
-     * Compares two values that may both be null as equal, as a group column
-     * such as `collection` may be.
+     * The operator that treats two nulls as equal, which a join on a nullable
+     * group column such as `collection` needs. SQLite's `is` does the same, so
+     * it is the fallback for every driver not listed.
      */
     private const array NullSafeEquals = ['mysql' => '<=>', 'mariadb' => '<=>', 'pgsql' => 'is not distinct from'];
 
@@ -213,7 +214,8 @@ final readonly class FoldViews implements Refolder
     }
 
     /**
-     * A dry run only counts, so it leaves no mark and dispatches nothing.
+     * A dry run folds nothing, and a run that folded no bucket has nothing to
+     * report, so neither dispatches.
      */
     private function dispatch(ViewsRolledUp $folded, FoldRun $run): void
     {
