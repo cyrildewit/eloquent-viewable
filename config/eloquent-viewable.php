@@ -33,10 +33,6 @@ return [
 
         'view' => [
 
-            /*
-             * The model used for views. A custom model must extend the
-             * shipped one.
-             */
             'class' => View::class,
 
             'table_name' => 'views',
@@ -64,17 +60,14 @@ return [
     'recording' => [
 
         /*
-         * Where a recorded view goes. The `database` driver writes a row to
-         * the views table during the request, or from a queue worker when
-         * queueing is enabled. The `redis` driver appends the view to a
-         * Redis stream and lands it in the views table in batches when
-         * `views:flush` runs. The `null` driver discards every view, for
-         * environments that should not record anything. The `array` driver
-         * keeps views in memory for the process. Register your own driver
-         * with `StoreManager::extend()`.
+         * Where a recorded view goes:
          *
-         * Counts always read from the views table, whichever driver is set.
-         * Under the `redis` driver a view counts once it has been flushed.
+         * - `database` writes it to the views table, during the request or
+         *   from a queue worker when queueing is enabled.
+         * - `redis` buffers it in a Redis stream until `views:flush` moves it
+         *   to the views table in batches.
+         * - `array` keeps it in memory for the process.
+         * - `null` discards it.
          */
         'store' => [
 
@@ -161,16 +154,20 @@ return [
         'throttle' => [
 
             /*
-             * How many views one visitor may record per minute, across every
-             * viewable, once `ThrottleVisitors` is listed. Views over the
-             * limit are dropped.
+             * The most views one visitor may record per minute, counted
+             * across all viewables. Views over the limit are dropped.
+             *
+             * Only applies when `ThrottleVisitors` is enabled in `guards`.
              */
             'max_per_minute' => 60,
 
             /*
-             * The cache store the counts are kept in. Every server that
-             * records views must share it. When `null`, the application's
-             * default cache store is used.
+             * The cache store that holds the counts. When `null`, the
+             * application's default cache store is used.
+             *
+             * Every server that records views must use the same store.
+             * Otherwise each server keeps its own counts, and the limit
+             * applies per server instead of in total.
              */
             'store' => null,
 
@@ -184,10 +181,12 @@ return [
         'bursts' => [
 
             /*
-             * A visitor that opens more than `max` different viewables within
-             * `seconds` is refused by `IgnoreBursts`, and so is every view of
-             * theirs for the next `block_for` seconds. People do not read
-             * that fast; scrapers walking through a site do.
+             * When a visitor opens more than `max` different viewables within
+             * `seconds`, `IgnoreBursts` drops that view and blocks all their
+             * views for the next `block_for` seconds.
+             *
+             * People do not read that fast, but scrapers that walk through a
+             * site do.
              */
             'max' => 8,
 
@@ -205,9 +204,12 @@ return [
             'by' => ['visitor', 'network'],
 
             /*
-             * The cache store the counts are kept in. Every server that
-             * records views must share it. When `null`, the application's
-             * default cache store is used.
+             * The cache store that holds the counts. When `null`, the
+             * application's default cache store is used.
+             *
+             * Every server that records views must use the same store.
+             * Otherwise each server keeps its own counts, and the limit
+             * applies per server instead of in total.
              */
             'store' => null,
 
@@ -219,12 +221,15 @@ return [
         ],
 
         /*
-         * Whether the signed-in model is stored as the viewer of each view,
-         * in the `viewer_type` and `viewer_id` columns. Off by default,
-         * because it ties a view to an identity. `guard` names the auth
-         * guard the model is read from; `null` is the application's default
-         * guard. `views($post)->viewedBy($user)` sets the viewer explicitly
-         * and does not need this switch.
+         * When enabled, the signed-in model is stored as the viewer of each
+         * view, in the `viewer_type` and `viewer_id` columns. It is off by
+         * default because it links every view to a person.
+         *
+         * `guard` is the auth guard the signed-in model is read from. When
+         * `null`, the application's default guard is used.
+         *
+         * `views($post)->viewedBy($user)` sets the viewer explicitly and
+         * works without this setting.
          */
         'viewer' => [
 
@@ -235,10 +240,11 @@ return [
         ],
 
         /*
-         * When enabled, views are dispatched to the queue and stored by a
-         * worker instead of during the request. This defers the database
-         * write to speed up response times. `views($post)->queue()->record()`
-         * queues one view, whatever this is set to.
+         * When enabled, views are stored by a queue worker instead of during
+         * the request, so the database write does not slow down the response.
+         *
+         * `views($post)->queue()->record()` queues a single view, even when
+         * this is disabled.
          */
         'queue' => [
 
@@ -262,31 +268,35 @@ return [
         ],
 
         /*
-         * A route the browser posts to after the page has loaded, for pages
-         * served from a full-page cache or a CDN that never reach your
-         * controller. The `@viewsBeacon($post)` Blade directive prints the
-         * script that calls it. Off by default, so no route is registered
-         * until you turn it on.
+         * When enabled, a route is registered that the browser posts to after
+         * the page has loaded. Use it to record views of pages that are served
+         * from a full-page cache or a CDN, and so never reach your controller.
+         *
+         * The `@viewsBeacon($post)` Blade directive prints the script that
+         * calls this route.
          */
         'beacon' => [
 
             'enabled' => false,
 
             /*
-             * The path the beacon route is registered under. Neutral on
-             * purpose: privacy filter lists block paths with words such as
-             * `beacon`, `track` or `analytics`, which would silently drop the
-             * views of every visitor who runs one. Change it if a list ever
-             * starts blocking it.
+             * The path prefix of the beacon route.
+             *
+             * Keep it neutral. Privacy filter lists block paths that contain
+             * words such as `beacon`, `track` or `analytics`, so visitors who
+             * use such a list would never record a view. Change it if a list
+             * starts to block it.
              */
             'prefix' => '_ev',
 
             /*
-             * The middleware the beacon route runs. The `web` group gives the
-             * request the session and cookies that cooldowns, the visitor
-             * cookie and the signed-in viewer rely on, and its CSRF check
+             * The middleware the beacon route runs.
+             *
+             * Keep `web`, or a group of your own that starts the session and
+             * checks the CSRF token. Cooldowns, the visitor id and the
+             * signed-in viewer need the session and cookies. The CSRF check
              * accepts the beacon because the browser marks it as sent from
-             * your own origin. A post from another site is refused.
+             * your own origin, and refuses a post from another site.
              */
             'middleware' => ['web'],
 
@@ -308,13 +318,20 @@ return [
     'dimensions' => [
 
         /*
-         * The dimensions to record, by name. The name is the column the value
-         * is kept in, so after adding one run `php artisan views:dimensions`
-         * and migrate. Uncomment a line to turn a dimension on. An entry is a
-         * class, or an array of the class and its options by name, such as
-         * `[Country::class, 'resolver' => HeaderCountry::class]`. Every
-         * dimension takes `personal`, `maxValues` and `json`, a path into
-         * `context` to keep the value there instead of in a column.
+         * The dimensions to record. Uncomment a line to turn one on.
+         *
+         * A dimension is kept in a column named after its key. After you add
+         * one, run `php artisan views:dimensions` and migrate.
+         *
+         * An entry is a class, or an array of the class and its options, such
+         * as `[Country::class, 'resolver' => HeaderCountry::class]`. Every
+         * dimension accepts these options:
+         *
+         *   personal   when true, anonymising clears the value
+         *   maxValues  how many top values a rollup keeps per bucket, or
+         *              `null` to keep every value
+         *   json       a path into `context`, such as `context->plan`, to
+         *              keep the value there instead of in a column
          */
         'definitions' => [
 
@@ -376,13 +393,15 @@ return [
     'querying' => [
 
         /*
-         * Where counts come from. `count()`, `countByInterval()`, `top()`
-         * and the other counts all read through this source, and so do the
-         * scopes when the source can be queried in SQL. The `database`
-         * driver reads the views table. The `rollup` driver reads recent
-         * views from the views table and older history from the rollups in
-         * `retention.rollups`. Register your own driver with
-         * `SourceManager::extend()`.
+         * Where counts come from:
+         *
+         * - `database` reads the views table.
+         * - `rollup` reads recent views from the views table and older
+         *   history from the rollups in `retention.rollups`.
+         *
+         * Every count, such as `count()`, `countByInterval()` and `top()`,
+         * reads from this source. The scopes do too, when the source can be
+         * queried in SQL.
          */
         'source' => [
 
@@ -406,13 +425,25 @@ return [
         ],
 
         /*
-         * Counter columns on your own tables, which `views:recount` and
-         * `views:maintain` write the count into, so a listing can order and
-         * filter by a plain column. List a column by name for its all-time
-         * count, or map it to the `unique`, `period`, `collection` and
-         * `dimensions` of the count it holds. With `hot`, the column holds the
-         * score `orderByHot()` sorts by instead: `true`, the timestamp column
-         * the model was made at, or `from` and `every` options. For example:
+         * Counter columns on your own tables. `views:recount` and
+         * `views:maintain` write the count into them, so a listing can order
+         * and filter by a plain column.
+         *
+         * List a column by name to hold the all-time count, or map it to
+         * options that narrow the count:
+         *
+         *   unique      count unique visitors only
+         *   period      count only the views within this period, such as `7d`
+         *   collection  count only the views in this collection
+         *   dimensions  count only the views with these dimension values
+         *   hot         hold the score `orderByHot()` sorts by, not a count
+         *
+         * `hot` takes `true` for the defaults, the name of the timestamp
+         * column the model was made at, or `from` and `every` options. `from`
+         * defaults to `created_at`. `every` defaults to `12h`: a model that
+         * much newer needs a tenth of the views to score the same.
+         *
+         * For example:
          *
          *   Post::class => [
          *       'views_count',
@@ -425,23 +456,25 @@ return [
         'counters' => [],
 
         /*
-         * Counting views by interval fills every bucket between the period
-         * start and end, so a wide period with a fine granularity produces a
-         * large series. Calls that would produce more buckets than this
-         * maximum throw instead of running. One year of hourly buckets is
-         * 8,760.
+         * The most buckets one `countByInterval()` call may return. A call
+         * that would return more throws instead of running.
+         *
+         * Every bucket between the start and end of the period is filled,
+         * so a long period at a fine granularity gets large fast. One year of
+         * hourly buckets is 8,760.
          */
         'max_intervals' => 10_000,
 
         /*
          * `alsoViewed()` ranks what the visitors of a model also viewed.
          *
-         * A model seen by fewer than `minimum_visitors` of them is left out,
-         * so the ranking never reveals what one or two people looked at.
+         * `minimum_visitors` leaves out a model that fewer of those visitors
+         * viewed, so the ranking never reveals what one or two people looked
+         * at.
          *
-         * Only the `max_visitors` most recent visitors of the model are read,
-         * because the query reads every view of every visitor it pairs, and a
-         * popular model has many. `null` reads them all.
+         * `max_visitors` limits how many of the model's most recent visitors
+         * are read. The query reads every view of each visitor, which gets
+         * slow for a popular model. When `null`, every visitor is read.
          */
         'also_viewed' => [
 
@@ -452,18 +485,21 @@ return [
         ],
 
         /*
-         * `recommended()` and `recommendedFor()` rank what the visitors of
-         * the models one viewer recently viewed also viewed. They share
-         * `also_viewed.minimum_visitors`, so a recommendation never reveals
-         * what one or two people looked at.
+         * `recommended()` and `recommendedFor()` start from the models a
+         * viewer recently viewed, and rank what other visitors of those
+         * models also viewed. They use `also_viewed.minimum_visitors` too,
+         * so a recommendation never reveals what one or two people looked
+         * at.
          *
-         * Only the `max_seeds` models the viewer viewed most recently are
-         * read, and of each only the `max_visitors` most recent visitors,
-         * `null` for all of them. A model the viewer viewed one `half_life`
-         * ago counts half as much as one it viewed just now. `similarity` is
-         * `cosine`, which keeps a model nearly everyone views from topping
-         * every list, or `count`, the visitors in common as `alsoViewed()`
-         * counts them.
+         *   max_seeds     how many of the viewer's most recently viewed
+         *                 models to start from
+         *   max_visitors  how many of the most recent visitors of each of
+         *                 those models are read, or `null` to read them all
+         *   half_life     a model the viewer viewed this long ago counts half
+         *                 as much as one viewed just now
+         *   similarity    `cosine` keeps a model that nearly everyone views
+         *                 from topping every list, `count` ranks by visitors
+         *                 in common, as `alsoViewed()` does
          */
         'recommendations' => [
 
@@ -478,15 +514,19 @@ return [
         ],
 
         /*
-         * The pairs table keeps, for every model, the models its visitors
-         * also viewed, so `alsoViewed()` and `recommended()` read a few rows
-         * instead of every view of every visitor. Publish its migration with
-         * the `eloquent-viewable-pairs` tag and schedule `views:pairs`.
+         * When enabled, `alsoViewed()` and `recommended()` read a few rows
+         * from the pairs table instead of every view of every visitor. The
+         * table keeps, for every model, the models its visitors also viewed.
+         * Publish its migration with the `eloquent-viewable-pairs` tag and
+         * schedule `views:pairs`.
          *
-         * The table holds the views of the last `period` and, of each model,
-         * the `max_pairs` models it shares the most visitors with. It is read
-         * only when a call names no period and no collection, and between two
-         * runs of `views:pairs` it does not see new views.
+         *   period     only the views within this period are paired
+         *   max_pairs  how many models are kept per model, the ones it
+         *              shares the most visitors with
+         *
+         * A call with a period, a collection or a filter skips the table and
+         * reads the views table. Views recorded since the last run of
+         * `views:pairs` are not in the table yet.
          */
         'pairs' => [
 
@@ -502,13 +542,19 @@ return [
 
         /*
          * `trending()` and `orderByTrending()` weigh each view by its age,
-         * so recent views count more. `curve` is how a view loses weight:
-         * `null` halves it every `half_life`, or name a class implementing
-         * `Querying\Ranking\DecayCurve`, resolved from the container.
+         * so recent views count more.
          *
-         * Views are weighed per `step`. `1h` weighs per hour and `1d` per
-         * day. `auto` weighs per hour, or per day when hours would exceed
-         * `max_steps`.
+         *   curve      how a view loses weight: `null` for the built-in
+         *              curve, or a class implementing
+         *              `Querying\Ranking\DecayCurve`, resolved from the
+         *              container
+         *   half_life  how long the built-in curve takes to halve the
+         *              weight of a view
+         *   step       `1h` weighs views per hour, `1d` per day, and `auto`
+         *              per hour, or per day when hours would exceed
+         *              `max_steps`
+         *   max_steps  the most steps one call may weigh. A call that would
+         *              weigh more throws instead of running.
          */
         'trending' => [
 
