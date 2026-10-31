@@ -387,8 +387,7 @@ views($post)->cooldown(30)->record();
 views($post)->cooldown(now()->addHours(3))->record();
 ```
 
-While a cooldown runs, `record()` returns `false` and `attempt()` reports `EnforceCooldown`. Two requests that arrive at
-the same moment may both be recorded.
+While a cooldown runs, `record()` returns `false`. Two requests that arrive at the same time can still both be recorded.
 
 Cooldowns are kept in the session by default, so they do nothing on routes without one, such as stateless API routes.
 Set `cooldown.store` to `cache` to keep them in a cache store instead:
