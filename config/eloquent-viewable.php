@@ -52,9 +52,7 @@ return [
     | Recording
     |--------------------------------------------------------------------------
     |
-    | Everything that happens when `views($post)->record()` is called: the
-    | guards the attempt passes, where the view goes, and whether the write
-    | is queued.
+    | Everything that happens when `views($post)->record()` is called.
     |
     */
     'recording' => [
@@ -81,10 +79,6 @@ return [
                  */
                 'connection' => null,
 
-                /*
-                 * The key of the stream and the name of the consumer group
-                 * the flusher reads it through.
-                 */
                 'stream' => 'eloquent-viewable:views',
 
                 'group' => 'eloquent-viewable',
@@ -156,24 +150,15 @@ return [
             /*
              * The most views one visitor may record per minute, counted
              * across all viewables. Views over the limit are dropped.
-             *
-             * Only applies when `ThrottleVisitors` is enabled in `guards`.
              */
             'max_per_minute' => 60,
 
             /*
              * The cache store that holds the counts. When `null`, the
-             * application's default cache store is used.
-             *
-             * Every server that records views must use the same store.
-             * Otherwise each server keeps its own counts, and the limit
-             * applies per server instead of in total.
+             * default cache store is used.
              */
             'store' => null,
 
-            /*
-             * The cache key prefix the counts are kept under.
-             */
             'key' => 'cyrildewit.eloquent-viewable.throttle',
 
         ],
@@ -184,9 +169,6 @@ return [
              * When a visitor opens more than `max` different viewables within
              * `seconds`, `IgnoreBursts` drops that view and blocks all their
              * views for the next `block_for` seconds.
-             *
-             * People do not read that fast, but scrapers that walk through a
-             * site do.
              */
             'max' => 8,
 
@@ -195,27 +177,17 @@ return [
             'block_for' => 120,
 
             /*
-             * What a burst is counted per. `visitor` is the stored visitor id.
-             * `network` is a hash of the network and the user agent, the same
-             * one the `fingerprint` identity uses, so a bot that drops its
-             * cookie on every request is still caught. The hash lives only in
-             * the cache, for a few seconds, and is never stored with a view.
+             * What a burst is counted per: `visitor`, the stored visitor id,
+             * and `network`, a hash of the network and the user agent.
              */
             'by' => ['visitor', 'network'],
 
             /*
              * The cache store that holds the counts. When `null`, the
-             * application's default cache store is used.
-             *
-             * Every server that records views must use the same store.
-             * Otherwise each server keeps its own counts, and the limit
-             * applies per server instead of in total.
+             * default cache store is used.
              */
             'store' => null,
 
-            /*
-             * The cache key prefix the counts are kept under.
-             */
             'key' => 'cyrildewit.eloquent-viewable.bursts',
 
         ],
@@ -248,9 +220,6 @@ return [
          */
         'queue' => [
 
-            /*
-             * Whether a view is queued when the call does not say.
-             */
             'enabled' => false,
 
             /*
@@ -280,23 +249,14 @@ return [
             'enabled' => false,
 
             /*
-             * The path prefix of the beacon route.
-             *
-             * Keep it neutral. Privacy filter lists block paths that contain
-             * words such as `beacon`, `track` or `analytics`, so visitors who
-             * use such a list would never record a view. Change it if a list
-             * starts to block it.
+             * The path prefix of the beacon route. Keep it neutral: privacy
+             * filter lists block paths with words such as `beacon` or `track`.
              */
             'prefix' => '_ev',
 
             /*
-             * The middleware the beacon route runs.
-             *
              * Keep `web`, or a group of your own that starts the session and
-             * checks the CSRF token. Cooldowns, the visitor id and the
-             * signed-in viewer need the session and cookies. The CSRF check
-             * accepts the beacon because the browser marks it as sent from
-             * your own origin, and refuses a post from another site.
+             * checks the CSRF token.
              */
             'middleware' => ['web'],
 
@@ -324,14 +284,7 @@ return [
          * one, run `php artisan views:dimensions` and migrate.
          *
          * An entry is a class, or an array of the class and its options, such
-         * as `[Country::class, 'resolver' => HeaderCountry::class]`. Every
-         * dimension accepts these options:
-         *
-         *   personal   when true, anonymising clears the value
-         *   maxValues  how many top values a rollup keeps per bucket, or
-         *              `null` to keep every value
-         *   json       a path into `context`, such as `context->plan`, to
-         *              keep the value there instead of in a column
+         * as `[Country::class, 'resolver' => HeaderCountry::class]`.
          */
         'definitions' => [
 
@@ -411,14 +364,11 @@ return [
 
         'cache' => [
 
-            /*
-             * The cache key prefix every cached count is kept under.
-             */
             'key' => 'cyrildewit.eloquent-viewable.cache',
 
             /*
              * The cache store cached counts are kept in. When `null`, the
-             * application's default cache store is used.
+             * default cache store is used.
              */
             'store' => null,
 
@@ -438,11 +388,6 @@ return [
          *   dimensions  count only the views with these dimension values
          *   hot         hold the score `orderByHot()` sorts by, not a count
          *
-         * `hot` takes `true` for the defaults, the name of the timestamp
-         * column the model was made at, or `from` and `every` options. `from`
-         * defaults to `created_at`. `every` defaults to `12h`: a model that
-         * much newer needs a tenth of the views to score the same.
-         *
          * For example:
          *
          *   Post::class => [
@@ -458,23 +403,15 @@ return [
         /*
          * The most buckets one `countByInterval()` call may return. A call
          * that would return more throws instead of running.
-         *
-         * Every bucket between the start and end of the period is filled,
-         * so a long period at a fine granularity gets large fast. One year of
-         * hourly buckets is 8,760.
          */
         'max_intervals' => 10_000,
 
         /*
          * `alsoViewed()` ranks what the visitors of a model also viewed.
          *
-         * `minimum_visitors` leaves out a model that fewer of those visitors
-         * viewed, so the ranking never reveals what one or two people looked
-         * at.
-         *
-         * `max_visitors` limits how many of the model's most recent visitors
-         * are read. The query reads every view of each visitor, which gets
-         * slow for a popular model. When `null`, every visitor is read.
+         *   minimum_visitors  leaves out a model fewer of them viewed
+         *   max_visitors      how many of the most recent visitors are read,
+         *                     or `null` to read them all
          */
         'also_viewed' => [
 
@@ -487,19 +424,12 @@ return [
         /*
          * `recommended()` and `recommendedFor()` start from the models a
          * viewer recently viewed, and rank what other visitors of those
-         * models also viewed. They use `also_viewed.minimum_visitors` too,
-         * so a recommendation never reveals what one or two people looked
-         * at.
+         * models also viewed. They use `also_viewed.minimum_visitors` too.
          *
-         *   max_seeds     how many of the viewer's most recently viewed
-         *                 models to start from
-         *   max_visitors  how many of the most recent visitors of each of
-         *                 those models are read, or `null` to read them all
-         *   half_life     a model the viewer viewed this long ago counts half
-         *                 as much as one viewed just now
-         *   similarity    `cosine` keeps a model that nearly everyone views
-         *                 from topping every list, `count` ranks by visitors
-         *                 in common, as `alsoViewed()` does
+         *   max_seeds     how many recently viewed models to start from
+         *   max_visitors  how many recent visitors of each are read
+         *   half_life     how long until a viewed model counts half as much
+         *   similarity    `cosine` or `count`
          */
         'recommendations' => [
 
@@ -544,17 +474,11 @@ return [
          * `trending()` and `orderByTrending()` weigh each view by its age,
          * so recent views count more.
          *
-         *   curve      how a view loses weight: `null` for the built-in
-         *              curve, or a class implementing
-         *              `Querying\Ranking\DecayCurve`, resolved from the
-         *              container
-         *   half_life  how long the built-in curve takes to halve the
-         *              weight of a view
-         *   step       `1h` weighs views per hour, `1d` per day, and `auto`
-         *              per hour, or per day when hours would exceed
-         *              `max_steps`
-         *   max_steps  the most steps one call may weigh. A call that would
-         *              weigh more throws instead of running.
+         *   curve      `null` for the built-in curve, or a class implementing
+         *              `Querying\Ranking\DecayCurve`
+         *   half_life  how long the built-in curve takes to halve a weight
+         *   step       `1h`, `1d`, or `auto` to pick one within `max_steps`
+         *   max_steps  the most steps one call may weigh before it throws
          */
         'trending' => [
 
@@ -587,12 +511,8 @@ return [
         'anonymise' => [
 
             /*
-             * Views older than this lose what ties them to a person. The
-             * `visitor` column is re-hashed under a salt per day that is
-             * destroyed afterwards, so unique counts stay exact within a day
-             * but no longer link a visitor across days. `viewer`, `context`
-             * and the dimensions marked personal become null. Must not be
-             * longer than `prune.after`.
+             * Views older than this lose what ties them to a person. Must not
+             * be longer than `prune.after`.
              */
             'after' => null,
 
@@ -615,10 +535,8 @@ return [
         ],
 
         /*
-         * How many views one statement reads or writes in `views:anonymise`,
-         * `views:prune`, `views:purge-bots`, `views:recount`, `views:rollup`,
-         * `views:maintain` and the `views:dimensions` backfill. The `--chunk`
-         * option of a command overrides it for one run.
+         * How many views one statement reads or writes in the commands that
+         * process views in batches. Their `--chunk` option overrides it.
          */
         'chunk' => 5_000,
 
@@ -654,18 +572,8 @@ return [
             'tiers' => [],
 
             /*
-             * What a bucket is counted per. Views add up across groupings,
-             * unique visitors do not, so each count needs a grouping of its
-             * own:
-             *
-             *   viewable             a model across its collections
-             *   viewable_collection  a model within one collection
-             *   type                 every model of a type
-             *   type_collection      every model of a type within one
-             *                        collection
-             *
-             * A count that needs a grouping that is not kept reads the views
-             * table.
+             * What a bucket is counted per: `viewable`, `viewable_collection`,
+             * `type` or `type_collection`.
              */
             'groupings' => ['viewable', 'viewable_collection', 'type'],
 
@@ -695,10 +603,7 @@ return [
             ],
 
             /*
-             * History beyond the views table has the resolution of its
-             * tier: a bucket counts when its start lies inside the period,
-             * and unique visitors are summed across buckets. When `true`,
-             * a count that cannot be answered exactly throws instead.
+             * When `true`, a count the rollups cannot answer exactly throws.
              */
             'strict' => false,
 
@@ -797,11 +702,8 @@ return [
          *            `app.key`, so a visitor is an account on every device and
          *            on an API without a cookie; guests get the cookie id
          *   fingerprint
-         *            a hash of the truncated IP address and the user agent
-         *            under a random salt that is replaced at the start of
-         *            every `fingerprint.rotation` window, so no cookie is set
-         *            and a guest is a new visitor in every window; signed-in
-         *            models get the `viewer` id
+         *            a hash of the IP address and user agent, so no cookie
+         *            is set; signed-in models get the `viewer` id
          *
          * The signed-in model comes from `recording.viewer` or `viewedBy()`.
          */
@@ -824,25 +726,16 @@ return [
         'fingerprint' => [
 
             /*
-             * How long one salt is used: `day`, `week` or `month`. The salt
-             * is replaced at the start of each, weeks starting on Monday, so
-             * `unique()` counts a guest once per window. A longer window
-             * keeps unique counts exact over that window, but keeps one
-             * person linkable across all the views they make in it.
+             * How long one salt is used: `day`, `week` or `month`.
              */
             'rotation' => 'day',
 
             /*
-             * The cache store the salt is kept in. Every server that
-             * records views must share it, or each hashes under its own salt
-             * and one visitor counts once per server. When `null`, the
-             * application's default cache store is used.
+             * The cache store the salt is kept in. When `null`, the default
+             * cache store is used.
              */
             'store' => null,
 
-            /*
-             * The cache key prefix the salt is kept under.
-             */
             'key' => 'cyrildewit.eloquent-viewable.fingerprint',
 
         ],
@@ -883,12 +776,8 @@ return [
         'window' => 300,
 
         /*
-         * How the `redis` driver counts visitors. `exact` stores every active
-         * visitor, so the count is exact and `leave()` works. `approximate`
-         * lets Redis estimate the count per minute, which keeps memory flat
-         * on very busy sites. The estimate is typically off by less than 1%,
-         * it can include visitors from up to a minute before the window, and
-         * `leave()` does nothing.
+         * How the `redis` driver counts visitors: `exact`, or `approximate`
+         * to keep memory flat on very busy sites.
          */
         'precision' => 'exact',
 
@@ -927,10 +816,6 @@ return [
              */
             'connection' => null,
 
-            /*
-             * The prefix of every key. It is wrapped in a hash tag, so on a
-             * Redis Cluster every key lives on the same node.
-             */
             'prefix' => 'eloquent-viewable:live',
 
         ],
@@ -960,9 +845,7 @@ return [
 
             /*
              * The cache store cooldowns are kept in when `store` is `cache`.
-             * Every server that records views must share it, or a cooldown
-             * started on one server is not seen by another. When `null`, the
-             * application's default cache store is used.
+             * When `null`, the default cache store is used.
              */
             'store' => null,
 
@@ -1000,9 +883,7 @@ return [
          * Counts per day how many attempts are recorded and how many each
          * guard refuses, so the doctor can tell when `IgnoreCrawlers` refuses
          * more than `crawler_share` of them, from 0 to 1. Off by default,
-         * because it adds two cache calls to every attempt. The counts are
-         * kept for a week, in a cache store every server must share. When
-         * `store` is `null`, the application's default cache store is used.
+         * because it adds two cache calls to every attempt.
          */
         'sample' => [
 
