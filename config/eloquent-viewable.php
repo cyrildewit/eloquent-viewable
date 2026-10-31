@@ -107,16 +107,9 @@ return [
         ],
 
         /*
-         * The guards every recorded view passes, in order. The first one
-         * that refuses drops the view. Listing a guard is the only switch:
-         * add it to turn its check on, remove it to turn the check off, or
-         * list a class of your own that implements
-         * `Recording\Contracts\RecordingGuard`.
-         *
-         * Out of the box every guard below is listed except `ThrottleVisitors`,
-         * `IgnoreDoNotTrack` and `IgnoreGlobalPrivacyControl`. Uncomment those
-         * to turn them on. `EnforceCooldown` is listed because `cooldown()`
-         * does nothing without it.
+         * The guards every recorded view passes. The first one that refuses
+         * drops the view. Add or remove a guard to turn its check on or off,
+         * or list your own class implementing `Recording\Contracts\RecordingGuard`.
          *
          *   IgnoreCrawlers              drops views whose user agent the
          *                               bound `CrawlerDetector` flags
@@ -139,9 +132,6 @@ return [
          *                               minute, see `throttle`
          *   IgnoreDoNotTrack            honours the `DNT: 1` header
          *   IgnoreGlobalPrivacyControl  honours the `Sec-GPC: 1` header
-         *
-         * The order only decides which guard is asked first. A cooldown starts
-         * once every guard has allowed the view, wherever it is listed.
          */
         'guards' => [
             IgnoreCrawlers::class,
