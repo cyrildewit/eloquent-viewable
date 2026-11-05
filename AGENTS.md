@@ -59,7 +59,8 @@ Xdebug is off in the containers unless a run sets `XDEBUG_MODE`. `make test-cove
 it on themselves; a plain `docker compose run` of a coverage script needs `XDEBUG_MODE=coverage` in front of it.
 
 Rector, PHPStan and Pint keep their caches in `build/cache`. Delete that directory if one of them reports something
-stale.
+stale. OPcache keeps compiled scripts on the `opcache` volume, see `docker/opcache.ini`; the coverage and benchmark
+targets turn it off.
 
 ## Before you hand work back
 
