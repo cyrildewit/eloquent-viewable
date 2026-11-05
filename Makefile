@@ -54,13 +54,14 @@ deptrac-graph: ## Draw the dependencies between layers to build/deptrac.png
 test-type-coverage: ## Run the tests with type coverage and fail below 100%
 	docker compose run --rm composer test:type-coverage $(SCRIPT_ARGS)
 
-# Xdebug is off unless a target asks for it. These two need it for coverage.
+# Xdebug is off unless a target asks for it. These two need it for coverage,
+# and leave OPcache's file cache out of it.
 test-coverage: ## Run the tests with coverage and fail below 100% (writes build/coverage.xml)
-	XDEBUG_MODE=coverage docker compose run --rm composer test:coverage $(SCRIPT_ARGS)
+	XDEBUG_MODE=coverage PHP_OPCACHE_ENABLE_CLI=0 docker compose run --rm composer test:coverage $(SCRIPT_ARGS)
 
 test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate patch)
 	./scripts/patch-pest-mutate.sh
-	XDEBUG_MODE=coverage docker compose run --rm composer test:mutation $(SCRIPT_ARGS)
+	XDEBUG_MODE=coverage PHP_OPCACHE_ENABLE_CLI=0 docker compose run --rm composer test:mutation $(SCRIPT_ARGS)
 
 ##@ [Database drivers]
 # `make test` uses SQLite in memory. These targets run the same suite against a
@@ -113,7 +114,7 @@ BENCH_SERVICE_mariadb := bench-mariadb
 BENCH_SERVICE_pgsql   := bench-postgres
 
 BENCH_SERVICE = $(BENCH_SERVICE_$(DRIVER))
-BENCH_RUN = XDEBUG_MODE=off DB_DATABASE=benchmark $(BENCH_ENV_$(DRIVER)) docker compose run --rm composer
+BENCH_RUN = XDEBUG_MODE=off PHP_OPCACHE_ENABLE_CLI=0 DB_DATABASE=benchmark $(BENCH_ENV_$(DRIVER)) docker compose run --rm composer
 
 bench-db: ## Start the benchmark database for DRIVER, nothing for sqlite
 ifneq ($(BENCH_SERVICE),)

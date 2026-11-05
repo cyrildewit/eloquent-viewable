@@ -138,7 +138,9 @@ Xdebug is off in the containers by default, because coverage mode roughly double
 `XDEBUG_MODE=coverage` in front of `docker compose`.
 
 Rector, PHPStan and Pint keep their caches in `build/cache`, so a second run only looks at what changed. Delete
-that directory if a tool ever reports something stale.
+that directory if a tool ever reports something stale. OPcache keeps the compiled scripts of every run on the
+`opcache` volume, so the next one skips compiling Laravel and the dependencies again. The coverage and benchmark
+targets turn it off. After pulling a change to `docker/`, run `make build` again.
 
 ### Dependency graph
 
