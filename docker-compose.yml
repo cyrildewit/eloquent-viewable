@@ -9,9 +9,9 @@ services:
       - .:/var/www/html
       - bench-sqlite:/var/lib/benchmarks
     environment:
-      # Coverage mode by default so `make test-coverage` and `make test-mutation` work
-      # out of the box. Override with XDEBUG_MODE=off for a faster plain run.
-      XDEBUG_MODE: ${XDEBUG_MODE:-coverage}
+      # Off by default, because coverage mode roughly doubles the suite's run time.
+      # `make test-coverage` and `make test-mutation` set XDEBUG_MODE=coverage.
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
       # Passed through from the shell, left unset when absent. An empty value
       # would override the driver's own default port and host instead.
       DB_CONNECTION:
@@ -39,9 +39,9 @@ services:
       - bench-sqlite:/var/lib/benchmarks
     entrypoint: ["composer"]
     environment:
-      # Coverage mode by default so `make test-coverage` and `make test-mutation` work
-      # out of the box. Override with XDEBUG_MODE=off for a faster plain run.
-      XDEBUG_MODE: ${XDEBUG_MODE:-coverage}
+      # Off by default, because coverage mode roughly doubles the suite's run time.
+      # `make test-coverage` and `make test-mutation` set XDEBUG_MODE=coverage.
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
       # Passed through from the shell, left unset when absent. An empty value
       # would override the driver's own default port and host instead.
       DB_CONNECTION:
