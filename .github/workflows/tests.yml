@@ -112,7 +112,10 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_mysql, pdo_pgsql, redis
-          coverage: xdebug
+          # Only the SQLite leg collects coverage. PCOV watches the whole checkout,
+          # because the report includes database/factories next to src.
+          coverage: ${{ matrix.db == 'sqlite' && 'pcov' || 'none' }}
+          ini-values: pcov.directory=${{ github.workspace }}, pcov.exclude="~/(vendor|build)/~"
 
       - name: Setup problem matchers
         run: |

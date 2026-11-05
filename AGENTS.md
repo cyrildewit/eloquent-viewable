@@ -55,8 +55,9 @@ make test-types ARGS="src/Recording"
 
 Use these while iterating, and `make ready` before handing work back.
 
-Xdebug is off in the containers unless a run sets `XDEBUG_MODE`. `make test-coverage` and `make test-mutation` turn
-it on themselves; a plain `docker compose run` of a coverage script needs `XDEBUG_MODE=coverage` in front of it.
+Coverage comes from PCOV, which only collects when `PHP_PCOV_ENABLED=1`. `make test-coverage` and `make test-mutation`
+set it themselves; a plain `docker compose run` of a coverage script needs `PHP_PCOV_ENABLED=1` in front of it. The
+image has no Xdebug.
 
 Rector, PHPStan and Pint keep their caches in `build/cache`. Delete that directory if one of them reports something
 stale. OPcache keeps compiled scripts on the `opcache` volume, see `docker/opcache.ini`; the coverage and benchmark
@@ -82,8 +83,8 @@ Each driver target starts its database service and waits for the healthcheck, so
 
 `benchmarks/` holds a phpbench suite that runs against a seeded dataset of a million rows or more. It is not part
 of `make test` or `make ready` and never runs in CI. `benchmarks/README.md` explains the dataset, the targets and
-how to compare a branch against `main`. Run it only through the `make bench-*` targets: they turn Xdebug off and
-point `DB_*` at the `bench-*` services, and a benchmark refuses to run with Xdebug active. Benchmarks that touch
+how to compare a branch against `main`. Run it only through the `make bench-*` targets: they turn PCOV and OPcache
+off and point `DB_*` at the `bench-*` services, and a benchmark refuses to run with Xdebug active. Benchmarks that touch
 the database extend `Support\BenchCase`; the seeder, the dataset description and the application boot live in
 `benchmarks/Support`. A change to what the seeder generates needs a bump of `Dataset::SchemaVersion`, so stale
 datasets are refused instead of compared against.

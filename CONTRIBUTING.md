@@ -133,9 +133,9 @@ make test ARGS="--dirty"
 make test-types ARGS="src/Recording"
 ```
 
-Xdebug is off in the containers by default, because coverage mode roughly doubles the suite's run time.
-`make test-coverage` and `make test-mutation` turn it on. When you run a coverage script directly, put
-`XDEBUG_MODE=coverage` in front of `docker compose`.
+/coCoverage comes from [PCOV](https://github.com/krakjoe/pcov), which is much lighter than Xdebug and only collects
+when `PHP_PCOV_ENABLED=1`. `make test-coverage` and `make test-mutation` set it. When you run a coverage script
+directly, put `PHP_PCOV_ENABLED=1` in front of `docker compose`.
 
 Rector, PHPStan and Pint keep their caches in `build/cache`, so a second run only looks at what changed. Delete
 that directory if a tool ever reports something stale. OPcache keeps the compiled scripts of every run on the
