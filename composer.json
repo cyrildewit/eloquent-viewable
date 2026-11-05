@@ -35,7 +35,7 @@
         "illuminate/routing": "^13.0",
         "illuminate/support": "^13.0",
         "jaybizzle/crawler-detect": "^1.0",
-        "nesbot/carbon": "^3.0"
+        "nesbot/carbon": "^3.11"
     },
     "require-dev": {
         "deptrac/deptrac": "^4.7",
