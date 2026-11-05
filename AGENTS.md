@@ -13,7 +13,7 @@ make install            # install dependencies (run once, or after composer.json
 make ready              # rector and pint, then phpstan, type coverage and tests side by side
 make lint               # pint, fixes style in place
 make rector             # rector
-make test               # the full Pest suite, in parallel and without Xdebug
+make test               # the full Pest suite, in parallel
 make test-unit          # tests/Unit
 make test-feature       # tests/Feature
 make test-arch          # tests/Arch
@@ -45,11 +45,21 @@ driver talk to a real Redis through phpredis and Predis both. An image built bef
 
 ## Running a subset
 
-The Make targets take no arguments. To pass flags to Pest, call the Composer script directly:
+Every target except `ready`, `install` and `deptrac-graph` passes `ARGS` on to its tool:
 
 ```bash
-docker compose run --rm composer test -- --filter=CooldownManager
+make test ARGS="--filter=CooldownManager"
+make test ARGS="--dirty"                # only the tests of files with uncommitted changes
+make test-types ARGS="src/Recording"
 ```
+
+Use these while iterating, and `make ready` before handing work back.
+
+Xdebug is off in the containers unless a run sets `XDEBUG_MODE`. `make test-coverage` and `make test-mutation` turn
+it on themselves; a plain `docker compose run` of a coverage script needs `XDEBUG_MODE=coverage` in front of it.
+
+Rector, PHPStan and Pint keep their caches in `build/cache`. Delete that directory if one of them reports something
+stale.
 
 ## Before you hand work back
 
