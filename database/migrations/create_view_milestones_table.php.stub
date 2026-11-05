@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    protected Builder $schema;
+
+    protected string $table;
+
+    public function __construct()
+    {
+        $this->schema = Schema::connection(
+            config('eloquent-viewable.models.view.connection')
+        );
+
+        $this->table = config('eloquent-viewable.milestones.table');
+    }
+
+    public function up(): void
+    {
+        $this->schema->create($this->table, function (Blueprint $table) {
+            $table->string('viewable_type');
+
+            // The key type of the views table.
+            match (Builder::$defaultMorphKeyType) {
+                'uuid' => $table->uuid('viewable_id'),
+                'ulid' => $table->ulid('viewable_id'),
+                default => $table->unsignedBigInteger('viewable_id'),
+            };
+
+            $table->string('column');
+            $table->unsignedBigInteger('high_water');
+
+            $table->primary(['viewable_type', 'column', 'viewable_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        $this->schema->dropIfExists($this->table);
+    }
+};

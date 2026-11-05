@@ -1,0 +1,130 @@
+<?php
+
+declare(strict_types=1);
+
+use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Contracts\Viewable;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
+use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
+use CyrildeWit\EloquentViewable\Querying\Contracts\CountsVisitFrequency;
+use CyrildeWit\EloquentViewable\Querying\Contracts\RanksAlsoViewed;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\ViewsQuery;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository as CacheRepository;
+use Illuminate\Config\Repository;
+
+function rememberingType(): Viewable
+{
+    $viewable = Mockery::mock(Viewable::class);
+    $viewable->allows('getKey')->andReturn(null);
+    $viewable->allows('getMorphClass')->andReturn('posts');
+
+    return $viewable;
+}
+
+beforeEach(function (): void {
+    Carbon::setTestNow('2026-09-10 12:00:00');
+
+    $this->cache = new CacheRepository(new ArrayStore);
+    $this->versioned = new VersionedCache(
+        $this->cache,
+        new CacheVersions($this->cache, new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views']]]]))),
+    );
+
+    $this->remembering = fn (ViewSource $source, string $identity = 'database'): RememberingSource => new RememberingSource(
+        $source,
+        $this->versioned,
+        Carbon::now()->addMinutes(10),
+        'views',
+        $identity,
+    );
+});
+
+it('remembers a key the source leaves out as zero', function (): void {
+    $type = rememberingType();
+
+    $source = Mockery::mock(ViewSource::class);
+    $source->expects('countMany')->once()->with($type, [7, 8], Mockery::type(ViewsQuery::class))->andReturn([7 => 3]);
+
+    $first = ($this->remembering)($source)->countMany($type, [7, 8], new ViewsQuery);
+    $second = ($this->remembering)($source)->countMany($type, [7, 8], new ViewsQuery);
+
+    expect($first)->toBe([7 => 3, 8 => 0])
+        ->and($second)->toBe([7 => 3, 8 => 0]);
+});
+
+it('asks the source only for the keys the cache lacks', function (): void {
+    $type = rememberingType();
+
+    $source = Mockery::mock(ViewSource::class);
+    $source->expects('countMany')->with($type, [7], Mockery::type(ViewsQuery::class))->andReturn([7 => 3]);
+    $source->expects('countMany')->with($type, [8], Mockery::type(ViewsQuery::class))->andReturn([8 => 5]);
+
+    ($this->remembering)($source)->countMany($type, [7], new ViewsQuery);
+
+    expect(($this->remembering)($source)->countMany($type, [7, 8], new ViewsQuery))->toBe([7 => 3, 8 => 5]);
+});
+
+it('keeps the entries of two source identities apart', function (): void {
+    $type = rememberingType();
+
+    $source = Mockery::mock(ViewSource::class);
+    $source->expects('count')->twice()->andReturn(3, 4);
+
+    expect(($this->remembering)($source, 'database:one')->count($type, new ViewsQuery))->toBe(3)
+        ->and(($this->remembering)($source, 'database:two')->count($type, new ViewsQuery))->toBe(4)
+        ->and(($this->remembering)($source, 'database:one')->count($type, new ViewsQuery))->toBe(3);
+});
+
+it('remembers the counts by dimension of a source that has them', function (): void {
+    $type = rememberingType();
+
+    $source = Mockery::mock(ViewSource::class, CountsByDimension::class);
+    $source->expects('countByDimension')->once()->with($type, Mockery::type(ViewsQuery::class), 'campaign')->andReturn(['spring' => 3]);
+
+    $first = ($this->remembering)($source)->countByDimension($type, new ViewsQuery, 'campaign');
+    $second = ($this->remembering)($source)->countByDimension($type, new ViewsQuery, 'campaign');
+
+    expect($first)->toBe(['spring' => 3])
+        ->and($second)->toBe(['spring' => 3]);
+});
+
+it('remembers what the visitors of a viewable also viewed, apart for every minimum, cap and type', function (): void {
+    $viewable = Mockery::mock(Viewable::class);
+    $viewable->allows('getKey')->andReturn(7);
+    $viewable->allows('getMorphClass')->andReturn('posts');
+
+    $ranking = [['type' => 'posts', 'id' => 8, 'count' => 3]];
+
+    $source = Mockery::mock(ViewSource::class, RanksAlsoViewed::class);
+    $source->expects('alsoViewed')->times(4)->andReturn($ranking);
+
+    $read = fn (?Viewable $among, int $minimum, ?int $maxVisitors): array => ($this->remembering)($source)->alsoViewed($viewable, $among, new ViewsQuery, 10, $minimum, $maxVisitors);
+
+    expect($read(null, 3, 1_000))->toBe($ranking)
+        ->and($read(null, 3, 1_000))->toBe($ranking)
+        ->and($read(null, 2, 1_000))->toBe($ranking)
+        ->and($read(null, 3, null))->toBe($ranking)
+        ->and($read(rememberingType(), 3, 1_000))->toBe($ranking);
+});
+
+it('remembers the visit frequency of a viewable, apart for every query', function (): void {
+    $source = Mockery::mock(ViewSource::class, CountsVisitFrequency::class);
+    $source->expects('visitFrequency')->twice()->andReturn([1 => 4, 2 => 1]);
+
+    $read = fn (ViewsQuery $query): array => ($this->remembering)($source)->visitFrequency(rememberingType(), $query);
+
+    expect($read(new ViewsQuery))->toBe([1 => 4, 2 => 1])
+        ->and($read(new ViewsQuery))->toBe([1 => 4, 2 => 1])
+        ->and($read(new ViewsQuery(Period::since('2026-09-01'))))->toBe([1 => 4, 2 => 1]);
+});
+
+it('refuses to remember the visit frequency of a source that cannot count it', function (): void {
+    ($this->remembering)(Mockery::mock(ViewSource::class))->visitFrequency(rememberingType(), new ViewsQuery);
+})->throws(UnsupportedBySource::class, 'cannot count how often visitors came back, so returning() and countByFrequency() cannot read from it.');

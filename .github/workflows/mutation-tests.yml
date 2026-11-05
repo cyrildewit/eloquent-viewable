@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Monthly (1st at 04:00 UTC). Mutation testing is slow and must run
-    # serially, so we track the score on a cadence rather than gating pushes.
+    # serially, so the workflow tracks the score once a month instead of gating pushes.
     - cron: '0 4 1 * *'
 
 permissions:
@@ -17,6 +17,17 @@ jobs:
 
     name: Mutation Tests
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=2s --health-timeout=5s --health-retries=20
+
+    env:
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,8 +38,9 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: 8.5
-          extensions: mbstring
-          coverage: xdebug
+          extensions: mbstring, redis
+          coverage: pcov
+          ini-values: pcov.directory=${{ github.workspace }}, pcov.exclude="~/(vendor|build)/~"
 
       - name: Get composer cache directory
         id: composer-cache
@@ -38,7 +50,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install composer dependencies
@@ -54,5 +66,3 @@ jobs:
 
       - name: Mutation testing
         run: composer run test:mutation
-        env:
-          XDEBUG_MODE: coverage

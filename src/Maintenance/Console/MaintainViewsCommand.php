@@ -1,0 +1,106 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Maintenance\Console;
+
+use CyrildeWit\EloquentViewable\Exceptions\InvalidOption;
+use CyrildeWit\EloquentViewable\Maintenance\Actions\MaintainViews;
+use CyrildeWit\EloquentViewable\Maintenance\Console\Concerns\ReportsRecounts;
+use CyrildeWit\EloquentViewable\Maintenance\Data\MaintenanceRun;
+use CyrildeWit\EloquentViewable\Maintenance\Data\RecountRun;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Console\Concerns\ReportsRollups;
+use CyrildeWit\EloquentViewable\Retention\Console\Concerns\ReportsRetention;
+use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
+use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Support\Console\ReadsOptions;
+use CyrildeWit\EloquentViewable\Support\Console\RunsScheduledWork;
+use Illuminate\Console\Command;
+
+final class MaintainViewsCommand extends Command
+{
+    use ReadsOptions;
+    use ReportsRecounts;
+    use ReportsRetention;
+    use ReportsRollups;
+    use RunsScheduledWork;
+
+    #[\Override]
+    protected $signature = 'views:maintain
+        {--chunk= : How many views to change per statement}
+        {--max-seconds= : Stop starting new work after this many seconds, the next run carries on}
+        {--dry-run : Count the views that would change without changing them}';
+
+    #[\Override]
+    protected $description = 'Roll up, anonymise and delete old views and recount counter columns as configured';
+
+    /** @throws InvalidOption */
+    public function handle(MaintainViews $maintain, RetentionPolicy $policy): int
+    {
+        $chunk = $this->positiveInteger('chunk', $policy->chunk);
+        $deadline = $this->deadline();
+
+        if (! $maintain->isConfigured()) {
+            $this->components->info('Nothing to maintain, neither `retention.rollups`, `retention.anonymise.after`, `retention.prune.after` nor `querying.counters` is set.');
+
+            return self::SUCCESS;
+        }
+
+        $run = $maintain->handle($chunk, $deadline, $this->isDryRun());
+
+        if (! $run instanceof MaintenanceRun) {
+            $this->reportSkipped();
+
+            return self::SUCCESS;
+        }
+
+        $this->reportRun($run);
+
+        return self::SUCCESS;
+    }
+
+    private function reportRun(MaintenanceRun $run): void
+    {
+        foreach ($run->folded as $folded) {
+            $this->reportFolded($folded, $this->isDryRun());
+        }
+
+        foreach ($run->expired as $expired) {
+            $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $this->isDryRun());
+        }
+
+        if ($run->anonymised instanceof RetentionRun) {
+            $this->reportRetention('anonymised', $run->anonymised);
+        }
+
+        if ($run->pruned instanceof RetentionRun) {
+            $this->reportRetention('deleted', $run->pruned);
+        }
+
+        if ($run->recounted instanceof RecountRun) {
+            $this->reportRecounted($run->recounted);
+        }
+
+        if (! $run->stopped) {
+            return;
+        }
+
+        if ($this->retentionReportedStop($run)) {
+            return;
+        }
+
+        $this->reportStopped();
+    }
+
+    /**
+     * A retention step that stopped has said so in its own report already.
+     */
+    private function retentionReportedStop(MaintenanceRun $run): bool
+    {
+        if ($run->anonymised?->stopped === true) {
+            return true;
+        }
+
+        return $run->pruned?->stopped === true;
+    }
+}

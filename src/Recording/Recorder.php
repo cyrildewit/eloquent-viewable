@@ -1,0 +1,253 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CyrildeWit\EloquentViewable\Recording;
+
+use Carbon\Carbon;
+use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\Data\Reference;
+use CyrildeWit\EloquentViewable\Presence\Data\Sighting;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
+use CyrildeWit\EloquentViewable\Recording\Contracts\LimitsRepeats;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RemembersRecordedViews;
+use CyrildeWit\EloquentViewable\Recording\Data\RecordResult;
+use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewAttempted;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
+use CyrildeWit\EloquentViewable\Recording\Exceptions\RecordingFailed;
+use CyrildeWit\EloquentViewable\Recording\Jobs\RecordViewJob;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ViewableKey;
+use CyrildeWit\EloquentViewable\Support\ViewerKey;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
+use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
+use Illuminate\Database\Eloquent\Model;
+
+final readonly class Recorder
+{
+    /** @param  list<RecordingGuard>  $guards */
+    public function __construct(
+        private array $guards,
+        private Config $config,
+        private BusDispatcher $bus,
+        private EventDispatcher $events,
+        private RecordsViews $action,
+        private VisitorIdentity $identity,
+        private PresenceStore $presence,
+        private PresenceConfig $presenceConfig,
+        private DimensionResolver $dimensions,
+    ) {}
+
+    /**
+     * A view skipped by a guard that limits repeats still keeps the visitor
+     * active.
+     *
+     * The dimensions are resolved once every guard has allowed the view, so
+     * a skipped view costs no dimension work, and before it is queued, because the
+     * request is gone by the time a worker stores it.
+     *
+     * @throws RecordingFailed
+     */
+    public function record(ViewAttempt $attempt): RecordResult
+    {
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+        $refusal = $this->refusedBy($attempt, $this->guards);
+
+        if ($refusal instanceof RecordingGuard) {
+            $this->events->dispatch(new ViewSkipped($attempt, $refusal));
+
+            $present = $refusal instanceof LimitsRepeats && $this->sight($attempt, $key);
+
+            return $this->attempted($attempt, RecordResult::skipped($refusal)->withPresence($present));
+        }
+
+        $viewer = $attempt->viewer;
+        $visitor = $this->identity->of($attempt->visitor, $viewer);
+        $dimensions = $this->dimensions->resolve($attempt->visitor, $attempt->viewable, $attempt->collection, $attempt->context, $attempt->arrival);
+
+        $record = new ViewRecord(
+            viewableId: $key,
+            viewableType: $attempt->viewable->getMorphClass(),
+            visitor: $visitor,
+            collection: $attempt->collection,
+            viewedAt: Carbon::now(),
+            viewerType: $viewer?->getMorphClass(),
+            viewerId: $viewer instanceof Model ? ViewerKey::of($viewer) : null,
+            context: $dimensions->context($attempt->context),
+            dimensions: $dimensions->columns(),
+        );
+
+        $result = $this->handOn($record, $attempt->queue ?? $this->config->queueEnabled());
+
+        $this->remember($attempt);
+
+        $present = $this->sight($attempt, $key, $visitor);
+
+        return $this->attempted($attempt, $result->withPresence($present)->withDimensions($dimensions->all()));
+    }
+
+    /**
+     * Keeps the visitor active without recording a view. The guards that
+     * limit repeats are not asked, because a heartbeat is not a new view,
+     * and no guard remembers it.
+     *
+     * @throws RecordingFailed
+     */
+    public function heartbeat(ViewAttempt $attempt): bool
+    {
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+
+        if (! $this->presenceConfig->enabled()) {
+            return false;
+        }
+
+        $guards = array_values(array_filter($this->guards, static fn (RecordingGuard $guard): bool => ! $guard instanceof LimitsRepeats));
+
+        if ($this->refusedBy($attempt, $guards) instanceof RecordingGuard) {
+            return false;
+        }
+
+        return $this->sight($attempt, $key);
+    }
+
+    /**
+     * Stops counting the visitor on the viewable at once, rather than once
+     * the window has passed.
+     *
+     * @throws RecordingFailed
+     */
+    public function leave(ViewAttempt $attempt): void
+    {
+        $key = $this->keyOf($attempt);
+        $attempt = $this->withViewer($attempt);
+
+        if (! $this->presenceConfig->enabled()) {
+            return;
+        }
+
+        $this->presence->leave($this->sightingOf($attempt, $key, $this->identity->of($attempt->visitor, $attempt->viewer)));
+    }
+
+    /**
+     * The guard that refuses the view, if any. A guard that refuses it for
+     * good wins over one that only limits repeats, so the view is only
+     * skipped by the latter once every other guard allowed it.
+     *
+     * @param  list<RecordingGuard>  $guards
+     */
+    private function refusedBy(ViewAttempt $attempt, array $guards): ?RecordingGuard
+    {
+        $limitedBy = null;
+
+        foreach ($guards as $guard) {
+            if ($guard->allows($attempt)) {
+                continue;
+            }
+
+            if (! $guard instanceof LimitsRepeats) {
+                return $guard;
+            }
+
+            $limitedBy ??= $guard;
+        }
+
+        return $limitedBy;
+    }
+
+    private function remember(ViewAttempt $attempt): void
+    {
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof RemembersRecordedViews) {
+                $guard->remember($attempt);
+            }
+        }
+    }
+
+    /** @throws RecordingFailed */
+    private function keyOf(ViewAttempt $attempt): int|string
+    {
+        return ViewableKey::of($attempt->viewable) ?? throw RecordingFailed::cannotRecordViewForViewableType();
+    }
+
+    private function withViewer(ViewAttempt $attempt): ViewAttempt
+    {
+        $viewer = $this->viewerOf($attempt);
+
+        if ($viewer === $attempt->viewer) {
+            return $attempt;
+        }
+
+        return $attempt->withViewer($viewer);
+    }
+
+    private function sight(ViewAttempt $attempt, int|string $key, ?string $visitor = null): bool
+    {
+        if (! $this->presenceConfig->enabled()) {
+            return false;
+        }
+
+        $visitor ??= $this->identity->of($attempt->visitor, $attempt->viewer);
+
+        $this->presence->touch($this->sightingOf($attempt, $key, $visitor));
+
+        return true;
+    }
+
+    private function sightingOf(ViewAttempt $attempt, int|string $key, string $visitor): Sighting
+    {
+        $viewer = $attempt->viewer;
+
+        $reference = $viewer instanceof Model && $this->presenceConfig->tracksViewers()
+            ? new Reference($viewer->getMorphClass(), ViewerKey::of($viewer))
+            : null;
+
+        return Sighting::of($attempt->viewable->getMorphClass(), $key, $visitor, $attempt->collection, $reference);
+    }
+
+    /**
+     * Every view passes through here, so the event is only built when
+     * something listens, such as the Debugbar collector.
+     */
+    private function attempted(ViewAttempt $attempt, RecordResult $result): RecordResult
+    {
+        if ($this->events->hasListeners(ViewAttempted::class)) {
+            $this->events->dispatch(new ViewAttempted($attempt, $result));
+        }
+
+        return $result;
+    }
+
+    private function viewerOf(ViewAttempt $attempt): ?Model
+    {
+        if ($attempt->viewer instanceof Model) {
+            return $attempt->viewer;
+        }
+
+        return $this->config->viewerEnabled() ? $attempt->visitor->viewer() : null;
+    }
+
+    private function handOn(ViewRecord $record, bool $queue): RecordResult
+    {
+        if ($queue) {
+            $this->bus->dispatch(
+                new RecordViewJob($record)
+                    ->onConnection($this->config->queueConnection())
+                    ->onQueue($this->config->queueName())
+            );
+
+            return RecordResult::queued();
+        }
+
+        $this->action->handle($record);
+
+        return RecordResult::stored();
+    }
+}

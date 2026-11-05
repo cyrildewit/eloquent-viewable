@@ -4,34 +4,268 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable;
 
-use CyrildeWit\EloquentViewable\Actions\CreateView;
-use CyrildeWit\EloquentViewable\Contracts\CrawlerDetector as CrawlerDetectorContract;
-use CyrildeWit\EloquentViewable\Contracts\CreateView as CreateViewContract;
-use CyrildeWit\EloquentViewable\Contracts\View as ViewContract;
-use CyrildeWit\EloquentViewable\Contracts\Views as ViewsContract;
-use CyrildeWit\EloquentViewable\Contracts\Visitor as VisitorContract;
-use Illuminate\Cache\Repository as CacheRepository;
+use Closure;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
+use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
+use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
+use CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter;
+use CyrildeWit\EloquentViewable\Debugging\Debugbar\RegisterViewsCollector;
+use CyrildeWit\EloquentViewable\Dimensions\Console\DimensionsCommand;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
+use CyrildeWit\EloquentViewable\Dimensions\DimensionResolver;
+use CyrildeWit\EloquentViewable\Dimensions\Sources\SourceList;
+use CyrildeWit\EloquentViewable\Doctor\Console\DiagnoseViewsCommand;
+use CyrildeWit\EloquentViewable\Doctor\Sampling\Listeners\SampleGuardOutcomes;
+use CyrildeWit\EloquentViewable\Erasure\Console\ForgetViewerCommand;
+use CyrildeWit\EloquentViewable\Erasure\Console\ForgetVisitorCommand;
+use CyrildeWit\EloquentViewable\Erasure\Events\CountsChanged;
+use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Http\Beacon;
+use CyrildeWit\EloquentViewable\Http\Controllers\BeaconController;
+use CyrildeWit\EloquentViewable\Http\Controllers\PresenceController;
+use CyrildeWit\EloquentViewable\Http\Middleware\RecordViews;
+use CyrildeWit\EloquentViewable\Maintenance\Console\MaintainViewsCommand;
+use CyrildeWit\EloquentViewable\Maintenance\Console\RecountViewsCommand;
+use CyrildeWit\EloquentViewable\Maintenance\Listeners\ForgetChangedCounts;
+use CyrildeWit\EloquentViewable\Milestones\Console\SeedMilestonesCommand;
+use CyrildeWit\EloquentViewable\Milestones\Listeners\CheckAfterRecount;
+use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Presence\Contracts\PresenceStore;
+use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
+use CyrildeWit\EloquentViewable\Presence\Stores\PresenceManager;
+use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
+use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
+use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
+use CyrildeWit\EloquentViewable\Querying\Grammars\GrammarRegistry;
+use CyrildeWit\EloquentViewable\Querying\Grammars\MySqlGrammar;
+use CyrildeWit\EloquentViewable\Querying\Grammars\PostgresGrammar;
+use CyrildeWit\EloquentViewable\Querying\Grammars\SQLiteGrammar;
+use CyrildeWit\EloquentViewable\Querying\Pairs\Console\PairViewsCommand;
+use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
+use CyrildeWit\EloquentViewable\Querying\Rollups\NullRefolder;
+use CyrildeWit\EloquentViewable\Querying\Rollups\NullWatermarks;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupSource;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupWatermarks;
+use CyrildeWit\EloquentViewable\Querying\Sources\SourceManager;
+use CyrildeWit\EloquentViewable\Recording\Actions\RecordView;
+use CyrildeWit\EloquentViewable\Recording\Console\FlushViewsCommand;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
+use CyrildeWit\EloquentViewable\Recording\Contracts\RecordsViews as RecordsViewsContract;
+use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewRecorded;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewsDestroyed;
+use CyrildeWit\EloquentViewable\Recording\Events\ViewSkipped;
+use CyrildeWit\EloquentViewable\Recording\Recorder;
+use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
+use CyrildeWit\EloquentViewable\Retention\Console\AnonymiseViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\PruneViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Console\PurgeBotViewsCommand;
+use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
+use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
+use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
+use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
+use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
+use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\ConfigReader;
+use CyrildeWit\EloquentViewable\Support\OptionalTable;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
+use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
+use CyrildeWit\EloquentViewable\Visitors\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\Compilers\BladeCompiler;
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 
 class EloquentViewableServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        $this->callAfterResolving('router', function (Router $router): void {
+            $router->aliasMiddleware(RecordViews::Alias, RecordViews::class);
+        });
+
+        $this->registerBeacon();
+        $this->listen();
+        $this->validateRetentionPolicies();
+        $this->registerDebugbarCollector();
+
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                FlushViewsCommand::class,
+                RollupViewsCommand::class,
+                PairViewsCommand::class,
+                RecountViewsCommand::class,
+                AnonymiseViewsCommand::class,
+                PruneViewsCommand::class,
+                PurgeBotViewsCommand::class,
+                MaintainViewsCommand::class,
+                ForgetViewerCommand::class,
+                ForgetVisitorCommand::class,
+                DiagnoseViewsCommand::class,
+                SeedMilestonesCommand::class,
+                DetectSpikesCommand::class,
+                DimensionsCommand::class,
+            ]);
+
             $this->publishes([
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
 
-            if (! class_exists('CreateViewsTable')) {
-                $timestamp = date('Y_m_d_His', time());
-
-                $this->publishes([
-                    __DIR__.'/../migrations/create_views_table.php.stub' => database_path("/migrations/{$timestamp}_create_views_table.php"),
-                ], 'migrations');
-            }
+            $this->publishMigrations();
         }
+    }
+
+    /**
+     * A migration whose file the application already has is left out, so the
+     * tag can be published again for a file that was deleted, without a second
+     * copy of the others.
+     */
+    protected function publishMigrations(): void
+    {
+        $timestamp = date('Y_m_d_His', time());
+        $migrations = ['create_views_table', ...array_map(fn (OptionalTable $table): string => $table->migration(), OptionalTable::cases())];
+        $paths = [];
+
+        foreach ($migrations as $migration) {
+            $existing = glob($this->app->databasePath("migrations/*_{$migration}.php"));
+
+            if (is_array($existing) && $existing !== []) {
+                continue;
+            }
+
+            $paths[__DIR__."/../database/migrations/{$migration}.php.stub"] = $this->app->databasePath("migrations/{$timestamp}_{$migration}.php");
+        }
+
+        $this->publishes($paths, 'migrations');
+    }
+
+    /**
+     * The config is read through an instance of its own, so nothing is left
+     * in the container that an Octane worker would share between requests.
+     */
+    protected function config(): Config
+    {
+        return new Config($this->app->make('config'));
+    }
+
+    /**
+     * The directive is there whenever Blade is, so a page that prints it while
+     * the beacon is off fails with the reason rather than a missing directive.
+     * The presence routes sit next to the beacon's and need both turned on.
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function registerBeacon(): void
+    {
+        $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
+            $blade->directive('viewsBeacon', function (string $expression): string {
+                $beacon = Beacon::class;
+
+                return "<?php echo \\Illuminate\\Container\\Container::getInstance()->make(\\{$beacon}::class)->script({$expression}); ?>";
+            });
+        });
+
+        $config = $this->config();
+
+        if (! $config->beaconEnabled()) {
+            return;
+        }
+
+        $prefix = trim($config->beaconPrefix(), '/');
+
+        $router = $this->app->make(Router::class);
+
+        $router->post("{$prefix}/{type}/{key}", [
+            'uses' => BeaconController::class,
+            'as' => Beacon::RouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
+
+        if (! new PresenceConfig($this->app->make('config'))->enabled()) {
+            return;
+        }
+
+        $presence = PresenceController::class;
+
+        $router->post("{$prefix}/presence/{type}/{key}", [
+            'uses' => "{$presence}@store",
+            'as' => Beacon::PresenceRouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
+
+        $router->post("{$prefix}/presence/{type}/{key}/leave", [
+            'uses' => "{$presence}@destroy",
+            'as' => Beacon::LeaveRouteName,
+            'middleware' => $config->beaconMiddleware(),
+        ]);
+    }
+
+    /**
+     * The reactions of one module to the events of another.
+     */
+    protected function listen(): void
+    {
+        $events = $this->app->make(EventDispatcher::class);
+
+        $events->listen(ViewsDestroyed::class, $this->listener(ForgetChangedCounts::class, 'viewsDestroyed'));
+        $events->listen(CountsChanged::class, $this->listener(ForgetChangedCounts::class, 'countsChanged'));
+        $events->listen([ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class], $this->listener(ForgetChangedCounts::class, 'viewsChanged'));
+        $events->listen(BotViewsPurged::class, $this->listener(ForgetChangedCounts::class, 'botViewsPurged'));
+        $events->listen(CountersRecounted::class, $this->listener(CheckAfterRecount::class, '__invoke'));
+
+        if ($this->config()->sampleEnabled()) {
+            $events->listen(ViewRecorded::class, $this->listener(SampleGuardOutcomes::class, 'recorded'));
+            $events->listen(ViewSkipped::class, $this->listener(SampleGuardOutcomes::class, 'refused'));
+        }
+    }
+
+    /**
+     * A listener resolved from the container of the request for every event,
+     * rather than the one the dispatcher booted with, so under Octane what it
+     * builds, such as the view source, does not stay behind in the worker.
+     *
+     * @param  class-string  $listener
+     * @return Closure(object): void
+     */
+    protected function listener(string $listener, string $method): Closure
+    {
+        return static function (object $event) use ($listener, $method): void {
+            Container::getInstance()->call("{$listener}@{$method}", [$event::class => $event]);
+        };
+    }
+
+    /**
+     * A policy that contradicts itself fails at boot rather than in the first
+     * scheduled run.
+     */
+    protected function validateRetentionPolicies(): void
+    {
+        RetentionPolicy::fromConfig($this->config());
+        RollupPolicy::fromConfig($this->config(), $this->app);
+    }
+
+    /**
+     * Debugbar is optional. The collector reads the instance off the container
+     * only when Debugbar has resolved one, which never happens without it.
+     */
+    protected function registerDebugbarCollector(): void
+    {
+        $this->app->booted(fn () => $this->app->make(RegisterViewsCollector::class)());
     }
 
     #[\Override]
@@ -42,29 +276,168 @@ class EloquentViewableServiceProvider extends ServiceProvider
             'eloquent-viewable'
         );
 
-        $this->app->when(Views::class)
+        $this->registerCore();
+        $this->registerDimensions();
+        $this->registerRecording();
+        $this->registerPresence();
+        $this->registerQuerying();
+        $this->registerRollups();
+        $this->registerRetention();
+    }
+
+    protected function registerCore(): void
+    {
+        // Scoped, so an Octane worker reads the config repository of the
+        // request it serves rather than the one it booted with.
+        $this->app->scoped(Config::class);
+        $this->app->scoped(PresenceConfig::class);
+
+        // Each driver manager reads its default from the config of its module.
+        $this->app->when([StoreManager::class, SourceManager::class, CooldownManager::class])->needs(ConfigReader::class)->give(Config::class);
+        $this->app->when(PresenceManager::class)->needs(ConfigReader::class)->give(PresenceConfig::class);
+
+        $this->app->bind(View::class, function (Application $app): View {
+            $model = $app->make(Config::class)->viewModel();
+
+            return new $model;
+        });
+
+        $this->app->when([VersionedCache::class, CacheVersions::class])
             ->needs(CacheRepository::class)
-            ->give(fn (): CacheRepository => $this->app['cache']->store(
-                $this->app['config']['eloquent-viewable']['cache']['store']
+            ->give(fn (): CacheRepository => $this->app->make(CacheFactory::class)->store(
+                $this->app->make(Config::class)->cacheStore()
             ));
+    }
 
-        $this->app->bind(ViewsContract::class, Views::class);
+    /**
+     * Scoped, so an Octane worker builds the dimensions from the config of the
+     * request it serves, and a dimension remembers nothing past it.
+     */
+    protected function registerDimensions(): void
+    {
+        $this->app->scoped(DimensionRegistry::class, fn (Application $app): DimensionRegistry => DimensionRegistry::fromConfig($app->make(Config::class), $app));
 
-        $this->app->bind(ViewContract::class, View::class);
+        $this->app->scoped(SourceList::class, fn (Application $app): SourceList => SourceList::fromConfig($app->make(Config::class)));
+    }
 
-        $this->app->bind(CreateViewContract::class, CreateView::class);
+    protected function registerRecording(): void
+    {
+        $this->app->singleton(StoreManager::class);
+
+        $this->app->bind(ViewStore::class, fn (Application $app): ViewStore => $app->make(StoreManager::class)->driver());
+
+        $this->app->bind(RecordsViewsContract::class, RecordView::class);
+
+        $this->app->bind(Recorder::class, function (Application $app): Recorder {
+            $config = $app->make(Config::class);
+
+            return new Recorder(
+                $this->resolveGuards($app, $config),
+                $config,
+                $app->make(BusDispatcher::class),
+                $app->make(EventDispatcher::class),
+                $app->make(RecordsViewsContract::class),
+                $app->make(VisitorIdentity::class),
+                $app->make(PresenceStore::class),
+                $app->make(PresenceConfig::class),
+                $app->make(DimensionResolver::class),
+            );
+        });
 
         $this->app->bind(VisitorContract::class, Visitor::class);
 
-        $this->app->bind(CrawlerDetectAdapter::class, function (Application $app): CrawlerDetectAdapter {
-            $detector = new CrawlerDetect(
-                $app['request']->headers->all(),
-                $app['request']->server('HTTP_USER_AGENT')
-            );
+        $this->app->singleton(CooldownManager::class);
 
-            return new CrawlerDetectAdapter($detector);
+        $this->app->bind(CooldownStore::class, fn (Application $app): CooldownStore => $app->make(CooldownManager::class)->driver());
+
+        $this->app->singleton(CrawlerDetect::class);
+        $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
+    }
+
+    protected function registerPresence(): void
+    {
+        $this->app->singleton(PresenceManager::class);
+
+        $this->app->bind(PresenceStore::class, fn (Application $app): PresenceStore => $app->make(PresenceManager::class)->driver());
+    }
+
+    /**
+     * @return list<RecordingGuard>
+     *
+     * @throws InvalidConfiguration
+     */
+    protected function resolveGuards(Application $app, Config $config): array
+    {
+        $guards = [];
+
+        foreach ($config->guards() as $class) {
+            $guard = $app->make($class);
+
+            if (! $guard instanceof RecordingGuard) {
+                throw InvalidConfiguration::mustImplement('recording.guards', RecordingGuard::class, $class);
+            }
+
+            $guards[] = $guard;
+        }
+
+        return $guards;
+    }
+
+    protected function registerQuerying(): void
+    {
+        $this->app->singleton(SourceManager::class);
+
+        $this->app->bind(ViewSource::class, fn (Application $app): ViewSource => $app->make(SourceManager::class)->driver());
+
+        $this->app->singleton(GrammarRegistry::class, function (): GrammarRegistry {
+            $grammars = new GrammarRegistry;
+
+            $grammars->register('sqlite', SQLiteGrammar::class);
+            $grammars->register('mysql', MySqlGrammar::class);
+            $grammars->register('mariadb', MySqlGrammar::class);
+            $grammars->register('pgsql', PostgresGrammar::class);
+
+            return $grammars;
+        });
+    }
+
+    /**
+     * The policies are bound rather than shared, so a config change is read
+     * on the next run.
+     */
+    protected function registerRetention(): void
+    {
+        $this->app->bind(RetentionPolicy::class, fn (Application $app): RetentionPolicy => RetentionPolicy::fromConfig($app->make(Config::class)));
+
+        $this->app->bind(StateStore::class, ViewState::class);
+    }
+
+    /**
+     * The rollup source is offered to the source manager here, so the rest of
+     * querying does not have to know about rollups.
+     */
+    protected function registerRollups(): void
+    {
+        $this->app->bind(RollupPolicy::class, fn (Application $app): RollupPolicy => RollupPolicy::fromConfig($app->make(Config::class), $app));
+
+        $this->app->bind(Watermarks::class, function (Application $app): Watermarks {
+            if (! $app->make(RollupPolicy::class)->isEnabled()) {
+                return new NullWatermarks;
+            }
+
+            return $app->make(RollupWatermarks::class);
         });
 
-        $this->app->singleton(CrawlerDetectorContract::class, CrawlerDetectAdapter::class);
+        $this->app->bind(Refolder::class, function (Application $app): Refolder {
+            if (! $app->make(RollupPolicy::class)->isEnabled()) {
+                return new NullRefolder;
+            }
+
+            return $app->make(FoldViews::class);
+        });
+
+        $this->callAfterResolving(SourceManager::class, function (SourceManager $sources): void {
+            $sources->extend('rollup', fn (Application $app): RollupSource => $app->make(RollupSource::class));
+        });
     }
 }
