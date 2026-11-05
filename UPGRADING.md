@@ -9,10 +9,11 @@ The version upgrade guides for versions below `v7.0.3` are still accessible in t
 
 ## Upgrading from v8.0.0 to v9.0.0
 
-The requirements are unchanged: PHP 8.5 and Laravel 13. On MySQL, version 9 needs MySQL 8.0 or newer, because the
-rollups of a dimension rank its values with a window function. MariaDB, Postgres and SQLite have one on every version
-Laravel supports. Most applications only need the five steps below. The sections after them cover behaviour changes to
-be aware of and what to change if you extended the package.
+The requirements are PHP 8.5 and Laravel 13, as before, and Carbon 3.11 or newer. Run `composer update nesbot/carbon` if
+your lock file holds an older Carbon 3. On MySQL, version 9 needs MySQL 8.0 or newer, because the rollups of a dimension
+rank its values with a window function. MariaDB, Postgres and SQLite have one on every version Laravel supports. Most
+applications only need the five steps below. The sections after them cover behaviour changes to be aware of and what to
+change if you extended the package.
 
 ### What's new in 9.0
 

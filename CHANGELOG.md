@@ -129,6 +129,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 
 ### Changed
 
+- Requires `nesbot/carbon` 3.11 or newer, the first release whose `add()` and `sub()` accept a `Carbon\Unit`
 - `Period` is half-open: the start is included and the end is excluded, so a view recorded exactly at the end no longer counts
 - `Period` converts bounds built in another timezone to the application timezone
 - The migration stub creates a composite `(viewable_type, viewable_id, viewed_at)` index, an index on `viewed_at` and the `viewer` and `context` columns. Existing installations add them with the migration in the upgrade guide
