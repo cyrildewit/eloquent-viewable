@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable\Erasure\Events;
 
 use CyrildeWit\EloquentViewable\Erasure\Subject;
 
-/** It is dispatched once the views of the subject are deleted, even when the subject had none. */
 class ViewHistoryForgotten
 {
     public function __construct(

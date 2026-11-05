@@ -7,12 +7,6 @@ namespace CyrildeWit\EloquentViewable\Contracts;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Implement this to narrow the views a count reads. A custom rollup
- * implements it too: the rollup folds only the views its filter keeps, and a
- * count reads the views table through the same filter, so both count the
- * same views.
- */
 interface FiltersViews
 {
     /**

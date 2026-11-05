@@ -6,7 +6,6 @@ namespace CyrildeWit\EloquentViewable\Erasure\Events;
 
 use CyrildeWit\EloquentViewable\Erasure\Subject;
 
-/** It is dispatched once the views of the subject are anonymised, even when the subject had none. */
 class ViewHistoryAnonymised
 {
     public function __construct(
