@@ -80,7 +80,7 @@
     },
     "scripts": {
         "post-autoload-dump": "@php vendor/bin/testbench package:discover --ansi",
-        "lint":"pint --parallel --cache-file=build/cache/pint.cache",
+        "lint": "pint --parallel --cache-file=build/cache/pint.cache",
         "test:lint": "pint --test --parallel --cache-file=build/cache/pint.cache",
         "test": "pest --parallel",
         "test:serial": "pest",
