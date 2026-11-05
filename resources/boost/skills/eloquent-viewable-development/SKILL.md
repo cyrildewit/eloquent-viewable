@@ -163,7 +163,7 @@ Print `@viewsBeacon($product, live: true)` so the page keeps its visitor active 
 
 ## Milestones
 
-Thresholds go on a `querying.counters` column without a `period`, under `milestones.thresholds`, in ascending order. Publish the `eloquent-viewable-milestones` migration. Every recount checks them, so schedule `views:maintain`.
+Thresholds go on a `querying.counters` column without a `period`, under `milestones.thresholds`, in ascending order. Every recount checks them, so schedule `views:maintain`.
 
 ```php
 'milestones' => ['thresholds' => [Post::class => ['views_count' => [100, 1_000, 10_000]]]],
@@ -180,7 +180,7 @@ Listen for `Milestones\Events\ViewMilestoneReached` in a queued listener. It fir
 
 ## Spike Alerts
 
-List the models under `spikes.types`, publish the `eloquent-viewable-spikes` migration and schedule `views:detect-spikes` hourly. Listen for `Spikes\Events\ViewsSpiked`, `ViewsDropped` and `ViewsSettled` in queued listeners; each fires once per episode, so never keep your own "already alerted" flag. Turn `drops` on only where a drop means something broke.
+List the models under `spikes.types` and schedule `views:detect-spikes` hourly. Listen for `Spikes\Events\ViewsSpiked`, `ViewsDropped` and `ViewsSettled` in queued listeners; each fires once per episode, so never keep your own "already alerted" flag. Turn `drops` on only where a drop means something broke.
 
 ```php
 public function handle(ViewsSpiked $event): void
@@ -232,7 +232,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - Sorting long lists by views is slow: `querying.counters` columns on the model's own table, kept current by `views:maintain`.
 - A copy of a counter column elsewhere goes stale, such as a search index: listen for `Querying\Counters\Events\CountersRecounted` and resync `$event->keys` of `$event->class`. A recount fires no model events.
 - `unique()`, whole-type, `alsoViewed()` or `recommended()` queries are slow: the optional indexes under "Database indexes" in the README.
-- `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled`, the `eloquent-viewable-pairs` migration and `views:pairs` scheduled.
+- `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled` and `views:pairs` scheduled.
 - The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
 - A `views:maintain` run outlasts its schedule, such as the first run on a large table: add `--max-seconds`, and the next run carries on. On a host that cuts commands off, schedule `Maintenance\Jobs\MaintainViewsJob` instead.
 - Bots that pass for a browser inflate counts: `views:purge-bots --dry-run`, then `views:purge-bots`, which deletes only the views inside a burst.

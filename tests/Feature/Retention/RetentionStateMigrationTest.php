@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schema;
 
-it('keeps the state table on rollback while the rollups table exists', function (): void {
-    config()->set('eloquent-viewable.milestones.table', 'missing_milestones');
+it('creates and drops the state table', function (): void {
+    config()->set('database.connections.bare', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
+    config()->set('eloquent-viewable.models.view.connection', 'bare');
 
-    new CreateViewRetentionStateTable()->down();
+    $migration = require __DIR__.'/../../../database/migrations/create_view_retention_state_table.php.stub';
+    $schema = Schema::connection('bare');
 
-    expect(Schema::hasTable('view_retention_state'))->toBeTrue();
-});
+    $migration->up();
 
-it('keeps the state table on rollback while the milestones table exists', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.table', 'missing_rollups');
+    expect($schema->getColumnListing('view_retention_state'))->toEqualCanonicalizing(['name', 'value']);
 
-    new CreateViewRetentionStateTable()->down();
+    $migration->down();
 
-    expect(Schema::hasTable('view_retention_state'))->toBeTrue();
+    expect($schema->hasTable('view_retention_state'))->toBeFalse();
 });

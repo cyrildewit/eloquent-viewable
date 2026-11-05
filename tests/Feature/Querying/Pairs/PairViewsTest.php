@@ -141,11 +141,10 @@ it('skips the run while another one holds the lock', function (): void {
     expect(pairRows())->toBeEmpty();
 });
 
-it('publishes the pairs migration under a tag of its own', function (): void {
-    $pairs = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'eloquent-viewable-pairs'));
+it('publishes the pairs migration with the others', function (): void {
+    $migrations = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'migrations'));
 
-    expect($pairs)->toHaveCount(1)
-        ->and($pairs[0])->toEndWith('create_view_pairs_table.php.stub');
+    expect(array_map(basename(...), $migrations))->toContain('create_view_pairs_table.php.stub');
 });
 
 it('serves alsoViewed() from the table unless the call names a period or collection', function (): void {

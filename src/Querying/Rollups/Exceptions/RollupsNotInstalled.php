@@ -14,13 +14,4 @@ final class RollupsNotInstalled extends Exception implements EloquentViewableExc
     {
         return new self(OptionalTable::Rollups->notInstalled($table));
     }
-
-    /**
-     * The folds are marked in the retention state table, which is published
-     * under the retention tag.
-     */
-    public static function missingStateTable(string $table): self
-    {
-        return new self(OptionalTable::Rollups->missing($table).' '.OptionalTable::Retention->hint());
-    }
 }

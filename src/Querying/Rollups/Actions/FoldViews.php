@@ -550,7 +550,7 @@ final readonly class FoldViews implements Refolder
         }
 
         if (! $this->state->installed()) {
-            throw RollupsNotInstalled::missingStateTable('view_retention_state');
+            throw RollupsNotInstalled::missingTable('view_retention_state');
         }
     }
 }

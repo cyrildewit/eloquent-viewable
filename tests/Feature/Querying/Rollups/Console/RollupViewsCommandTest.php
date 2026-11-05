@@ -158,11 +158,10 @@ it('checks the rollup config at boot', function (): void {
     app()->getProvider(EloquentViewableServiceProvider::class)?->boot();
 })->throws(InvalidConfiguration::class, 'The `month` tier of the `views` rollup');
 
-it('publishes the rollups migration under a tag of its own', function (): void {
-    $rollups = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'eloquent-viewable-rollups'));
+it('publishes the rollups migration with the others', function (): void {
+    $migrations = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'migrations'));
 
-    expect($rollups)->toHaveCount(1)
-        ->and($rollups[0])->toEndWith('create_view_rollups_table.php.stub');
+    expect(array_map(basename(...), $migrations))->toContain('create_view_rollups_table.php.stub');
 });
 
 it('stops folding at its time limit', function (): void {

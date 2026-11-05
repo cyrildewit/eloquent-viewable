@@ -141,9 +141,7 @@ final class Seeder
         // `viewed_at`. `dropSecondaryIndexes()` drops it and
         // `createSecondaryIndexes()` does not build it again, because it would
         // change the query plan of every benchmark on this dataset.
-        require_once Application::projectPath('database/migrations/create_views_table.php.stub');
-
-        new \CreateViewsTable()->up();
+        (require Application::projectPath('database/migrations/create_views_table.php.stub'))->up();
 
         $schema->table($this->table, function (Blueprint $blueprint): void {
             foreach (self::DimensionColumns as $column) {

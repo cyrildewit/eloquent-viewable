@@ -112,7 +112,7 @@ If you keep your old `recording.guards` list, add `IgnoreOptedOutViewers` to it 
 Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
 other than a string or `null` throws `InvalidConfiguration` naming the key.
 
-### 4. Add the new columns and indexes
+### 4. Add the new columns, indexes and tables
 
 The `views` table needs three new nullable columns, `viewer_type`, `viewer_id` and `context`, because every view
 writes them. A composite index on `viewable_type`, `viewable_id` and `viewed_at` lets period counts read only the rows
@@ -161,6 +161,17 @@ Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = fals
 
 Nothing is recorded in the new columns until you opt in to [recording the viewer](README.md#who-viewed-what) or pass a
 [context](README.md#storing-context-with-a-view).
+
+Version 9 also adds the tables of retention, rollups, pairs, milestones and spikes. Publish the migrations again and
+run them:
+
+```bash
+php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
+php artisan migrate
+```
+
+Your views migration is skipped because its file exists, and the five new ones are published. The features stay off
+until you configure them, so you can delete the migration of one you will not use before running it.
 
 [Dimensions](README.md#dimensions) add no column until you list one. After listing one under
 `dimensions.definitions`, run `php artisan views:dimensions`, which writes the migration that adds its column, and
