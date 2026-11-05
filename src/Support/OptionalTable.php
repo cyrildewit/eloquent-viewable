@@ -28,7 +28,7 @@ enum OptionalTable: string
     public function migration(): string
     {
         return match ($this) {
-            self::Retention => 'create_view_retention_state_table',
+            self::Retention => 'create_view_state_table',
             self::Rollups => 'create_view_rollups_table',
             self::Pairs => 'create_view_pairs_table',
             self::Milestones => 'create_view_milestones_table',

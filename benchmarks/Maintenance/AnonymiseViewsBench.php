@@ -7,7 +7,7 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Maintenance;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\BenchCase;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Dataset;
 use CyrildeWit\EloquentViewable\Benchmarks\Support\Rollups;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use Generator;
 use Illuminate\Container\Container;

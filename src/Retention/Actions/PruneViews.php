@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Retention\Actions;
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 
@@ -31,7 +31,7 @@ final readonly class PruneViews
 
     public function __construct(
         private View $view,
-        private RetentionState $state,
+        private ViewState $state,
         private Watermarks $watermarks,
         private Dispatcher $events,
     ) {}
@@ -45,7 +45,9 @@ final readonly class PruneViews
     /** @throws RetentionNotInstalled */
     public function handle(CarbonInterface $cutoff, int $chunk, bool $dryRun = false, ?Deadline $deadline = null): RetentionRun
     {
-        $this->state->ensureInstalled();
+        if (! $this->state->installed()) {
+            throw RetentionNotInstalled::missingTable(ViewState::Table);
+        }
 
         $deadline ??= Deadline::none();
         $until = $this->watermarks->clamp($cutoff);

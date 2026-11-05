@@ -7,7 +7,7 @@ use CyrildeWit\EloquentViewable\Support\OptionalTable;
 it('names the migration of {0}', function (OptionalTable $table, string $migration): void {
     expect($table->migration())->toBe($migration);
 })->with([
-    'retention' => [OptionalTable::Retention, 'create_view_retention_state_table'],
+    'retention' => [OptionalTable::Retention, 'create_view_state_table'],
     'rollups' => [OptionalTable::Rollups, 'create_view_rollups_table'],
     'pairs' => [OptionalTable::Pairs, 'create_view_pairs_table'],
     'milestones' => [OptionalTable::Milestones, 'create_view_milestones_table'],

@@ -11,8 +11,8 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Period;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Carbon;
@@ -205,7 +205,7 @@ it('reports on a dry run what the real run would delete once it rolled up', func
     expect(View::query()->count())->toBe(3)
         ->and(ViewRollup::query()->count())->toBe(0)
         ->and(app(RollupState::class)->snapshot('views')->folded(Tier::Day))->toBeNull()
-        ->and(app(RetentionState::class)->get('pruned'))->toBeNull();
+        ->and(app(ViewState::class)->get('pruned'))->toBeNull();
 
     $this->artisan('views:maintain')
         ->expectsOutputToContain('Deleted 2 views viewed before 2026-01-30 12:00:00.')
@@ -243,7 +243,7 @@ it('checks the retention config at boot', function (): void {
 it('publishes the state migration with the others', function (): void {
     $migrations = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'migrations'));
 
-    expect(array_map(basename(...), $migrations))->toContain('create_view_retention_state_table.php.stub');
+    expect(array_map(basename(...), $migrations))->toContain('create_view_state_table.php.stub');
 });
 
 it('prunes before a date given on the command line', function (): void {
@@ -251,7 +251,7 @@ it('prunes before a date given on the command line', function (): void {
         ->expectsOutputToContain('Deleted 1 view viewed before 2026-01-01 00:00:00.')
         ->assertSuccessful();
 
-    expect(app(RetentionState::class)->get('pruned'))->toBe('2026-01-01 00:00:00');
+    expect(app(ViewState::class)->get('pruned'))->toBe('2026-01-01 00:00:00');
 });
 
 it('rejects a date it cannot read, or a date and an age together', function (array $options, string $message): void {

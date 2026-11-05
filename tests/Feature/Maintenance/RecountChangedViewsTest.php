@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Maintenance\Data\RecountRun;
@@ -9,7 +10,6 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Contracts\SubquerySource;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;

@@ -2,33 +2,24 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Retention\State;
+namespace CyrildeWit\EloquentViewable\Support\State;
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
-use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 
-final readonly class RetentionState implements StateStore
+final readonly class ViewState implements StateStore
 {
-    public const string Table = 'view_retention_state';
+    public const string Table = 'view_state';
 
     private ConnectionInterface $connection;
 
     public function __construct(View $view)
     {
         $this->connection = $view->getConnection();
-    }
-
-    /** @throws RetentionNotInstalled */
-    public function ensureInstalled(): void
-    {
-        if (! $this->installed()) {
-            throw RetentionNotInstalled::missingTable(self::Table);
-        }
     }
 
     public function installed(): bool
