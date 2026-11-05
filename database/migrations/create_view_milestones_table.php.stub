@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\Schema;
 
-class CreateViewMilestonesTable extends Migration
+return new class extends Migration
 {
     protected Builder $schema;
 
@@ -37,20 +37,10 @@ class CreateViewMilestonesTable extends Migration
 
             $table->primary(['viewable_type', 'column', 'viewable_id']);
         });
-
-        // Milestones keep the thresholds they were armed with where retention
-        // keeps its marks. Created here too, for an application that neither
-        // rolls up, anonymises nor prunes.
-        if (! $this->schema->hasTable('view_retention_state')) {
-            $this->schema->create('view_retention_state', function (Blueprint $table) {
-                $table->string('name')->primary();
-                $table->text('value');
-            });
-        }
     }
 
     public function down(): void
     {
         $this->schema->dropIfExists($this->table);
     }
-}
+};

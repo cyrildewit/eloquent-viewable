@@ -156,12 +156,12 @@ views($post)->period(Period::pastDays(30))->countByInterval(Granularity::Day);
 ### Start simple, scale when you need to
 
 Out of the box every view is one insert during the request and every count is one query. That is fine for most
-applications and needs nothing beyond the migration. When traffic grows, switch on what you need, one config key at a
+applications and needs nothing beyond the migrations. When traffic grows, switch on what you need, one config key at a
 time. None of these changes how you query.
 
 | Option                                                  | What you gain                                                    | What you need                                     |
 |---------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------|
-| Default                                                 | Views count immediately, nothing to set up                       | The migration                                     |
+| Default                                                 | Views count immediately, nothing to set up                       | Nothing                                           |
 | [`remember()`](#caching-view-counts)                    | Repeated counts, series and rankings served from the cache       | Any cache store                                   |
 | [Queued recording](#queueing-view-recording)            | The insert moves out of the request                              | A queue worker                                    |
 | [Redis buffer](#buffering-views-in-redis)               | One Redis write per request, one insert per thousand views       | Redis 7+ and a scheduled `views:flush`            |
@@ -169,8 +169,8 @@ time. None of these changes how you query.
 | [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled `views:maintain`         |
 | [Cache cooldowns](#setting-a-cooldown)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |
 | [Fingerprint identity](#recording-without-a-cookie)     | Unique visitors without setting a cookie                         | A shared cache store, trusted proxies configured  |
-| [Retention](#retention)                                 | Old views anonymised and deleted on a schedule                   | A migration and a scheduled `views:maintain`      |
-| [Rollups](#rollups)                                     | History and cheap all-time counts after views are deleted        | A migration and the `rollup` source               |
+| [Retention](#retention)                                 | Old views anonymised and deleted on a schedule                   | A scheduled `views:maintain`                      |
+| [Rollups](#rollups)                                     | History and cheap all-time counts after views are deleted        | The `rollup` source                               |
 
 ## Getting Started
 
@@ -192,13 +192,18 @@ Lumen is not supported. Its last release is built on Laravel 11, and the package
 
 ### Installation
 
-Install the package via Composer, publish the migration and run it:
+Install the package via Composer, publish the migrations and run them:
 
 ```bash
 composer require cyrildewit/eloquent-viewable:^9
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"
 php artisan migrate
 ```
+
+This publishes six migrations, one per table: the views table and the tables that retention, rollups, pairs,
+milestones and spikes use. Those features stay off until you configure them, so their tables stay empty until then. You
+can delete the migration of a feature you will not use before running it. Publishing again adds only the migrations
+whose files are missing.
 
 Optionally publish the config file:
 
@@ -696,13 +701,6 @@ thresholds in ascending order:
 ],
 ```
 
-Publish the migration and run it:
-
-```bash
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-milestones"
-php artisan migrate
-```
-
 Every recount, from `views:recount`, `views:maintain` or `destroy()`, compares the columns it writes with their
 thresholds and dispatches `ViewMilestoneReached` once per model and threshold:
 
@@ -973,11 +971,6 @@ To hear about a spike rather than look for one, list the models to watch and sch
 ```php
 // routes/console.php
 Schedule::command('views:detect-spikes')->hourly()->onOneServer();
-```
-
-```bash
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-spikes"
-php artisan migrate
 ```
 
 Every option may be left out for the default shown, except `drops`, which is `false`. Each run looks at the last
@@ -1961,7 +1954,7 @@ webview of an app, is taken for a crawler, or a scraper is crawling the site.
 
 The migration indexes `(viewable_type, viewable_id)` and `(viewable_type, viewable_id, viewed_at)`, so period counts and
 series only read the rows inside the period, and `viewed_at`, so retention and rollups scan by date. If you installed
-before the last two existed, the [upgrade guide](UPGRADING.md#4-add-the-new-columns-and-indexes) has a migration for
+before the last two existed, the [upgrade guide](UPGRADING.md#4-add-the-new-columns-indexes-and-tables) has a migration for
 them.
 
 Three optional indexes, added in a migration of your own. [`views:doctor`](#checking-your-setup) recommends the ones
@@ -1987,13 +1980,6 @@ flowchart LR
     deleted["Deleted"]
     recorded -->|"older than anonymise.after"| anonymised
     anonymised -->|"older than prune.after"| deleted
-```
-
-Publish and run the migration, which adds an index on `viewed_at` and a small state table:
-
-```bash
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-retention"
-php artisan migrate
 ```
 
 Set the ages in the period shorthand and schedule one command:
@@ -2067,7 +2053,7 @@ What to know:
   working renews the lock, so a long run keeps it, and the lock of a run that died expires after an hour.
 - **A run forgets every remembered count** when it changed a view, and dispatches `Retention\Events\ViewsAnonymised`
   or `ViewsPruned`.
-- **A command throws `Retention\Exceptions\RetentionNotInstalled`** when the migration has not run.
+- **A command throws `Retention\Exceptions\RetentionNotInstalled`** when the migrations have not run.
 
 ### Rollups
 
@@ -2082,11 +2068,6 @@ flowchart LR
     month[("month tier<br/>a row per month and grouping<br/>kept forever")]
     views -->|"fold each closed day"| day
     views -->|"fold each closed month"| month
-```
-
-```bash
-php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="eloquent-viewable-rollups"
-php artisan migrate
 ```
 
 ```php
@@ -2187,13 +2168,7 @@ What to know:
 ### The pairs table
 
 `alsoViewed()` and `recommended()` read every view of every visitor they pair, on every call. With heavy traffic,
-let a scheduled command count the pairs once into a table of their own, so a call reads a few rows. Publish and run its
-migration:
-
-```bash
-php artisan vendor:publish --tag="eloquent-viewable-pairs"
-php artisan migrate
-```
+let a scheduled command count the pairs once into a table of their own, so a call reads a few rows.
 
 Turn it on with `querying.pairs.enabled` and schedule `views:pairs`, daily or hourly:
 

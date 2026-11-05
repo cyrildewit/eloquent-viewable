@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Support;
 
 /**
- * The tables a feature needs beyond the views table, each published under a
- * tag of its own, so the shared `migrations` tag keeps publishing only the
- * views table. The doctor and the exceptions use the methods below, so they
- * give one wording for a missing table.
+ * The tables a feature needs beyond the views table. Every one is published
+ * with the views table, but an application may delete the migration of a
+ * feature it does not use. The doctor and the exceptions use the methods
+ * below, so they give one wording for a missing table.
  *
  * @internal
  */
@@ -23,11 +23,6 @@ enum OptionalTable: string
     case Milestones = 'milestones';
 
     case Spikes = 'spikes';
-
-    public function tag(): string
-    {
-        return "eloquent-viewable-{$this->value}";
-    }
 
     /** The migration stub, without its extension. */
     public function migration(): string
@@ -61,11 +56,6 @@ enum OptionalTable: string
 
     public function hint(): string
     {
-        return "Publish its migration with `php artisan vendor:publish --tag={$this->tag()}` and run `php artisan migrate`.";
-    }
-
-    public function advice(): string
-    {
-        return 'Publish the migration with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="'.$this->tag().'"` and run `php artisan migrate`.';
+        return 'Publish the migrations with `php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="migrations"` and run `php artisan migrate`.';
     }
 }

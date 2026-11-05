@@ -55,36 +55,20 @@ abstract class TestCase extends OrchestraTestCase
      */
     protected function defineDatabaseMigrationsAfterDatabaseRefreshed(): void
     {
-        require_once __DIR__.'/../../database/migrations/create_views_table.php.stub';
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194715_create_posts_table.php';
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194716_create_apartments_table.php';
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194717_create_users_table.php';
 
-        new \CreateViewsTable()->up();
+        (require __DIR__.'/../../database/migrations/create_views_table.php.stub')->up();
 
         require_once __DIR__.'/../Fixtures/database/migrations/2018_02_22_194719_add_dimension_columns_to_views_table.php';
 
         new \AddDimensionColumnsToViewsTable()->up();
 
-        require_once __DIR__.'/../../database/migrations/create_view_retention_state_table.php.stub';
+        foreach (['retention_state', 'rollups', 'pairs', 'milestones', 'spikes'] as $table) {
+            (require __DIR__."/../../database/migrations/create_view_{$table}_table.php.stub")->up();
+        }
 
-        new \CreateViewRetentionStateTable()->up();
-
-        require_once __DIR__.'/../../database/migrations/create_view_rollups_table.php.stub';
-
-        new \CreateViewRollupsTable()->up();
-
-        require_once __DIR__.'/../../database/migrations/create_view_pairs_table.php.stub';
-
-        new \CreateViewPairsTable()->up();
-
-        require_once __DIR__.'/../../database/migrations/create_view_milestones_table.php.stub';
-
-        new \CreateViewMilestonesTable()->up();
-
-        require_once __DIR__.'/../../database/migrations/create_view_spikes_table.php.stub';
-
-        new \CreateViewSpikesTable()->up();
         new \CreatePostsTable()->up();
         new \CreateApartmentsTable()->up();
         new \CreateUsersTable()->up();
@@ -113,7 +97,7 @@ abstract class TestCase extends OrchestraTestCase
         $config->set('eloquent-viewable.models.view.table_name', $table);
 
         try {
-            new \CreateViewsTable()->up();
+            (require __DIR__.'/../../database/migrations/create_views_table.php.stub')->up();
         } finally {
             Schema::defaultMorphKeyType('int');
             $config->set('eloquent-viewable.models.view.table_name', $default);

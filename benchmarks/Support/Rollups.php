@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\ConnectionInterface;
@@ -56,7 +57,7 @@ final class Rollups
         }
 
         $connection->table('view_rollups')->delete();
-        $connection->table('view_retention_state')->delete();
+        $connection->table(RetentionState::Table)->delete();
 
         Container::getInstance()->make(FoldViews::class)->handle();
 
@@ -64,17 +65,19 @@ final class Rollups
     }
 
     /**
-     * The rollups migration also creates the state table that retention and
-     * the counter columns keep their marks in.
+     * The rollups table and the state table that rollups keep their marks in.
      */
     public static function install(ConnectionInterface $connection): void
     {
-        if ($connection->getSchemaBuilder()->hasTable('view_rollups')) {
-            return;
+        $stubs = [
+            'view_rollups' => 'create_view_rollups_table',
+            RetentionState::Table => 'create_view_retention_state_table',
+        ];
+
+        foreach ($stubs as $table => $stub) {
+            if (! $connection->getSchemaBuilder()->hasTable($table)) {
+                (require __DIR__."/../../database/migrations/{$stub}.php.stub")->up();
+            }
         }
-
-        require_once __DIR__.'/../../database/migrations/create_view_rollups_table.php.stub';
-
-        new \CreateViewRollupsTable()->up();
     }
 }

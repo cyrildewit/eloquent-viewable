@@ -219,7 +219,7 @@ class SchemaCheck implements Check
                 continue;
             }
 
-            yield Finding::failure($optional->missing($table), $optional->advice());
+            yield Finding::failure($optional->missing($table), $optional->hint());
         }
     }
 

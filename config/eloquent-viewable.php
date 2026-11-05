@@ -446,9 +446,9 @@ return [
         /*
          * When enabled, `alsoViewed()` and `recommended()` read a few rows
          * from the pairs table instead of every view of every visitor. The
-         * table keeps, for every model, the models its visitors also viewed.
-         * Publish its migration with the `eloquent-viewable-pairs` tag and
-         * schedule `views:pairs`.
+         * table keeps, for every model, the models its visitors also viewed,
+         * ships with the package migrations and is filled by `views:pairs`,
+         * which you schedule.
          *
          *   period     only the views within this period are paired
          *   max_pairs  how many models are kept per model, the ones it
@@ -502,8 +502,8 @@ return [
     | How long views are kept as they were recorded. Nothing is set out of the
     | box, so nothing is anonymised or deleted until you say so. Durations use
     | the period shorthand: `30d`, `12w`, `6m`, `2y`. The `views:anonymise`,
-    | `views:prune` and `views:maintain` commands apply them, and need the
-    | migration published with `--tag=eloquent-viewable-retention`.
+    | `views:prune` and `views:maintain` commands apply them, and keep how far
+    | they got in a table that ships with the package migrations.
     |
     */
     'retention' => [
@@ -544,8 +544,7 @@ return [
          * Rollups keep the counts of old views per bucket of time, so history
          * outlives the views it was counted from. `views:rollup` folds them
          * from the views table, and setting `querying.source.driver` to
-         * `rollup` reads them. They need the migration published with
-         * `--tag=eloquent-viewable-rollups`.
+         * `rollup` reads them. Their table ships with the package migrations.
          */
         'rollups' => [
 
@@ -618,8 +617,8 @@ return [
     |
     | Thresholds a counter column can cross, such as a post's 10,000th view.
     | Each recount compares the columns it writes with them and dispatches
-    | `ViewMilestoneReached` once per model and threshold. They need the
-    | migration published with `--tag=eloquent-viewable-milestones`.
+    | `ViewMilestoneReached` once per model and threshold. Their table ships
+    | with the package migrations.
     |
     */
     'milestones' => [
@@ -652,8 +651,8 @@ return [
     | window with the same window on past days or weeks, and dispatches
     | `ViewsSpiked` once when a model takes off, `ViewsDropped` when it
     | collapses, and `ViewsSettled` once it is back to normal. Schedule it as
-    | often as the window is wide. It needs the migration published with
-    | `--tag=eloquent-viewable-spikes`.
+    | often as the window is wide. Its table ships with the package
+    | migrations.
     |
     */
     'spikes' => [

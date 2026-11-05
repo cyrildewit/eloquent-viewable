@@ -41,9 +41,7 @@ final class DetectSpikesBench extends BenchCase
         $connection = $this->connection();
 
         if (! $connection->getSchemaBuilder()->hasTable('view_spikes')) {
-            require_once __DIR__.'/../../database/migrations/create_view_spikes_table.php.stub';
-
-            new \CreateViewSpikesTable()->up();
+            (require __DIR__.'/../../database/migrations/create_view_spikes_table.php.stub')->up();
         }
 
         // Half an hour past the anchor, so the last complete hour ends at the

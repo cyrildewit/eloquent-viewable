@@ -240,13 +240,10 @@ it('checks the retention config at boot', function (): void {
     app()->getProvider(EloquentViewableServiceProvider::class)?->boot();
 })->throws(InvalidConfiguration::class, 'must not be longer than `retention.prune.after`');
 
-it('publishes the retention migration under a tag of its own', function (): void {
-    $retention = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'eloquent-viewable-retention'));
+it('publishes the state migration with the others', function (): void {
     $migrations = array_keys(ServiceProvider::pathsToPublish(EloquentViewableServiceProvider::class, 'migrations'));
 
-    expect($retention)->toHaveCount(1)
-        ->and($retention[0])->toEndWith('create_view_retention_state_table.php.stub')
-        ->and($migrations)->each->not->toContain('retention');
+    expect(array_map(basename(...), $migrations))->toContain('create_view_retention_state_table.php.stub');
 });
 
 it('prunes before a date given on the command line', function (): void {

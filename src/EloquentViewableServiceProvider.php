@@ -126,27 +126,32 @@ class EloquentViewableServiceProvider extends ServiceProvider
                 __DIR__.'/../config/eloquent-viewable.php' => $this->app->configPath('eloquent-viewable.php'),
             ], 'config');
 
-            if (! class_exists('CreateViewsTable')) {
-                $timestamp = date('Y_m_d_His', time());
-
-                $this->publishes([
-                    __DIR__.'/../database/migrations/create_views_table.php.stub' => $this->app->databasePath("migrations/{$timestamp}_create_views_table.php"),
-                ], 'migrations');
-            }
-
-            $this->publishOptInMigrations();
+            $this->publishMigrations();
         }
     }
 
-    protected function publishOptInMigrations(): void
+    /**
+     * A migration whose file the application already has is left out, so the
+     * tag can be published again for a file that was deleted, without a second
+     * copy of the others.
+     */
+    protected function publishMigrations(): void
     {
         $timestamp = date('Y_m_d_His', time());
+        $migrations = ['create_views_table', ...array_map(fn (OptionalTable $table): string => $table->migration(), OptionalTable::cases())];
+        $paths = [];
 
-        foreach (OptionalTable::cases() as $table) {
-            $this->publishes([
-                __DIR__."/../database/migrations/{$table->migration()}.php.stub" => $this->app->databasePath("migrations/{$timestamp}_{$table->migration()}.php"),
-            ], $table->tag());
+        foreach ($migrations as $migration) {
+            $existing = glob($this->app->databasePath("migrations/*_{$migration}.php"));
+
+            if (is_array($existing) && $existing !== []) {
+                continue;
+            }
+
+            $paths[__DIR__."/../database/migrations/{$migration}.php.stub"] = $this->app->databasePath("migrations/{$timestamp}_{$migration}.php");
         }
+
+        $this->publishes($paths, 'migrations');
     }
 
     /**
