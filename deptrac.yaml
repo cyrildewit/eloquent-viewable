@@ -213,8 +213,8 @@ deptrac:
       - Visitors
       - Dimensions
     # Compares the counter columns a recount wrote with their thresholds, and
-    # keeps what it armed them with in the rollup state table, through
-    # `Querying\Rollups\Contracts\StateStore`.
+    # keeps what it armed them with in the state table, through
+    # `Contracts\StateStore`.
     Milestones:
       - Foundation
       - Querying

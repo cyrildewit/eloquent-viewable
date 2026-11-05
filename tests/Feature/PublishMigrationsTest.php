@@ -48,7 +48,7 @@ function publishedMigrations(array $existing = []): array
 it('publishes every table under the migrations tag', function (): void {
     expect(publishedMigrations())->toBe([
         'create_views_table.php.stub',
-        'create_view_retention_state_table.php.stub',
+        'create_view_state_table.php.stub',
         'create_view_rollups_table.php.stub',
         'create_view_pairs_table.php.stub',
         'create_view_milestones_table.php.stub',
@@ -58,7 +58,7 @@ it('publishes every table under the migrations tag', function (): void {
 
 it('leaves out a migration the application already has', function (): void {
     expect(publishedMigrations(['2018_01_01_000000_create_views_table.php', '2026_01_01_000000_create_view_pairs_table.php']))->toBe([
-        'create_view_retention_state_table.php.stub',
+        'create_view_state_table.php.stub',
         'create_view_rollups_table.php.stub',
         'create_view_milestones_table.php.stub',
         'create_view_spikes_table.php.stub',

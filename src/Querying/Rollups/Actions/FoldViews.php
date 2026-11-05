@@ -19,6 +19,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Snapshot;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Deadline;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
@@ -550,7 +551,7 @@ final readonly class FoldViews implements Refolder
         }
 
         if (! $this->state->installed()) {
-            throw RollupsNotInstalled::missingTable('view_retention_state');
+            throw RollupsNotInstalled::missingTable(ViewState::Table);
         }
     }
 }

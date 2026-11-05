@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Dimensions\Campaign;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Dimensions\Source;
@@ -9,7 +10,6 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\DimensionsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
 use CyrildeWit\EloquentViewable\Models\View;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;

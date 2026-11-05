@@ -18,7 +18,9 @@ return new class extends Migration
 
     public function up(): void
     {
-        $this->schema->create('view_retention_state', function (Blueprint $table) {
+        // Where each scheduled step got to: how far views are anonymised,
+        // pruned and rolled up, and what milestones and recounts last saw.
+        $this->schema->create('view_state', function (Blueprint $table) {
             $table->string('name')->primary();
             $table->text('value');
         });
@@ -26,6 +28,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        $this->schema->dropIfExists('view_retention_state');
+        $this->schema->dropIfExists('view_state');
     }
 };

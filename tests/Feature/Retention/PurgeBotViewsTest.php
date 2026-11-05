@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Retention\Actions\PurgeBotViews;
 use CyrildeWit\EloquentViewable\Retention\Data\PurgeRun;
 use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Apartment;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
@@ -204,7 +204,7 @@ it('takes the deleted views out of the rollups', function (): void {
 it('cannot fold a month again before the views were anonymised', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
 
-    app(RetentionState::class)->putMoment(StateStore::Anonymised, Carbon::parse('2026-03-15 00:00:00'));
+    app(ViewState::class)->putMoment(StateStore::Anonymised, Carbon::parse('2026-03-15 00:00:00'));
 
     expect(app(Refolder::class)->floor()?->toDateTimeString())->toBe('2026-04-01 00:00:00');
 });
@@ -212,11 +212,11 @@ it('cannot fold a month again before the views were anonymised', function (): vo
 it('cannot fold a day again before the views were pruned', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null]);
 
-    app(RetentionState::class)->putMoment(StateStore::Anonymised, Carbon::parse('2026-03-15 00:00:00'));
+    app(ViewState::class)->putMoment(StateStore::Anonymised, Carbon::parse('2026-03-15 00:00:00'));
 
     expect(app(Refolder::class)->floor())->toBeNull();
 
-    app(RetentionState::class)->putMoment(StateStore::Pruned, Carbon::parse('2026-03-10 06:00:00'));
+    app(ViewState::class)->putMoment(StateStore::Pruned, Carbon::parse('2026-03-10 06:00:00'));
 
     expect(app(Refolder::class)->floor()?->toDateTimeString())->toBe('2026-03-11 00:00:00');
 });

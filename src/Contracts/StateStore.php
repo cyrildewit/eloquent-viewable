@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace CyrildeWit\EloquentViewable\Querying\Rollups\Contracts;
+namespace CyrildeWit\EloquentViewable\Contracts;
 
 /**
  * Implement this to keep the marks that outlive a run: how far each rollup tier
- * is folded and how far the views table is anonymised and pruned.
+ * is folded, how far the views table is anonymised and pruned, and what the
+ * milestones and recounts last saw.
  */
 interface StateStore
 {

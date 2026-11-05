@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 
 use Carbon\CarbonImmutable;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\ConnectionInterface;
@@ -57,7 +57,7 @@ final class Rollups
         }
 
         $connection->table('view_rollups')->delete();
-        $connection->table(RetentionState::Table)->delete();
+        $connection->table(ViewState::Table)->delete();
 
         Container::getInstance()->make(FoldViews::class)->handle();
 
@@ -71,7 +71,7 @@ final class Rollups
     {
         $stubs = [
             'view_rollups' => 'create_view_rollups_table',
-            RetentionState::Table => 'create_view_retention_state_table',
+            ViewState::Table => 'create_view_state_table',
         ];
 
         foreach ($stubs as $table => $stub) {

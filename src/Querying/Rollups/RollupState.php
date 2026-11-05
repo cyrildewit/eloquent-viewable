@@ -6,7 +6,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 
 /** @internal */
 final readonly class RollupState

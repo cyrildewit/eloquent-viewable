@@ -15,10 +15,10 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\OptionalTable;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Generator;
 use Illuminate\Database\Schema\Builder;
 
@@ -232,7 +232,7 @@ class SchemaCheck implements Check
     protected function tableOf(OptionalTable $table): ?string
     {
         return match ($table) {
-            OptionalTable::Retention => $this->retention->anonymiseAfter instanceof Duration || $this->retention->pruneAfter instanceof Duration ? RetentionState::Table : null,
+            OptionalTable::Retention => $this->retention->anonymiseAfter instanceof Duration || $this->retention->pruneAfter instanceof Duration ? ViewState::Table : null,
             OptionalTable::Rollups => $this->rollups->isEnabled() ? $this->rollups->table : null,
             OptionalTable::Pairs => $this->config->pairsEnabled() ? $this->config->pairsTable() : null,
             OptionalTable::Milestones => $this->config->milestones() === [] ? null : $this->config->milestonesTable(),

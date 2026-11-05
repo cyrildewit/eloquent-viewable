@@ -263,7 +263,6 @@ arch('milestones read the counter columns and the state table, and nothing else'
     ->toOnlyUse([
         ...FOUNDATION,
         'CyrildeWit\EloquentViewable\Milestones',
-        'CyrildeWit\EloquentViewable\Querying\Rollups\Contracts',
         'CyrildeWit\EloquentViewable\Querying\Counters\Events',
         'Illuminate',
     ]);

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Milestones\Actions;
 
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Milestones\Events\ViewMilestoneReached;
 use CyrildeWit\EloquentViewable\Milestones\Exceptions\MilestonesNotInstalled;
 use CyrildeWit\EloquentViewable\Milestones\MilestoneMarks;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Support\Config;
 use Generator;
 use Illuminate\Contracts\Events\Dispatcher;

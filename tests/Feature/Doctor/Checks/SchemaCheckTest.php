@@ -88,11 +88,11 @@ it('accepts an index under a name of its own that starts with the columns', func
 it('checks the retention state table once retention is configured', function (): void {
     config()->set('eloquent-viewable.retention.prune.after', '1y');
 
-    expect(schemaFindings())->toContain([Status::Pass, 'The `view_retention_state` table exists.']);
+    expect(schemaFindings())->toContain([Status::Pass, 'The `view_state` table exists.']);
 
     emptyConnection();
 
-    expect(schemaFindings())->toContain([Status::Failure, 'Retention is configured, but the `view_retention_state` table does not exist.']);
+    expect(schemaFindings())->toContain([Status::Failure, 'Retention is configured, but the `view_state` table does not exist.']);
 });
 
 it('checks the rollup table once rollups are configured', function (): void {

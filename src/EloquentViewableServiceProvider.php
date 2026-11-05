@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable;
 
 use Closure;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 use CyrildeWit\EloquentViewable\Crawlers\Contracts\CrawlerDetector as CrawlerDetectorContract;
@@ -46,7 +47,6 @@ use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Console\RollupViewsCommand;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Refolder;
-use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 use CyrildeWit\EloquentViewable\Querying\Rollups\NullRefolder;
@@ -72,11 +72,11 @@ use CyrildeWit\EloquentViewable\Retention\Events\BotViewsPurged;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\RetentionPolicy;
-use CyrildeWit\EloquentViewable\Retention\State\RetentionState;
 use CyrildeWit\EloquentViewable\Spikes\Console\DetectSpikesCommand;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\ConfigReader;
 use CyrildeWit\EloquentViewable\Support\OptionalTable;
+use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
 use CyrildeWit\EloquentViewable\Visitors\Visitor;
 use CyrildeWit\EloquentViewable\Visitors\VisitorIdentity;
@@ -409,7 +409,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->bind(RetentionPolicy::class, fn (Application $app): RetentionPolicy => RetentionPolicy::fromConfig($app->make(Config::class)));
 
-        $this->app->bind(StateStore::class, RetentionState::class);
+        $this->app->bind(StateStore::class, ViewState::class);
     }
 
     /**

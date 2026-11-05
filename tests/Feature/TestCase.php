@@ -65,7 +65,7 @@ abstract class TestCase extends OrchestraTestCase
 
         new \AddDimensionColumnsToViewsTable()->up();
 
-        foreach (['retention_state', 'rollups', 'pairs', 'milestones', 'spikes'] as $table) {
+        foreach (['state', 'rollups', 'pairs', 'milestones', 'spikes'] as $table) {
             (require __DIR__."/../../database/migrations/create_view_{$table}_table.php.stub")->up();
         }
 
