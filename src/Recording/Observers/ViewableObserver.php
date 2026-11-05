@@ -28,6 +28,6 @@ final readonly class ViewableObserver
      */
     private function isSoftDeleting(Viewable $viewable): bool
     {
-        return method_exists($viewable, 'isForceDeleting') && ! $viewable->isForceDeleting();
+        return method_exists($viewable, 'isForceDeleting') && $viewable->isForceDeleting() === false;
     }
 }

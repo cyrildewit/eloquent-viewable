@@ -11,6 +11,7 @@ use CyrildeWit\EloquentViewable\Presence\PresenceConfig;
 use CyrildeWit\EloquentViewable\Support\PackageManager;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
+use Illuminate\Redis\Connections\Connection;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Redis\Connections\PredisConnection;
 
@@ -44,7 +45,7 @@ final class PresenceManager extends PackageManager
     /** @throws PresenceFailed */
     protected function createRedisDriver(): RedisPresenceStore
     {
-        $connection = $this->container->make(RedisFactory::class)->connection($this->packageConfig->redisConnection());
+        $connection = $this->redisConnection();
 
         if (! $connection instanceof PhpRedisConnection && ! $connection instanceof PredisConnection) {
             throw PresenceFailed::unsupportedRedisClient($connection::class);
@@ -57,5 +58,14 @@ final class PresenceManager extends PackageManager
             Precision::from($this->packageConfig->precision()),
             $this->container->make(ExceptionHandler::class),
         );
+    }
+
+    /**
+     * Larastan narrows the connection to the client in the default config,
+     * which says nothing about the one this application configures.
+     */
+    private function redisConnection(): Connection
+    {
+        return $this->container->make(RedisFactory::class)->connection($this->packageConfig->redisConnection());
     }
 }
