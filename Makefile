@@ -11,52 +11,56 @@ build: ## Build all docker images. Specify the command e.g. via make build ARGS=
 	docker compose build $(ARGS)
 
 ##@ [Application]
+# ARGS goes to the tool behind a target, e.g. make test ARGS="--dirty" or
+# make test-types ARGS="src/Recording". Composer only forwards it after `--`.
+SCRIPT_ARGS = $(if $(ARGS),-- $(ARGS))
+
 install: ## Install the composer dependencies
 	docker compose run --rm composer install
 
 lint: ## Fix the code style
-	docker compose run --rm composer lint
+	docker compose run --rm composer lint $(SCRIPT_ARGS)
 
 rector: ## Run Rector
-	docker compose run --rm composer rector
+	docker compose run --rm composer rector $(SCRIPT_ARGS)
 
 ready: ## Fix with Rector and the linter, then run the static analysis, type coverage and tests side by side
 	docker compose run --rm composer ready
 
-test: ## Run the tests in parallel (SQLite in memory)
-	docker compose run --rm composer test
+test: ## Run the tests in parallel (SQLite in memory), e.g. make test ARGS="--filter=CooldownManager"
+	docker compose run --rm composer test $(SCRIPT_ARGS)
 
 test-arch: ## Run the architecture tests
-	docker compose run --rm composer test:arch
+	docker compose run --rm composer test:arch $(SCRIPT_ARGS)
 
 test-unit: ## Run the unit tests (no Laravel application is booted)
-	docker compose run --rm composer test:unit
+	docker compose run --rm composer test:unit $(SCRIPT_ARGS)
 
 test-feature: ## Run the feature tests (booted through Testbench)
-	docker compose run --rm composer test:feature
+	docker compose run --rm composer test:feature $(SCRIPT_ARGS)
 
 test-samples: ## Run the samples' tests (booted through Testbench)
-	docker compose run --rm composer test:samples
+	docker compose run --rm composer test:samples $(SCRIPT_ARGS)
 
 test-lint: ## Check the code style without fixing it
-	docker compose run --rm composer test:lint
+	docker compose run --rm composer test:lint $(SCRIPT_ARGS)
 
 test-types: ## Run the static analysis
-	docker compose run --rm composer test:types
+	docker compose run --rm composer test:types $(SCRIPT_ARGS)
 
 deptrac-graph: ## Draw the dependencies between layers to build/deptrac.png
 	docker compose run --rm composer deptrac:graph
 
 test-type-coverage: ## Run the tests with type coverage and fail below 100%
-	docker compose run --rm composer test:type-coverage
+	docker compose run --rm composer test:type-coverage $(SCRIPT_ARGS)
 
 # Xdebug is off unless a target asks for it. These two need it for coverage.
 test-coverage: ## Run the tests with coverage and fail below 100% (writes build/coverage.xml)
-	XDEBUG_MODE=coverage docker compose run --rm composer test:coverage
+	XDEBUG_MODE=coverage docker compose run --rm composer test:coverage $(SCRIPT_ARGS)
 
 test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate patch)
 	./scripts/patch-pest-mutate.sh
-	XDEBUG_MODE=coverage docker compose run --rm composer test:mutation
+	XDEBUG_MODE=coverage docker compose run --rm composer test:mutation $(SCRIPT_ARGS)
 
 ##@ [Database drivers]
 # `make test` uses SQLite in memory. These targets run the same suite against a
@@ -70,15 +74,15 @@ test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate
 
 test-mysql: ## Run the tests against MySQL
 	docker compose up -d --wait mysql
-	DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test:serial
+	DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test:serial $(SCRIPT_ARGS)
 
 test-mariadb: ## Run the tests against MariaDB
 	docker compose up -d --wait mariadb
-	DB_CONNECTION=mariadb DB_HOST=mariadb DB_PORT=3306 docker compose run --rm composer test:serial
+	DB_CONNECTION=mariadb DB_HOST=mariadb DB_PORT=3306 docker compose run --rm composer test:serial $(SCRIPT_ARGS)
 
 test-pgsql: ## Run the tests against PostgreSQL
 	docker compose up -d --wait postgres
-	DB_CONNECTION=pgsql DB_HOST=postgres DB_PORT=5432 docker compose run --rm composer test:serial
+	DB_CONNECTION=pgsql DB_HOST=postgres DB_PORT=5432 docker compose run --rm composer test:serial $(SCRIPT_ARGS)
 
 test-drivers: test test-mysql test-mariadb test-pgsql ## Run the tests against every supported driver
 
