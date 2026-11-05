@@ -21,10 +21,10 @@ rector: ## Run Rector
 	docker compose run --rm composer rector
 
 ready: ## Fix with Rector and the linter, then run the static analysis, type coverage and tests side by side
-	XDEBUG_MODE=off docker compose run --rm composer ready
+	docker compose run --rm composer ready
 
 test: ## Run the tests in parallel (SQLite in memory)
-	XDEBUG_MODE=off docker compose run --rm composer test
+	docker compose run --rm composer test
 
 test-arch: ## Run the architecture tests
 	docker compose run --rm composer test:arch
@@ -50,12 +50,13 @@ deptrac-graph: ## Draw the dependencies between layers to build/deptrac.png
 test-type-coverage: ## Run the tests with type coverage and fail below 100%
 	docker compose run --rm composer test:type-coverage
 
+# Xdebug is off unless a target asks for it. These two need it for coverage.
 test-coverage: ## Run the tests with coverage and fail below 100% (writes build/coverage.xml)
-	docker compose run --rm composer test:coverage
+	XDEBUG_MODE=coverage docker compose run --rm composer test:coverage
 
 test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate patch)
 	./scripts/patch-pest-mutate.sh
-	docker compose run --rm composer test:mutation
+	XDEBUG_MODE=coverage docker compose run --rm composer test:mutation
 
 ##@ [Database drivers]
 # `make test` uses SQLite in memory. These targets run the same suite against a
