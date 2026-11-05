@@ -6,6 +6,9 @@ includes:
 parameters:
     level: 10
 
+    # The default lives in /tmp, which every `docker compose run --rm` throws away.
+    tmpDir: build/cache/phpstan
+
     paths:
         - src
         - config

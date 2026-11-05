@@ -22,4 +22,5 @@ return RectorConfig::configure()
     ->withSets([
         PestSetList::CODING_STYLE,
     ])
-    ->withPhpSets();
+    ->withPhpSets()
+    ->withCache(__DIR__.'/build/cache/rector');

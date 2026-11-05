@@ -79,8 +79,8 @@
         }
     },
     "scripts": {
-        "lint": "pint --parallel",
-        "test:lint": "pint --test --parallel",
+        "lint": "pint --parallel --cache-file=build/cache/pint.cache",
+        "test:lint": "pint --test --parallel --cache-file=build/cache/pint.cache",
         "test": "pest --parallel",
         "test:serial": "pest",
         "test:arch": "pest --testsuite=Arch",
