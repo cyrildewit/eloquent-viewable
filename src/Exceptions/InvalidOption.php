@@ -6,12 +6,7 @@ namespace CyrildeWit\EloquentViewable\Exceptions;
 
 use Symfony\Component\Console\Exception\InvalidOptionException;
 
-/**
- * An option a console command cannot run with. The command reports the
- * message and fails, so a command reads its options without checking each.
- *
- * @internal
- */
+/** @internal */
 final class InvalidOption extends InvalidOptionException implements EloquentViewableException
 {
     public static function mustBePositiveInteger(string $name): self
