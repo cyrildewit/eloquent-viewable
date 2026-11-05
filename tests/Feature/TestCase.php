@@ -16,6 +16,13 @@ abstract class TestCase extends OrchestraTestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        $_ENV['APP_SERVICES_CACHE'] = sys_get_temp_dir().'/eloquent-viewable-services-'.Env::get('TEST_TOKEN', '0').'.php';
+
+        parent::setUp();
+    }
+
     /**
      * @param  Application  $app
      * @return list<class-string<ServiceProvider>>
