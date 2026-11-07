@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Maintenance\Actions\RecountChangedViews;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
+use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,23 @@ it('recounts every model once the hot option changes', function (): void {
     app(RecountChangedViews::class)->handle(chunk: 100);
 
     expect(hotScore($this->guide))->toBeGreaterThan($before);
+});
+
+it('leaves anonymised views out of a unique hot score', function (): void {
+    config()->set('eloquent-viewable.querying.counters', [Post::class => [
+        'hot_score' => ['hot' => ['every' => '1d'], 'unique' => true],
+    ]]);
+
+    foreach (['2026-10-01 10:00:00', '2026-10-02 10:00:00', '2026-10-08 10:00:00'] as $viewedAt) {
+        View::factory()->for($this->release, 'viewable')->viewedAt(Carbon::parse($viewedAt))->fromVisitor('visitor-1')->create();
+    }
+
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-10-05'), ['visitor'], 100);
+    app(RecountViews::class)->recount(new Post, [$this->release->getKey()]);
+
+    $day = Carbon::parse('2026-10-07 12:00:00')->getTimestamp() / 86_400;
+
+    expect(hotScore($this->release))->toEqualWithDelta(log10(11) + $day, 0.0001);
 });
 
 it('needs a counter column with the hot option to order by', function (): void {

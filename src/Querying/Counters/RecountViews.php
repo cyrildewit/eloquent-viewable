@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Counters;
 
+use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionRegistry;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
@@ -14,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Support\Config;
 use CyrildeWit\EloquentViewable\Support\HotScore;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
@@ -22,9 +25,11 @@ use Illuminate\Support\Carbon;
 
 /**
  * Each column is set from the source's correlated count, so under the `rollup`
- * source it includes history whose views are gone. `handle()` recounts every
- * model; `recount()` and `keysAfter()` let a caller that knows which models
- * changed recount only those. Every write dispatches `CountersRecounted`.
+ * source it includes history whose views are gone. A unique column skips the
+ * anonymised views, whose visitor ids no longer link a visitor across days.
+ * `handle()` recounts every model; `recount()` and `keysAfter()` let a caller
+ * that knows which models changed recount only those. Every write dispatches
+ * `CountersRecounted`.
  */
 final readonly class RecountViews
 {
@@ -33,6 +38,7 @@ final readonly class RecountViews
         private Config $config,
         private Dispatcher $events,
         private DimensionRegistry $dimensions,
+        private StateStore $state,
     ) {}
 
     /**
@@ -45,8 +51,10 @@ final readonly class RecountViews
     public function handle(int $chunk): array
     {
         $recounted = [];
+        $counters = $this->config->counters();
+        $anonymised = $this->anonymised(array_merge(...array_map(array_values(...), array_values($counters))));
 
-        foreach (array_keys($this->config->counters()) as $class) {
+        foreach (array_keys($counters) as $class) {
             $model = new $class;
             $after = null;
             $recounted[$class] = 0;
@@ -58,7 +66,7 @@ final readonly class RecountViews
                     break;
                 }
 
-                $this->recount($model, $keys);
+                $this->recountAnonymisedUntil($model, $keys, $anonymised);
 
                 // MySQL reports only the rows whose value changed, so count the
                 // keys instead of the rows updated.
@@ -79,7 +87,22 @@ final readonly class RecountViews
      */
     public function recount(Model&Viewable $model, array $keys): void
     {
-        $values = $this->values($model);
+        $this->recountAnonymisedUntil($model, $keys, $this->anonymised($this->config->counters()[$model::class] ?? []));
+    }
+
+    /**
+     * Takes the anonymised mark from a caller that already read it, so a
+     * recount in chunks reads it once.
+     *
+     * @param  list<int|string>  $keys
+     *
+     * @throws InvalidConfiguration
+     * @throws InvalidPeriod
+     * @throws UnsupportedBySource
+     */
+    public function recountAnonymisedUntil(Model&Viewable $model, array $keys, ?CarbonInterface $anonymised): void
+    {
+        $values = $this->values($model, $anonymised);
         $scores = $this->config->hotScores()[$model::class] ?? [];
 
         if ([...$values, ...$scores] === []) {
@@ -91,7 +114,7 @@ final readonly class RecountViews
         }
 
         foreach ($scores as $column => $score) {
-            $this->writeHotScores($model, $keys, $column, $score);
+            $this->writeHotScores($model, $keys, $column, $score, $anonymised);
         }
 
         $this->events->dispatch(new CountersRecounted($model::class, $keys));
@@ -152,14 +175,14 @@ final readonly class RecountViews
      * @throws InvalidConfiguration
      * @throws InvalidPeriod
      */
-    private function writeHotScores(Model&Viewable $model, array $keys, string $column, HotScore $score): void
+    private function writeHotScores(Model&Viewable $model, array $keys, string $column, HotScore $score, ?CarbonInterface $anonymised): void
     {
         if ($keys === []) {
             return;
         }
 
         $query = $this->config->counters()[$model::class][$column] ?? new ViewsQuery;
-        $counts = $this->source->countMany($model, $keys, $query);
+        $counts = $this->source->countMany($model, $keys, $this->withoutAnonymised($query, $anonymised));
         $grammar = $model->getConnection()->getQueryGrammar();
         $key = $model->getKeyName();
 
@@ -196,7 +219,7 @@ final readonly class RecountViews
      * @throws InvalidPeriod
      * @throws UnsupportedBySource
      */
-    private function values(Model&Viewable $model): array
+    private function values(Model&Viewable $model, ?CarbonInterface $anonymised): array
     {
         $columns = array_diff_key(
             $this->config->counters()[$model::class] ?? [],
@@ -216,10 +239,55 @@ final readonly class RecountViews
         $values = [];
 
         foreach ($columns as $column => $query) {
-            $values[$column] = $source->countSubquery($model, $this->dimensions->resolve($query));
+            $values[$column] = $source->countSubquery($model, $this->withoutAnonymised($this->dimensions->resolve($query), $anonymised));
         }
 
         return $values;
+    }
+
+    /**
+     * The state table is only read when a column counts unique visitors.
+     *
+     * @param  array<array-key, ViewsQuery>  $queries
+     */
+    private function anonymised(array $queries): ?CarbonInterface
+    {
+        if (! array_any($queries, static fn (ViewsQuery $query): bool => $query->unique)) {
+            return null;
+        }
+
+        if (! $this->state->installed()) {
+            return null;
+        }
+
+        $mark = $this->state->get(StateStore::Anonymised);
+
+        return $mark === null ? null : Carbon::parse($mark);
+    }
+
+    /**
+     * Visitors of anonymised views can only be counted once per day, so a
+     * unique count over them would count a returning visitor again on every
+     * day, or on every bucket of the rollups. A period that ends before the
+     * mark counts nothing.
+     *
+     * @throws InvalidPeriod
+     */
+    private function withoutAnonymised(ViewsQuery $query, ?CarbonInterface $anonymised): ViewsQuery
+    {
+        if (! $query->unique || ! $anonymised instanceof CarbonInterface) {
+            return $query;
+        }
+
+        $start = $query->period?->getStartDateTime();
+
+        if ($start instanceof CarbonInterface && $start >= $anonymised) {
+            return $query;
+        }
+
+        $end = $query->period?->getEndDateTime();
+
+        return $query->withPeriod(Period::create($end instanceof CarbonInterface ? $anonymised->min($end) : $anonymised, $end));
     }
 
     /**

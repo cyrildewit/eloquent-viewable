@@ -735,6 +735,8 @@ a trashed model, or one a global scope hides, is `null`. `is($post)` compares wi
   listener that throws loses that milestone rather than blocking every recount after it. A queued listener gets the
   queue's retries.
 - **A column with a `period` cannot have milestones**, because a count over the past week goes up and down.
+- **A `unique` column stops counting anonymised views**, so its count can drop once
+  [retention](#retention) anonymises them. It never counts more visitors than there were.
 - **Milestones are as fresh as the last recount.** Schedule `views:maintain` as often as you need them.
 
 ## Rankings and recommendations
@@ -2317,6 +2319,11 @@ dimension to one value or a list of values:
 `views:recount` writes the columns, trashed models included, and `views:maintain` runs it after rolling up and
 pruning, so one scheduler line keeps them fresh. A column is as fresh as the last run. Name it apart from
 `views_count` when you also use `withViewsCount()`, whose alias is the same.
+
+A `unique` column leaves out the views anonymised by [retention](#retention), under every source. Their visitor ids
+change from day to day, so counting them would count a returning visitor again on every day, or on every bucket of the
+rollups. Once views are anonymised, the column counts the visitors since `retention.anonymise.after` rather than of all
+time, and can drop as the views it counted are anonymised.
 
 With the [retention migration](#retention) installed, a recount only touches the models whose counts can have changed
 since the last one: models with new views, models with views that left the period of a column, and, for unique
