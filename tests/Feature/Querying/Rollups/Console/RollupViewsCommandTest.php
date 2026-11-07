@@ -35,12 +35,28 @@ it('says so when no tier is configured', function (): void {
 });
 
 it('folds every tier and expires what is past its keep', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    app(FoldViews::class)->handle();
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '1y', 'month' => null]);
+    View::factory()->for($this->post, 'viewable')->viewedAt(Carbon::parse('2026-03-17 10:00:00'))->create();
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    $this->artisan('views:rollup')
+        ->expectsOutputToContain('Folded 1 bucket of the month tier, up to 2026-04-01 00:00:00.')
+        ->expectsOutputToContain('Folded 1 bucket of the day tier, up to 2026-04-01 00:00:00.')
+        ->expectsOutputToContain('Dropped 3 expired rows of the day tier.')
+        ->assertSuccessful();
+
+    expect(ViewRollup::query()->where('tier', 'day')->where('grouping', 'type')->count())->toBe(3);
+});
+
+it('folds a kept tier the first time only as far back as it is kept', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '1y', 'month' => null]);
 
     $this->artisan('views:rollup')
         ->expectsOutputToContain('Folded 1 bucket of the month tier, up to 2026-03-01 00:00:00.')
-        ->expectsOutputToContain('Folded 3 buckets of the day tier, up to 2026-03-31 00:00:00.')
-        ->expectsOutputToContain('Dropped 3 expired rows of the day tier.')
+        ->expectsOutputToContain('Folded 2 buckets of the day tier, up to 2026-03-31 00:00:00.')
+        ->doesntExpectOutputToContain('expired')
         ->assertSuccessful();
 
     expect(ViewRollup::query()->where('tier', 'day')->where('grouping', 'type')->count())->toBe(2);
@@ -69,7 +85,7 @@ it('reports what a dry run would fold', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '1y', 'month' => null]);
 
     $this->artisan('views:rollup', ['--dry-run' => true])
-        ->expectsOutputToContain('Would have folded 3 buckets of the day tier')
+        ->expectsOutputToContain('Would have folded 2 buckets of the day tier')
         ->assertSuccessful();
 
     expect(ViewRollup::query()->count())->toBe(0);
@@ -175,8 +191,9 @@ it('stops folding at its time limit', function (): void {
 });
 
 it('stops expiring at its time limit', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
     app(FoldViews::class)->handle();
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
     travelOnFirst('delete', 'view_rollups');
 
     $this->artisan('views:rollup', ['--max-seconds' => '60', '--chunk' => '1'])

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Rollups;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Support\Duration;
+use DateTimeZone;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -43,6 +45,22 @@ final readonly class RollupDefinition
     public function keep(Tier $tier): ?Duration
     {
         return $this->tiers[$tier->value] ?? null;
+    }
+
+    /**
+     * Where the kept buckets of a tier start, or null while it is kept for
+     * good. It falls on a bucket edge of the next coarser tier, because only
+     * whole buckets of that tier expire.
+     */
+    public function keptFrom(Tier $tier, CarbonInterface $now, DateTimeZone $zone): ?CarbonImmutable
+    {
+        $keep = $this->keep($tier);
+
+        if (! $keep instanceof Duration) {
+            return null;
+        }
+
+        return ($this->coarserThan($tier) ?? $tier)->floor($keep->before($now), $zone);
     }
 
     /**

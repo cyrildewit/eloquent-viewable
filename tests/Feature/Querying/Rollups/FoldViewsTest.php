@@ -294,6 +294,65 @@ it('folds a month again no further back than both anonymising and pruning reache
         ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBeNull();
 });
 
+it('folds a kept tier the first time no further back than it is kept, in whole buckets of the next coarser tier', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'hour' => '35d']);
+
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-03-30 10:00:00');
+
+    fold();
+    $snapshot = app(RollupState::class)->snapshot('views');
+
+    expect(bucket('hour', '2026-01-10 10:00:00', 'viewable', $this->post))->toBeNull()
+        ->and(bucket('hour', '2026-03-30 10:00:00', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([1, 1])
+        ->and($snapshot->since(Tier::Hour)?->toDateTimeString())->toBe('2026-02-24 00:00:00')
+        ->and($snapshot->origin?->toDateTimeString())->toBe('2026-01-10 00:00:00');
+});
+
+it('moves the origin back to the first view when only a kept tier is folded', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'hour' => '35d']);
+
+    viewAt($this->post, '2026-01-10 10:00:00');
+
+    fold(Tier::Hour);
+    $snapshot = app(RollupState::class)->snapshot('views');
+
+    expect(ViewRollup::query()->count())->toBe(0)
+        ->and($snapshot->since(Tier::Hour)?->toDateTimeString())->toBe('2026-02-24 00:00:00')
+        ->and($snapshot->origin?->toDateTimeString())->toBe('2026-01-10 10:00:00');
+});
+
+it('folds a kept tier again no further back than it is kept', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'hour' => '35d']);
+
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-03-30 10:00:00');
+    fold();
+
+    ViewRollup::query()->delete();
+    fold(from: '2026-01-01');
+
+    expect(bucket('hour', '2026-01-10 10:00:00', 'viewable', $this->post))->toBeNull()
+        ->and(bucket('hour', '2026-03-30 10:00:00', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([1, 1])
+        ->and(app(RollupState::class)->snapshot('views')->since(Tier::Hour)?->toDateTimeString())->toBe('2026-02-24 00:00:00');
+});
+
+it('leaves a late view before a kept tier starts to the coarser tier', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'hour' => '35d']);
+
+    viewAt($this->post, '2026-01-10 10:00:00');
+    fold();
+
+    viewAt($this->post, '2026-01-10 18:00:00', 'visitor-2');
+    fold();
+
+    expect(bucket('hour', '2026-01-10 18:00:00', 'viewable', $this->post))->toBeNull()
+        ->and(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 2])
+        ->and(app(RollupState::class)->snapshot('views')->since(Tier::Hour)?->toDateTimeString())->toBe('2026-02-24 00:00:00');
+});
+
 it('aligns buckets to the configured timezone', function (): void {
     config()->set('eloquent-viewable.retention.rollups.timezone', 'Europe/Amsterdam');
 

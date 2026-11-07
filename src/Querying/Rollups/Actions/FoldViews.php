@@ -78,7 +78,7 @@ final readonly class FoldViews implements Refolder
 
             foreach ($this->tiersOf($definition, $only) as $tier) {
                 $fold = $this->foldTier($definition, $tier, $snapshot, $run);
-                $origin = $origin?->min($fold->lowest) ?? $fold->lowest;
+                $origin = $origin?->min($fold->origin) ?? $fold->origin;
                 $runs[] = $fold->run;
 
                 $this->dispatch($fold->run, $run);
@@ -154,23 +154,32 @@ final readonly class FoldViews implements Refolder
     /**
      * The dirty buckets are folded again first, then every closed bucket
      * from the cursor up to where the tier has settled.
+     *
+     * A first fold or a refold starts no earlier than the buckets the tier
+     * keeps, since older ones would only be expired again. The origin still
+     * moves back to the first view, so a read before the tier starts falls
+     * through to a coarser tier or the views table.
      */
     private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, FoldRun $run): TierFold
     {
         $zone = $this->policy->timezone;
         $until = $this->policy->closedUntil($tier, $run->now);
         $folded = $snapshot->folded($tier);
+        $kept = $definition->keptFrom($tier, $run->now, $zone);
         $buckets = 0;
-        $dirty = $this->dirtyBuckets($tier, $snapshot, $run->lastId, $run->maxId);
+        $dirty = $this->dirtyBuckets($tier, $snapshot, $run->lastId, $run->maxId, $kept);
 
-        $cursor = $this->cursor($tier, $snapshot, $run->from, $until);
+        $start = $this->cursor($tier, $snapshot, $run->from, $until);
+        $resumes = $folded instanceof CarbonImmutable && ! $run->from instanceof CarbonInterface;
+        $cursor = $resumes ? $start : $this->kept($start, $kept, $until);
         $lowest = $dirty === [] ? $cursor : $dirty[0]->min($cursor);
+        $origin = $dirty === [] ? $start : $dirty[0]->min($start);
 
         $this->markSince($definition, $tier, $snapshot->since($tier), $lowest, $run);
 
         foreach ($dirty as $bucket) {
             if ($run->deadline->passed()) {
-                return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $folded ?? $cursor, $buckets, stopped: true), $lowest);
+                return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $folded ?? $cursor, $buckets, stopped: true), $lowest, $origin);
             }
 
             $buckets += $this->foldBucket($definition, $tier, $bucket, $run->dryRun);
@@ -178,7 +187,7 @@ final readonly class FoldViews implements Refolder
 
         while (($first = $this->firstViewedAt($cursor, $until)) instanceof CarbonImmutable) {
             if ($run->deadline->passed()) {
-                return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $cursor->max($folded ?? $cursor), $buckets, stopped: true), $lowest);
+                return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $cursor->max($folded ?? $cursor), $buckets, stopped: true), $lowest, $origin);
             }
 
             $bucket = $tier->floor($first, $zone);
@@ -190,7 +199,7 @@ final readonly class FoldViews implements Refolder
 
         $this->markFolded($definition, $tier, $folded, $until, $run);
 
-        return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $until->max($folded ?? $until), $buckets), $lowest);
+        return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $until->max($folded ?? $until), $buckets), $lowest, $origin);
     }
 
     private function cursor(Tier $tier, Snapshot $snapshot, ?CarbonInterface $from, CarbonImmutable $until): CarbonImmutable
@@ -212,6 +221,15 @@ final readonly class FoldViews implements Refolder
         }
 
         return $tier->floor($first, $this->policy->timezone);
+    }
+
+    private function kept(CarbonImmutable $cursor, ?CarbonImmutable $kept, CarbonImmutable $until): CarbonImmutable
+    {
+        if (! $kept instanceof CarbonImmutable) {
+            return $cursor;
+        }
+
+        return $cursor->max($kept->min($until));
     }
 
     /**
@@ -267,11 +285,12 @@ final readonly class FoldViews implements Refolder
     }
 
     /**
-     * Only buckets whose views are all still there are folded again.
+     * Only buckets whose views are all still there are folded again, and
+     * only those the tier keeps.
      *
      * @return list<CarbonImmutable>
      */
-    private function dirtyBuckets(Tier $tier, Snapshot $snapshot, ?int $lastId, ?int $maxId): array
+    private function dirtyBuckets(Tier $tier, Snapshot $snapshot, ?int $lastId, ?int $maxId, ?CarbonImmutable $kept): array
     {
         $folded = $snapshot->folded($tier);
 
@@ -303,6 +322,10 @@ final readonly class FoldViews implements Refolder
             $bucket = $tier->floor(CarbonImmutable::parse((string) $moment), $this->policy->timezone); // @phpstan-ignore cast.string (a timestamp column)
 
             if ($floor instanceof CarbonImmutable && $bucket < $floor) {
+                continue;
+            }
+
+            if ($kept instanceof CarbonImmutable && $bucket < $kept) {
                 continue;
             }
 

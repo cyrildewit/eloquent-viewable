@@ -6,6 +6,7 @@ use CyrildeWit\EloquentViewable\Maintenance\Actions\MaintainViews;
 use CyrildeWit\EloquentViewable\Maintenance\Data\MaintenanceRun;
 use CyrildeWit\EloquentViewable\Maintenance\Jobs\MaintainViewsJob;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
@@ -29,6 +30,17 @@ function maintain(int $chunk = 1, ?Deadline $deadline = null, bool $dryRun = fal
     return app(MaintainViews::class)->handle($chunk, $deadline, $dryRun);
 }
 
+/**
+ * Folds the day and month tiers kept for good, then keeps days for 400 days,
+ * so the next run has expired day buckets to drop.
+ */
+function foldThenKeepDays(): void
+{
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    app(FoldViews::class)->handle();
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+}
+
 it('is configured once any step is', function (string $key, mixed $value): void {
     expect(app(MaintainViews::class)->isConfigured())->toBeFalse();
 
@@ -43,7 +55,7 @@ it('is configured once any step is', function (string $key, mixed $value): void 
 ]);
 
 it('runs every configured step in order', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+    foldThenKeepDays();
     config()->set('eloquent-viewable.retention.anonymise.after', '30d');
     config()->set('eloquent-viewable.retention.prune.after', '1y');
     config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
@@ -73,9 +85,9 @@ it('stops while folding and leaves every later step for the next run', function 
 });
 
 it('stops while expiring tiers', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+    foldThenKeepDays();
 
-    $run = maintain(deadline: deadlineAfter(7));
+    $run = maintain(deadline: deadlineAfter(0));
 
     expect($run?->stopped)->toBeTrue()
         ->and($run?->folded)->toHaveCount(2)
@@ -230,12 +242,11 @@ it('stays unique in the queue until it starts', function (): void {
 });
 
 it('reports every step it ran', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
+    foldThenKeepDays();
     config()->set('eloquent-viewable.retention.prune.after', '1y');
     config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views']]);
 
     $this->artisan('views:maintain')
-        ->expectsOutputToContain('Folded 3 buckets of the month tier')
         ->expectsOutputToContain('Dropped 3 expired rows of the day tier.')
         ->expectsOutputToContain('Deleted 3 views')
         ->expectsOutputToContain('Recounted 1 Post.')
