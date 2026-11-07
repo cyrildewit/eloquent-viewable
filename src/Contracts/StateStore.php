@@ -8,6 +8,9 @@ namespace CyrildeWit\EloquentViewable\Contracts;
  * Implement this to keep the marks that outlive a run: how far each rollup tier
  * is folded, how far the views table is anonymised and pruned, and what the
  * milestones and recounts last saw.
+ *
+ * An implementation may keep values in memory, as long as a read returns
+ * every write made through the same instance.
  */
 interface StateStore
 {
