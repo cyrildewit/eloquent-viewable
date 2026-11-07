@@ -100,6 +100,9 @@ jobs:
       DB_PASSWORD: testing
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: 6379
+      # Deprecations fail only the stable SQLite leg. The lowest releases of
+      # dependencies raise PHP 8.5 deprecations that later releases fix.
+      TESTBENCH_CONVERT_DEPRECATIONS_TO_EXCEPTIONS: ${{ matrix.stability == 'prefer-stable' && matrix.db == 'sqlite' }}
 
     steps:
       - name: Checkout code
@@ -142,12 +145,12 @@ jobs:
       # merging across drivers. The other legs run the same suite uncovered.
       - name: Execute tests with coverage
         if: matrix.db == 'sqlite'
-        run: composer run test:coverage
+        run: composer run test:coverage -- ${{ matrix.stability == 'prefer-lowest' && '--do-not-fail-on-deprecation' || '' }}
 
       # Serially: parallel workers would share the one database on the server.
       - name: Execute tests
         if: matrix.db != 'sqlite'
-        run: composer run test:serial
+        run: composer run test:serial -- --do-not-fail-on-deprecation
 
       - name: Upload coverage to Codecov
         if: matrix.db == 'sqlite'
