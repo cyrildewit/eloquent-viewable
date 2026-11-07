@@ -33,6 +33,29 @@ final class Rows
     }
 
     /**
+     * The default collection and a missing dimension value group as null,
+     * which is keyed as an empty string. PHP 8.5 deprecates null as an array
+     * offset, so the rows are not plucked by their group.
+     *
+     * @param  iterable<int, mixed>  $rows  `$group` and `aggregate`
+     * @return array<string, int>
+     */
+    public static function grouped(iterable $rows, string $group): array
+    {
+        $counts = [];
+
+        /** @var stdClass&object{aggregate: int|string} $row */
+        foreach ($rows as $row) {
+            /** @var int|string|null $key */
+            $key = $row->{$group};
+
+            $counts[(string) ($key ?? '')] = (int) $row->aggregate;
+        }
+
+        return $counts;
+    }
+
+    /**
      * @param  iterable<int, mixed>  $rows  `viewable_type`, `viewable_id` and `aggregate`
      * @return list<array{type: string, id: int|string, count: int}>
      */

@@ -564,13 +564,12 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
     {
         $qualified = $this->rollup->qualifyColumn($column);
 
-        /** @var Collection<int|string, int|string> $rows */
         $rows = $rollups
             ->selectRaw("{$this->wrap($qualified)} as {$column}, {$this->sum($query)} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, not user input)
             ->groupBy($qualified)
-            ->pluck('aggregate', $column);
+            ->get();
 
-        return Rows::ints($rows);
+        return Rows::grouped($rows, $column);
     }
 
     private function sum(ViewsQuery $query): string

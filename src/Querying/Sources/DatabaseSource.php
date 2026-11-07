@@ -540,13 +540,12 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      */
     private function countGrouped(Builder $builder, ViewsQuery $query, string $expression, string $alias): array
     {
-        /** @var Collection<int|string, int|string> $rows */
         $rows = $builder
             ->selectRaw("{$expression} as {$alias}, {$this->aggregate($query, $builder->getGrammar())} as aggregate") // @phpstan-ignore argument.type (wrapped identifiers, a JSON path the application names and package-formatted literals, not user input)
             ->groupBy($alias)
-            ->pluck('aggregate', $alias);
+            ->get();
 
-        return Rows::ints($rows);
+        return Rows::grouped($rows, $alias);
     }
 
     /**
