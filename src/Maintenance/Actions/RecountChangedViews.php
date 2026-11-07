@@ -25,6 +25,7 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 use JsonException;
 
 /**
@@ -197,6 +198,7 @@ final readonly class RecountChangedViews
             ? null
             : $this->changedKeys($tracking, $model, $columns, $committed, $pending['target']);
         $after = $pending['after'];
+        $anonymised = $pending['target']['anonymised'] === null ? null : Carbon::parse($pending['target']['anonymised']);
 
         $progress = Chunks::run(
             $deadline,
@@ -206,8 +208,8 @@ final readonly class RecountChangedViews
                     ? $this->recount->keysAfter($model, $after, $chunk)
                     : $this->changedAfter($keys, $after, $chunk);
             },
-            function (array $batch) use ($model, &$after): int {
-                $this->recount->recount($model, $batch);
+            function (array $batch) use ($model, $anonymised, &$after): int {
+                $this->recount->recountAnonymisedUntil($model, $batch, $anonymised);
                 $after = array_last($batch);
 
                 return count($batch);

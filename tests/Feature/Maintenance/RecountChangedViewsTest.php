@@ -92,7 +92,8 @@ it('recounts the models with anonymised views when a column counts unique visito
 
     app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-29'), ['visitor'], 100);
 
-    expect(recountChanged()->models)->toBe([Post::class => 1]);
+    expect(recountChanged()->models)->toBe([Post::class => 1])
+        ->and(columnsOf($this->post))->toBe([[4, 2]]);
 });
 
 it('leaves anonymised views alone when no column counts unique visitors', function (): void {

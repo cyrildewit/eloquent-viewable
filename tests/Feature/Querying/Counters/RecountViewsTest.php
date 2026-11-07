@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Querying\Counters\Events\CountersRecounted;
 use CyrildeWit\EloquentViewable\Querying\Counters\RecountViews;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost as Post;
@@ -71,6 +72,44 @@ it('counts what the rollups hold once the views are deleted', function (): void 
 
     expect(counted($this->post))->toBe([[4, 2]])
         ->and(Post::query()->orderByDesc('cached_views')->value('id'))->toBe($this->post->getKey());
+});
+
+it('leaves anonymised views out of a unique column', function (): void {
+    config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_unique_views' => ['unique' => true]]]);
+
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-29'), ['visitor'], 100);
+    app(RecountViews::class)->handle(chunk: 100);
+
+    expect(counted($this->post, $this->trashed))->toBe([[0, 2], [0, 1]]);
+});
+
+it('leaves the rollups out of a unique column once views are anonymised, also under strict', function (): void {
+    config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_views', 'cached_unique_views' => ['unique' => true]]]);
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    config()->set('eloquent-viewable.retention.rollups.strict', true);
+    config()->set('eloquent-viewable.querying.source.driver', 'rollup');
+
+    app(FoldViews::class)->handle();
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-29'), ['visitor'], 100);
+    app(RecountViews::class)->recount(new Post, [$this->post->getKey()]);
+
+    expect(counted($this->post))->toBe([[4, 2]]);
+});
+
+it('counts no visitors in a unique column whose period ends before the views were anonymised', function (): void {
+    config()->set('eloquent-viewable.querying.counters', [Post::class => ['cached_unique_views' => ['unique' => true, 'period' => '2026-01-01..2026-02-01']]]);
+
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-29'), ['visitor'], 100);
+    app(RecountViews::class)->handle(chunk: 100);
+
+    expect(counted($this->post))->toBe([[0, 0]]);
+});
+
+it('counts a unique column as usual when its period starts after the views were anonymised', function (): void {
+    app(AnonymiseViews::class)->handle(Carbon::parse('2026-03-01'), ['visitor'], 100);
+    app(RecountViews::class)->handle(chunk: 100);
+
+    expect(counted($this->post))->toBe([[4, 2]]);
 });
 
 it('is registered', function (): void {
