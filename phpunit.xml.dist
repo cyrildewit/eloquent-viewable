@@ -6,6 +6,7 @@
          stopOnFailure="false"
          executionOrder="random"
          failOnWarning="true"
+         failOnDeprecation="true"
          failOnRisky="true"
          failOnEmptyTestSuite="true"
          beStrictAboutOutputDuringTests="true"
@@ -29,6 +30,7 @@
     <php>
         <ini name="memory_limit" value="1G"/>
         <env name="APP_KEY" value="base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE="/>
+        <env name="TESTBENCH_CONVERT_DEPRECATIONS_TO_EXCEPTIONS" value="true"/>
     </php>
     <logging>
         <junit outputFile="build/report.junit.xml"/>
