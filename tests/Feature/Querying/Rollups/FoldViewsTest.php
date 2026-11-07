@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
@@ -10,7 +11,6 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
-use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
@@ -189,7 +189,7 @@ it('leaves a bucket alone when views before it are pruned', function (): void {
     viewAt($this->post, '2026-01-20 10:00:00');
     fold();
 
-    app(ViewState::class)->put('pruned', '2026-01-15 00:00:00');
+    app(StateStore::class)->put('pruned', '2026-01-15 00:00:00');
     View::query()->where('viewed_at', '<', '2026-01-15')->delete();
     viewAt($this->post, '2026-01-10 18:00:00');
     viewAt($this->post, '2026-01-20 18:00:00', 'visitor-2');
@@ -205,7 +205,7 @@ it('leaves a month alone that anonymising reached, but folds its days again', fu
     viewAt($this->post, '2026-01-10 10:00:00');
     fold();
 
-    app(ViewState::class)->put('anonymised', '2026-02-01 00:00:00');
+    app(StateStore::class)->put('anonymised', '2026-02-01 00:00:00');
     viewAt($this->post, '2026-01-10 18:00:00', 'visitor-2');
 
     fold();
@@ -254,7 +254,7 @@ it('folds again no further back than the views are all still there', function ()
     viewAt($this->post, '2026-01-20 10:00:00');
     fold();
 
-    app(ViewState::class)->put('pruned', '2026-01-15 00:00:00');
+    app(StateStore::class)->put('pruned', '2026-01-15 00:00:00');
     View::query()->where('viewed_at', '<', '2026-01-15')->delete();
 
     fold(Tier::Day, from: '2026-01-01');
@@ -267,7 +267,7 @@ it('folds again from a given date after the views are pruned', function (): void
     viewAt($this->post, '2026-01-20 10:00:00');
     fold();
 
-    app(ViewState::class)->put('pruned', '2026-01-15 00:00:00');
+    app(StateStore::class)->put('pruned', '2026-01-15 00:00:00');
     View::query()->where('viewed_at', '<', '2026-01-15')->delete();
     ViewRollup::query()->delete();
 
@@ -283,8 +283,8 @@ it('folds a month again no further back than both anonymising and pruning reache
     viewAt($this->post, '2026-02-10 10:00:00');
     fold();
 
-    app(ViewState::class)->put('pruned', '2026-01-15 00:00:00');
-    app(ViewState::class)->put('anonymised', '2026-02-01 00:00:00');
+    app(StateStore::class)->put('pruned', '2026-01-15 00:00:00');
+    app(StateStore::class)->put('anonymised', '2026-02-01 00:00:00');
     View::query()->where('viewed_at', '<', '2026-01-15')->delete();
     ViewRollup::query()->delete();
 

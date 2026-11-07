@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsPruned;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
-use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
@@ -42,7 +42,7 @@ it('deletes the views before the cutoff', function (): void {
         ->and($run->until->toDateTimeString())->toBe('2026-03-01 00:00:00')
         ->and($run->clamped)->toBeFalse()
         ->and(View::query()->pluck('viewed_at')->all())->toBe(['2026-03-01 00:00:00'])
-        ->and(app(ViewState::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
+        ->and(app(StateStore::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
 });
 
 it('deletes in chunks', function (): void {
@@ -67,7 +67,7 @@ it('keeps the mark where it is when a run asks for less', function (): void {
     pruneBefore('2026-03-01');
     pruneBefore('2026-02-01');
 
-    expect(app(ViewState::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
+    expect(app(StateStore::class)->get(PruneViews::Mark))->toBe('2026-03-01 00:00:00');
 });
 
 it('counts without deleting on a dry run', function (): void {
@@ -78,7 +78,7 @@ it('counts without deleting on a dry run', function (): void {
     expect($run->views)->toBe(2)
         ->and($run->dryRun)->toBeTrue()
         ->and(View::query()->count())->toBe(2)
-        ->and(app(ViewState::class)->get(PruneViews::Mark))->toBeNull();
+        ->and(app(StateStore::class)->get(PruneViews::Mark))->toBeNull();
 });
 
 it('stops where the rollups have captured the views', function (): void {
@@ -150,7 +150,7 @@ it('stops at the deadline and leaves the rest and the mark for the next run', fu
     expect($run->views)->toBe(1)
         ->and($run->stopped)->toBeTrue()
         ->and(View::query()->count())->toBe(2)
-        ->and(app(ViewState::class)->get('pruned'))->toBeNull();
+        ->and(app(StateStore::class)->get('pruned'))->toBeNull();
 
     Event::assertDispatched(ViewsPruned::class, fn (ViewsPruned $event): bool => $event->views === 1);
 
@@ -158,7 +158,7 @@ it('stops at the deadline and leaves the rest and the mark for the next run', fu
 
     expect($rest->views)->toBe(2)
         ->and($rest->stopped)->toBeFalse()
-        ->and(app(ViewState::class)->get('pruned'))->toBe('2026-03-01 00:00:00');
+        ->and(app(StateStore::class)->get('pruned'))->toBe('2026-03-01 00:00:00');
 });
 
 it('deletes nothing once the deadline has passed', function (): void {

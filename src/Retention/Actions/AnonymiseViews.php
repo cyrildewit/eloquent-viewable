@@ -47,7 +47,7 @@ final readonly class AnonymiseViews
 
     public function __construct(
         private View $view,
-        private ViewState $state,
+        private StateStore $state,
         private Watermarks $watermarks,
         private Dispatcher $events,
         private Config $config,
@@ -79,7 +79,7 @@ final readonly class AnonymiseViews
         $deadline ??= Deadline::none();
         $requested = $this->midnight($cutoff);
         $until = $this->midnight($this->watermarks->clamp($requested));
-        $from = $this->state->moment(self::Mark);
+        $from = $this->mark();
         $clamped = $until < $requested;
 
         if ($from instanceof CarbonInterface && $from >= $until) {
@@ -103,10 +103,10 @@ final readonly class AnonymiseViews
 
             $cursor = $this->nextMidnight($day);
 
-            $this->state->putMoment(self::Mark, $cursor);
+            $this->putMark($cursor);
         }
 
-        $this->state->putMoment(self::Mark, $until);
+        $this->putMark($until);
 
         return $this->finish($from, $until, $views, $clamped, stopped: false);
     }
@@ -203,6 +203,18 @@ final readonly class AnonymiseViews
         $this->state->put($name, $salt);
 
         return $salt;
+    }
+
+    private function mark(): ?CarbonInterface
+    {
+        $value = $this->state->get(self::Mark);
+
+        return $value === null ? null : Carbon::parse($value);
+    }
+
+    private function putMark(CarbonInterface $moment): void
+    {
+        $this->state->put(self::Mark, $moment->format(StateStore::Format));
     }
 
     /**
