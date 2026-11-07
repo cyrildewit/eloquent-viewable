@@ -128,8 +128,8 @@ describe('folding', function (): void {
             ->where('grouping', 'viewable:dimension')
             ->where('viewable_id', $this->post->getKey())
             ->where('bucket_start', Carbon::parse('2026-01-01'))
-            ->pluck('views', 'dimension')
-            ->map(fn (mixed $views): int => (int) $views)
+            ->get()
+            ->mapWithKeys(fn (ViewRollup $row): array => [(string) $row->getAttribute('dimension') => (int) $row->getAttribute('views')])
             ->sortKeys()
             ->all();
 
