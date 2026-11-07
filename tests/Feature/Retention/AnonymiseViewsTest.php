@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\CarbonInterface;
+use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Dimensions\Campaign;
 use CyrildeWit\EloquentViewable\Dimensions\Medium;
 use CyrildeWit\EloquentViewable\Dimensions\Source;
@@ -12,7 +13,6 @@ use CyrildeWit\EloquentViewable\Retention\Actions\AnonymiseViews;
 use CyrildeWit\EloquentViewable\Retention\Data\RetentionRun;
 use CyrildeWit\EloquentViewable\Retention\Events\ViewsAnonymised;
 use CyrildeWit\EloquentViewable\Retention\Exceptions\RetentionNotInstalled;
-use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
@@ -109,7 +109,7 @@ it('anonymises a view without a visitor', function (): void {
 });
 
 it('hashes under the salt kept for a day still in progress and forgets it once the day is done', function (): void {
-    $state = app(ViewState::class);
+    $state = app(StateStore::class);
     $state->put('anonymise:salt:2026-03-01', 'kept-salt');
 
     $view = retainedView($this->post, '2026-03-01 10:00:00');
@@ -158,7 +158,7 @@ it('starts where the last run stopped', function (): void {
         ->and($run->views)->toBe(1)
         ->and($late->refresh()->visitor)->toBe('visitor-1')
         ->and($new->refresh()->visitor)->toStartWith('a:')
-        ->and(app(ViewState::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
+        ->and(app(StateStore::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
 });
 
 it('does nothing when the cutoff lies before the last run', function (): void {
@@ -168,7 +168,7 @@ it('does nothing when the cutoff lies before the last run', function (): void {
 
     expect(anonymiseBefore('2026-03-10')->views)->toBe(0)
         ->and($view->refresh()->visitor)->toBe('visitor-1')
-        ->and(app(ViewState::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
+        ->and(app(StateStore::class)->get(AnonymiseViews::Mark))->toBe('2026-03-15 00:00:00');
 });
 
 it('counts without changing anything on a dry run', function (): void {
@@ -180,7 +180,7 @@ it('counts without changing anything on a dry run', function (): void {
     expect($run->views)->toBe(2)
         ->and($run->dryRun)->toBeTrue()
         ->and($view->refresh()->visitor)->toBe('visitor-1')
-        ->and(app(ViewState::class)->get(AnonymiseViews::Mark))->toBeNull();
+        ->and(app(StateStore::class)->get(AnonymiseViews::Mark))->toBeNull();
 });
 
 it('dispatches an event with the range and the views it changed', function (): void {
@@ -288,8 +288,8 @@ it('stops at the deadline and finishes the day with the same salt on the next ru
         ->and($run->until->toDateTimeString())->toBe('2026-03-01 00:00:00')
         ->and($first->refresh()->visitor)->toStartWith('a:')
         ->and($second->refresh()->visitor)->toBe('visitor-1')
-        ->and(app(ViewState::class)->get('anonymised'))->toBeNull()
-        ->and(app(ViewState::class)->get('anonymise:salt:2026-03-01'))->not->toBeNull();
+        ->and(app(StateStore::class)->get('anonymised'))->toBeNull()
+        ->and(app(StateStore::class)->get('anonymise:salt:2026-03-01'))->not->toBeNull();
 
     Event::assertDispatched(ViewsAnonymised::class, fn (ViewsAnonymised $event): bool => $event->views === 1);
 
@@ -298,7 +298,7 @@ it('stops at the deadline and finishes the day with the same salt on the next ru
     expect($rest->views)->toBe(2)
         ->and($second->refresh()->visitor)->toBe($first->visitor)
         ->and($later->refresh()->visitor)->not->toBe($first->visitor)
-        ->and(app(ViewState::class)->get('anonymise:salt:2026-03-01'))->toBeNull();
+        ->and(app(StateStore::class)->get('anonymise:salt:2026-03-01'))->toBeNull();
 });
 
 it('anonymises nothing once the deadline has passed', function (): void {

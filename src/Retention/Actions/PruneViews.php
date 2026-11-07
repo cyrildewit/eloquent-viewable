@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Support\Deadline;
 use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 
 /**
  * This action deletes the views viewed before the cutoff. Every view before
@@ -31,7 +32,7 @@ final readonly class PruneViews
 
     public function __construct(
         private View $view,
-        private ViewState $state,
+        private StateStore $state,
         private Watermarks $watermarks,
         private Dispatcher $events,
     ) {}
@@ -51,7 +52,7 @@ final readonly class PruneViews
 
         $deadline ??= Deadline::none();
         $until = $this->watermarks->clamp($cutoff);
-        $from = $this->state->moment(self::Mark);
+        $from = $this->mark();
         $clamped = $until < $cutoff;
 
         if ($dryRun) {
@@ -97,7 +98,14 @@ final readonly class PruneViews
             return;
         }
 
-        $this->state->putMoment(self::Mark, $until);
+        $this->state->put(self::Mark, $until->format(StateStore::Format));
+    }
+
+    private function mark(): ?CarbonInterface
+    {
+        $value = $this->state->get(self::Mark);
+
+        return $value === null ? null : Carbon::parse($value);
     }
 
     private function expired(CarbonInterface $until): Builder
