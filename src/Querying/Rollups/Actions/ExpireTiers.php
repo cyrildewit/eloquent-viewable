@@ -13,7 +13,6 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Snapshot;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\Chunks;
 use CyrildeWit\EloquentViewable\Support\Deadline;
-use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\Progress;
 use Illuminate\Database\Query\Builder;
 
@@ -78,13 +77,13 @@ final readonly class ExpireTiers
      */
     private function expiryCutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $now): ?CarbonImmutable
     {
-        $keep = $definition->keep($tier);
+        $kept = $definition->keptFrom($tier, $now, $this->policy->timezone);
 
-        if (! $keep instanceof Duration) {
+        if (! $kept instanceof CarbonImmutable) {
             return null;
         }
 
-        $cutoff = $this->cutoff($definition, $tier, $snapshot, CarbonImmutable::instance($keep->before($now)));
+        $cutoff = $this->cutoff($definition, $tier, $snapshot, $kept);
         $since = $snapshot->since($tier);
 
         if ($since instanceof CarbonImmutable && $cutoff instanceof CarbonImmutable && $since >= $cutoff) {
@@ -94,13 +93,12 @@ final readonly class ExpireTiers
         return $cutoff;
     }
 
-    private function cutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $cutoff): ?CarbonImmutable
+    private function cutoff(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, CarbonImmutable $kept): ?CarbonImmutable
     {
-        $zone = $this->policy->timezone;
         $coarser = $definition->coarserThan($tier);
 
         if (! $coarser instanceof Tier) {
-            return $tier->floor($cutoff, $zone);
+            return $kept;
         }
 
         $folded = $snapshot->folded($coarser);
@@ -109,7 +107,7 @@ final readonly class ExpireTiers
             return null;
         }
 
-        return $coarser->floor($cutoff->min($folded), $zone);
+        return $coarser->floor($kept->min($folded), $this->policy->timezone);
     }
 
     private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk, Deadline $deadline): Progress

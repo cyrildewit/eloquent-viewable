@@ -21,6 +21,19 @@ beforeEach(function (): void {
     }
 });
 
+/**
+ * Folds every tier kept for good, then keeps them as given, as when a keep is
+ * shortened after the tiers were folded.
+ *
+ * @param  array<string, ?string>  $tiers
+ */
+function foldThenKeep(array $tiers): void
+{
+    config()->set('eloquent-viewable.retention.rollups.tiers', array_map(fn (): null => null, $tiers));
+    app(FoldViews::class)->handle();
+    config()->set('eloquent-viewable.retention.rollups.tiers', $tiers);
+}
+
 /** @return list<string> */
 function bucketsOf(string $tier): array
 {
@@ -29,8 +42,7 @@ function bucketsOf(string $tier): array
 }
 
 it('drops the buckets of a tier older than it is kept, in whole buckets of the next coarser tier', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
-    app(FoldViews::class)->handle();
+    foldThenKeep(['day' => '400d', 'month' => null]);
 
     $dropped = app(ExpireTiers::class)->handle(chunk: 1);
 
@@ -50,8 +62,7 @@ it('keeps buckets the coarser tier has not folded yet', function (): void {
 });
 
 it('drops the coarsest tier on its own grain', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['month' => '1y']);
-    app(FoldViews::class)->handle();
+    foldThenKeep(['month' => '1y']);
 
     expect(app(ExpireTiers::class)->handle(chunk: 100))->toBe([['rollup' => 'views', 'tier' => Tier::Month, 'rows' => 6, 'stopped' => false]])
         ->and(bucketsOf('month'))->toBe(['2025-03-01']);
@@ -66,24 +77,21 @@ it('waits for a coarser tier that has never been folded', function (): void {
 });
 
 it('does nothing a second time', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
-    app(FoldViews::class)->handle();
+    foldThenKeep(['day' => '400d', 'month' => null]);
     app(ExpireTiers::class)->handle(chunk: 100);
 
     expect(app(ExpireTiers::class)->handle(chunk: 100))->toBeEmpty();
 });
 
 it('counts the rows it would drop on a dry run', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
-    app(FoldViews::class)->handle();
+    foldThenKeep(['day' => '400d', 'month' => null]);
 
     expect(app(ExpireTiers::class)->handle(chunk: 100, dryRun: true))->toBe([['rollup' => 'views', 'tier' => Tier::Day, 'rows' => 3, 'stopped' => false]])
         ->and(bucketsOf('day'))->toHaveCount(4);
 });
 
 it('stops at the deadline and leaves the rest of the tier for the next run', function (): void {
-    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '400d', 'month' => null]);
-    app(FoldViews::class)->handle();
+    foldThenKeep(['day' => '400d', 'month' => null]);
 
     $since = app(RollupState::class)->snapshot('views')->since(Tier::Day)?->toDateTimeString();
     $dropped = app(ExpireTiers::class)->handle(chunk: 1, deadline: deadlineAfter(1));
