@@ -409,7 +409,7 @@ class EloquentViewableServiceProvider extends ServiceProvider
     {
         $this->app->bind(RetentionPolicy::class, fn (Application $app): RetentionPolicy => RetentionPolicy::fromConfig($app->make(Config::class)));
 
-        $this->app->bind(StateStore::class, ViewState::class);
+        $this->app->scoped(StateStore::class, ViewState::class);
     }
 
     /**

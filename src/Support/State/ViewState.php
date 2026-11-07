@@ -4,18 +4,26 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support\State;
 
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Models\View;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Carbon;
 
-final readonly class ViewState implements StateStore
+/** The table holds one row per mark, so it is read whole and kept in memory. */
+final class ViewState implements StateStore
 {
     public const string Table = 'view_state';
 
-    private ConnectionInterface $connection;
+    /** Other processes move the marks, so the table is read again after this many seconds. */
+    private const int MaxAge = 5;
+
+    private readonly ConnectionInterface $connection;
+
+    /** @var ?array<string, string> */
+    private ?array $values = null;
+
+    private ?CarbonImmutable $readAt = null;
 
     public function __construct(View $view)
     {
@@ -33,50 +41,54 @@ final readonly class ViewState implements StateStore
      */
     public function many(array $names): array
     {
-        $values = [];
-
-        foreach ($this->table()->whereIn('name', $names)->pluck('value', 'name') as $name => $value) {
-            $values[(string) $name] = (string) $value; // @phpstan-ignore cast.string (a text column)
-        }
-
-        return $values;
+        return array_intersect_key($this->values(), array_flip($names));
     }
 
     public function get(string $name): ?string
     {
-        $value = $this->table()->where('name', $name)->value('value');
-
-        if (! is_string($value)) {
-            return null;
-        }
-
-        return $value;
+        return $this->values()[$name] ?? null;
     }
 
     public function put(string $name, string $value): void
     {
         $this->table()->upsert([['name' => $name, 'value' => $value]], ['name'], ['value']);
+
+        $this->values = null;
     }
 
     public function forget(string $name): void
     {
         $this->table()->where('name', $name)->delete();
+
+        $this->values = null;
     }
 
-    public function moment(string $name): ?CarbonInterface
+    /** @return array<string, string> */
+    private function values(): array
     {
-        $value = $this->get($name);
+        $now = CarbonImmutable::now();
 
-        if ($value === null) {
-            return null;
+        if ($this->values !== null && $this->fresh($now)) {
+            return $this->values;
         }
 
-        return Carbon::parse($value);
+        $values = [];
+
+        foreach ($this->table()->pluck('value', 'name') as $name => $value) {
+            $values[(string) $name] = (string) $value; // @phpstan-ignore cast.string (a text column)
+        }
+
+        $this->readAt = $now;
+
+        return $this->values = $values;
     }
 
-    public function putMoment(string $name, CarbonInterface $moment): void
+    /** A clock that moved back counts as stale, so the values never outlive their age. */
+    private function fresh(CarbonImmutable $now): bool
     {
-        $this->put($name, $moment->format(self::Format));
+        return $this->readAt instanceof CarbonImmutable
+            && $now >= $this->readAt
+            && $now < $this->readAt->addSeconds(self::MaxAge);
     }
 
     private function table(): Builder
