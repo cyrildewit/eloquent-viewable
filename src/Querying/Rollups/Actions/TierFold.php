@@ -9,7 +9,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Events\ViewsRolledUp;
 
 /**
  * What folding one tier reports back: the run, the lowest bucket it folded,
- * which the tier now starts at, and the bucket of the first view it saw,
+ * where the rows of the tier start, and the bucket of the first view it saw,
  * which the origin of the rollup moves back to. The two differ when the tier
  * keeps only its recent buckets.
  *

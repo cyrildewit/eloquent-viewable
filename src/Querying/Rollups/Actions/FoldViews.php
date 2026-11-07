@@ -156,9 +156,12 @@ final readonly class FoldViews implements Refolder
      * from the cursor up to where the tier has settled.
      *
      * A first fold or a refold starts no earlier than the buckets the tier
-     * keeps, since older ones would only be expired again. The origin still
-     * moves back to the first view, so a read before the tier starts falls
-     * through to a coarser tier or the views table.
+     * keeps, because older buckets would only be expired again. A tier that
+     * carries on from where it was folded is never moved forward, because
+     * the buckets between its start and the cutoff would then be missing
+     * until the next expiry. The origin moves back to the first view either
+     * way: an origin at the later start would make a read before it count
+     * nothing, although the views table still holds those views.
      */
     private function foldTier(RollupDefinition $definition, Tier $tier, Snapshot $snapshot, FoldRun $run): TierFold
     {
