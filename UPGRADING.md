@@ -44,6 +44,10 @@ See the [documentation](https://cyrildewit.github.io/eloquent-viewable/) for eac
 composer require cyrildewit/eloquent-viewable:^9
 ```
 
+If you queue views, with `queue.enabled` in your v8 config or `->queue()` on a call, let the queue empty before you
+deploy, for example with `php artisan queue:work --stop-when-empty`. Jobs queued by v8 cannot run on v9: they fail and
+their views are lost.
+
 ### 2. Update your imports
 
 Most classes moved into a namespace per module. Search your code for `CyrildeWit\EloquentViewable\` and update each
