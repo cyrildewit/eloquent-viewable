@@ -20,3 +20,7 @@ your config relies on, and all three once the table passes a million rows:
   window of a type.
 - `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()`, `recommended()` and `views:pairs` find the
   views of each visitor they pair without scanning the table.
+
+On MySQL and MariaDB, the two indexes with `visitor` need it to be a string column. A table created before version 8
+can still have a `text` one, and the [upgrade guide](/eloquent-viewable/project/upgrading/#4-add-the-new-columns-indexes-and-tables) shows how to
+change it.

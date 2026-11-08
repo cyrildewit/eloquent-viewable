@@ -155,6 +155,14 @@ return new class extends Migration
 On a large table, building an index locks writes while it runs. MySQL 8 and MariaDB 10.5 build it online. On
 Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
 
+If your table dates from version 7, its `visitor` column may still be `text`. Counting works on it, but MySQL and
+MariaDB cannot index a `text` column, so change it to a string before you add an index that includes `visitor`, such
+as the ones `views:doctor` recommends:
+
+```php
+$blueprint->string('visitor')->nullable()->change();
+```
+
 Nothing is recorded in the new columns until you opt in to [recording the viewer](https://cyrildewit.github.io/eloquent-viewable/viewers/who-viewed-what/) or pass a
 [context](https://cyrildewit.github.io/eloquent-viewable/recording/context/).
 
@@ -166,8 +174,10 @@ php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewa
 php artisan migrate
 ```
 
-Your views migration is skipped because its file exists, and the five new ones are published. The features stay off
-until you configure them, so you can delete the migration of one you will not use before running it.
+Your views migration is skipped when its file is still in `database/migrations`, and the five new ones are published.
+If you squashed your migrations with `schema:dump --prune`, or moved or renamed that file, a new `create_views_table`
+migration is published too. Delete it before you migrate, since your table already exists. The features stay off until
+you configure them, so you can delete the migration of one you will not use before running it.
 
 [Dimensions](https://cyrildewit.github.io/eloquent-viewable/viewers/dimensions/) add no column until you list one. After listing one under
 `dimensions.definitions`, run `php artisan views:dimensions`, which writes the migration that adds its column, and
@@ -330,6 +340,12 @@ public function isCrawler(): bool
 // After
 public function isCrawler(?string $userAgent): bool
 ```
+
+#### `CooldownManager`
+
+`Cooldowns\CooldownManager` now resolves the cooldown store named in `cooldown.store`, and is `final`. `push()` is gone:
+start a cooldown with `views($viewable)->cooldown($expiresAt)->record()`, and to keep cooldowns somewhere else,
+[add a store](https://cyrildewit.github.io/eloquent-viewable/recording/cooldowns/#adding-a-store).
 
 #### `CacheKey` and `RecordViewJob`
 
