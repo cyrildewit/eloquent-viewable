@@ -6,11 +6,11 @@ sidebar:
 ---
 
 `doctor.checks` lists the checks [`views:doctor`](/eloquent-viewable/scaling/checking-your-setup/) runs, in order. Remove one to skip it, or add a
-class of your own that implements `Doctor\\Contracts\\Check`. Checks are resolved from the container, and one that
+class of your own that implements `Doctor\Contracts\Check`. Checks are resolved from the container, and one that
 throws is reported as a failure, so the others still run.
 
 ```php
-use CyrildeWit\EloquentViewable\Doctor\\Contracts\\Check;
+use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use Illuminate\Contracts\Queue\Factory as Queue;
 
