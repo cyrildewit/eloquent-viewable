@@ -1,3 +1,8 @@
 /dist
 /.astro
 /node_modules
+
+# Written by scripts/sync.mjs from samples/*/README.md and UPGRADING.md.
+/src/content/docs/recipes/*
+!/src/content/docs/recipes/index.md
+/src/content/docs/project/upgrading.md

@@ -3,7 +3,10 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "predev": "npm run sync",
     "dev": "astro dev --host",
+    "prebuild": "npm run sync",
     "build": "astro build",
     "preview": "astro preview --host",
     "astro": "astro"
