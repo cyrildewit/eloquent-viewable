@@ -6,12 +6,13 @@ import starlightLinksValidator from 'starlight-links-validator';
 import { branch } from './src/branch.mjs';
 
 const repository = 'https://github.com/cyrildewit/eloquent-viewable';
-const socialImage = 'https://cyrildewit.github.io/eloquent-viewable/og.png';
+const socialImage = 'https://www.cyrildewit.nl/eloquent-viewable/og.png';
 
-// Served from GitHub Pages under the repository name. Links in the content
-// carry the base too, so a custom domain means changing both.
+// GitHub Pages serves the site under the repository name, on the custom domain
+// of the account's user site, and cyrildewit.github.io redirects there. Links in
+// the content include the base, so a change of base means changing those links.
 export default defineConfig({
-	site: 'https://cyrildewit.github.io',
+	site: 'https://www.cyrildewit.nl',
 	base: '/eloquent-viewable',
 	trailingSlash: 'always',
 	integrations: [

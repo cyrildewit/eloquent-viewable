@@ -11,6 +11,8 @@ const root = path.dirname(docs);
 const content = path.join(docs, 'src/content/docs');
 
 const base = '/eloquent-viewable';
+// The READMEs link to this address, which redirects to the custom domain. rewriteLinks() turns links with this prefix
+// into site links, so changing it to the custom domain leaves every README link absolute.
 const site = `https://cyrildewit.github.io${base}`;
 const repository = 'https://github.com/cyrildewit/eloquent-viewable';
 
