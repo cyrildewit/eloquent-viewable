@@ -194,7 +194,7 @@ public function handle(ViewsSpiked $event): void
 ## Caching
 
 ```php
-views($post)->remember(600)->count();   // seconds, or a DateTimeInterface
+views($post)->remember(10)->count();    // minutes, or a DateTimeInterface
 views($post)->forgetCache();
 ```
 
