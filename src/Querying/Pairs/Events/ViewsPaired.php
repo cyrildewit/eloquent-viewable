@@ -12,5 +12,6 @@ class ViewsPaired
         public CarbonImmutable $since,
         public int $viewables,
         public int $pairs,
+        public string $period,
     ) {}
 }

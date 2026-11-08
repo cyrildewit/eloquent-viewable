@@ -237,7 +237,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - A `unique` counter column counts all-time visitors only until `retention.anonymise` runs: from then on it covers the views that are not anonymised yet, and can drop.
 - A copy of a counter column elsewhere goes stale, such as a search index: listen for `Querying\Counters\Events\CountersRecounted` and resync `$event->keys` of `$event->class`. A recount fires no model events.
 - `unique()`, whole-type, `alsoViewed()` or `recommended()` queries are slow: the optional indexes under "Database indexes" in the README.
-- `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled` and `views:pairs` scheduled.
+- `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled` and `views:pairs` scheduled. A call with a period reads the table only when that period is in `querying.pairs.periods`, such as `'30d'` for `Period::pastDays(30)`.
 - The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
 - A `views:maintain` run outlasts its schedule, such as the first run on a large table: add `--max-seconds`, and the next run carries on. On a host that cuts commands off, schedule `Maintenance\Jobs\MaintainViewsJob` instead.
 - Bots that pass for a browser inflate counts: `views:purge-bots --dry-run`, then `views:purge-bots`, which deletes only the views inside a burst.

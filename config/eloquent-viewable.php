@@ -451,11 +451,14 @@ return [
          * ships with the package migrations and is filled by `views:pairs`,
          * which you schedule.
          *
-         *   period     only the views within this period are paired
+         *   periods    the periods to pair the views of, each kept apart,
+         *              such as `['30d', '90d']`
          *   max_pairs  how many models are kept per model, the ones it
          *              shares the most visitors with
          *
-         * A call with a period, a collection or a filter skips the table and
+         * A call over the same period, such as `Period::pastDays(30)` for
+         * `30d`, reads the pairs of that period, and a call without a period
+         * those of the longest. Any other period, a collection or a filter
          * reads the views table. Views recorded since the last run of
          * `views:pairs` are not in the table yet.
          */
@@ -465,7 +468,7 @@ return [
 
             'table' => 'view_pairs',
 
-            'period' => '90d',
+            'periods' => ['90d'],
 
             'max_pairs' => 100,
 

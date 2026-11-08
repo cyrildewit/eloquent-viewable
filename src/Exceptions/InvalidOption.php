@@ -19,6 +19,12 @@ final class InvalidOption extends InvalidOptionException implements EloquentView
         return new self("The --{$name} option must be a duration such as `30d` or `2y`.");
     }
 
+    /** @param  list<string>  $allowed */
+    public static function mustBeOneOf(string $name, array $allowed): self
+    {
+        return new self("The --{$name} option must be one of `".implode('`, `', $allowed).'`.');
+    }
+
     public static function mustBeDate(string $name, string $example): self
     {
         return new self("The --{$name} option must be a date such as `{$example}`.");

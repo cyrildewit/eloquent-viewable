@@ -640,15 +640,21 @@ it('refuses an unknown similarity', function (): void {
 })->throws(InvalidConfiguration::class, 'querying.recommendations.similarity');
 
 it('reads the pairs settings', function (): void {
-    $config = packageConfig(['querying' => ['pairs' => ['enabled' => true, 'table' => 'pairs', 'period' => '30d', 'max_pairs' => '25']]]);
+    $config = packageConfig(['querying' => ['pairs' => ['enabled' => true, 'table' => 'pairs', 'periods' => ['30d', '1y', '12w', '30d'], 'max_pairs' => '25']]]);
+    $shorthands = fn (array $periods): array => array_map(fn (Duration $period): string => $period->shorthand(), $periods);
 
     expect($config)
         ->pairsEnabled()->toBeTrue()
         ->pairsTable()->toBe('pairs')
         ->pairsMaxPairs()->toBe(25)
-        ->and($config->pairsPeriod()->shorthand())->toBe('30d')
+        ->and($shorthands($config->pairsPeriods()))->toBe(['1y', '12w', '30d'])
+        ->and($shorthands(packageConfig(['querying' => ['pairs' => ['periods' => '7d']]])->pairsPeriods()))->toBe(['7d'])
         ->and(packageConfig()->pairsEnabled())->toBeFalse();
 });
+
+it('refuses pairs periods that are not durations', function (mixed $value): void {
+    packageConfig(['querying' => ['pairs' => ['periods' => $value]]])->pairsPeriods();
+})->with([[[]], [['30d', 'soon']], [[30]]])->throws(InvalidConfiguration::class, 'The `eloquent-viewable.querying.pairs.periods` config value must be a duration such as `30d`, or a list of them');
 
 it('reads the dimensions with their classes and options', function (): void {
     expect(packageConfig(['dimensions' => ['definitions' => [
