@@ -42,7 +42,7 @@ class SchemaCheck implements Check
         'viewed_at' => ['viewed_at'],
     ];
 
-    protected const string UpgradeGuide = 'The upgrade guide has a migration that adds it, under "Add the new columns and indexes" in UPGRADING.md.';
+    protected const string UpgradeGuide = 'The upgrade guide has a migration that adds it, under "Add the new columns, indexes and tables" in UPGRADING.md.';
 
     public function __construct(
         protected View $view,
