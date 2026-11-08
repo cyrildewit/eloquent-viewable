@@ -42,6 +42,8 @@ Pass it to a call with `trending(curve: new PlateauDecay(...))`, or set `queryin
 its arguments in a service provider:
 
 ```php
+use Carbon\CarbonInterval;
+
 $this->app->bind(PlateauDecay::class, fn (): PlateauDecay => new PlateauDecay(
     CarbonInterval::hours(6),
     CarbonInterval::day(),

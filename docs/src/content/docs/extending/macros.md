@@ -6,6 +6,8 @@ sidebar:
 ---
 
 ```php
+use CyrildeWit\EloquentViewable\Support\Granularity;
+use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Views;
 
 Views::macro('countByDay', function () {

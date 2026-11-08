@@ -118,6 +118,7 @@ final class DatabaseCooldownStore implements CooldownStore
 Register it in a service provider and select it with `'store' => 'database'`:
 
 ```php
+use CyrildeWit\EloquentViewable\Cooldowns\Contracts\CooldownStore;
 use CyrildeWit\EloquentViewable\Cooldowns\CooldownManager;
 
 $this->app->make(CooldownManager::class)->extend('database', fn ($app): CooldownStore => new DatabaseCooldownStore);

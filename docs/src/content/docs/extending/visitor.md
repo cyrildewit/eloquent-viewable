@@ -13,10 +13,10 @@ default class. Return `null` for a user agent you do not have; it is never treat
 Bind it globally in a service provider, or pass it for one call:
 
 ```php
-$this->app->bind(
-    \CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor::class,
-    \App\Services\Views\Visitor::class
-);
+use App\Services\Views\Visitor;
+use CyrildeWit\EloquentViewable\Visitors\Contracts\Visitor as VisitorContract;
+
+$this->app->bind(VisitorContract::class, Visitor::class);
 
 views($post)->useVisitor(new Visitor())->record();
 ```
