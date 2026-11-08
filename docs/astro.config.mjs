@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import mermaid from 'astro-mermaid';
 import starlightLinksValidator from 'starlight-links-validator';
+import { branch } from './src/branch.mjs';
 
 const repository = 'https://github.com/cyrildewit/eloquent-viewable';
 const socialImage = 'https://cyrildewit.github.io/eloquent-viewable/og.png';
@@ -22,7 +23,7 @@ export default defineConfig({
 			logo: { src: './src/assets/logo.svg' },
 			favicon: '/favicon.svg',
 			social: [{ icon: 'github', label: 'GitHub', href: repository }],
-			editLink: { baseUrl: `${repository}/edit/9.x/docs/` },
+			editLink: { baseUrl: `${repository}/edit/${branch}/docs/` },
 			lastUpdated: true,
 			// Starlight sets twitter:card to summary_large_image, which shows nothing without an image.
 			head: [
@@ -62,9 +63,9 @@ export default defineConfig({
 					collapsed: true,
 					items: [
 						{ label: 'Upgrade guide', slug: 'project/upgrading' },
-						{ label: 'Changelog', link: `${repository}/blob/9.x/CHANGELOG.md`, attrs: { target: '_blank' } },
-						{ label: 'Contributing', link: `${repository}/blob/9.x/CONTRIBUTING.md`, attrs: { target: '_blank' } },
-						{ label: 'Security', link: `${repository}/blob/9.x/SECURITY.md`, attrs: { target: '_blank' } },
+						{ label: 'Changelog', link: `${repository}/blob/${branch}/CHANGELOG.md`, attrs: { target: '_blank' } },
+						{ label: 'Contributing', link: `${repository}/blob/${branch}/CONTRIBUTING.md`, attrs: { target: '_blank' } },
+						{ label: 'Security', link: `${repository}/blob/${branch}/SECURITY.md`, attrs: { target: '_blank' } },
 					],
 				},
 			],
