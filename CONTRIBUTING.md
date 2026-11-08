@@ -11,7 +11,7 @@ requests.
 * One pull request per feature (send multiple if you want to do more than one thing).
 * Add tests if you've added something new (ensure that the current tests pass).
 * Send a coherent commit history (make sure each individual commit in your pull request is meaningful).
-* Document any change in behaviour (make sure the `README.md` is kept up-to-date).
+* Document any change in behaviour on the [documentation site](#documentation).
 * Strictly follow our [Git Commit Guidelines](#git-commit-guidelines)!
 * Please remember that we follow [SemVer](http://semver.org/).
 
@@ -116,6 +116,8 @@ make build ARGS="--build-arg PHP=8.4"
 | `make test-type-coverage` | Run the type coverage check (fails below 100%)                              |
 | `make test-coverage`      | Run the suite with line coverage (fails below 100%)                         |
 | `make test-mutation`      | Run mutation testing (see note below)                                       |
+| `make docs-dev`           | Serve the [documentation site](#documentation) with live reload             |
+| `make docs-build`         | Build the documentation site and check its links                            |
 
 Every target in that table maps onto the Composer script of the same name, with `-` where the script has `:`, run in
 the `composer` container. `make test-coverage` runs `docker compose run --rm composer test:coverage`. If you prefer,
@@ -195,6 +197,25 @@ git switch my-branch && make bench-compare DRIVER=mysql TAG=main
 `make bench-explain` prints the SQL and the query plan of every read path, which is the quickest way to see whether a
 query still uses the composite index. [`benchmarks/README.md`](benchmarks/README.md) documents the dataset, the
 targets and the optional indexes.
+
+### Documentation
+
+The [documentation site](https://cyrildewit.github.io/eloquent-viewable/) is built with
+[Starlight](https://starlight.astro.build/) from `docs/`, in a `node` container like everything else:
+
+```bash
+make docs-install   # once, and after docs/package.json changes
+make docs-dev       # http://localhost:4321/eloquent-viewable/ with live reload
+make docs-build     # fails on a broken link or anchor
+```
+
+Pages live in `docs/src/content/docs`, one directory per sidebar group. Link to another page by its full path,
+`/eloquent-viewable/counting/caching/`, and the build checks it. A few pages are written by `docs/scripts/sync.mjs`
+on every build, so edit their source instead: the recipes come from `samples/*/README.md`, the upgrade guide from
+`UPGRADING.md`, the configuration reference from `config/eloquent-viewable.php` and the commands reference from each
+command's `$signature`. A new public event goes on `reference/events.md`, which a test checks.
+
+The site is deployed to GitHub Pages from the `9.x` branch.
 
 When you make a pull request, the tests will be automatically run again
 by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).

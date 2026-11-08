@@ -9,7 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use InvalidArgumentException;
 
 /**
- * The optional indexes the README suggests for apps that need them. The
+ * The optional indexes the documentation suggests for apps that need them. The
  * migration stub does not create these: `views:doctor` recommends them, and
  * `make bench-indexes` adds them to a seeded dataset so the same benchmarks
  * run with and without.

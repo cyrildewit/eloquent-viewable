@@ -134,6 +134,10 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `Exceptions\EloquentViewableException` marker interface, implemented by every exception the package throws, and the `InvalidConfiguration`, `InvalidViewable`, `InvalidViewer` and `InvalidTimezone` exceptions
 - Added Laravel Boost guidelines and the `eloquent-viewable-development` skill in `resources/boost`, which `boost:install` offers to coding agents
 
+#### Documentation
+
+- Added a documentation site at https://cyrildewit.github.io/eloquent-viewable/, with a quick start, a page per feature, the samples as recipes, and a reference of the configuration, the Artisan commands and the events. The README now introduces the package and links to it
+
 ### Changed
 
 - Requires `nesbot/carbon` 3.11 or newer, the first release whose `add()` and `sub()` accept a `Carbon\Unit`

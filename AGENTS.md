@@ -37,6 +37,9 @@ make bench-compare      # compare against the stored TAG= and fail on a regressi
 make bench-explain      # the SQL and query plan of every read benchmark, ARGS=--output=<file> writes JSON too
 make bench-indexes      # add or drop the optional indexes, INDEXES=
 make bench-describe     # the seeded dataset and database as JSON, ARGS=--output=<file>
+make docs-install       # install the documentation site's npm dependencies
+make docs-dev           # serve the documentation site on http://localhost:4321/eloquent-viewable/
+make docs-build         # build the documentation site, fails on a broken link or anchor
 ```
 
 If `docker compose` complains that the image is missing, run `make build` first. The image carries the phpredis
@@ -102,10 +105,23 @@ public method, class path or default they mention changes, or when a new feature
 
 - Keep `core.md` to a handful of bullets: what the package does, the rules that are easy to break, and when to load the
   skill. Everything else goes in the skill.
-- Keep the skill to imperatives and short `php` blocks, with no reasons a user would only find in the README.
+- Keep the skill to imperatives and short `php` blocks, with no reasons a user would only find in the documentation.
 - Plain Markdown, no Blade. Keep the skill's frontmatter `name` equal to its directory name.
 - `tests/Unit/Boost/GuidelinesTest.php` fails on a method in a `php` block or a backticked config key that no longer
   exists. When it fails on a method from a class it does not know yet, add the class to its list.
+
+## Documentation
+
+The documentation site lives in `docs/`, a Starlight site built by the `node` service; `make docs-*` runs it, never `npm`
+on the host. Pages are in `docs/src/content/docs`, one directory per sidebar group, and link to each other by their full
+path, `/eloquent-viewable/counting/caching/`. `make docs-build` fails on a broken link or anchor, so run it after
+moving or renaming a page or a heading.
+
+`docs/scripts/sync.mjs` writes some pages on every build, and they are gitignored. Edit their source instead:
+`samples/*/README.md` for the recipes, `UPGRADING.md` for the upgrade guide, the comments in
+`config/eloquent-viewable.php` for the configuration reference and a command's `$signature` for the commands reference.
+A new top-level config key or command needs an entry in the script's `configSections` or `commandPages`, or the build
+fails. A new public event goes on `reference/events.md`, which `tests/Unit/Docs/DocsTest.php` checks.
 
 ## Where a test belongs
 
@@ -140,6 +156,6 @@ Every commit message and every pull request title must follow Conventional Commi
 request title as much as to a commit: do not open or retitle a pull request with a free-form title.
 `CONTRIBUTING.md` has the format, the allowed types and how to signal a breaking change.
 
-Document behaviour changes in `README.md`, and add an entry to `CHANGELOG.md` under Unreleased.
+Document behaviour changes on the page of `docs/` that covers the feature, and add an entry to `CHANGELOG.md` under Unreleased.
 A breaking change also needs a section in `UPGRADING.md`, under the heading for the version being
 worked on, that tells users what broke and what to change.
