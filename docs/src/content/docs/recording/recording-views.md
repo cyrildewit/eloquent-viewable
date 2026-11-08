@@ -1,6 +1,6 @@
 ---
 title: "Recording views"
-description: "Record a view in the controller method that shows the model."
+description: "Record a view of an Eloquent model from a controller, a route middleware or a browser beacon, with crawlers, prefetches and repeat views skipped."
 sidebar:
   order: 1
 ---

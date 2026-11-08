@@ -1,6 +1,6 @@
 ---
 title: Quick start
-description: Record your first view, count it, chart it and rank it, in five steps.
+description: "Record your first view in a Laravel application, then count it, chart it and rank it, in five steps from composer require to a trending list."
 sidebar:
   order: 4
 ---

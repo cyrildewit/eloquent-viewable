@@ -1,6 +1,6 @@
 ---
 title: "Where views are stored"
-description: "recording.store.driver names the store for every recorded view."
+description: "Pick where recorded views go with recording.store.driver: the views table, a Redis buffer, memory for tests, nowhere, or a store of your own."
 sidebar:
   order: 4
 ---

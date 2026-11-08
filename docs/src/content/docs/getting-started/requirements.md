@@ -1,6 +1,6 @@
 ---
 title: "Requirements"
-description: "The Laravel, PHP and database versions each release supports."
+description: "The Laravel, PHP and database versions each Eloquent Viewable release supports, and what MySQL, MariaDB, PostgreSQL and SQLite need."
 sidebar:
   order: 1
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Trending curves"
-description: "A curve decides how much a view of a given age is worth."
+description: "A decay curve decides how much a view of a given age is worth in a trending ranking. Implement DecayCurve to give recent views a shape of your own."
 sidebar:
   order: 8
 ---

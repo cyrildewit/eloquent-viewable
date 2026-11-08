@@ -1,6 +1,6 @@
 ---
 title: Events
-description: Every event the package dispatches, when it fires and what it carries.
+description: "Every event Eloquent Viewable dispatches, when it fires and what it carries: recorded and skipped views, milestones, spikes, erasure and more."
 sidebar:
   order: 3
 ---

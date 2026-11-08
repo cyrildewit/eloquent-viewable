@@ -1,6 +1,6 @@
 ---
 title: "Macros"
-description: "Add your own methods to the Views class with macros."
+description: "Add your own methods to the Views class with Laravel macros, such as a shortcut for a count or a ranking your application uses in many places."
 sidebar:
   order: 11
 ---

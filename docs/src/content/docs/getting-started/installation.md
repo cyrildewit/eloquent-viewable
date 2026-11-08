@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Install the package via Composer, publish the migrations and run them."
+description: "Install Eloquent Viewable in a Laravel application with Composer, then publish and run the migrations, and optionally publish the config file."
 sidebar:
   order: 2
 ---

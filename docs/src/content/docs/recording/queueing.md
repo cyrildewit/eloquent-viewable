@@ -1,6 +1,6 @@
 ---
 title: "Queueing"
-description: "Move the insert to a queue worker to keep busy pages fast."
+description: "Queue view recording so the insert runs on a Laravel queue worker and busy pages respond sooner, for every view or only for some."
 sidebar:
   order: 4
 ---

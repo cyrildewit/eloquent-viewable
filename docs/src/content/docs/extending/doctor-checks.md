@@ -1,16 +1,16 @@
 ---
 title: "Doctor checks"
-description: "doctor.checks lists the checks views:doctor runs, in order."
+description: "Choose which checks php artisan views:doctor runs, skip one, or add a check of your own by implementing the Doctor\\Contracts\\Check interface."
 sidebar:
   order: 6
 ---
 
 `doctor.checks` lists the checks [`views:doctor`](/eloquent-viewable/scaling/checking-your-setup/) runs, in order. Remove one to skip it, or add a
-class of your own that implements `Doctor\Contracts\Check`. Checks are resolved from the container, and one that
+class of your own that implements `Doctor\\Contracts\\Check`. Checks are resolved from the container, and one that
 throws is reported as a failure, so the others still run.
 
 ```php
-use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
+use CyrildeWit\EloquentViewable\Doctor\\Contracts\\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use Illuminate\Contracts\Queue\Factory as Queue;
 

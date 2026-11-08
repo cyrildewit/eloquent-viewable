@@ -1,6 +1,6 @@
 ---
 title: "Rollups"
-description: "Rollups keep the counts of old views per bucket of time, so history outlives the views it was counted from and all-time counts read a few rows per model instead of every view."
+description: "Rollups keep the counts of old views per bucket of time, so history outlives the deleted views and all-time counts read a few rows instead of every view."
 sidebar:
   order: 4
 ---

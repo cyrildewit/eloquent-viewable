@@ -1,6 +1,6 @@
 ---
 title: "Also viewed"
-description: "Show related content based on what your visitors actually do, such as a \"Readers also read\" box under an article or \"Customers also viewed\" on a product page."
+description: "Show related content based on what visitors actually do: a \"Readers also read\" box under an article or \"Customers also viewed\" on a product."
 sidebar:
   order: 5
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Your own View model"
-description: "Extend the shipped model and name your class in the config."
+description: "Extend the package's Eloquent View model to add relations, casts or scopes, and name your class in the config so every query uses it."
 sidebar:
   order: 2
 ---

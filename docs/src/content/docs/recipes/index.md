@@ -1,6 +1,6 @@
 ---
 title: "Recipes"
-description: "Complete features built from several parts of the package, each with its code and tests."
+description: "Complete Laravel features built with Eloquent Viewable, from a trending sidebar to a seller's stats page, each with its full code and a Pest test."
 sidebar:
   label: Overview
   order: 0

@@ -1,6 +1,6 @@
 ---
 title: "Most viewed"
-description: "Views::top() ranks the most viewed content across every model type."
+description: "Rank the most viewed content across every model type with Views::top(), for any period, or only the most viewed models of one type."
 sidebar:
   order: 1
 ---
