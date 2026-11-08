@@ -6,3 +6,5 @@
 /src/content/docs/recipes/*
 !/src/content/docs/recipes/index.md
 /src/content/docs/project/upgrading.md
+/src/content/docs/reference/configuration.md
+/src/content/docs/reference/commands.md

@@ -2,7 +2,7 @@
 title: "AI coding assistants"
 description: "The package ships guidelines and an eloquent-viewable-development skill for Laravel Boost, so coding agents record and count views the way these docs describe."
 sidebar:
-  order: 3
+  order: 5
 ---
 
 The package ships guidelines and an `eloquent-viewable-development` skill for [Laravel Boost](https://laravel.com/docs/boost),
