@@ -1,102 +1,120 @@
 ---
 title: Eloquent Viewable
-description: Analytics for your Eloquent models, stored in your own database. Record views, count them by period, rank what is trending and recommend what to read next.
+description: View counts, trends and rankings for your Eloquent models, stored in your own database. Record a view in one line, then count it, chart it and rank by it.
 template: splash
 hero:
-  tagline: Analytics for your Eloquent models, stored in your own database. Record views, count them by period, rank what is trending and recommend what to read next, without an external service.
-  image:
-    file: ../../assets/logo.svg
+  title: View counts, trends and rankings for Eloquent models
+  tagline: Record a view in one line, then count it, chart it and order your queries by it. Everything is stored in your own database, with no tracking script and no third-party dashboard.
   actions:
-    - text: Get started
+    - text: Quick start
       link: /eloquent-viewable/getting-started/quick-start/
       icon: right-arrow
     - text: Read the docs
       link: /eloquent-viewable/getting-started/introduction/
       variant: secondary
-    - text: View on GitHub
+    - text: GitHub
       link: https://github.com/cyrildewit/eloquent-viewable
       icon: github
       variant: minimal
 ---
 
-import { Card, CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
-import Requirements from '../../components/Requirements.astro';
+import { LinkCard, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import Bento from '../../components/Bento.astro';
+import CallToAction from '../../components/CallToAction.astro';
+import FactRow from '../../components/FactRow.astro';
 import ScaleLadder from '../../components/ScaleLadder.astro';
+import Showcase from '../../components/Showcase.astro';
+import ShowcaseOutput from '../../components/ShowcaseOutput.astro';
 
-```bash
-composer require cyrildewit/eloquent-viewable
-```
+<FactRow />
 
-## A quick look at the API
+## From one line to a ranking
 
 <Tabs>
 	<TabItem label="Record">
-		```php
-		// In the controller that shows the post
-		views($post)->record();
+		<Showcase>
 
-		// Or on the route, with a 30 minute cooldown per visitor
+		```php
+		// On the route, with a 30 minute cooldown per visitor
 		Route::get('/posts/{post}', ShowPost::class)
 		    ->middleware(RecordViews::using('post', cooldown: 30));
+
+		// Or in a controller
+		views($post)->record();
 		```
+
+		<ShowcaseOutput kind="record" slot="output" />
+		</Showcase>
 	</TabItem>
 	<TabItem label="Count">
+		<Showcase>
+
 		```php
-		views($post)->count();
-		views($post)->unique()->period(Period::pastDays(7))->count();
+		views($post)->count(); // 48,920
+
+		views($post)->unique()->period(Period::pastDays(7))->count(); // 912
 
 		$trend = views($post)->period(Period::pastDays(7))->compare();
-		$trend->percent; // 17.2, against the week before
+		$trend->percent; // 17.2
 		```
+
+		<ShowcaseOutput kind="count" slot="output" />
+		</Showcase>
 	</TabItem>
 	<TabItem label="Chart">
+		<Showcase>
+
 		```php
 		$series = views($post)
-		    ->period(Period::pastDays(30))
+		    ->period(Period::create('2026-10-01', '2026-10-31 23:59:59'))
 		    ->countByInterval(Granularity::Day);
 
-		$series->labels(); // ['2026-09-01', '2026-09-02', ...]
-		$series->values(); // [14, 22, ...]
+		$series->labels(); // ['2026-10-01', '2026-10-02', ...]
+		$series->values(); // [41, 44, 47, ...]
 		```
+
+		<ShowcaseOutput kind="chart" slot="output" />
+		</Showcase>
 	</TabItem>
 	<TabItem label="Rank">
+		<Showcase>
+
 		```php
-		Post::orderByViews()->paginate();      // most viewed first
-		views(Post::class)->trending(10);      // taking off right now
-		Views::top(10);                        // across every model type
-		views($post)->alsoViewed(5);           // readers also read
+		// The sidebar of every post
+		views(Post::class)->period(Period::pastDays(7))->trending(5);
+
+		// The end of this post
+		views($post)->alsoViewed(3);
+
+		// Or order any query by views
+		Post::orderByViews()->paginate();
 		```
+
+		<ShowcaseOutput kind="rank" slot="output" />
+		</Showcase>
 	</TabItem>
 </Tabs>
 
-## Everything in your own database
+## Why keep views in your own database?
 
-<CardGrid>
-	<Card title="Recording" icon="pencil">
-		Record from a controller, a route middleware or the browser when the page comes from a full-page cache. Crawlers,
-		prefetches and repeat views are dropped for you. [Recording views](/eloquent-viewable/recording/)
-	</Card>
-	<Card title="Counting" icon="analytics">
-		Total and unique views for any period, compared with the period before and grouped per hour, day, week, month or
-		year. [Counting](/eloquent-viewable/counting/)
-	</Card>
-	<Card title="Rankings" icon="star">
-		The most viewed content, what is trending, rising or spiking, and what people who viewed this also viewed.
-		[Rankings](/eloquent-viewable/rankings/)
-	</Card>
-	<Card title="Live presence" icon="laptop">
-		"12 people are viewing this", with a live counter that works on cached pages.
-		[Who is looking right now](/eloquent-viewable/rankings/presence/)
-	</Card>
-	<Card title="Privacy" icon="padlock">
-		Unique visitors without a cookie, opt-in support for Do Not Track and Global Privacy Control, and one person's views erased
-		on request. [Viewers](/eloquent-viewable/viewers/)
-	</Card>
-	<Card title="Testing" icon="approve-check">
-		`Views::fake()` records in memory and asserts what was recorded, so a test needs no `views` table.
-		[Testing](/eloquent-viewable/testing/)
-	</Card>
-</CardGrid>
+A hosted analytics service tells you how your site is doing. It can't sort a query, fill a "readers also read" box or
+know which of your users read what. Keeping views next to your models can.
+
+|                                              | Eloquent Viewable                    | A hosted analytics service      |
+|----------------------------------------------|--------------------------------------|---------------------------------|
+| Order an Eloquent query by views             | `Post::orderByViews()`               | Export, import, keep in sync    |
+| Show "trending" or "readers also read"       | One call                             | Build it on their API           |
+| Count readers with an ad blocker             | Yes, recorded on your server         | Often blocked                   |
+| Show a user what they viewed                 | `$user->viewed()`                    | Not linked to your users        |
+| Where the data lives                         | Your database                        | Their servers                   |
+| Funnels, sessions, referrer reports          | No                                   | Yes                             |
+
+It is not a replacement for product analytics. It answers questions about your models, in the queries you already
+write.
+
+## What it does
+
+<Bento />
 
 ## Start simple, scale when you need to
 
@@ -104,6 +122,17 @@ Out of the box every view is one insert and every count is one query. When traff
 config key at a time. None of them changes how you query.
 
 <ScaleLadder />
+
+## Works with your coding agent
+
+The package ships guidelines and a skill for [Laravel Boost](https://laravel.com/docs/boost), so an agent records
+and counts views the way these docs describe instead of guessing from older versions.
+
+```bash
+php artisan boost:update --discover
+```
+
+[Set up your coding agent](/eloquent-viewable/getting-started/ai-coding-assistants/)
 
 ## Recipes
 
@@ -118,6 +147,4 @@ Complete features built from several parts of the package, each with its code an
 
 [All recipes](/eloquent-viewable/recipes/)
 
-## Requirements
-
-<Requirements />
+<CallToAction />

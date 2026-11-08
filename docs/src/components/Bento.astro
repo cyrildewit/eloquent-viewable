@@ -1,0 +1,176 @@
+---
+// The feature grid on the homepage. Rankings get the large tile because no hosted analytics service can put them
+// inside your own queries; privacy gets the medium one because it decides whether you need a cookie banner.
+import { Icon } from '@astrojs/starlight/components';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+const tiles = [
+	{
+		size: 'large',
+		icon: 'star',
+		title: 'Rankings and recommendations',
+		text: 'The most viewed content, what is trending, rising or spiking, and what readers of this page went on to read. Each recommendation comes with the reason it was made.',
+		list: ['orderByViews()', 'trending()', 'rising()', 'alsoViewed()', 'recommended()'],
+		href: 'rankings/',
+	},
+	{
+		size: 'medium',
+		icon: 'padlock',
+		title: 'Privacy',
+		text: 'Count unique visitors without a cookie, honour Do Not Track and Global Privacy Control, anonymise old views and erase one person’s views on request.',
+		href: 'viewers/',
+	},
+	{
+		icon: 'pencil',
+		title: 'Recording',
+		text: 'From a controller, a route middleware, or the browser when the page comes from a full-page cache. Crawlers, prefetches and repeat views are dropped.',
+		href: 'recording/',
+	},
+	{
+		icon: 'analytics',
+		title: 'Counting',
+		text: 'Total and unique views for any period, compared with the one before and grouped per hour, day, week, month or year.',
+		href: 'counting/',
+	},
+	{
+		size: 'wide',
+		icon: 'laptop',
+		title: 'Live presence',
+		text: '“12 people are viewing this”, kept up to date on cached pages.',
+		href: 'rankings/presence/',
+	},
+	{
+		size: 'wide',
+		icon: 'approve-check',
+		title: 'Testing',
+		text: '`Views::fake()` records in memory and asserts what was recorded. No `views` table needed.',
+		href: 'testing/',
+	},
+] as const;
+
+// Backticks in the text become inline code.
+const format = (text: string) =>
+	text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/`([^`]+)`/g, '<code>$1</code>');
+---
+
+<div class="bento not-content">
+	{tiles.map((tile) => (
+		<a href={base + tile.href} class:list={['tile', 'size' in tile && tile.size]}>
+			<Icon name={tile.icon} size="1.5rem" class="icon" />
+			<h3>{tile.title}</h3>
+			<p set:html={format(tile.text)} />
+			{'list' in tile && (
+				<ul>
+					{tile.list.map((item) => (
+						<li><code>{item}</code></li>
+					))}
+				</ul>
+			)}
+		</a>
+	))}
+</div>
+
+<style>
+	.bento {
+		display: grid;
+		grid-template-columns: 100%;
+		gap: 0.75rem;
+		margin-top: 1.5rem;
+	}
+
+	.tile {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1.25rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	.tile:hover {
+		border-color: var(--sl-color-accent);
+	}
+
+	.large {
+		background:
+			radial-gradient(100% 100% at 0% 0%, color-mix(in srgb, var(--sl-color-accent) 16%, transparent), transparent 70%);
+	}
+
+	.tile :global(.icon) {
+		color: var(--sl-color-accent-high);
+	}
+
+	h3 {
+		margin: 0;
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-lg);
+		font-weight: 600;
+	}
+
+	.large h3 {
+		font-size: var(--sl-text-2xl);
+	}
+
+	p {
+		margin: 0;
+		font-size: var(--sl-text-sm);
+		line-height: 1.5;
+	}
+
+	.large p {
+		font-size: var(--sl-text-base);
+	}
+
+	ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin: auto 0 0;
+		padding: 0.5rem 0 0;
+		list-style: none;
+	}
+
+	code,
+	p :global(code) {
+		font-family: var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+		font-size: 0.85em;
+		padding: 0.1rem 0.35rem;
+		border-radius: 0.25rem;
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-white);
+	}
+
+	@media (min-width: 40rem) {
+		.bento {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.large,
+		.medium {
+			grid-column: span 2;
+		}
+	}
+
+	@media (min-width: 62rem) {
+		.bento {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+
+		.large {
+			grid-column: span 2;
+			grid-row: span 2;
+		}
+
+		.medium,
+		.wide {
+			grid-column: span 2;
+		}
+	}
+</style>

@@ -1,0 +1,79 @@
+---
+// Facts about the current major that CI, composer.json or the docs back up, so nothing on this row turns into a claim.
+// The full requirements table, with older versions, is on getting-started/requirements.
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+const facts = [
+	{ value: 'PHP 8.5+', label: 'and Laravel 13', href: 'getting-started/requirements/', link: 'Older versions' },
+	{ value: '4 databases', label: 'SQLite, MySQL, MariaDB and PostgreSQL, each tested in CI' },
+	{ value: '100%', label: 'line and type coverage, enforced in CI' },
+	{ value: '1 insert', label: 'per thousand views with the Redis buffer', href: 'scaling/redis-buffer/', link: 'How it works' },
+	{ value: 'MIT', label: 'licensed, free to use' },
+];
+---
+
+<ul class="facts not-content">
+	{facts.map((fact) => (
+		<li>
+			<strong>{fact.value}</strong>
+			<span>
+				{fact.label}
+				{fact.href && (
+					<>
+						{' '}
+						<a href={base + fact.href}>{fact.link}</a>
+					</>
+				)}
+			</span>
+		</li>
+	))}
+</ul>
+
+<style>
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+		gap: 0;
+		margin: 1.5rem 0 0;
+		padding: 0;
+		list-style: none;
+		border-block: 1px solid var(--sl-color-gray-5);
+	}
+
+	li {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 1rem;
+		border-inline-start: 1px solid var(--sl-color-gray-5);
+	}
+
+	li:first-child {
+		border-inline-start: 0;
+	}
+
+	strong {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-xl);
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+
+	span {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
+		line-height: 1.4;
+	}
+
+	@media (max-width: 40rem) {
+		li {
+			border-inline-start: 0;
+			border-top: 1px solid var(--sl-color-gray-5);
+			padding-inline: 0;
+		}
+
+		li:first-child {
+			border-top: 0;
+		}
+	}
+</style>

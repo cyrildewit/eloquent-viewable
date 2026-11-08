@@ -1,0 +1,54 @@
+---
+// One tab of the homepage's API showcase: the code in the default slot, what it produces in the `output` slot.
+---
+
+<div class="showcase">
+	<div class="code"><slot /></div>
+	<div class="output not-content">
+		<span class="label">Output</span>
+		<slot name="output" />
+	</div>
+</div>
+
+<style>
+	.showcase {
+		display: grid;
+		grid-template-columns: 100%;
+		gap: 1rem;
+		align-items: stretch;
+	}
+
+	.code {
+		min-width: 0;
+	}
+
+	.code > :global(*) {
+		margin: 0;
+	}
+
+	.output {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		min-width: 0;
+		margin: 0;
+		padding: 1rem;
+		border: 1px dashed var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	.label {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	@media (min-width: 62rem) {
+		.showcase {
+			grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+		}
+	}
+</style>
