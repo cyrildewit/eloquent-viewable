@@ -119,9 +119,12 @@ many views those models have. Three things keep it fast:
   $user->recommended(Post::class, period: Period::pastDays(30));
   ```
 
-- **Add the visitor index** from [Database indexes](/eloquent-viewable/scaling/indexes/). The viewer's own history is read through the
-  `(viewer_type, viewer_id)` index the migration adds.
-- **Turn on [the pairs table](/eloquent-viewable/scaling/pairs-table/)** for heavy traffic.
+- **Add the `(visitor, viewed_at, viewable_type, viewable_id)` index** from
+  [Database indexes](/eloquent-viewable/scaling/indexes/). Without it, every call scans the `views` table for the
+  visitors of each model, and a call for a guest scans it again for the guest's own history. A viewer's history is read
+  through the `(viewer_type, viewer_id)` index the migration adds.
+- **Turn on [the pairs table](/eloquent-viewable/scaling/pairs-table/)** for heavy traffic, with the period you call
+  with among its `periods`, so `Period::pastDays(30)` reads a few rows as well.
 
 To recommend over all time, compute the list outside the request, in a queued job or a scheduled command, and keep it
 with `remember()` or in a table of your own, so a page only reads the result.
