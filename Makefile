@@ -3,7 +3,7 @@
 
 # None of these targets produce a file. `build` in particular would otherwise
 # clash with the build/ directory and never run.
-.PHONY: help build install lint rector ready test test-arch test-unit test-feature test-samples test-lint test-types deptrac-graph test-type-coverage test-coverage test-mutation test-mysql test-mariadb test-pgsql test-valkey test-drivers db-stop bench-db bench-seed bench-indexes bench bench-baseline bench-compare bench-explain bench-describe
+.PHONY: help build install lint rector ready test test-arch test-unit test-feature test-samples test-lint test-types deptrac-graph test-type-coverage test-coverage test-mutation test-mysql test-mariadb test-pgsql test-valkey test-drivers db-stop bench-db bench-seed bench-indexes bench bench-baseline bench-compare bench-explain bench-describe docs-install docs-dev docs-build docs-preview
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-40s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -146,3 +146,20 @@ bench-explain: bench-db ## Print the SQL and query plan of every read benchmark,
 
 bench-describe: bench-db ## Print the seeded dataset and the database as JSON, ARGS=--output=<file> writes a file
 	$(BENCH_RUN) bench:describe -- $(ARGS)
+
+##@ [Documentation]
+# The Starlight site in docs/, built by the `node` service. `make docs-dev`
+# serves it on http://localhost:4321/eloquent-viewable/ with live reload.
+DOCS_RUN = docker compose --profile docs run --rm
+
+docs-install: ## Install the documentation site's npm dependencies
+	$(DOCS_RUN) node ci
+
+docs-dev: ## Serve the documentation site with live reload on port 4321
+	$(DOCS_RUN) --service-ports node run dev
+
+docs-build: ## Build the documentation site to docs/dist and fail on a broken link
+	$(DOCS_RUN) node run build
+
+docs-preview: ## Serve the built documentation site on port 4321
+	$(DOCS_RUN) --service-ports node run preview

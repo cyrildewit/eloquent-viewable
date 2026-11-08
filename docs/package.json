@@ -1,0 +1,19 @@
+{
+  "name": "eloquent-viewable-docs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev --host",
+    "build": "astro build",
+    "preview": "astro preview --host",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.7",
+    "astro": "7.4.2",
+    "astro-mermaid": "2.2.0",
+    "mermaid": "12.2.0",
+    "sharp": "0.35.5",
+    "starlight-links-validator": "0.27.0"
+  }
+}
