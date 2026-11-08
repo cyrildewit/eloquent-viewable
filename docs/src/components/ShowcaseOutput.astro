@@ -1,0 +1,287 @@
+---
+// What the code in each tab of the homepage's API showcase produces, drawn from fixed sample data. The numbers match
+// the comments in the code next to them in index.mdx.
+interface Props {
+	kind: 'record' | 'count' | 'chart' | 'rank';
+}
+
+const { kind } = Astro.props;
+
+const requests = [
+	{ time: '10:00:02', who: 'Googlebot/2.1', result: 'Skipped', reason: 'crawler' },
+	{ time: '10:00:05', who: 'Chrome, link prefetch', result: 'Skipped', reason: 'prefetch' },
+	{ time: '10:00:06', who: 'Chrome, visitor 7f3a', result: 'Recorded', reason: '' },
+	{ time: '10:04:31', who: 'Chrome, visitor 7f3a', result: 'Skipped', reason: 'cooldown' },
+];
+
+const counts = [
+	{ label: 'All time', value: '48,920' },
+	{ label: 'Unique, past 7 days', value: '912' },
+	{ label: 'Past 7 days, against the week before', value: '+17.2%', note: '1,284 against 1,096' },
+];
+
+// Daily views in October, with the newsletter going out on the 18th.
+const series = [
+	41, 44, 47, 43, 30, 28, 46, 49, 52, 50, 48, 33, 31, 53, 56, 58, 55, 124, 96, 61, 40, 38, 60, 63, 65, 62, 59, 42, 40, 66, 64,
+];
+const chart = { width: 300, height: 120, gap: 2 };
+const peak = Math.max(...series);
+const barWidth = (chart.width - chart.gap * (series.length - 1)) / series.length;
+
+const trending = [
+	'Why we moved to Postgres',
+	'A field guide to queue workers',
+	'Rate limiting without Redis',
+	'Shipping on a Friday',
+	'Notes on cache invalidation',
+];
+const alsoViewed = ['Postgres indexes, explained', 'Zero-downtime migrations', 'Choosing a primary key'];
+---
+
+{
+	kind === 'record' && (
+		<ol class="log">
+			{requests.map((request) => (
+				<li>
+					<time>{request.time}</time>
+					<span class="who">{request.who}</span>
+					<span class:list={['badge', request.result === 'Recorded' ? 'yes' : 'no']}>
+						{request.result}
+						{request.reason && <span class="reason"> · {request.reason}</span>}
+					</span>
+				</li>
+			))}
+		</ol>
+	)
+}
+
+{
+	kind === 'count' && (
+		<dl class="counts">
+			{counts.map((count) => (
+				<div>
+					<dt>{count.label}</dt>
+					<dd>
+						{count.value}
+						{count.note && <small>{count.note}</small>}
+					</dd>
+				</div>
+			))}
+		</dl>
+	)
+}
+
+{
+	kind === 'chart' && (
+		<figure class="chart">
+			<svg
+				viewBox={`0 0 ${chart.width} ${chart.height + 16}`}
+				role="img"
+				aria-label="A bar chart of daily views in October 2026, around 50 a day with a peak of 124 on the 18th"
+			>
+				{series.map((value, i) => {
+					const height = (value / peak) * chart.height;
+					return (
+						<rect
+							x={i * (barWidth + chart.gap)}
+							y={chart.height - height}
+							width={barWidth}
+							height={height}
+							rx="1.5"
+							class:list={{ peak: value === peak }}
+						/>
+					);
+				})}
+				<text x="0" y={chart.height + 13}>1 Oct</text>
+				<text x={chart.width / 2} y={chart.height + 13} text-anchor="middle">16 Oct</text>
+				<text x={chart.width} y={chart.height + 13} text-anchor="end">31 Oct</text>
+			</svg>
+			<figcaption>124 views on the 18th, the day the newsletter went out.</figcaption>
+		</figure>
+	)
+}
+
+{
+	kind === 'rank' && (
+		<div class="ranks">
+			<div>
+				<h4>Trending this week</h4>
+				<ol>
+					{trending.map((title) => (
+						<li>{title}</li>
+					))}
+				</ol>
+			</div>
+			<div>
+				<h4>Readers also read</h4>
+				<ul>
+					{alsoViewed.map((title) => (
+						<li>{title}</li>
+					))}
+				</ul>
+			</div>
+		</div>
+	)
+}
+
+<style>
+	.log,
+	.ranks ol,
+	.ranks ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.log {
+		display: grid;
+		gap: 0.5rem;
+	}
+
+	.log li {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.15rem 0.75rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid var(--sl-color-gray-6);
+	}
+
+	.log li:last-child {
+		border-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	time {
+		grid-row: span 2;
+		font-family: var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+		padding-top: 0.15rem;
+	}
+
+	.who {
+		color: var(--sl-color-white);
+	}
+
+	.badge {
+		justify-self: start;
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+	}
+
+	.badge.yes {
+		color: #16a34a;
+	}
+
+	.badge.no {
+		color: var(--sl-color-gray-3);
+	}
+
+	.reason {
+		font-weight: 400;
+	}
+
+	.counts {
+		display: grid;
+		gap: 0.75rem;
+		margin: 0;
+	}
+
+	.counts dt {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+	}
+
+	.counts dd {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin: 0;
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-2xl);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.counts small {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+		font-weight: 400;
+	}
+
+	.chart {
+		margin: 0;
+	}
+
+	.chart svg {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.chart rect {
+		fill: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+	}
+
+	.chart rect.peak {
+		fill: var(--sl-color-accent);
+	}
+
+	.chart text {
+		fill: var(--sl-color-gray-3);
+		font-size: 9px;
+	}
+
+	figcaption {
+		margin-top: 0.5rem;
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+	}
+
+	.ranks {
+		display: grid;
+		gap: 1rem;
+	}
+
+	h4 {
+		margin: 0 0 0.4rem;
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+	}
+
+	.ranks ol {
+		counter-reset: rank;
+	}
+
+	.ranks li {
+		padding: 0.3rem 0;
+		color: var(--sl-color-white);
+		border-bottom: 1px solid var(--sl-color-gray-6);
+	}
+
+	.ranks li:last-child {
+		border-bottom: 0;
+	}
+
+	.ranks ol li {
+		counter-increment: rank;
+	}
+
+	.ranks ol li::before {
+		content: counter(rank);
+		display: inline-block;
+		width: 1.5rem;
+		color: var(--sl-color-accent-high);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.ranks ul li::before {
+		content: '→';
+		display: inline-block;
+		width: 1.5rem;
+		color: var(--sl-color-gray-3);
+	}
+</style>
