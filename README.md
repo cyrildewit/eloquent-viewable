@@ -2021,8 +2021,8 @@ your config relies on, and all three once the table passes a million rows:
 - `(viewable_type, viewed_at)` speeds up counts over a whole type within a period, such as
   `views(Post::class)->countByInterval()`, and `rising()`, `anomalies()` and `views:detect-spikes`, which count every
   window of a type.
-- `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()` and `recommended()` find the views of each
-  visitor they pair without scanning the table.
+- `(visitor, viewed_at, viewable_type, viewable_id)` lets `alsoViewed()`, `recommended()` and `views:pairs` find the
+  views of each visitor they pair without scanning the table.
 
 ### Retention
 
