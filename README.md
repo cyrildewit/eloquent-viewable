@@ -2068,6 +2068,10 @@ What to know:
 - **A run forgets every remembered count** when it changed a view, and dispatches `Retention\Events\ViewsAnonymised`
   or `ViewsPruned`.
 - **A command throws `Retention\Exceptions\RetentionNotInstalled`** when the migrations have not run.
+- **Pruning does not return disk space.** MySQL and MariaDB keep the pages of deleted rows for new ones, so the table
+  stops growing once pruning keeps up, but does not shrink. It only shrinks after `OPTIMIZE TABLE`, which rebuilds the
+  table and locks it on older MySQL versions, or when whole partitions are dropped, see
+  [partitioning the views table](#partitioning-the-views-table).
 
 ### Rollups
 
