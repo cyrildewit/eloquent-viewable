@@ -177,9 +177,12 @@ final readonly class RollupPolicy
 
     /**
      * A definition per dimension in `retention.rollups.dimensions`, with the
-     * tiers and groupings of the built-in rollup. The dimension registry is
-     * only built when `retention.rollups.dimensions` lists a dimension, so a
-     * policy without dimension rollups builds nothing extra at boot.
+     * groupings of the built-in rollup and its tiers, or the ones the
+     * dimension lists. Those keep the built-in rollup's durations, so they
+     * already keep a coarser tier at least as long as a finer one. The
+     * dimension registry is only built when `retention.rollups.dimensions`
+     * lists a dimension, so a policy without dimension rollups builds nothing
+     * extra at boot.
      *
      * @param  array<'hour'|'day'|'month'|'year', ?Duration>  $tiers
      * @return list<RollupDefinition>
@@ -188,9 +191,9 @@ final readonly class RollupPolicy
      */
     private static function dimensions(Config $config, array $tiers, Container $container): array
     {
-        $names = $config->rollupDimensions();
+        $dimensions = $config->rollupDimensions();
 
-        if ($names === []) {
+        if ($dimensions === []) {
             return [];
         }
 
@@ -202,12 +205,12 @@ final readonly class RollupPolicy
         $groupings = array_map(Grouping::from(...), $config->rollupGroupings());
         $definitions = [];
 
-        foreach (array_unique($names) as $name) {
+        foreach ($dimensions as $name => $kept) {
             $dimension = $registry->find($name) ?? throw InvalidConfiguration::unknownDimension('retention.rollups.dimensions', $name);
 
             $definitions[] = new RollupDefinition(
                 self::DimensionPrefix.$name,
-                self::ordered($tiers),
+                self::ordered(self::dimensionTiers($name, $tiers, $kept)),
                 $groupings,
                 dimension: $dimension->target(),
                 maxValues: $dimension->maxValues(),
@@ -215,6 +218,32 @@ final readonly class RollupPolicy
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param  array<'hour'|'day'|'month'|'year', ?Duration>  $tiers
+     * @param  ?list<'hour'|'day'|'month'|'year'>  $kept
+     * @return array<'hour'|'day'|'month'|'year', ?Duration>
+     *
+     * @throws InvalidConfiguration
+     */
+    private static function dimensionTiers(string $name, array $tiers, ?array $kept): array
+    {
+        if ($kept === null) {
+            return $tiers;
+        }
+
+        $subset = [];
+
+        foreach ($kept as $tier) {
+            if (! array_key_exists($tier, $tiers)) {
+                throw InvalidConfiguration::dimensionTierNotKept($name, $tier);
+            }
+
+            $subset[$tier] = $tiers[$tier];
+        }
+
+        return $subset;
     }
 
     /**

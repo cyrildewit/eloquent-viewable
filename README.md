@@ -1782,6 +1782,22 @@ Each gets a rollup of its own, `views:source`, with the tiers and groupings of t
 `whereDimension()` read it together with the views table. A dimension left out is only counted while its views are in
 the views table.
 
+The hour tier of a dimension splits every hour by every value, so it soon holds most of the rollup rows. Leave it out
+of a dimension you do not read by the hour:
+
+```php
+'dimensions' => [
+    'source',                                     // every tier
+    'country' => ['tiers' => ['day', 'month']],   // no hour tier
+],
+```
+
+The tiers must be listed in `retention.rollups.tiers` and are kept as long as they are there. A series by the hour of
+that dimension, such as `whereDimension('country', 'NL')->countByInterval(Granularity::Hour)`, reads the views table,
+and once its views are pruned it counts nothing. Trending, rising and spike baselines read the hourly totals of the
+built-in rollup, so they are not affected. The next `views:maintain` drops the hour rows a dimension already has, and
+`views:doctor` advises this once a dimension's hour tier passes 100,000 rows.
+
 What to know:
 
 - **Each bucket keeps a dimension's top values.** The rest is folded into `other()`, so a campaign with an id per link

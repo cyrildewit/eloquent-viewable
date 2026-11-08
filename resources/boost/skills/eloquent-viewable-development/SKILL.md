@@ -120,6 +120,7 @@ final class PlanDimension extends Dimension
 - Keep a value short and of few distinct values: it is cut at 64 characters.
 - Give a dimension that can identify a person `'personal' => true` in config; anonymising clears it.
 - List a dimension under `retention.rollups.dimensions` to keep its history once views are pruned. Combining two dimensions in one count then only works while the views are still in the table.
+- Leave out the `hour` tier of a dimension nobody reads by the hour: `'country' => ['tiers' => ['day', 'month']]`. Its tiers must be listed in `retention.rollups.tiers`.
 - In tests, seed values with `View::factory()->withDimensions(['source' => 'Google'])`.
 
 ## Ranking and Scopes
