@@ -81,6 +81,6 @@ lessons of one course from writing a row per click; the course still moves to th
 - Show progress per course by recording each lesson into a [view collection](../../README.md#view-collections) and
   counting with `views($course)->collection('lessons')->viewedBy($learner)->count()`.
 - Let learners clear their history. `$learner->viewed()->update(['viewer_type' => null, 'viewer_id' => null])` forgets
-  who viewed what and keeps the course counts. See [deleting a user](../../README.md#deleting-a-user).
+  who viewed what and keeps the course counts. See [erasing one person's views](../../README.md#erasing-one-persons-views).
 - Narrow "not opened yet" to the last month, so courses a learner ignored for a year come back:
   `Course::whereNotViewedBy($learner, Period::pastMonths(1))`.
