@@ -71,6 +71,16 @@ services:
       interval: 2s
       retries: 20
 
+  # `make test-valkey` starts this and points `REDIS_HOST` at it, to run the
+  # Redis tests against Valkey instead.
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: valkey-server --databases 128
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      retries: 20
+
   # `make test-mysql`, `make test-mariadb` and `make test-pgsql` start these and
   # run the suite against them. By hand, for example:
   #   DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test
