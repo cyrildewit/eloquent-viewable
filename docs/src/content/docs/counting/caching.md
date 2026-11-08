@@ -1,6 +1,6 @@
 ---
 title: "Caching"
-description: "Add remember() with a lifetime to cache a count, a series or a ranking."
+description: "Cache view counts, chart series and rankings with remember(), with an optional stale window, so busy pages don't query the views table on every request."
 sidebar:
   order: 4
 ---

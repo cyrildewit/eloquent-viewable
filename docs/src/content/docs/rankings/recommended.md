@@ -1,6 +1,6 @@
 ---
 title: "Recommended for you"
-description: "A \"Recommended for you\" row on a home page or below an article."
+description: "Show each visitor a \"Recommended for you\" row, built from what visitors with similar views went on to view, with the reason for every pick."
 sidebar:
   order: 6
 ---

@@ -70,14 +70,25 @@ function rewriteLinks(text, from, samples) {
 	});
 }
 
-function firstSentence(markdown) {
+function firstParagraph(markdown) {
 	const paragraph = mapProse(markdown, (p) => p)
 		.split(/\n\s*\n/)
 		.map((p) => p.trim())
 		.find((p) => p && !/^(#|```|\||-|>|:::|<)/.test(p));
-	if (!paragraph) return undefined;
-	const plain = paragraph.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[`*]/g, '');
-	return plain.match(/^(.+?[.:])(\s|$)/)?.[1].replace(/:$/, '.') ?? plain;
+	return paragraph?.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[`*]/g, '');
+}
+
+// As many whole sentences of the first paragraph as fit in a search result snippet. A first sentence that is too
+// long on its own is cut at its colon, which in these READMEs ends the setup and starts the details.
+function summary(markdown, suffix, limit = 160) {
+	const sentences = firstParagraph(markdown)?.split(/(?<=[.!?])\s+/) ?? [];
+	let text = sentences.shift() ?? '';
+	if (text.length > limit) text = text.replace(/:.*$/, '.');
+	for (const sentence of sentences) {
+		if (`${text} ${sentence}`.length > limit) break;
+		text = `${text} ${sentence}`;
+	}
+	return `${text} ${suffix}`.length <= limit ? `${text} ${suffix}` : text;
 }
 
 function write(file, frontmatter, body) {
@@ -105,7 +116,7 @@ samples.forEach((sample, i) => {
 	const body = convert(markdown, `samples/${sample}`, samples);
 	write(path.join(content, 'recipes', `${kebab(sample)}.md`), {
 		title: markdown.match(/^# (.+)$/m)?.[1] ?? sample,
-		description: firstSentence(body),
+		description: summary(body, 'A Laravel recipe with the full code and a Pest test.'),
 		sidebar: { order: i + 1 },
 		editUrl: `${repository}/edit/${branch}/samples/${sample}/README.md`,
 	}, `${body}
@@ -121,7 +132,7 @@ const upgrading = fs.readFileSync(path.join(root, 'UPGRADING.md'), 'utf8')
 	.replace(/^## Table of contents\n+(?:- .*\n)+/m, '');
 write(path.join(content, 'project/upgrading.md'), {
 	title: 'Upgrade guide',
-	description: 'What changed between major versions, and what to change in your application.',
+	description: 'Upgrade Eloquent Viewable from one major version to the next: what changed, what broke and what to change in your Laravel application.',
 	editUrl: `${repository}/edit/${branch}/UPGRADING.md`,
 	tableOfContents: { maxHeadingLevel: 3 },
 }, convert(upgrading, '', samples));
@@ -164,7 +175,7 @@ const configBody = banners.map((match, i) => {
 
 write(path.join(content, 'reference/configuration.md'), {
 	title: 'Configuration',
-	description: 'Every option of config/eloquent-viewable.php, with its default.',
+	description: 'Every option of config/eloquent-viewable.php, with its default and the comment that explains it, grouped the way the published file is.',
 	sidebar: { order: 1 },
 	editUrl: `${repository}/edit/${branch}/config/eloquent-viewable.php`,
 }, `Publish the config file to change an option. Everything left out keeps the default shown here.
@@ -261,7 +272,7 @@ const commandBody = commands.map(({ file, name, description, parameters }) => {
 
 write(path.join(content, 'reference/commands.md'), {
 	title: 'Artisan commands',
-	description: 'Every views:* command, with its arguments and options.',
+	description: 'Every views:* Artisan command Eloquent Viewable ships, with its arguments and options and a link to the page that explains when to run it.',
 	sidebar: { order: 2 },
 }, `Most applications schedule one command, \`views:maintain\`, which rolls up, anonymises and deletes old views and
 recounts counter columns as the config asks. Add \`views:flush\` with the [Redis buffer](${base}/scaling/redis-buffer/),

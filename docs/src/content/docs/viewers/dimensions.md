@@ -1,6 +1,6 @@
 ---
 title: "Dimensions"
-description: "Dimensions count views by where they came from and who saw them."
+description: "Count views by source, medium, campaign, device, country or a value of your own, each stored in a column of its own so a breakdown is one query."
 sidebar:
   order: 4
 ---

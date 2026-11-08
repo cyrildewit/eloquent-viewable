@@ -1,6 +1,6 @@
 ---
 title: "Recording guards"
-description: "A guard decides whether a call to record() becomes a view."
+description: "A recording guard decides whether a call to record() becomes a view. Add your own to skip staff accounts, internal traffic or anything else."
 sidebar:
   order: 5
 ---

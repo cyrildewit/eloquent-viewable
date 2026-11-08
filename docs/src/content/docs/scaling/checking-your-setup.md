@@ -1,6 +1,6 @@
 ---
 title: "Checking your setup"
-description: "views:doctor looks at the setup and says what to fix."
+description: "Run php artisan views:doctor to check your Eloquent Viewable setup, from the queue connection to missing indexes, and see what to fix."
 sidebar:
   order: 1
 ---

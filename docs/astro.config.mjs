@@ -5,6 +5,7 @@ import mermaid from 'astro-mermaid';
 import starlightLinksValidator from 'starlight-links-validator';
 
 const repository = 'https://github.com/cyrildewit/eloquent-viewable';
+const socialImage = 'https://cyrildewit.github.io/eloquent-viewable/og.png';
 
 // Served from GitHub Pages under the repository name. Links in the content
 // carry the base too, so a custom domain means changing both.
@@ -23,6 +24,14 @@ export default defineConfig({
 			social: [{ icon: 'github', label: 'GitHub', href: repository }],
 			editLink: { baseUrl: `${repository}/edit/9.x/docs/` },
 			lastUpdated: true,
+			// Starlight sets twitter:card to summary_large_image, which shows nothing without an image.
+			head: [
+				{ tag: 'meta', attrs: { property: 'og:image', content: socialImage } },
+				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'Eloquent Viewable: view counts, trends and rankings for Eloquent models' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: socialImage } },
+			],
 			customCss: ['./src/styles/custom.css'],
 			components: { Hero: './src/components/Hero.astro' },
 			plugins: [starlightLinksValidator()],

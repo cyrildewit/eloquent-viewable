@@ -1,6 +1,6 @@
 ---
 title: "Preparing your model"
-description: "Implement the Viewable interface and use the InteractsWithViews trait."
+description: "Make an Eloquent model viewable by implementing the Viewable interface and using the InteractsWithViews trait, so you can record and count its views."
 sidebar:
   order: 3
 ---

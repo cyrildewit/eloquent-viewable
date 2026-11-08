@@ -1,6 +1,6 @@
 ---
 title: "Recording without a cookie"
-description: "Count unique visitors without a cookie, with a daily rotating fingerprint."
+description: "Count unique visitors without a cookie, and without a cookie banner for it, using a visitor fingerprint that rotates every day."
 sidebar:
   order: 3
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Custom visitor information"
-description: "The Visitor class reads the current visitor from the request."
+description: "The Visitor class reads the visitor's id, IP address, user agent and privacy signals from the request. Provide your own, for example on an API."
 sidebar:
   order: 1
 ---

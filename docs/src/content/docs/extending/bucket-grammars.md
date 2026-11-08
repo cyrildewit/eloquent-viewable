@@ -1,6 +1,6 @@
 ---
 title: "Bucket grammars"
-description: "Teach countByInterval() to group by time on another database driver."
+description: "Teach countByInterval() to group views per hour, day, week, month or year on a database driver the package doesn't support yet, such as SQL Server."
 sidebar:
   order: 9
 ---
