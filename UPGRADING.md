@@ -187,8 +187,7 @@ public function shouldRemoveViewsOnDelete(): bool
 }
 ```
 
-The property is no longer read. A model that implements `Viewable` without the `InteractsWithViews` trait has to add
-the method.
+A model that implements `Viewable` without the `InteractsWithViews` trait has to add the method.
 
 ### Behaviour changes to check
 
