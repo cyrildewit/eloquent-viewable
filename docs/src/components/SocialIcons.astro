@@ -1,0 +1,81 @@
+---
+// Starlight's social links, with the GitHub one drawn as a pill that carries the repository's star count.
+import config from 'virtual:starlight/user-config';
+import { Icon } from '@astrojs/starlight/components';
+import { formatStars, stars } from '../github-stars';
+
+const links = config.social || [];
+const count = await stars;
+---
+
+{
+	links.map(({ label, href, icon }) =>
+		icon === 'github' && count !== null ? (
+			<a {href} rel="me" class="pill sl-flex" title={`${count.toLocaleString('en')} stars on GitHub`}>
+				<Icon name="github" size="1.1rem" />
+				<span class="divider" aria-hidden="true" />
+				<Icon name="star" size="0.85rem" class="star" />
+				<span class="count">{formatStars(count)}</span>
+				<span class="sr-only">{label}, {count} stars</span>
+			</a>
+		) : (
+			<a {href} rel="me" class="icon sl-flex">
+				<span class="sr-only">{label}</span>
+				<Icon name={icon} />
+			</a>
+		)
+	)
+}
+
+<style>
+	a {
+		align-items: center;
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+	}
+
+	.icon {
+		padding: 0.5em;
+		margin: -0.5em;
+	}
+
+	.icon:hover {
+		color: var(--sl-color-white);
+	}
+
+	.pill {
+		gap: 0.45rem;
+		height: 2rem;
+		padding: 0 0.7rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 999px;
+		color: var(--sl-color-gray-2);
+		transition:
+			background-color 0.15s,
+			border-color 0.15s,
+			color 0.15s;
+	}
+
+	.pill:hover {
+		border-color: var(--sl-color-gray-4);
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-white);
+	}
+
+	.divider {
+		width: 1px;
+		height: 1rem;
+		background: var(--sl-color-gray-5);
+	}
+
+	.pill :global(.star) {
+		color: #e3b341;
+	}
+
+	.count {
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+</style>

@@ -33,7 +33,10 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: socialImage } },
 			],
 			customCss: ['./src/styles/custom.css'],
-			components: { Hero: './src/components/Hero.astro' },
+			components: {
+				Hero: './src/components/Hero.astro',
+				SocialIcons: './src/components/SocialIcons.astro',
+			},
 			plugins: [starlightLinksValidator()],
 			sidebar: [
 				{ label: 'Getting started', items: [{ autogenerate: { directory: 'getting-started' } }] },
