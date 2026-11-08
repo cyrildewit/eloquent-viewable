@@ -210,7 +210,7 @@ The `redis` store benchmarks talk to the `redis` service every `composer` run st
 
 `BenchCase` boots that application and loads the dataset description, once per benchmark process and outside the
 timed region. It refuses to run while Xdebug is active, since it would slow everything down several times over. The
-containers do not install Xdebug, and the Make targets turn PCOV and OPcache off.
+containers do not install Xdebug, and the Make targets turn PCOV off.
 
 The bench databases sit behind the `bench` Docker Compose profile, so the test targets never start them, and they get
 a bigger buffer pool and shared buffers than the defaults. Without that, a medium dataset's indexes do not fit in
