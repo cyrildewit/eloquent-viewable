@@ -77,9 +77,8 @@ final readonly class ForgetChangedCounts
     }
 
     /**
-     * A fold or a rebuild of the pairs only adds to what a remembered count
-     * read, so every entry is marked stale rather than forgotten. A read with
-     * a stale window keeps serving it while it counts again.
+     * A fold or a rebuild of the pairs only adds views to what an entry
+     * counted, so every entry is marked stale instead of forgotten.
      */
     public function viewsSummarised(): void
     {

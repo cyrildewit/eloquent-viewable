@@ -27,7 +27,6 @@ function cacheVersions(CacheRepository $cache): CacheVersions
     return new CacheVersions($cache, new Config(new Repository(['eloquent-viewable' => ['querying' => ['cache' => ['key' => 'views']]]])));
 }
 
-/** A store that cannot lock, as some third-party stores. */
 function storeWithoutLocks(): Store
 {
     return new readonly class implements Store
@@ -123,7 +122,6 @@ beforeEach(function (): void {
     $this->cache = new CacheRepository(new ArrayStore);
     $this->versioned = versionedCache($this->cache);
 
-    // Fresh for ten minutes, kept for an hour.
     $this->lifetime = fn (): Lifetime => new Lifetime(Carbon::now()->addMinutes(10), Carbon::now()->addHour());
 });
 

@@ -555,10 +555,8 @@ class Views
     }
 
     /**
-     * An integer is a number of minutes. With `$stale`, the entry is kept until
-     * then, measured from now like the lifetime, as `Cache::flexible()` does.
-     * A read past the lifetime returns the entry at once and counts again
-     * after the response.
+     * An integer is a number of minutes. `$stale` is measured from now like the
+     * lifetime, as in `Cache::flexible()`, so it must end after it.
      *
      * @throws InvalidLifetime
      */

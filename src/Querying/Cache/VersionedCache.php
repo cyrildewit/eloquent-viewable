@@ -145,9 +145,6 @@ final readonly class VersionedCache
     }
 
     /**
-     * Read each planned entry with the versions it depends on, in one round
-     * trip, and stamp it with their current values.
-     *
      * @template TId of int|string
      *
      * @param  array<TId, array{key: string, versions: list<string>}>  $plan
@@ -178,7 +175,8 @@ final readonly class VersionedCache
     }
 
     /**
-     * Read the entries, the versions and the refresh version in one round trip.
+     * The entries and their versions are read in one round trip, because
+     * every remembered read pays for it.
      *
      * @param  list<string>  $keys
      * @param  list<string>  $versionKeys
@@ -259,8 +257,7 @@ final readonly class VersionedCache
     }
 
     /**
-     * Whether the entry still holds for what it depends on. A current entry
-     * may be stale.
+     * A current entry can still be stale. See isFresh().
      *
      * @param  Stamp  $stamp
      *

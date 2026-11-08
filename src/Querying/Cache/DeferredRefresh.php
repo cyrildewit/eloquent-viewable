@@ -11,15 +11,14 @@ use Illuminate\Support\Defer\DeferredCallback;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
 
 /**
- * Runs the refresh of a stale entry through Laravel's deferred callbacks:
- * after the response, or when the job or command ends. It runs also when
- * the request failed, because the entry is stale either way. One name is
- * refreshed once per request, and Laravel reports a refresh that throws, so
- * the stale entry stays until it expires.
+ * A refresh also runs when the request failed, because the entry is stale
+ * either way. Laravel keeps one callback per name, so a request refreshes an
+ * entry once however often it reads it.
  *
- * The collection is looked up on every call, because it is scoped to the
- * request. Without one, as outside a Laravel application, the refresh runs
- * at once.
+ * The collection is looked up on every call because it is scoped to the
+ * request, and an Octane worker would otherwise keep the first one. Outside a
+ * Laravel application nothing runs deferred callbacks, so the refresh runs at
+ * once.
  *
  * @internal
  */
