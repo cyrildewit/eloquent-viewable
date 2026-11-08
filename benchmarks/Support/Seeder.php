@@ -465,22 +465,11 @@ final class Seeder
         Output::line(sprintf('Built the indexes in %s.', Output::elapsed($startedAt)));
     }
 
-    /**
-     * Refresh the planner statistics, so the query plans the benchmarks and
-     * `make bench-explain` get are the ones a production table would get.
-     * Postgres also needs a vacuum to set the visibility map, without which
-     * it never chooses an index-only scan over a freshly loaded table.
-     */
     private function analyze(): void
     {
         $startedAt = microtime(true);
 
-        match ($this->connection->getDriverName()) {
-            'sqlite' => $this->connection->statement("analyze {$this->table}"),
-            'pgsql' => $this->connection->statement("vacuum analyze {$this->table}"),
-            'mysql', 'mariadb' => $this->connection->statement("analyze table {$this->table}"),
-            default => null,
-        };
+        Statistics::refresh($this->connection, $this->table);
 
         Output::line(sprintf('Refreshed the statistics in %s.', Output::elapsed($startedAt)));
     }
