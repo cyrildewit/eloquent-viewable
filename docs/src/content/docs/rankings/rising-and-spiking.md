@@ -70,11 +70,11 @@ To hear about a spike rather than look for one, list the models to watch and sch
 'spikes' => [
     'types' => [
         Post::class => [
-            'window' => '1h',        // whole hours, or `1d`
+            'window' => '1h',        // hours or days, up to the seasonality
             'seasonality' => 'week', // or `day`
             'samples' => 4,
             'threshold' => 3.0,
-            'minimum' => 50,
+            'minimum' => 10,
             'drops' => true,         // off by default
             'cooldown' => '6h',
         ],

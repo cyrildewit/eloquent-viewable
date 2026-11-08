@@ -29,6 +29,7 @@ php artisan views:doctor
 | Legacy config       | `legacy-config`   | top-level keys of a v8 config, which v9 ignores, and a `cooldown` block without a `store`                    |
 | Database schema     | `schema`          | the views table, its columns and indexes, and the retention, rollup and counter columns in use               |
 | Optional indexes    | `index-advice`    | the [optional indexes](/eloquent-viewable/scaling/indexes/) the config relies on or a large table would use                    |
+| Dimensions          | `dimensions`      | that a capped [dimension rollup](/eloquent-viewable/viewers/dimensions/#dimensions-in-rollups) has MySQL 8.0, that no personal dimension is folded, and how far back and how large each one's rollup is |
 | Rollups             | `rollups`         | that every rollup counts the views it should, which anonymising and pruning wait for                         |
 | Shared cache stores | `shared-cache`    | that cooldowns, the throttle, the burst guard, the fingerprint salt and remembered counts use a shared store |
 | Scheduler           | `schedule`        | that `views:maintain` or `MaintainViewsJob`, and `views:flush`, are scheduled when something needs them      |

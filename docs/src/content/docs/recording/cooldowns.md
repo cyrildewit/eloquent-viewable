@@ -72,8 +72,8 @@ Set `cooldown.store` to `cache` to keep them in a cache store instead:
 ```
 
 This works without a session. Use a cache store that all your servers share, such as Redis, rather than `file` or
-`array`. With [`visitor.identity`](/eloquent-viewable/viewers/who-viewed-what/#counting-one-account-as-one-visitor) set to `viewer`, a signed-in reader is one visitor on
-every device, so the cooldown follows their account.
+`array`. With [`visitor.identity`](/eloquent-viewable/viewers/who-viewed-what/#counting-one-account-as-one-visitor) set to `viewer` and the viewer recorded, a signed-in reader is one
+visitor on every device, so the cooldown follows their account.
 
 :::note
 Two requests that arrive at the same moment can both be recorded, because neither has started the cooldown yet when

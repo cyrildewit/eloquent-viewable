@@ -23,5 +23,7 @@ complete features you would build in a real application, each one a few files yo
   guides and podcast episodes.
 - [**Privacy-first analytics**](/eloquent-viewable/recipes/privacy-first-analytics/): counting readers of a docs site without cookies, IP
   addresses or a cookie banner.
+- [**Author digest**](/eloquent-viewable/recipes/author-digest/): a Monday mail that tells every author how their writing did last week,
+  in their own timezone.
 
 Every sample comes with a Pest test that runs with the rest of the suite, so the code you copy is code that works.

@@ -53,7 +53,7 @@ config has no column.
 A referrer from the application itself, the host of `app.url` or of the request, counts as no referrer. List other
 hosts of your own under `dimensions.internal_hosts`.
 
-The package ships a list of about 160 referring hosts: search engines, social networks, AI assistants, webmail and
+The package ships a list of about 140 referring hosts: search engines, social networks, AI assistants, webmail and
 aggregators. A host it does not know is counted by its own name. Add or override hosts, and `utm_source` spellings:
 
 ```php

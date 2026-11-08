@@ -28,11 +28,12 @@ Both commands take `--chunk` and ask for confirmation in production unless given
 `Erasure\Subject::viewerKey($type, $key)` and `Subject::visitor($id)` name the same people for the actions in
 `Erasure\Actions`.
 
-`exportViewHistory()` returns a lazy collection of the views, oldest first, so a long history is read in chunks:
+`exportViewHistory()` returns a lazy collection of the views, oldest first, so a long history is read in chunks.
+`dimensions` holds the value of every [dimension](/eloquent-viewable/viewers/dimensions/) with a column, and is empty without one:
 
 ```php
 $user->exportViewHistory()->toJson();
-// [{"viewable_type":"App\\Models\\Post","viewable_id":12,"collection":null,"context":{"source":"newsletter"},"viewed_at":"2026-10-01T09:12:00+00:00"}]
+// [{"viewable_type":"App\\Models\\Post","viewable_id":12,"collection":null,"context":{"source":"newsletter"},"dimensions":{"device":"mobile"},"viewed_at":"2026-10-01T09:12:00+00:00"}]
 ```
 
 What to know:
