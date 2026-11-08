@@ -133,6 +133,7 @@ it('runs the shipped checks in order', function (): void {
     $report = json_decode(Artisan::output(), true);
 
     expect(array_map(fn (array $check): string => "{$check['check']}: {$check['name']}", $report['checks']))->toBe([
+        'legacy-config: Legacy config',
         'schema: Database schema',
         'index-advice: Optional indexes',
         'dimensions: Dimensions',
@@ -144,4 +145,14 @@ it('runs the shipped checks in order', function (): void {
         'crawler-share: Refused attempts',
         'configuration: Configuration',
     ]);
+});
+
+it('fails on a config published from v8', function (): void {
+    config()->set('eloquent-viewable.honor_dnt', true);
+    config()->set('eloquent-viewable.cooldown', ['key' => 'cyrildewit.eloquent-viewable.cooldowns']);
+
+    $this->artisan('views:doctor', ['--only' => ['legacy-config']])
+        ->expectsOutputToContain('`honor_dnt` is a v8 key, which v9 ignores.')
+        ->expectsOutputToContain('`cooldown` has no `store`, as in a v8 config, so recording a view fails.')
+        ->assertFailed();
 });
