@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Streams\Clients;
 
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 use Illuminate\Redis\Connections\Connection;
@@ -40,6 +41,13 @@ abstract readonly class RedisStreamClient implements StreamClient
         return is_numeric($count) ? (int) $count : 0;
     }
 
+    public function server(): ?RedisServer
+    {
+        $info = $this->serverInfo();
+
+        return is_array($info) ? RedisServer::fromInfo($info) : null;
+    }
+
     abstract protected function connection(): Connection;
 
     /**
@@ -47,6 +55,11 @@ abstract readonly class RedisStreamClient implements StreamClient
      * not exist yet, which has nothing pending.
      */
     abstract protected function pendingSummary(string $stream, string $group): mixed;
+
+    /**
+     * The reply to `INFO server`, or null when the server refuses it.
+     */
+    abstract protected function serverInfo(): mixed;
 
     /**
      * @param  mixed  $map  `[id => [field => value]]`, or `false` for an error reply

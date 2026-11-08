@@ -7,6 +7,7 @@ namespace CyrildeWit\EloquentViewable\Recording\Streams\Clients;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 use Illuminate\Redis\Connections\PredisConnection;
 use Predis\Pipeline\Pipeline;
+use Predis\PredisException;
 use Predis\Response\ServerException;
 
 /** @internal */
@@ -114,6 +115,19 @@ final readonly class PredisClient extends RedisStreamClient
     protected function pendingSummary(string $stream, string $group): mixed
     {
         return $this->withoutGroup(fn (): mixed => $this->connection->command('xpending', [$stream, $group]));
+    }
+
+    /**
+     * A server can refuse `INFO`, and Predis refuses to send it over a
+     * cluster, because it cannot tell which node should answer.
+     */
+    protected function serverInfo(): mixed
+    {
+        try {
+            return $this->connection->command('info', ['server']);
+        } catch (PredisException) {
+            return null;
+        }
     }
 
     /**

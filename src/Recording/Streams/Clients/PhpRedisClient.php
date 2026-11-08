@@ -133,4 +133,17 @@ final readonly class PhpRedisClient extends RedisStreamClient
 
         return $summary;
     }
+
+    protected function serverInfo(): mixed
+    {
+        $info = $this->connection->command('info', ['server']);
+
+        if (! is_array($info)) {
+            RedisError::last($this->connection);
+
+            return null;
+        }
+
+        return $info;
+    }
 }
