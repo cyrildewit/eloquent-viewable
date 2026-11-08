@@ -215,7 +215,7 @@ on every build, so edit their source instead: the recipes come from `samples/*/R
 `UPGRADING.md`, the configuration reference from `config/eloquent-viewable.php` and the commands reference from each
 command's `$signature`. A new public event goes on `reference/events.md`, which a test checks.
 
-The site is deployed to GitHub Pages from the `9.x` branch.
+The site is deployed to GitHub Pages from the `main` branch.
 
 When you make a pull request, the tests will be automatically run again
 by [GitHub Actions](https://github.com/cyrildewit/eloquent-viewable/actions).
