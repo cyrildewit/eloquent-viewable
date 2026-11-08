@@ -72,6 +72,8 @@ final readonly class FoldViews implements Refolder
         $run = new FoldRun(CarbonImmutable::now(), $from, $this->state->lastId(), $this->maxId(), $deadline ?? Deadline::none(), $dryRun);
         $runs = [];
 
+        $this->markFirstLastId($run);
+
         foreach ($this->selected($rollup) as $definition) {
             $snapshot = $this->state->snapshot($definition->name);
             $origin = $snapshot->origin;
@@ -285,6 +287,21 @@ final readonly class FoldViews implements Refolder
         }
 
         $this->state->putOrigin($definition->name, $origin);
+    }
+
+    /**
+     * A first fold that stops at the deadline, or folds one tier or rollup,
+     * would leave the last id unset, and the next run would then find no
+     * late view. Every view up to the highest id at the start is in every
+     * bucket folded from here on, so only a view above it can be late.
+     */
+    private function markFirstLastId(FoldRun $run): void
+    {
+        if ($run->dryRun || $run->lastId !== null || $run->maxId === null) {
+            return;
+        }
+
+        $this->state->putLastId($run->maxId);
     }
 
     /**

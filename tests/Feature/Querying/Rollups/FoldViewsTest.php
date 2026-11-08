@@ -477,7 +477,7 @@ it('stops before the next bucket at the deadline and carries on from there', fun
         ->and($runs[1]->buckets)->toBe(1)
         ->and($runs[1]->until->toDateTimeString())->toBe('2026-01-11 00:00:00')
         ->and(app(RollupState::class)->snapshot('views')->folded(Tier::Day)?->toDateTimeString())->toBe('2026-01-11 00:00:00')
-        ->and(app(RollupState::class)->lastId())->toBeNull();
+        ->and(app(RollupState::class)->lastId())->toBe((int) View::query()->max('id'));
 
     $rest = fold();
 
@@ -487,6 +487,36 @@ it('stops before the next bucket at the deadline and carries on from there', fun
         ->and(bucket('day', '2026-01-12', 'viewable', $this->other))->toBe([1, 1])
         ->and(bucket('month', '2026-01-01', 'type'))->toBe([3, 1])
         ->and(app(RollupState::class)->lastId())->not->toBeNull();
+});
+
+it('folds again a bucket a late view lands in between the runs of a first fold', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+    viewAt($this->post, '2026-01-11 10:00:00');
+
+    app(FoldViews::class)->handle(deadline: deadlineAfter(2));
+    viewAt($this->post, '2026-01-10 11:00:00', 'visitor-2');
+    fold();
+
+    expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 2])
+        ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBe([3, 2]);
+});
+
+it('folds again a bucket a late view lands in after a first fold of one tier', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+
+    fold(Tier::Day);
+    viewAt($this->post, '2026-01-10 11:00:00', 'visitor-2');
+    fold();
+
+    expect(bucket('day', '2026-01-10', 'viewable', $this->post))->toBe([2, 2]);
+});
+
+it('leaves the last id unset on a dry run', function (): void {
+    viewAt($this->post, '2026-01-10 10:00:00');
+
+    fold(dryRun: true);
+
+    expect(app(RollupState::class)->lastId())->toBeNull();
 });
 
 it('leaves a late view for the next run when the deadline passes first', function (): void {
