@@ -44,6 +44,7 @@ export default defineConfig({
 			customCss: ['@fontsource-variable/geist', '@fontsource-variable/geist-mono', './src/styles/custom.css'],
 			components: {
 				Hero: './src/components/Hero.astro',
+				SiteTitle: './src/components/SiteTitle.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 			},
 			plugins: [starlightLinksValidator()],

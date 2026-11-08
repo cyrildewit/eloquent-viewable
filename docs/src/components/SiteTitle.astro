@@ -1,0 +1,63 @@
+---
+// Starlight's site title as a wordmark: the product word stands out from "Eloquent", and the documented branch sits
+// next to it so visitors can tell which version they are reading.
+import { logos } from 'virtual:starlight/user-images';
+import config from 'virtual:starlight/user-config';
+import { branch } from '../branch.mjs';
+
+const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+const split = siteTitle.lastIndexOf(' ');
+const [prefix, name] = split === -1 ? ['', siteTitle] : [siteTitle.slice(0, split), siteTitle.slice(split + 1)];
+---
+
+<a href={siteTitleHref} class="site-title sl-flex">
+	{config.logo && logos.dark && <img alt={config.logo.alt} src={logos.dark.src} width={logos.dark.width} height={logos.dark.height} />}
+	<span class="wordmark" translate="no">
+		{prefix && <span class="prefix">{prefix} </span>}{name}
+	</span>
+	<span class="version" translate="no"><span class="sr-only">version </span>{branch}</span>
+</a>
+
+<style>
+	.site-title {
+		align-items: center;
+		gap: 0.6rem;
+		min-width: 0;
+		color: var(--sl-color-white);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	img {
+		height: 1.5rem;
+		width: auto;
+	}
+
+	.wordmark {
+		overflow: hidden;
+		font-size: 1.05rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+	}
+
+	.prefix {
+		color: var(--sl-color-gray-3);
+	}
+
+	.version {
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 999px;
+		color: var(--sl-color-gray-3);
+		font-family: var(--__sl-font-mono);
+		font-size: var(--sl-text-xs);
+		line-height: 1.4;
+	}
+
+	/* The header is crowded on phones, and the version is in every page's edit link anyway. */
+	@media (max-width: 30rem) {
+		.version {
+			display: none;
+		}
+	}
+</style>
