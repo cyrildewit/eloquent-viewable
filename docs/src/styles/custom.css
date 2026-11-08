@@ -10,3 +10,9 @@
 	--sl-color-accent: #3d4fe0;
 	--sl-color-accent-high: #1c2470;
 }
+
+/* The logo is a plain mark, so keep it from dominating the homepage hero. */
+.hero > img {
+	max-width: min(16rem, 60vw);
+	justify-self: center;
+}

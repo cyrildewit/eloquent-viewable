@@ -1,0 +1,76 @@
+---
+// The "Start simple, scale when you need to" steps on the homepage, from the
+// table on the introduction page. Each step is one config key away from the last.
+const steps = [
+	{ name: 'One insert per view', gain: 'Views count straight away, with nothing to set up.', href: 'getting-started/introduction/#start-simple-scale-when-you-need-to' },
+	{ name: 'remember()', gain: 'Counts, series and rankings served from the cache.', href: 'counting/caching/' },
+	{ name: 'Queued recording', gain: 'The insert moves out of the request.', href: 'recording/queueing/' },
+	{ name: 'Redis buffer', gain: 'One Redis write per request, one insert per thousand views.', href: 'scaling/redis-buffer/' },
+	{ name: 'Rollups', gain: 'History and cheap all-time counts after old views are deleted.', href: 'scaling/rollups/' },
+	{ name: 'Partitions', gain: 'A whole month of views dropped at once.', href: 'scaling/partitioning/' },
+];
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+
+<ol class="ladder not-content">
+	{steps.map((step, i) => (
+		<li>
+			<a href={base + step.href}>
+				<span class="step">{i + 1}</span>
+				<strong>{step.name}</strong>
+				<span class="gain">{step.gain}</span>
+			</a>
+		</li>
+	))}
+</ol>
+
+<style>
+	.ladder {
+		list-style: none;
+		padding: 0;
+		margin: 1.5rem 0 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+		gap: 0.75rem;
+	}
+
+	.ladder a {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		height: 100%;
+		padding: 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		color: var(--sl-color-white);
+		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	.ladder a:hover {
+		border-color: var(--sl-color-accent);
+	}
+
+	.step {
+		display: inline-grid;
+		place-items: center;
+		width: 1.75rem;
+		height: 1.75rem;
+		border-radius: 999px;
+		background: var(--sl-color-accent-low);
+		color: var(--sl-color-accent-high);
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+	}
+
+	strong {
+		font-size: var(--sl-text-base);
+	}
+
+	.gain {
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+		line-height: 1.4;
+	}
+</style>
