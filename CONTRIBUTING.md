@@ -80,6 +80,19 @@ feat(views)!: drop support for Laravel 10
 BREAKING CHANGE: the minimum supported Laravel version is now 11. Upgrade your application before updating.
 ```
 
+### Changelog
+
+Add an entry to `CHANGELOG.md` under the unreleased version for every change a user can notice, in the section
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) gives it:
+
+* **Added**, **Removed** and **Fixed** entries start with that verb in the past tense: "Added `Views::attempt()`, which
+  …", "Removed `CooldownManager::push()`", "Fixed `Period` mutating …".
+* **Changed** entries say how it works now, in the present tense: "`Period` is half-open", "`CacheKey` is now
+  `Querying\Cache\CacheKey`".
+* Name classes, methods and config keys in backticks, and leave out the trailing full stop.
+
+A breaking change also needs a section in `UPGRADING.md` that tells users what broke and what to change.
+
 ## Local Development
 
 Development runs entirely inside Docker, so you don't need PHP or [Composer](https://getcomposer.org/) installed
@@ -135,7 +148,7 @@ make test ARGS="--dirty"
 make test-types ARGS="src/Recording"
 ```
 
-/coCoverage comes from [PCOV](https://github.com/krakjoe/pcov), which is much lighter than Xdebug and only collects
+Coverage comes from [PCOV](https://github.com/krakjoe/pcov), which is much lighter than Xdebug and only collects
 when `PHP_PCOV_ENABLED=1`. `make test-coverage` and `make test-mutation` set it. When you run a coverage script
 directly, put `PHP_PCOV_ENABLED=1` in front of `docker compose`.
 
