@@ -183,3 +183,24 @@ it('counts the entries pending for longer than the idle time', function (): void
 
     expect($this->client->stalled('views', 'flushers', 60_000, 10))->toBe(2);
 });
+
+it('reads the server from the info reply', function (): void {
+    $this->connection->expects('command')->with('info', ['server'])->andReturn([
+        'redis_version' => '7.2.4',
+        'server_name' => 'valkey',
+        'valkey_version' => '8.1.11',
+    ]);
+
+    expect($this->client->server()?->label())->toBe('Valkey 8.1.11');
+});
+
+it('reads no server and clears the error when info is refused', function (): void {
+    $redis = Mockery::mock(Redis::class);
+    $redis->expects('getLastError')->andReturn("ERR unknown command 'INFO'");
+    $redis->expects('clearLastError');
+
+    $this->connection->expects('command')->with('info', ['server'])->andReturn(false);
+    $this->connection->expects('client')->andReturn($redis);
+
+    expect($this->client->server())->toBeNull();
+});

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Recording\Streams\Contracts;
 
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 
 /** @internal */
@@ -45,4 +46,10 @@ interface StreamClient
      * least `$idle` milliseconds.
      */
     public function stalled(string $stream, string $group, int $idle, int $count): int;
+
+    /**
+     * The name and version of the server, or null when it does not answer
+     * `INFO`, which some managed services restrict.
+     */
+    public function server(): ?RedisServer;
 }

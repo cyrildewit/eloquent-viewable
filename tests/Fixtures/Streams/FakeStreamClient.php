@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Tests\Fixtures\Streams;
 
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 
@@ -26,6 +27,8 @@ final class FakeStreamClient implements StreamClient
 
     /** @var list<list<array<string, string>>> */
     public array $batches = [];
+
+    public ?RedisServer $server = null;
 
     private int $sequence = 0;
 
@@ -122,6 +125,11 @@ final class FakeStreamClient implements StreamClient
     public function stalled(string $stream, string $group, int $idle, int $count): int
     {
         return min(count($this->abandoned), $count);
+    }
+
+    public function server(): ?RedisServer
+    {
+        return $this->server;
     }
 
     /** @return list<string> */

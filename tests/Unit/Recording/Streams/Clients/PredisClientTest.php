@@ -5,6 +5,7 @@ declare(strict_types=1);
 use CyrildeWit\EloquentViewable\Recording\Streams\Clients\PredisClient;
 use CyrildeWit\EloquentViewable\Recording\Streams\StreamEntry;
 use Illuminate\Redis\Connections\PredisConnection;
+use Predis\NotSupportedException;
 use Predis\Pipeline\Pipeline;
 use Predis\Response\ServerException;
 
@@ -198,3 +199,20 @@ it('counts the entries pending for longer than the idle time', function (): void
 
     expect($this->client->stalled('views', 'flushers', 60_000, 10))->toBe(1);
 });
+
+it('reads the server from the info reply', function (): void {
+    $this->connection->expects('command')->with('info', ['server'])->andReturn([
+        'Server' => ['redis_version' => '7.4.11'],
+    ]);
+
+    expect($this->client->server()?->label())->toBe('Redis 7.4.11');
+});
+
+it('reads no server when info is refused', function (Exception $exception): void {
+    $this->connection->expects('command')->with('info', ['server'])->andThrow($exception);
+
+    expect($this->client->server())->toBeNull();
+})->with([
+    'by the server' => [new ServerException("ERR unknown command 'INFO'")],
+    'over a cluster' => [new NotSupportedException("Cannot use 'INFO' over clusters of connections.")],
+]);

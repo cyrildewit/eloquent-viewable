@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CyrildeWit\EloquentViewable\Recording\Streams;
 
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Data\StreamBacklog;
 use CyrildeWit\EloquentViewable\Recording\Streams\Contracts\StreamClient;
 use Generator;
@@ -110,6 +111,11 @@ final class ViewStream
             stalled: $this->client->stalled($this->stream, $this->group, $this->claimAfter, $this->pageSize),
             oldestAt: $oldest?->appendedAt(),
         );
+    }
+
+    public function server(): ?RedisServer
+    {
+        return $this->client->server();
     }
 
     /**

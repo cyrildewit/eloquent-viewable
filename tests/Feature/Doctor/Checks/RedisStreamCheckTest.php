@@ -7,6 +7,7 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
 use CyrildeWit\EloquentViewable\Recording\Contracts\ViewStore;
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Stores\NullStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\RedisStreamStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
@@ -27,9 +28,10 @@ function streamFindings(): array
  * @param  list<string>  $ids
  * @param  list<string>  $abandoned
  */
-function bufferedStream(array $ids = [], array $abandoned = []): void
+function bufferedStream(array $ids = [], array $abandoned = [], ?RedisServer $server = null): void
 {
     $client = new FakeStreamClient;
+    $client->server = $server;
 
     foreach ($ids as $id) {
         $client->entries[$id] = ['viewable_id' => '1'];
@@ -105,12 +107,28 @@ it('warns about views a flush took and never acknowledged', function (): void {
     expect(streamFindings()[1])->toBe([Status::Warning, '2 views were taken by a flush that never acknowledged them, so it failed halfway through.']);
 });
 
+it('names the server the stream is kept on', function (RedisServer $server, string $summary): void {
+    bufferedStream(server: $server);
+
+    expect(streamFindings()[0])->toBe([Status::Pass, $summary]);
+})->with([
+    'Redis' => [new RedisServer('Redis', '7.4.11', '7.4.11'), 'The stream is kept on Redis 7.4.11.'],
+    'Valkey' => [new RedisServer('Valkey', '8.1.11', '7.2.4'), 'The stream is kept on Valkey 8.1.11.'],
+]);
+
+it('fails a server older than Redis 7', function (): void {
+    bufferedStream(server: new RedisServer('Redis', '6.2.14', '6.2.14'));
+
+    expect(streamFindings()[0])->toBe([Status::Failure, 'The stream is kept on Redis 6.2.14, and the `redis` store driver needs Redis 7 or newer.']);
+});
+
 it('passes views that landed before it read the oldest one', function (): void {
     $client = Mockery::mock(StreamClient::class);
     $client->allows('range')->andReturn([]);
     $client->allows('length')->andReturn(1);
     $client->allows('pending')->andReturn(0);
     $client->allows('stalled')->andReturn(0);
+    $client->allows('server')->andReturn(null);
 
     config()->set('eloquent-viewable.recording.store.driver', 'redis');
 
@@ -135,5 +153,9 @@ it('reads the stream through both clients', function (string $client): void {
     app()->forgetInstance('redis');
     app()->make(StoreManager::class)->forgetDrivers();
 
-    expect(streamFindings()[0][0])->toBe(Status::Pass);
+    [$server, $stream] = streamFindings();
+
+    expect($server[0])->toBe(Status::Pass)
+        ->and($server[1])->toMatch('/^The stream is kept on (Redis|Valkey) \d+\.\d+\.\d+\.$/')
+        ->and($stream[0])->toBe(Status::Pass);
 })->with(['phpredis', 'predis']);

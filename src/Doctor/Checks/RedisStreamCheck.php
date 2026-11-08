@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Doctor\Contracts\Check;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
+use CyrildeWit\EloquentViewable\Recording\Data\RedisServer;
 use CyrildeWit\EloquentViewable\Recording\Data\StreamBacklog;
 use CyrildeWit\EloquentViewable\Recording\Stores\RedisStreamStore;
 use CyrildeWit\EloquentViewable\Recording\Stores\StoreManager;
@@ -24,6 +25,12 @@ class RedisStreamCheck implements Check
      * well under this limit.
      */
     public const int StaleAfter = 300;
+
+    /**
+     * The oldest Redis release the stream is built for. Valkey reports the
+     * Redis release it is compatible with, so it is held to the same one.
+     */
+    public const string MinimumRedisVersion = '7.0';
 
     public function __construct(
         protected Config $config,
@@ -56,6 +63,12 @@ class RedisStreamCheck implements Check
             return;
         }
 
+        $server = $store->server();
+
+        if ($server instanceof RedisServer) {
+            yield $this->server($server);
+        }
+
         $backlog = $store->backlog();
 
         yield $this->waiting($backlog);
@@ -68,6 +81,18 @@ class RedisStreamCheck implements Check
                 'Check the output and the logs of `views:flush`. The next run takes them again.',
             );
         }
+    }
+
+    protected function server(RedisServer $server): Finding
+    {
+        if (version_compare($server->redisVersion, self::MinimumRedisVersion, '<')) {
+            return Finding::failure(
+                "The stream is kept on {$server->label()}, and the `redis` store driver needs Redis 7 or newer.",
+                'Upgrade to Redis 7 or newer, or move to Valkey.',
+            );
+        }
+
+        return Finding::pass("The stream is kept on {$server->label()}.");
     }
 
     protected function waiting(StreamBacklog $backlog): Finding
