@@ -200,7 +200,7 @@ class IndexAdviceCheck implements Check
         return match ($index) {
             OptionalIndex::Visitor => '`unique()` counts',
             OptionalIndex::TypeViewedAt => 'counts over a whole model type, such as `views(Post::class)->count()`, `orderByTrending()`, `rising()` and `anomalies()`',
-            OptionalIndex::VisitorHistory => '`alsoViewed()`',
+            OptionalIndex::VisitorHistory => '`alsoViewed()`, `recommended()` and `views:pairs`',
             OptionalIndex::ViewedAt => 'retention and rollups',
         };
     }

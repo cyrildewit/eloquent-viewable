@@ -113,7 +113,7 @@ it('suggests every index for a large table', function (): void {
     expect(indexAdviceSummaries())->toBe([
         [Status::Advice, 'With about 1,200,000 views, an index on `(viewable_type, viewable_id, viewed_at, visitor)` speeds up `unique()` counts.'],
         [Status::Advice, 'With about 1,200,000 views, an index on `(viewable_type, viewed_at)` speeds up counts over a whole model type, such as `views(Post::class)->count()`, `orderByTrending()`, `rising()` and `anomalies()`.'],
-        [Status::Advice, 'With about 1,200,000 views, an index on `(visitor, viewed_at, viewable_type, viewable_id)` speeds up `alsoViewed()`.'],
+        [Status::Advice, 'With about 1,200,000 views, an index on `(visitor, viewed_at, viewable_type, viewable_id)` speeds up `alsoViewed()`, `recommended()` and `views:pairs`.'],
     ]);
 });
 
