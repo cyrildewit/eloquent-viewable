@@ -91,7 +91,7 @@ reader whose browser sends `DNT: 1` or `Sec-GPC: 1` is not counted at all, not e
 
 **Store a word, not the referrer.** A referrer can hold a search query or the address of a private page. The endpoint
 reduces it to `direct`, `internal`, `search` or `external` and stores only that word as the view's
-[context](../../README.md#storing-context-with-a-view). It is enough for "how many readers find us through search" and
+[context](https://cyrildewit.github.io/eloquent-viewable/recording/context/). It is enough for "how many readers find us through search" and
 says nothing about the reader.
 
 **Say why a view was not counted.** `attempt()` returns which guard refused the view, and the endpoint puts its name in

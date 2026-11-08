@@ -42,7 +42,7 @@ $report = app(ListingStats::class)->for($listing);
 </ul>
 ```
 
-The sources come from the `source` [dimension](../../README.md#dimensions), so list it and add its column first:
+The sources come from the `source` [dimension](https://cyrildewit.github.io/eloquent-viewable/viewers/dimensions/), so list it and add its column first:
 
 ```php
 'dimensions' => [

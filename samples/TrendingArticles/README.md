@@ -52,14 +52,14 @@ article shows straight away. Give `remember()` a lifetime: a ranking remembered 
 
 **Index the views table.** The ranking reads each article's views by `viewable_type`, `viewable_id` and `viewed_at`,
 which is exactly the `views_viewable_viewed_at_index` composite index from the migration. See
-[database indexes](../../README.md#database-indexes).
+[database indexes](https://cyrildewit.github.io/eloquent-viewable/scaling/indexes/).
 
 ## Where to take it next
 
 - Rank by distinct readers with `unique()`, which counts a reader once per hour.
 - Make a slower list, such as "popular this month", with a longer half-life: `trending(halfLife: CarbonInterval::week())`.
 - Paginate the full list with `Article::orderByTrending(period: Period::pastDays(7))->paginate()`.
-- Rank per section with a [view collection](../../README.md#view-collections), recording with
+- Rank per section with a [view collection](https://cyrildewit.github.io/eloquent-viewable/recording/collections/), recording with
   `RecordViews::using('article', collection: 'sidebar', cooldown: 30)`.
-- On a high-traffic site, [queue the recording](../../README.md#queueing-view-recording) with `queue: true` so the
+- On a high-traffic site, [queue the recording](https://cyrildewit.github.io/eloquent-viewable/recording/queueing/) with `queue: true` so the
   insert leaves the request. The cooldown is still checked during the request.

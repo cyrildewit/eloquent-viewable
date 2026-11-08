@@ -1,6 +1,6 @@
 # Samples
 
-Real-world scenarios built with Eloquent Viewable. The [README](../README.md) documents every feature on its own; a
+Real-world scenarios built with Eloquent Viewable. The [documentation](https://cyrildewit.github.io/eloquent-viewable/) covers every feature on its own; a
 sample combines several of them to solve one problem, and explains why it is put together that way.
 
 | Sample                                           | Shows                                                                                                                                                                        |
