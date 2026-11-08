@@ -4,6 +4,7 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\ConfigurationCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\CrawlerShareCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\DimensionsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\LegacyConfigCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\RollupsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
@@ -877,6 +878,7 @@ return [
          * class of your own that implements `Doctor\Contracts\Check`.
          */
         'checks' => [
+            LegacyConfigCheck::class,
             SchemaCheck::class,
             IndexAdviceCheck::class,
             DimensionsCheck::class,

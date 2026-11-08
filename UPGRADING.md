@@ -102,6 +102,9 @@ Then copy each value you changed in v8 to its new place:
 Start from the published file rather than adding the new keys to your v8 one. Each top-level block is read as a
 whole, so a block that is missing keys throws `InvalidConfiguration` naming the first one.
 
+Run `php artisan views:doctor` once the config is in place. It fails on any v8 key still in the file, and on a
+`cooldown` block without a `store`, and names where each value goes.
+
 Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
 other than a string or `null` throws `InvalidConfiguration` naming the key.
 

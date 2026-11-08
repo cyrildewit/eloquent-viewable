@@ -116,6 +116,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 #### Doctor
 
 - Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the server behind the Redis stream, Redis or Valkey, and its backlog, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
+- Added the `Legacy config` check to `views:doctor`, which fails on a top-level v8 key left in the published config, such as `honor_dnt` or `ignored_ip_addresses`, and on a `cooldown` block without a `store`, and names where each value goes in v9
 - Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream, and `RedisStreamStore::server()`, which names the server and its version as a `Recording\Data\RedisServer`

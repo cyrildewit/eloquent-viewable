@@ -26,6 +26,7 @@ php artisan views:doctor
 
 | Check               | Key               | Looks at                                                                                                     |
 |---------------------|-------------------|--------------------------------------------------------------------------------------------------------------|
+| Legacy config       | `legacy-config`   | top-level keys of a v8 config, which v9 ignores, and a `cooldown` block without a `store`                    |
 | Database schema     | `schema`          | the views table, its columns and indexes, and the retention, rollup and counter columns in use               |
 | Optional indexes    | `index-advice`    | the [optional indexes](/eloquent-viewable/scaling/indexes/) the config relies on or a large table would use                    |
 | Rollups             | `rollups`         | that every rollup counts the views it should, which anonymising and pruning wait for                         |
