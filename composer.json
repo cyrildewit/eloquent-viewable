@@ -55,7 +55,7 @@
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/php-code-coverage": "^14.4",
         "predis/predis": "^3.3",
-        "rector/rector": "^2.3"
+        "rector/rector": "^2.8"
     },
     "suggest": {
         "fruitcake/laravel-debugbar": "Lists the views recorded and skipped in each request in a Debugbar tab (^4.4).",
