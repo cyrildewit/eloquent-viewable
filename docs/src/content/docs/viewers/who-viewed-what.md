@@ -41,6 +41,9 @@ views(Post::class)->viewedBy($user)->period(Period::pastDays(7))->count(); // ev
 By default `unique()` counts browsers, so a user on three devices counts three times. Set `visitor.identity` to `viewer`
 to count signed-in users by their account instead. Guests keep the cookie id.
 
+It reads the viewer of the view, so turn on [`recording.viewer.enabled`](#recording-the-viewer) as well, or name one with
+`viewedBy()`. Without a viewer a signed-in user keeps the cookie id too.
+
 ```php
 'visitor' => [
     'identity' => 'viewer',

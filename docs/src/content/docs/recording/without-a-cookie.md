@@ -19,8 +19,8 @@ By default each guest gets a cookie with a random id, which `unique()` counts an
 
 The visitor id becomes an HMAC of the truncated IP address (/24 for IPv4, /48 for IPv6) and the user agent, keyed with a
 salt that rotates at midnight. Neither the IP address nor the user agent is stored, and once the salt is gone a hash
-cannot be traced back. Signed-in users are identified by their account instead, as with the
-[`viewer` identity](/eloquent-viewable/viewers/who-viewed-what/#counting-one-account-as-one-visitor).
+cannot be traced back. A view with a viewer, from [`recording.viewer.enabled`](/eloquent-viewable/viewers/who-viewed-what/#recording-the-viewer) or `viewedBy()`,
+is identified by the account instead, as with the [`viewer` identity](/eloquent-viewable/viewers/who-viewed-what/#counting-one-account-as-one-visitor).
 
 Set `visitor.fingerprint.rotation` to `week` or `month` to keep one salt longer. Weeks start on Monday:
 

@@ -89,14 +89,12 @@ recommended because of itself.
   common with one of the viewer's views, 3 by default. The viewer is never one of them, on any browser they were
   signed in on.
 - **An empty list is a valid answer.** A new viewer, or a site with little traffic, gets nothing. Fall back to
-  something else yourself, so every recommendation you show has a reason:
+  something else yourself. A trending entry has no `because`, so show it under a heading of its own, such as
+  "Trending now", rather than through the loop above:
 
   ```php
   $posts = $user->recommended(Post::class);
-
-  if ($posts->isEmpty()) {
-      $posts = views(Post::class)->trending(10);
-  }
+  $trending = $posts->isEmpty() ? views(Post::class)->trending(10) : null;
   ```
 
 - **It is built from the viewer's own history.** That makes it personal data: erasing a person's views with

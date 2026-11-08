@@ -678,11 +678,11 @@ return [
          * be left out for its default. For example:
          *
          *   Post::class => [
-         *       'window' => '1h',        // whole hours, or `1d`
+         *       'window' => '1h',        // hours or days, up to the seasonality
          *       'seasonality' => 'week', // `day` or `week`
          *       'samples' => 4,          // how many past windows to compare with
          *       'threshold' => 3.0,      // the z-score a spike starts at
-         *       'minimum' => 50,         // views below which nothing counts
+         *       'minimum' => 10,         // views below which nothing counts
          *       'drops' => false,        // also watch for drops
          *       'cooldown' => '6h',      // how long it stays normal before it settles
          *   ],
@@ -708,12 +708,15 @@ return [
          *
          *   cookie   the random id from the cookie below, so a visitor is a
          *            browser
-         *   viewer   an HMAC of the signed-in model's type and key with
-         *            `app.key`, so a visitor is an account on every device and
-         *            on an API without a cookie; guests get the cookie id
+         *   viewer   an HMAC of the viewer's type and key with `app.key`, so
+         *            a visitor is an account on every device and on an API
+         *            without a cookie; views without a viewer, because
+         *            `recording.viewer.enabled` is off and `viewedBy()` names
+         *            none, get the cookie id
          *   fingerprint
-         *            a hash of the IP address and user agent, so no cookie
-         *            is set; signed-in models get the `viewer` id
+         *            an HMAC of the /24 or /48 network of the IP address and
+         *            the user agent, under a salt that rotates, so no cookie
+         *            is set; views with a viewer get the `viewer` id
          *
          * The signed-in model comes from `recording.viewer` or `viewedBy()`.
          */

@@ -44,7 +44,7 @@ flowchart LR
 ```
 
 `views:anonymise` and `views:prune` run one step, and take `--older-than=90d` in place of the configured age. Every
-command takes `--dry-run` and `--chunk`. A dry run of `views:maintain` folds nothing, but counts the views to anonymise and delete
+command takes `--chunk`, and every one but `views:recount` takes `--dry-run`. A dry run of `views:maintain` folds nothing, but counts the views to anonymise and delete
 as if its rollups had been folded first, so it reports what the real run would change.
 
 ## Keeping each run short

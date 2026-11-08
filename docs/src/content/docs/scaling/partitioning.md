@@ -26,6 +26,7 @@ DB::statement(<<<'SQL'
         viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id, viewed_at),
         INDEX views_viewable_viewed_at_index (viewable_type, viewable_id, viewed_at),
+        INDEX views_viewer_type_viewer_id_index (viewer_type, viewer_id),
         INDEX views_viewed_at_index (viewed_at)
     )
     PARTITION BY RANGE (UNIX_TIMESTAMP(viewed_at)) (

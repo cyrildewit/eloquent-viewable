@@ -41,7 +41,8 @@ Period::parse('7d');                       // pastDays(7), likewise 3w, 6m, 1y
 Period::parse('12h');                      // subHours(12), likewise 30min and 90s
 Period::parse('2026-01-01..2026-02-01');   // create(), and '2026-01-01..' or '..2026-02-01' for open ends
 
-Route::get('/posts/{post}/stats/{period}', fn (Post $post, Period $period) => views($post)->period($period)->count());
+Route::get('/posts/{post}/stats/{period}', fn (Post $post, Period $period) => views($post)->period($period)->count())
+    ->name('posts.stats');
 
 route('posts.stats', [$post, Period::pastDays(7)]); // /posts/1/stats/7d
 ```

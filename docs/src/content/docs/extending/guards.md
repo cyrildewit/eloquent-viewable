@@ -67,6 +67,7 @@ To add one, implement `Recording\Contracts\RecordingGuard` and add the class to 
 container.
 
 ```php
+use App\Models\Post;
 use CyrildeWit\EloquentViewable\Recording\Contracts\RecordingGuard;
 use CyrildeWit\EloquentViewable\Recording\Data\ViewAttempt;
 use Illuminate\Contracts\Auth\Guard;
@@ -77,7 +78,9 @@ final readonly class IgnoreAuthors implements RecordingGuard
 
     public function allows(ViewAttempt $attempt): bool
     {
-        return $attempt->viewable->author_id !== $this->auth->id();
+        $viewable = $attempt->viewable;
+
+        return ! $viewable instanceof Post || $viewable->author_id !== $this->auth->id();
     }
 }
 ```
