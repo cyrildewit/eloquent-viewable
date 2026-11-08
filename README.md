@@ -1421,6 +1421,9 @@ Post::whereNotViewedBy($user, collection: 'sidebar')->get();
 Post::whereNotViewedByVisitor($visitorId)->get();          // for guests, by visitor id
 ```
 
+Views that [retention](#retention) has anonymised no longer belong to a viewer, so `whereNotViewedBy()` lists those
+models as unread again. See [the viewer side](#the-viewer-side) for how to keep the history.
+
 #### The viewer side
 
 Add the optional `HasViewHistory` trait to the model that views things:
@@ -1439,6 +1442,12 @@ $user->lastViewedAt($post);                      // Carbon or null
 ```
 
 Each `View` also has a `viewer` relation and `byViewer()` and `byVisitor()` scopes.
+
+Good to know: **anonymising clears reading history.** `retention.anonymise.columns` includes `viewer` by default, so
+once views pass `retention.anonymise.after`, `viewed()`, `hasViewed()` and `lastViewedAt()` forget them,
+`whereNotViewedBy()` lists their models as unread again and `recommended()` has less history to start from. For a
+"continue where you left off" feature, leave `viewer` out of `anonymise.columns`, or set `anonymise.after` to the
+history the product needs.
 
 #### Letting a viewer opt out
 
