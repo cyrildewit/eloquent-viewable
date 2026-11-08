@@ -711,7 +711,23 @@ it('refuses source aliases it cannot read', function (mixed $value): void {
     'a name that is not a string' => [['nl' => 1]],
 ]);
 
-it('reads the dimensions folded into rollups', function (): void {
-    expect(packageConfig(['retention' => ['rollups' => ['dimensions' => ['source', 'device']]]]))->rollupDimensions()->toBe(['source', 'device'])
+it('reads the dimensions folded into rollups, each with the tiers it keeps', function (): void {
+    $dimensions = ['source', 'country' => ['tiers' => ['month', 'day', 'day']], 'device' => []];
+
+    expect(packageConfig(['retention' => ['rollups' => ['dimensions' => $dimensions]]]))->rollupDimensions()->toBe(['source' => null, 'country' => ['month', 'day'], 'device' => null])
         ->and(packageConfig())->rollupDimensions()->toBe([]);
 });
+
+it('refuses dimensions folded into rollups it cannot read', function (mixed $value, string $message): void {
+    expect(fn (): array => packageConfig(['retention' => ['rollups' => ['dimensions' => $value]]])->rollupDimensions())
+        ->toThrow(InvalidConfiguration::class, $message);
+})->with([
+    'not an array' => ['source', 'must list dimensions by name, each alone or mapped to options of `tiers`'],
+    'a name that is not a string' => [[1], 'must list dimensions by name'],
+    'options that are not an array' => [['source' => 'day'], 'must list dimensions by name'],
+    'an unknown option' => [['source' => ['maxValues' => 5]], 'must list dimensions by name'],
+    'tiers that are not a list' => [['source' => ['tiers' => 'day']], '`eloquent-viewable.retention.rollups.dimensions.source.tiers` config value must list at least one of `hour`, `day`, `month` and `year`'],
+    'no tiers' => [['source' => ['tiers' => []]], 'must list at least one of'],
+    'tiers with durations' => [['source' => ['tiers' => ['day' => '1y']]], 'must list at least one of'],
+    'an unknown tier' => [['source' => ['tiers' => ['week']]], 'must list at least one of'],
+]);

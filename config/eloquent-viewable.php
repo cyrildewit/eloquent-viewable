@@ -595,6 +595,12 @@ return [
              * history from the rollups. Each bucket keeps the dimension's top
              * values and folds the rest into `other`. A dimension left out is
              * only counted while its views are in the views table.
+             *
+             * Map a dimension to `tiers` to keep only some of the tiers above,
+             * for as long as they are kept there. For example:
+             *
+             *   'source',
+             *   'country' => ['tiers' => ['day', 'month']],
              */
             'dimensions' => [
 

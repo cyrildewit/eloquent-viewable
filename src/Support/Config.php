@@ -713,13 +713,37 @@ final readonly class Config extends ConfigReader
     }
 
     /**
-     * @return list<string>
+     * The dimensions to fold, each mapped to the tiers it keeps, or to null
+     * when it keeps every tier of the built-in rollup.
+     *
+     * @return array<string, ?non-empty-list<'hour'|'day'|'month'|'year'>>
      *
      * @throws InvalidConfiguration
      */
     public function rollupDimensions(): array
     {
-        return $this->strings('retention.rollups.dimensions');
+        $key = 'retention.rollups.dimensions';
+        $value = $this->get($key, []);
+
+        if (! is_array($value)) {
+            throw InvalidConfiguration::mustBeRollupDimensions($key, $value);
+        }
+
+        $dimensions = [];
+
+        foreach ($value as $name => $options) {
+            if (is_int($name) && is_string($options)) {
+                [$name, $options] = [$options, []];
+            }
+
+            if (! is_string($name) || ! is_array($options) || ! $this->optionsAmong($options, ['tiers'])) {
+                throw InvalidConfiguration::mustBeRollupDimensions($key, $name);
+            }
+
+            $dimensions[$name] = array_key_exists('tiers', $options) ? $this->dimensionTiers($name, $options['tiers']) : null;
+        }
+
+        return $dimensions;
     }
 
     public function rollupsStrict(): bool
@@ -796,6 +820,32 @@ final readonly class Config extends ConfigReader
 
         /** @var array<string, mixed> $options */
         return ['class' => $entry, 'options' => $options];
+    }
+
+    /**
+     * @return non-empty-list<'hour'|'day'|'month'|'year'>
+     *
+     * @throws InvalidConfiguration
+     */
+    private function dimensionTiers(string $name, mixed $tiers): array
+    {
+        $allowed = ['hour', 'day', 'month', 'year'];
+
+        if (! is_array($tiers) || $tiers === [] || ! array_is_list($tiers)) {
+            throw InvalidConfiguration::mustBeDimensionTiers("retention.rollups.dimensions.{$name}.tiers", $tiers);
+        }
+
+        $kept = [];
+
+        foreach ($tiers as $tier) {
+            if (! in_array($tier, $allowed, true)) {
+                throw InvalidConfiguration::mustBeDimensionTiers("retention.rollups.dimensions.{$name}.tiers", $tiers);
+            }
+
+            $kept[$tier] = $tier;
+        }
+
+        return array_values($kept);
     }
 
     /**

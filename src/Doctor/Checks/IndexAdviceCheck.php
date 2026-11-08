@@ -147,7 +147,7 @@ class IndexAdviceCheck implements Check
      */
     protected function unfoldedDimensions(): array
     {
-        return array_values(array_diff($this->dimensions->columns(), $this->config->rollupDimensions()));
+        return array_values(array_diff($this->dimensions->columns(), array_keys($this->config->rollupDimensions())));
     }
 
     /**

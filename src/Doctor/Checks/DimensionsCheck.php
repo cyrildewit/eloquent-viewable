@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupDefinition;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use Generator;
 
 /**
@@ -21,6 +22,9 @@ use Generator;
  */
 class DimensionsCheck implements Check
 {
+    /** The hour rows of a dimension's rollup from which dropping them is advised. */
+    public const int LargeHourTier = 100_000;
+
     public function __construct(
         protected DimensionRegistry $dimensions,
         protected RollupPolicy $rollups,
@@ -46,6 +50,7 @@ class DimensionsCheck implements Check
             ...$this->windowFunctions(),
             ...$this->foldedPersonal(),
             ...$this->lateRollups(),
+            ...$this->largeHourTiers(),
         ];
 
         if ($findings === []) {
@@ -150,6 +155,54 @@ class DimensionsCheck implements Check
         }
 
         return $findings;
+    }
+
+    /**
+     * The hour rows of a dimension split each hour by every value, so they
+     * outgrow the rest of the rollups, while the hourly totals that trending
+     * and spikes read come from the built-in rollup.
+     *
+     * @return list<Finding>
+     */
+    protected function largeHourTiers(): array
+    {
+        if (! $this->state->installed()) {
+            return [];
+        }
+
+        $findings = [];
+
+        foreach ($this->folded() as $name => $definition) {
+            $coarser = array_reverse(array_filter($definition->tiers(), static fn (Tier $tier): bool => $tier !== Tier::Hour));
+
+            if (! in_array(Tier::Hour, $definition->tiers(), true) || $coarser === []) {
+                continue;
+            }
+
+            $rows = $this->view->getConnection()->table($this->rollups->table)
+                ->where('rollup', $definition->name)
+                ->where('tier', Tier::Hour->value)
+                ->count();
+
+            if ($rows < $this->largeHourTier()) {
+                continue;
+            }
+
+            $count = number_format($rows);
+            $tiers = implode("', '", array_map(static fn (Tier $tier): string => $tier->value, $coarser));
+
+            $findings[] = Finding::advice(
+                "The hour tier of the `{$name}` dimension holds {$count} rows.",
+                "Unless you read `{$name}` by the hour, list `'{$name}' => ['tiers' => ['{$tiers}']]` under `retention.rollups.dimensions`. The next `views:maintain` drops its hour rows.",
+            );
+        }
+
+        return $findings;
+    }
+
+    protected function largeHourTier(): int
+    {
+        return self::LargeHourTier;
     }
 
     /** @return array<string, RollupDefinition> */

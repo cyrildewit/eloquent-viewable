@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\DimensionsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Data\Finding;
 use CyrildeWit\EloquentViewable\Doctor\Data\Status;
 use CyrildeWit\EloquentViewable\Models\View;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Dimensions\PlanDimension;
@@ -151,4 +152,68 @@ it('lets a dimension whose values identify no one be folded', function (): void 
     config()->set('eloquent-viewable.retention.rollups.dimensions', ['campaign']);
 
     expect(dimensionFindings()[0][0])->toBe(Status::Pass);
+});
+
+describe('large hour tiers', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.retention.rollups.tiers', ['hour' => '35d', 'day' => '2y', 'month' => null]);
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source', 'plan']);
+
+        foreach (['09:00', '10:00', '11:00'] as $hour) {
+            ViewRollup::query()->insert([
+                'rollup' => 'views:source',
+                'tier' => 'hour',
+                'bucket_start' => "2026-03-10 {$hour}:00",
+                'grouping' => 'type:dimension',
+                'viewable_type' => 'post',
+                'dimension' => 'Google',
+                'views' => 1,
+                'unique_visitors' => 1,
+            ]);
+        }
+    });
+
+    /** A DimensionsCheck that advises dropping an hour tier from three rows. */
+    function hourTierCheck(): DimensionsCheck
+    {
+        return new class(app(DimensionRegistry::class), app(RollupPolicy::class), app(RollupState::class), app(View::class)) extends DimensionsCheck
+        {
+            protected function largeHourTier(): int
+            {
+                return 3;
+            }
+        };
+    }
+
+    it('advises dropping the hour tier of a dimension once it is large', function (): void {
+        $findings = iterator_to_array(hourTierCheck()->run(), preserve_keys: false);
+
+        expect($findings)->toHaveCount(1)
+            ->and($findings[0]->status)->toBe(Status::Advice)
+            ->and($findings[0]->summary)->toBe('The hour tier of the `source` dimension holds 3 rows.')
+            ->and($findings[0]->fix)->toBe("Unless you read `source` by the hour, list `'source' => ['tiers' => ['day', 'month']]` under `retention.rollups.dimensions`. The next `views:maintain` drops its hour rows.");
+    });
+
+    it('says nothing of an hour tier below the size', function (): void {
+        expect(dimensionFindings()[0][0])->toBe(Status::Pass)
+            ->and(DimensionsCheck::LargeHourTier)->toBe(100_000);
+    });
+
+    it('says nothing of a dimension without an hour tier', function (): void {
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source' => ['tiers' => ['day', 'month']]]);
+
+        expect(dimensionFindings(hourTierCheck())[0][0])->toBe(Status::Pass);
+    });
+
+    it('says nothing of a dimension with only an hour tier', function (): void {
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source' => ['tiers' => ['hour']]]);
+
+        expect(dimensionFindings(hourTierCheck())[0][0])->toBe(Status::Pass);
+    });
+
+    it('says nothing of hour tiers without the state table', function (): void {
+        $this->mock(StateStore::class)->allows('installed')->andReturn(false);
+
+        expect(dimensionFindings(hourTierCheck())[0][0])->toBe(Status::Pass);
+    });
 });

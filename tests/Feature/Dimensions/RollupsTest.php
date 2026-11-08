@@ -13,6 +13,7 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Exceptions\ResolutionUnavailable;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Models\ViewRollup;
 use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Retention\Actions\PruneViews;
 use CyrildeWit\EloquentViewable\Support\Granularity;
 use CyrildeWit\EloquentViewable\Support\Period;
@@ -22,6 +23,7 @@ use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\User;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Rollups\NewsletterViews;
 use CyrildeWit\EloquentViewable\Views;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One post viewed in January, February and March. The source keeps two values
@@ -260,6 +262,76 @@ describe('reading', function (): void {
 
         expect(views($this->post)->period(Period::since('2026-03-01'))->countBy('device')->all())->toBe(['mobile' => 2]);
     });
+});
+
+describe('tiers per dimension', function (): void {
+    beforeEach(function (): void {
+        config()->set('eloquent-viewable.retention.rollups.tiers', ['hour' => null, 'day' => null, 'month' => null]);
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source' => ['tiers' => ['day', 'month']], 'plan']);
+    });
+
+    it('folds only the tiers a dimension lists', function (): void {
+        app(FoldViews::class)->handle();
+
+        $tiers = fn (string $rollup): array => ViewRollup::query()->where('rollup', $rollup)->distinct()->orderBy('tier')->pluck('tier')->all();
+
+        expect($tiers('views:source'))->toBe(['day', 'month'])
+            ->and($tiers('views:plan'))->toBe(['day', 'hour', 'month'])
+            ->and($tiers('views'))->toBe(['day', 'hour', 'month'])
+            ->and(sourceRows('month', '2026-01-01'))->toBe([
+                '' => [1, 1],
+                Normaliser::Other => [2, 1],
+                'Bing' => [2, 2],
+                'Google' => [3, 3],
+            ]);
+    });
+
+    it('counts by a dimension the same without its hour tier', function (): void {
+        foldAndPruneDimensions();
+
+        expect(views($this->post)->countBy('source')->toArray())->toBe(['values' => ['Google' => 5, 'Bing' => 3, 'Reddit' => 1], 'none' => 1, 'other' => 2, 'total' => 12])
+            ->and(views($this->post)->period(Period::create('2026-01-01', '2026-04-01'))->whereDimension('source', 'Google')->countByInterval(Granularity::Day)->total())->toBe(5);
+    });
+
+    it('reads a series by the hour of a dimension without an hour tier from the views table', function (): void {
+        app(FoldViews::class)->handle();
+        DB::enableQueryLog();
+
+        $series = views($this->post)->period(Period::create('2026-03-20', '2026-03-21'))->whereDimension('source', 'Google')->countByInterval(Granularity::Hour);
+
+        expect($series->total())->toBe(1)
+            ->and(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'view_rollups'))->all())->toBeEmpty();
+    });
+
+    it('prunes once the tiers a dimension keeps have folded the views', function (): void {
+        app(FoldViews::class)->handle(rollup: 'views');
+        app(FoldViews::class)->handle(Tier::Day, rollup: 'views:source');
+        app(FoldViews::class)->handle(rollup: 'views:plan');
+
+        expect(app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), 100)->views)->toBe(0);
+
+        app(FoldViews::class)->handle(Tier::Month, rollup: 'views:source');
+
+        expect(app(PruneViews::class)->handle(Carbon::parse('2026-03-01'), 100)->views)->toBe(11);
+    });
+
+    it('keeps the durations of the built-in tiers', function (): void {
+        config()->set('eloquent-viewable.retention.rollups.tiers', ['hour' => '35d', 'day' => '2y', 'month' => null]);
+
+        $source = app(RollupPolicy::class)->forDimension('source');
+
+        expect($source?->tiers())->toBe([Tier::Month, Tier::Day])
+            ->and($source?->keep(Tier::Day)?->shorthand())->toBe('2y')
+            ->and($source?->keep(Tier::Month))->toBeNull()
+            ->and(app(RollupPolicy::class)->forDimension('plan')?->tiers())->toBe([Tier::Month, Tier::Day, Tier::Hour]);
+    });
+
+    it('refuses a tier the built-in rollup does not keep', function (): void {
+        config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+        config()->set('eloquent-viewable.retention.rollups.dimensions', ['source' => ['tiers' => ['hour', 'day']]]);
+
+        app(RollupPolicy::class);
+    })->throws(InvalidConfiguration::class, 'The `eloquent-viewable.retention.rollups.dimensions.source.tiers` config value lists the `hour` tier, which `retention.rollups.tiers` does not keep.');
 });
 
 describe('config', function (): void {

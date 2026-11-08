@@ -107,6 +107,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added a `dimensions` argument to every scope that counts views, `orderByViews()`, `orderByUniqueViews()`, `withViewsCount()`, `whereViewsCount()`, `whereUniqueViewsCount()`, `orderByTrending()`, `withTrendingScore()`, the `whereViewedBy()` family and `recommendedFor()`, and a `dimensions` option to the columns in `querying.counters`, each mapping a dimension to one value or a list of values
 - Added the `views:dimensions` command, which writes a migration that adds the columns the views table lacks, and copies values from `context` into a column with `--backfill`
 - Added `retention.rollups.dimensions`, which folds a dimension into a rollup of its own, `views:{name}`, keeping its top values per bucket and the rest as `other`
+- A dimension under `retention.rollups.dimensions` can keep some of the tiers of `retention.rollups.tiers`, such as `'country' => ['tiers' => ['day', 'month']]`, to leave out its hour rows
 - Added `Views::arrivedFrom()` and `Dimensions\Arrival`, for a view whose referrer and landing page are not the current request's. The beacon posts them from the page
 - Added the `Dimensions` doctor check, and dimension findings to the schema and index checks
 - Added `View::factory()->withDimensions()`, and the dimensions of every recorded view to `Views::fake()`, `RecordResult`, `ViewAttempted` and the Debugbar tab
@@ -119,6 +120,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
 - `views:doctor` checks that the pairs table exists once `querying.pairs.enabled` is on
 - Added the `Rollups` doctor check, which warns about a rollup that starts after views it should count and names the refold that folds them
+- The `Dimensions` doctor check advises leaving out the hour tier of a dimension once it holds 100,000 rows
 - Added the `Querying\Contracts\TracksChangedViewables` contract, which lets a source of your own say which viewables a count may have changed for, so `views:recount` recounts only those
 
 #### Models and testing

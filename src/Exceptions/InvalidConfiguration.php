@@ -211,6 +211,21 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return new self("The `eloquent-viewable.{$key}` config value names `{$name}`, which is not listed in `dimensions.definitions`.");
     }
 
+    public static function mustBeRollupDimensions(string $key, mixed $value): self
+    {
+        return self::must($key, 'list dimensions by name, each alone or mapped to options of `tiers`', $value);
+    }
+
+    public static function mustBeDimensionTiers(string $key, mixed $value): self
+    {
+        return self::must($key, 'list at least one of `hour`, `day`, `month` and `year`', $value);
+    }
+
+    public static function dimensionTierNotKept(string $name, string $tier): self
+    {
+        return new self("The `eloquent-viewable.retention.rollups.dimensions.{$name}.tiers` config value lists the `{$tier}` tier, which `retention.rollups.tiers` does not keep.");
+    }
+
     public static function dimensionsWithoutTiers(): self
     {
         return new self('The `eloquent-viewable.retention.rollups.dimensions` config value folds dimensions, but `retention.rollups.tiers` keeps no tier to fold them into.');
