@@ -20,6 +20,32 @@ h1#_top {
 	letter-spacing: -0.02em;
 }
 
+/* Zinc instead of Starlight's blue-tinted greys, so the accent is the only colour on the page. */
+:root {
+	--sl-color-white: #fafafa;
+	--sl-color-gray-1: #e4e4e7;
+	--sl-color-gray-2: #d4d4d8;
+	--sl-color-gray-3: #a1a1aa;
+	--sl-color-gray-4: #71717a;
+	--sl-color-gray-5: #27272a;
+	--sl-color-gray-6: #18181b;
+	--sl-color-black: #09090b;
+	--ev-code-bg: #111113;
+}
+
+:root[data-theme='light'] {
+	--sl-color-white: #09090b;
+	--sl-color-gray-1: #18181b;
+	--sl-color-gray-2: #3f3f46;
+	--sl-color-gray-3: #52525b;
+	--sl-color-gray-4: #71717a;
+	--sl-color-gray-5: #e4e4e7;
+	--sl-color-gray-6: #f4f4f5;
+	--sl-color-gray-7: #fafafa;
+	--sl-color-black: #ffffff;
+	--ev-code-bg: #fafafa;
+}
+
 /* The accent follows the logo's gradient, indigo through blue to cyan. */
 :root {
 	--sl-color-accent-low: #1b1f4d;

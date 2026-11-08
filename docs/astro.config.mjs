@@ -32,6 +32,14 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'Eloquent Viewable: view counts, trends and rankings for Eloquent models' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: socialImage } },
 			],
+			// Code blocks sit just off the page background instead of standing out as panels.
+			expressiveCode: {
+				styleOverrides: {
+					codeBackground: 'var(--ev-code-bg)',
+					borderColor: 'var(--sl-color-gray-5)',
+					frames: { frameBoxShadowCssValue: 'none' },
+				},
+			},
 			customCss: ['@fontsource-variable/geist', '@fontsource-variable/geist-mono', './src/styles/custom.css'],
 			components: {
 				Hero: './src/components/Hero.astro',
