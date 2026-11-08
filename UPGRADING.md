@@ -77,42 +77,30 @@ import:
 
 In your tests, `Bus::assertDispatched(StoreView::class)` becomes `Bus::assertDispatched(RecordViewJob::class)`.
 
-### 3. Update your published config
+### 3. Publish the config again
 
-The config is now grouped by module. The easiest route is to publish it again and copy your values over:
+The config is now grouped by module, and a v8 config does not work with v9. Publish the new file over your old one,
+keeping a copy of the old one, or relying on git, so you can carry your values over:
 
 ```bash
 php artisan vendor:publish --provider="CyrildeWit\EloquentViewable\EloquentViewableServiceProvider" --tag="config" --force
 ```
 
-To move the keys by hand instead:
+Then copy each value you changed in v8 to its new place:
 
 | v8 | v9 |
 | --- | --- |
+| `models` | `models`, unchanged |
 | `cache` | `querying.cache` |
 | `queue` | `recording.queue` |
 | `ignored_ip_addresses` | `recording.ignored_ip_addresses` |
 | `visitor_cookie_key` | `visitor.cookie.name` |
+| `cooldown.key` | `cooldown.key` |
 | `ignore_bots => false` | remove `IgnoreCrawlers` from `recording.guards` |
 | `honor_dnt => true` | add `IgnoreDoNotTrack` to `recording.guards` |
-| `cooldown` | add `store` and `cache.store`, see below |
-| `models` | unchanged |
 
-A key left in its v8 place is ignored and its default applies, so check `ignored_ip_addresses` and `queue` in
-particular. The `cooldown` block needs the new keys, otherwise every `views()` call throws `InvalidConfiguration`:
-
-```php
-'cooldown' => [
-    'store' => 'session',
-    'key' => 'cyrildewit.eloquent-viewable.cooldowns',
-    'cache' => [
-        'store' => null,
-    ],
-],
-```
-
-If you keep your old `recording.guards` list, add `IgnoreOptedOutViewers` to it before implementing
-`Contracts\ViewerCanOptOut` on a viewer model, or the opt-out is not honoured. `php artisan views:doctor` warns about it.
+Start from the published file rather than adding the new keys to your v8 one. Each top-level block is read as a
+whole, so a block that is missing keys throws `InvalidConfiguration` naming the first one.
 
 Config values are now validated when they are read, so a connection, table, queue or cache store given as anything
 other than a string or `null` throws `InvalidConfiguration` naming the key.

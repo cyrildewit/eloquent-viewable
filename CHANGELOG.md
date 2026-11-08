@@ -144,7 +144,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - `Period` is half-open: the start is included and the end is excluded, so a view recorded exactly at the end no longer counts
 - `Period` converts bounds built in another timezone to the application timezone
 - The migration stub creates a composite `(viewable_type, viewable_id, viewed_at)` index, an index on `viewed_at` and the `viewer` and `context` columns. Existing installations add them with the migration in the upgrade guide
-- The config file is grouped by module: `cache` moved to `querying.cache`, `queue` to `recording.queue`, `ignored_ip_addresses` to `recording.ignored_ip_addresses` and `visitor_cookie_key` to `visitor.cookie.name`. Config values are validated when read and throw `InvalidConfiguration` when invalid
+- The config file is grouped by module, so publish it again: `cache` moved to `querying.cache`, `queue` to `recording.queue`, `ignored_ip_addresses` to `recording.ignored_ip_addresses` and `visitor_cookie_key` to `visitor.cookie.name`. Config values are validated when read and throw `InvalidConfiguration` when invalid
 - The crawler, Do Not Track, IP address and cooldown checks are guards in `recording.guards`. The defaults keep the v8 behaviour and also skip prefetched pages, `HEAD` requests and requests without a user agent
 - Classes moved into module namespaces, and `CreateView`, `StoreView`, `ViewRecordException` and `PendingView` were renamed. The upgrade guide has the full table
 - `Visitor::DNT` is renamed to `Visitor::DoNotTrackHeader`
