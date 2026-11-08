@@ -1,0 +1,75 @@
+---
+// The composer command with a copy button, shown in the hero and at the end of the homepage.
+const command = 'composer require cyrildewit/eloquent-viewable';
+---
+
+<div class="install not-content">
+	<code><span aria-hidden="true">$</span> {command}</code>
+	<button type="button" data-command={command} aria-label="Copy the install command">
+		<span class="label">Copy</span>
+	</button>
+</div>
+
+<script>
+	for (const button of document.querySelectorAll<HTMLButtonElement>('.install button')) {
+		button.addEventListener('click', async () => {
+			const label = button.querySelector('.label');
+			try {
+				await navigator.clipboard.writeText(button.dataset.command ?? '');
+				if (label) label.textContent = 'Copied';
+			} catch {
+				if (label) label.textContent = 'Select and copy';
+			}
+			setTimeout(() => {
+				if (label) label.textContent = 'Copy';
+			}, 2000);
+		});
+	}
+</script>
+
+<style>
+	.install {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		max-width: 100%;
+		padding: 0.5rem 0.5rem 0.5rem 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	}
+
+	code {
+		flex: 1;
+		min-width: 0;
+		overflow-x: auto;
+		white-space: nowrap;
+		font-family: var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-white);
+		background: none;
+		padding: 0;
+	}
+
+	code span {
+		color: var(--sl-color-gray-3);
+		user-select: none;
+	}
+
+	button {
+		flex-shrink: 0;
+		padding: 0.3rem 0.7rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.35rem;
+		background: var(--sl-color-black);
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	button:hover {
+		border-color: var(--sl-color-accent);
+		color: var(--sl-color-white);
+	}
+</style>

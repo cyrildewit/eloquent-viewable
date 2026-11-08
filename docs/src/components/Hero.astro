@@ -1,0 +1,243 @@
+---
+// Replaces Starlight's hero, which only the homepage uses. Instead of the logo it shows a post's stats next to the
+// code that produces them, so the first thing a visitor sees is what the package gives them.
+import { Code, LinkButton } from '@astrojs/starlight/components';
+import InstallCommand from './InstallCommand.astro';
+
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero || {};
+
+// Daily views of the past week. They add up to the total in the card and the comment in the code.
+const days = [
+	{ label: 'Mon', views: 142 },
+	{ label: 'Tue', views: 168 },
+	{ label: 'Wed', views: 155 },
+	{ label: 'Thu', views: 190 },
+	{ label: 'Fri', views: 203 },
+	{ label: 'Sat', views: 221 },
+	{ label: 'Sun', views: 205 },
+];
+const total = days.reduce((sum, day) => sum + day.views, 0);
+const max = Math.max(...days.map((day) => day.views));
+
+const code = `$week = views($post)->period(Period::pastDays(7));
+
+$week->count();                           // ${total.toLocaleString('en')}
+$week->compare()->percent;                // 17.2
+$week->countByInterval(Granularity::Day); // [${days[0].views}, ${days[1].views}, …]
+
+views($post)->live()->count();            // 12`;
+---
+
+<div class="hero">
+	<div class="copy">
+		<h1 id="_top" data-page-title set:html={title} />
+		{tagline && <p class="tagline" set:html={tagline} />}
+		<InstallCommand />
+		{
+			actions.length > 0 && (
+				<div class="actions">
+					{actions.map(({ attrs: { class: className, ...attrs } = {}, icon, link: href, text, variant }) => (
+						<LinkButton {href} {variant} icon={icon?.name} class:list={[className]} {...attrs}>
+							{text}
+							{icon?.html && <Fragment set:html={icon.html} />}
+						</LinkButton>
+					))}
+				</div>
+			)
+		}
+	</div>
+
+	<div class="showcase not-content">
+		<figure class="card" aria-label={`A post with ${total} views in the past 7 days, 17.2% more than the week before, and 12 people reading it now`}>
+			<div class="card-head">
+				<span class="kicker">posts / why-we-moved-to-postgres</span>
+				<span class="live"><span class="dot" aria-hidden="true"></span>12 reading now</span>
+			</div>
+			<div class="numbers">
+				<strong>{total.toLocaleString('en')}</strong>
+				<span>views, past 7 days</span>
+				<span class="delta">+17.2% on the week before</span>
+			</div>
+			<ol class="bars" aria-hidden="true">
+				{days.map((day) => (
+					<li>
+						<span class="bar" style={`--h: ${Math.round((day.views / max) * 100)}%`} title={`${day.views} views`}></span>
+						<span class="day">{day.label}</span>
+					</li>
+				))}
+			</ol>
+		</figure>
+		<Code code={code} lang="php" frame="none" />
+	</div>
+</div>
+
+<style>
+	.hero {
+		display: grid;
+		grid-template-columns: 100%;
+		gap: 2.5rem;
+		padding-block: 1rem 2rem;
+	}
+
+	.copy {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 0;
+	}
+
+	h1 {
+		font-size: clamp(var(--sl-text-3xl), calc(0.5rem + 4vw), var(--sl-text-5xl));
+		line-height: 1.1;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		color: var(--sl-color-white);
+		text-wrap: balance;
+	}
+
+	.tagline {
+		margin: 0;
+		max-width: 46ch;
+		font-size: clamp(var(--sl-text-base), calc(0.25rem + 1.5vw), var(--sl-text-xl));
+		color: var(--sl-color-gray-2);
+		text-wrap: pretty;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem 2rem;
+		align-items: center;
+	}
+
+	.showcase {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.card {
+		margin: 0;
+		padding: 1.25rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		background:
+			radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--sl-color-accent) 18%, transparent), transparent 60%),
+			var(--sl-color-black);
+	}
+
+	.card-head {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: var(--sl-text-xs);
+	}
+
+	.kicker {
+		font-family: var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+		color: var(--sl-color-gray-3);
+	}
+
+	.live {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: var(--sl-color-gray-2);
+		font-weight: 600;
+	}
+
+	.dot {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 999px;
+		background: #22c55e;
+		box-shadow: 0 0 0 0 rgb(34 197 94 / 0.6);
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		70% {
+			box-shadow: 0 0 0 0.5rem rgb(34 197 94 / 0);
+		}
+		100% {
+			box-shadow: 0 0 0 0 rgb(34 197 94 / 0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.dot {
+			animation: none;
+		}
+	}
+
+	.numbers {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 0.75rem;
+		margin-top: 1rem;
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+	}
+
+	.numbers strong {
+		font-size: var(--sl-text-4xl);
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		color: var(--sl-color-white);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.delta {
+		flex-basis: 100%;
+		color: var(--sl-color-accent-high);
+		font-weight: 600;
+	}
+
+	.bars {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 0.5rem;
+		height: 6.5rem;
+		margin: 1.25rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.bars li {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.bar {
+		width: 100%;
+		height: var(--h);
+		border-radius: 0.3rem 0.3rem 0.15rem 0.15rem;
+		background: linear-gradient(to top, var(--sl-color-accent), color-mix(in srgb, var(--sl-color-accent) 55%, #22d3ee));
+	}
+
+	.day {
+		font-size: var(--sl-text-2xs, 0.7rem);
+		color: var(--sl-color-gray-3);
+	}
+
+	.showcase :global(.expressive-code) {
+		font-size: var(--sl-text-xs);
+	}
+
+	@media (min-width: 50rem) {
+		.hero {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			align-items: center;
+			gap: 3rem;
+			padding-block: clamp(2rem, calc(1rem + 6vmin), 6rem);
+		}
+	}
+</style>

@@ -24,6 +24,7 @@ export default defineConfig({
 			editLink: { baseUrl: `${repository}/edit/9.x/docs/` },
 			lastUpdated: true,
 			customCss: ['./src/styles/custom.css'],
+			components: { Hero: './src/components/Hero.astro' },
 			plugins: [starlightLinksValidator()],
 			sidebar: [
 				{ label: 'Getting started', items: [{ autogenerate: { directory: 'getting-started' } }] },
