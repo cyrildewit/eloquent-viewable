@@ -196,10 +196,13 @@ public function handle(ViewsSpiked $event): void
 
 ```php
 views($post)->remember(10)->count();    // minutes, or a DateTimeInterface
+views(Post::class)->remember(10, stale: 60)->trending(); // fresh 10 minutes, then served stale and refreshed after the response until 60
 views($post)->forgetCache();
 ```
 
 Always give `remember()` a lifetime. Recording a view does not refresh a remembered count.
+Add `stale` to an expensive read on a busy page, such as `trending()` or `recommended()`. `stale` is measured from now
+and must end after the lifetime.
 
 ## Deleting a User or a GDPR Request
 

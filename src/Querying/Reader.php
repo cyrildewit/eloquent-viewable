@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
+use CyrildeWit\EloquentViewable\Querying\Cache\Lifetime;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
@@ -71,9 +72,9 @@ final readonly class Reader
         private GrowthRanking $growth = new GrowthRanking,
     ) {}
 
-    public function count(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
+    public function count(Viewable $viewable, ViewsQuery $query, ?Lifetime $lifetime = null): int
     {
-        return $this->source($rememberUntil)->count($viewable, $query);
+        return $this->source($lifetime)->count($viewable, $query);
     }
 
     /**
@@ -84,14 +85,14 @@ final readonly class Reader
      * @throws InvalidPeriod
      * @throws UnsupportedBySource
      */
-    public function compare(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null, bool $returning = false): ViewComparison
+    public function compare(Viewable $viewable, ViewsQuery $query, ?Lifetime $lifetime = null, bool $returning = false): ViewComparison
     {
         $period = $query->period ?? throw InvalidPeriod::comparedWithoutPeriod();
         $previous = $period->previous();
 
         $count = $returning
-            ? fn (ViewsQuery $query): int => $this->returning($viewable, $query, $rememberUntil)
-            : fn (ViewsQuery $query): int => $this->count($viewable, $query, $rememberUntil);
+            ? fn (ViewsQuery $query): int => $this->returning($viewable, $query, $lifetime)
+            : fn (ViewsQuery $query): int => $this->count($viewable, $query, $lifetime);
 
         return ViewComparison::between(
             $count($query),
@@ -106,26 +107,26 @@ final readonly class Reader
      *
      * @throws UnsupportedBySource
      */
-    public function returning(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): int
+    public function returning(Viewable $viewable, ViewsQuery $query, ?Lifetime $lifetime = null): int
     {
-        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), 2)->returning();
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $lifetime), 2)->returning();
     }
 
     /**
      * @throws InvalidFrequency
      * @throws UnsupportedBySource
      */
-    public function countByFrequency(Viewable $viewable, ViewsQuery $query, int $upTo, ?CarbonInterface $rememberUntil = null): VisitFrequency
+    public function countByFrequency(Viewable $viewable, ViewsQuery $query, int $upTo, ?Lifetime $lifetime = null): VisitFrequency
     {
         if ($upTo < 2) {
             throw InvalidFrequency::capBelowTwo($upTo);
         }
 
-        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $rememberUntil), $upTo);
+        return VisitFrequency::fold($this->visitFrequency($viewable, $query, $lifetime), $upTo);
     }
 
     /** @return array<int|string, int> */
-    public function countMany(ViewableSet $viewables, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    public function countMany(ViewableSet $viewables, ViewsQuery $query, ?Lifetime $lifetime = null): array
     {
         $type = $viewables->type();
         $keys = $viewables->keys();
@@ -134,13 +135,13 @@ final readonly class Reader
             return [];
         }
 
-        $counts = $this->source($rememberUntil)->countMany($type, $keys, $query);
+        $counts = $this->source($lifetime)->countMany($type, $keys, $query);
 
         return array_replace(array_fill_keys(array_keys($viewables->all()), 0), $counts);
     }
 
     /** @throws InvalidInterval */
-    public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity, ?CarbonInterface $rememberUntil = null): ViewSeries
+    public function countByInterval(Viewable $viewable, ViewsQuery $query, Granularity $granularity, ?Lifetime $lifetime = null): ViewSeries
     {
         $period = $query->period;
         $startDateTime = $period?->getStartDateTime();
@@ -157,7 +158,7 @@ final readonly class Reader
             $period->endOrNow()->avoidMutation()->setTimezone($timezone),
         );
 
-        $counts = $this->source($rememberUntil)->countByInterval($viewable, $query, $granularity);
+        $counts = $this->source($lifetime)->countByInterval($viewable, $query, $granularity);
 
         return ViewSeries::fill($period, $granularity, $counts, $timezone);
     }
@@ -167,9 +168,9 @@ final readonly class Reader
      *
      * @return array<string, int>
      */
-    public function countByCollection(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil = null): array
+    public function countByCollection(Viewable $viewable, ViewsQuery $query, ?Lifetime $lifetime = null): array
     {
-        return DimensionCounts::sorted($this->source($rememberUntil)->countByCollection($viewable, $query));
+        return DimensionCounts::sorted($this->source($lifetime)->countByCollection($viewable, $query));
     }
 
     /**
@@ -179,31 +180,31 @@ final readonly class Reader
      *
      * @throws UnsupportedBySource
      */
-    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?CarbonInterface $rememberUntil = null): array
+    public function countByDimension(Viewable $viewable, ViewsQuery $query, string $dimension, ?Lifetime $lifetime = null): array
     {
-        return DimensionCounts::sorted($this->requires(CountsByDimension::class, $rememberUntil)->countByDimension($viewable, $query, $dimension));
+        return DimensionCounts::sorted($this->requires(CountsByDimension::class, $lifetime)->countByDimension($viewable, $query, $dimension));
     }
 
     /**
      * @throws InvalidLimit
      * @throws UnsupportedBySource
      */
-    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?CarbonInterface $rememberUntil = null): DimensionCounts
+    public function countBy(Viewable $viewable, ViewsQuery $query, DimensionDefinition $dimension, ?int $limit = null, ?Lifetime $lifetime = null): DimensionCounts
     {
         $this->guardLimit($limit ?? 1, 'countBy()');
 
-        return $this->requires(CountsBy::class, $rememberUntil)->countBy($viewable, $query, $dimension, $limit);
+        return $this->requires(CountsBy::class, $lifetime)->countBy($viewable, $query, $dimension, $limit);
     }
 
     /**
      * @throws InvalidLimit
      * @throws InvalidViewable
      */
-    public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    public function top(?Viewable $viewable, ViewsQuery $query, int $limit, ?Lifetime $lifetime = null): Ranking
     {
         $this->guardRanking($viewable, $limit, 'top()');
 
-        return $this->loader->load($this->source($rememberUntil)->top($viewable, $query, $limit));
+        return $this->loader->load($this->source($lifetime)->top($viewable, $query, $limit));
     }
 
     /**
@@ -217,13 +218,13 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?CarbonInterface $rememberUntil = null): Ranking
+    public function trending(?Viewable $viewable, ViewsQuery $query, int $limit, ?CarbonInterval $halfLife = null, ?DecayCurve $curve = null, ?Lifetime $lifetime = null): Ranking
     {
         $this->guardRanking($viewable, $limit, 'trending()');
 
         $decay = $this->decays->make($query, $halfLife, $curve);
 
-        return $this->loader->load($this->requires(RanksTrending::class, $rememberUntil)->trending($viewable, $query, $decay, $limit));
+        return $this->loader->load($this->requires(RanksTrending::class, $lifetime)->trending($viewable, $query, $decay, $limit));
     }
 
     /**
@@ -237,9 +238,9 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    public function rising(?Viewable $viewable, ViewsQuery $query, int $limit, int $minimum, ?CarbonInterface $rememberUntil = null): Ranking
+    public function rising(?Viewable $viewable, ViewsQuery $query, int $limit, int $minimum, ?Lifetime $lifetime = null): Ranking
     {
-        $source = $this->growthSource($viewable, $limit, $minimum, 'rising()', $rememberUntil);
+        $source = $this->growthSource($viewable, $limit, $minimum, 'rising()', $lifetime);
 
         return $this->loader->load($this->growth->rising($source, $viewable, $query, $minimum, $limit));
     }
@@ -255,9 +256,9 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    public function anomalies(?Viewable $viewable, ViewsQuery $query, float $threshold, int $minimum, int $limit, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Ranking
+    public function anomalies(?Viewable $viewable, ViewsQuery $query, float $threshold, int $minimum, int $limit, Seasonality $seasonality, int $samples, ?Lifetime $lifetime = null): Ranking
     {
-        $source = $this->growthSource($viewable, $limit, $minimum, 'anomalies()', $rememberUntil);
+        $source = $this->growthSource($viewable, $limit, $minimum, 'anomalies()', $lifetime);
 
         return $this->loader->load($this->growth->anomalies($source, $viewable, $query, $seasonality, $samples, $threshold, $minimum, $limit));
     }
@@ -269,16 +270,16 @@ final readonly class Reader
      * @throws InvalidBaseline
      * @throws InvalidPeriod
      */
-    public function againstBaseline(Viewable $viewable, ViewsQuery $query, Seasonality $seasonality, int $samples, ?CarbonInterface $rememberUntil = null): Baseline
+    public function againstBaseline(Viewable $viewable, ViewsQuery $query, Seasonality $seasonality, int $samples, ?Lifetime $lifetime = null): Baseline
     {
         $period = $query->period ?? throw InvalidBaseline::withoutStart();
 
         $references = array_map(
-            fn (Period $reference): int => $this->count($viewable, $query->withPeriod($reference), $rememberUntil),
+            fn (Period $reference): int => $this->count($viewable, $query->withPeriod($reference), $lifetime),
             $seasonality->references($period, $samples),
         );
 
-        return new Baseline($this->count($viewable, $query, $rememberUntil), $references);
+        return new Baseline($this->count($viewable, $query, $lifetime), $references);
     }
 
     /**
@@ -292,7 +293,7 @@ final readonly class Reader
      * @throws InvalidViewer
      * @throws UnsupportedBySource
      */
-    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?CarbonInterface $rememberUntil = null): Ranking
+    public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, ?Lifetime $lifetime = null): Ranking
     {
         $this->guardLimit($limit, 'alsoViewed()');
 
@@ -304,7 +305,7 @@ final readonly class Reader
             throw InvalidViewer::cannotNarrowAlsoViewed();
         }
 
-        return $this->loader->load($this->requires(RanksAlsoViewed::class, $rememberUntil)->alsoViewed(
+        return $this->loader->load($this->requires(RanksAlsoViewed::class, $lifetime)->alsoViewed(
             $viewable,
             $among,
             $query,
@@ -325,11 +326,11 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?CarbonInterface $rememberUntil = null): Recommendations
+    public function recommended(Recipient $recipient, ?Viewable $among, ViewsQuery $query, int $limit, bool $includeSeen = false, ?Lifetime $lifetime = null): Recommendations
     {
         $this->guardLimit($limit, 'recommended()');
 
-        return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $rememberUntil));
+        return $this->recommendations->load($this->scoreRecommendations($recipient, $among, $query, $includeSeen, $limit, $lifetime));
     }
 
     /**
@@ -360,13 +361,13 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    private function scoreRecommendations(Recipient $recipient, ?Viewable $among, ViewsQuery $query, bool $includeSeen, ?int $limit = null, ?CarbonInterface $rememberUntil = null): array
+    private function scoreRecommendations(Recipient $recipient, ?Viewable $among, ViewsQuery $query, bool $includeSeen, ?int $limit = null, ?Lifetime $lifetime = null): array
     {
         if ($among instanceof Viewable && ViewableKey::of($among) !== null) {
             throw InvalidViewable::cannotRecommendAmongOne($among);
         }
 
-        return $this->recommender->score($this->requires(RanksRecommendations::class, $rememberUntil), $recipient, $among, $query, $includeSeen, $limit);
+        return $this->recommender->score($this->requires(RanksRecommendations::class, $lifetime), $recipient, $among, $query, $includeSeen, $limit);
     }
 
     /**
@@ -374,9 +375,9 @@ final readonly class Reader
      *
      * @throws UnsupportedBySource
      */
-    private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?CarbonInterface $rememberUntil): array
+    private function visitFrequency(Viewable $viewable, ViewsQuery $query, ?Lifetime $lifetime): array
     {
-        return $this->requires(CountsVisitFrequency::class, $rememberUntil)->visitFrequency($viewable, $query);
+        return $this->requires(CountsVisitFrequency::class, $lifetime)->visitFrequency($viewable, $query);
     }
 
     /**
@@ -385,7 +386,7 @@ final readonly class Reader
      * @throws InvalidViewable
      * @throws UnsupportedBySource
      */
-    private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?CarbonInterface $rememberUntil): CountsByWindow
+    private function growthSource(?Viewable $viewable, int $limit, int $minimum, string $method, ?Lifetime $lifetime): CountsByWindow
     {
         $this->guardRanking($viewable, $limit, $method);
 
@@ -393,7 +394,7 @@ final readonly class Reader
             throw InvalidBaseline::minimumBelowOne($minimum, $method);
         }
 
-        return $this->requires(CountsByWindow::class, $rememberUntil);
+        return $this->requires(CountsByWindow::class, $lifetime);
     }
 
     /** @throws InvalidLimit */
@@ -431,9 +432,9 @@ final readonly class Reader
      *
      * @throws UnsupportedBySource
      */
-    private function requires(string $contract, ?CarbonInterface $rememberUntil): ViewSource
+    private function requires(string $contract, ?Lifetime $lifetime): ViewSource
     {
-        $source = $this->source($rememberUntil);
+        $source = $this->source($lifetime);
 
         if (! $source instanceof $contract) {
             throw UnsupportedBySource::missing($contract, $source);
@@ -444,15 +445,15 @@ final readonly class Reader
 
     /**
      * This is the source itself when the call does not ask to remember the
-     * result, and the source behind the cache until that moment when it does.
+     * result, and the source behind the cache for that lifetime when it does.
      */
-    private function source(?CarbonInterface $rememberUntil): ViewSource
+    private function source(?Lifetime $lifetime): ViewSource
     {
-        if (! $rememberUntil instanceof CarbonInterface) {
+        if (! $lifetime instanceof Lifetime) {
             return $this->source;
         }
 
-        return new RememberingSource($this->source, $this->cache, $rememberUntil, $this->config->cacheKey(), $this->identity());
+        return new RememberingSource($this->source, $this->cache, $lifetime, $this->config->cacheKey(), $this->identity());
     }
 
     /**

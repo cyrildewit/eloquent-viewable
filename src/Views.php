@@ -19,12 +19,14 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewer;
 use CyrildeWit\EloquentViewable\Presence\LiveViews;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\Lifetime;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Dimensions\DimensionCounts;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidBaseline;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidDecay;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLifetime;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidReturning;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
@@ -79,7 +81,7 @@ class Views
 
     protected ?bool $queue = null;
 
-    protected ?CarbonInterface $cacheLifetime = null;
+    protected ?Lifetime $cacheLifetime = null;
 
     protected ?Timezone $timezone = null;
 
@@ -552,10 +554,24 @@ class Views
         return $this;
     }
 
-    /** An integer is a number of minutes. */
-    public function remember(DateTimeInterface|int|null $lifetime = null): self
+    /**
+     * An integer is a number of minutes. With `$stale`, the entry is kept until
+     * then, measured from now like the lifetime, as `Cache::flexible()` does.
+     * A read past the lifetime returns the entry at once and counts again
+     * after the response.
+     *
+     * @throws InvalidLifetime
+     */
+    public function remember(DateTimeInterface|int|null $lifetime = null, DateTimeInterface|int|null $stale = null): self
     {
-        $this->cacheLifetime = $lifetime === null ? null : $this->resolveLifetime($lifetime);
+        if ($lifetime === null && $stale !== null) {
+            throw InvalidLifetime::staleWithoutLifetime();
+        }
+
+        $this->cacheLifetime = $lifetime === null ? null : new Lifetime(
+            $this->resolveLifetime($lifetime),
+            $stale === null ? null : $this->resolveLifetime($stale),
+        );
 
         return $this;
     }

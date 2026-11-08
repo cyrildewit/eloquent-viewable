@@ -47,6 +47,17 @@ final readonly class CacheVersions
     }
 
     /**
+     * The version every entry is also stamped with, apart from the others.
+     * Bumping it through markStale() leaves entries readable but stale: a read
+     * with a stale window serves them while it refreshes them, and any other
+     * read counts again.
+     */
+    public function refreshKey(): string
+    {
+        return $this->key('refresh');
+    }
+
+    /**
      * A version key the cache lacks, because it was never written or was
      * evicted, gets a new token that is stored forever. Entries stamped with
      * the lost token no longer match, so they are read as stale.
@@ -102,6 +113,16 @@ final readonly class CacheVersions
     public function flushCache(): void
     {
         $this->bump(['all']);
+    }
+
+    /**
+     * For a change that adds to what entries counted without taking from it,
+     * such as a fold or a rebuild of the pairs, so an entry is as good as one
+     * that missed the views recorded since.
+     */
+    public function markStale(): void
+    {
+        $this->bump(['refresh']);
     }
 
     /** @param  list<string>  $scopes */

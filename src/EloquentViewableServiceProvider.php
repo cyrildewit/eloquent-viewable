@@ -224,7 +224,8 @@ class EloquentViewableServiceProvider extends ServiceProvider
 
         $events->listen(ViewsDestroyed::class, $this->listener(ForgetChangedCounts::class, 'viewsDestroyed'));
         $events->listen(CountsChanged::class, $this->listener(ForgetChangedCounts::class, 'countsChanged'));
-        $events->listen([ViewsRolledUp::class, ViewsPaired::class, ViewsAnonymised::class, ViewsPruned::class], $this->listener(ForgetChangedCounts::class, 'viewsChanged'));
+        $events->listen([ViewsRolledUp::class, ViewsPaired::class], $this->listener(ForgetChangedCounts::class, 'viewsSummarised'));
+        $events->listen([ViewsAnonymised::class, ViewsPruned::class], $this->listener(ForgetChangedCounts::class, 'viewsChanged'));
         $events->listen(BotViewsPurged::class, $this->listener(ForgetChangedCounts::class, 'botViewsPurged'));
         $events->listen(CountersRecounted::class, $this->listener(CheckAfterRecount::class, '__invoke'));
 
