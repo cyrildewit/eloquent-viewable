@@ -18,10 +18,11 @@ hero:
       variant: minimal
 ---
 
-import { LinkCard, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 import Bento from '../../components/Bento.astro';
 import CallToAction from '../../components/CallToAction.astro';
 import FactRow from '../../components/FactRow.astro';
+import Gallery from '../../components/Gallery.astro';
 import ScaleLadder from '../../components/ScaleLadder.astro';
 import Showcase from '../../components/Showcase.astro';
 import ShowcaseOutput from '../../components/ShowcaseOutput.astro';
@@ -95,22 +96,14 @@ import ShowcaseOutput from '../../components/ShowcaseOutput.astro';
 	</TabItem>
 </Tabs>
 
-## Why keep views in your own database?
+## What you can build
 
-A hosted analytics service tells you how your site is doing. It can't sort a query, fill a "readers also read" box or
-know which of your users read what. Keeping views next to your models can.
+Each of these is a call or two on top of the views you record. Every card links to the recipe or guide that builds it in
+full.
 
-|                                              | Eloquent Viewable                    | A hosted analytics service      |
-|----------------------------------------------|--------------------------------------|---------------------------------|
-| Order an Eloquent query by views             | `Post::orderByViews()`               | Export, import, keep in sync    |
-| Show "trending" or "readers also read"       | One call                             | Build it on their API           |
-| Count readers with an ad blocker             | Yes, recorded on your server         | Often blocked                   |
-| Show a user what they viewed                 | `$user->viewed()`                    | Not linked to your users        |
-| Where the data lives                         | Your database                        | Their servers                   |
-| Funnels, sessions, referrer reports          | No                                   | Yes                             |
+<Gallery />
 
-It is not a replacement for product analytics. It answers questions about your models, in the queries you already
-write.
+[All recipes](/eloquent-viewable/recipes/) · For funnels and sessions, pair it with a product analytics tool.
 
 ## What it does
 
@@ -133,18 +126,5 @@ php artisan boost:update --discover
 ```
 
 [Set up your coding agent](/eloquent-viewable/getting-started/ai-coding-assistants/)
-
-## Recipes
-
-Complete features built from several parts of the package, each with its code and a test that runs with the suite.
-
-<CardGrid>
-	<LinkCard title="Trending articles" href="/eloquent-viewable/recipes/trending-articles/" description="A trending this week sidebar, ranked by views weighed by their age." />
-	<LinkCard title="Listing stats" href="/eloquent-viewable/recipes/listing-stats/" description="A seller's stats page with a daily chart and unique visitors." />
-	<LinkCard title="Breaking news" href="/eloquent-viewable/recipes/breaking-news/" description="Story pages under a traffic spike, buffered in Redis." />
-	<LinkCard title="Privacy-first analytics" href="/eloquent-viewable/recipes/privacy-first-analytics/" description="Counting readers without cookies or a cookie banner." />
-</CardGrid>
-
-[All recipes](/eloquent-viewable/recipes/)
 
 <CallToAction />

@@ -1,0 +1,313 @@
+---
+// The "What you can build" gallery on the homepage: features a visitor recognises from real sites, each with a small
+// preview, the call behind it and the recipe or page that builds it in full. The previews are plain HTML from fixed
+// sample data; the digest's numbers come from the author digest recipe.
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+const bars = [9, 12, 10, 14, 13, 8, 7, 15, 17, 16, 19, 14, 11, 21];
+const peak = Math.max(...bars);
+---
+
+<div class="gallery not-content">
+	<a class="item" href={`${base}recipes/trending-articles/`}>
+		<div class="preview" aria-hidden="true">
+			<span class="heading">Trending this week</span>
+			<ol class="ranked">
+				<li>Why we moved to Postgres</li>
+				<li>A field guide to queue workers</li>
+				<li>Rate limiting without Redis</li>
+			</ol>
+		</div>
+		<h3>Trending sidebar</h3>
+		<code>views(Post::class)->trending(10)</code>
+		<span class="more">Recipe</span>
+	</a>
+
+	<a class="item" href={`${base}rankings/also-viewed/`}>
+		<div class="preview" aria-hidden="true">
+			<span class="heading">Readers also read</span>
+			<ul class="related">
+				<li>Postgres indexes, explained</li>
+				<li>Zero-downtime migrations</li>
+				<li>Choosing a primary key</li>
+			</ul>
+		</div>
+		<h3>Readers also read</h3>
+		<code>views($post)->alsoViewed(3)</code>
+		<span class="more">Guide</span>
+	</a>
+
+	<a class="item" href={`${base}recipes/recently-viewed/`}>
+		<div class="preview" aria-hidden="true">
+			<span class="heading">Continue where you left off</span>
+			<div class="tiles">
+				<span style="--tint: 230"><b>Laravel queues</b><small>Yesterday</small></span>
+				<span style="--tint: 190"><b>SQL for developers</b><small>3 days ago</small></span>
+				<span style="--tint: 260"><b>Testing with Pest</b><small>Last week</small></span>
+			</div>
+		</div>
+		<h3>Recently viewed</h3>
+		<code>$learner->viewed()</code>
+		<span class="more">Recipe</span>
+	</a>
+
+	<a class="item" href={`${base}rankings/presence/`}>
+		<div class="preview" aria-hidden="true">
+			<span class="heading">Walnut desk, 140 cm</span>
+			<span class="price">€ 349</span>
+			<span class="live"><span class="dot"></span>12 people are viewing this</span>
+		</div>
+		<h3>Live viewer count</h3>
+		<code>views($product)->live()->count()</code>
+		<span class="more">Guide</span>
+	</a>
+
+	<a class="item" href={`${base}recipes/listing-stats/`}>
+		<div class="preview" aria-hidden="true">
+			<span class="heading">Your listing, past 14 days</span>
+			<span class="stat"><b>186</b> views <em>+8%</em></span>
+			<div class="bars">
+				{bars.map((value) => <span style={`--h: ${Math.round((value / peak) * 100)}%`} />)}
+			</div>
+		</div>
+		<h3>Stats for your users</h3>
+		<code>->countByInterval(Granularity::Day)</code>
+		<span class="more">Recipe</span>
+	</a>
+
+	<a class="item" href={`${base}recipes/author-digest/`}>
+		<div class="preview mail" aria-hidden="true">
+			<span class="heading">Your week on the blog</span>
+			<p>Your essays got 4,210 views in the week of 5 October, up 12% on the week before.</p>
+			<ol class="ranked small">
+				<li>On writing every day</li>
+				<li>The case for boring tech</li>
+			</ol>
+		</div>
+		<h3>Weekly digest email</h3>
+		<code>Views::forViewables($essays)->counts()</code>
+		<span class="more">Recipe</span>
+	</a>
+</div>
+
+<style>
+	.gallery {
+		display: grid;
+		grid-template-columns: 100%;
+		gap: 0.75rem;
+		margin-top: 1.5rem;
+	}
+
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.75rem 0.75rem 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	.item:hover {
+		border-color: var(--sl-color-accent);
+	}
+
+	.item:hover .more {
+		color: var(--sl-color-accent-high);
+	}
+
+	h3 {
+		margin: 0.5rem 0.25rem 0;
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-lg);
+		font-weight: 600;
+	}
+
+	.item > code {
+		margin: 0 0.25rem;
+		overflow-x: auto;
+		white-space: nowrap;
+		font-family: var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+	}
+
+	.more {
+		margin: auto 0.25rem 0;
+		padding-top: 0.25rem;
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+	}
+
+	.more::after {
+		content: ' →';
+	}
+
+	/* The previews: a small slice of the feature's UI on a tinted panel. */
+	.preview {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		height: 10.5rem;
+		overflow: hidden;
+		padding: 0.9rem;
+		border-radius: 0.5rem;
+		background:
+			radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--sl-color-accent) 14%, transparent), transparent 65%),
+			var(--sl-color-gray-6);
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+	}
+
+	.heading {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-sm);
+		font-weight: 700;
+	}
+
+	.ranked,
+	.related {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		counter-reset: rank;
+	}
+
+	.ranked li,
+	.related li {
+		padding: 0.3rem 0;
+		border-bottom: 1px solid var(--sl-color-gray-5);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.ranked li:last-child,
+	.related li:last-child {
+		border-bottom: 0;
+	}
+
+	.ranked li {
+		counter-increment: rank;
+	}
+
+	.ranked li::before {
+		content: counter(rank);
+		display: inline-block;
+		width: 1.25rem;
+		color: var(--sl-color-accent-high);
+		font-weight: 700;
+	}
+
+	.related li::before {
+		content: '→';
+		display: inline-block;
+		width: 1.25rem;
+		color: var(--sl-color-gray-3);
+	}
+
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.4rem;
+		flex: 1;
+	}
+
+	.tiles span {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		gap: 0.15rem;
+		padding: 0.5rem;
+		border-radius: 0.4rem;
+		background: linear-gradient(160deg, hsl(var(--tint) 70% 60% / 0.55), hsl(var(--tint) 70% 45% / 0.25));
+	}
+
+	.tiles b {
+		color: var(--sl-color-white);
+		font-size: 0.7rem;
+		line-height: 1.2;
+	}
+
+	.tiles small {
+		font-size: 0.65rem;
+		color: var(--sl-color-gray-2);
+	}
+
+	.price {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-xl);
+		font-weight: 700;
+	}
+
+	.live {
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		gap: 0.4rem;
+		margin-top: auto;
+		padding: 0.3rem 0.6rem;
+		border-radius: 999px;
+		background: rgb(34 197 94 / 0.14);
+		color: var(--sl-color-white);
+		font-weight: 600;
+	}
+
+	.dot {
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 999px;
+		background: #22c55e;
+	}
+
+	.stat b {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-xl);
+	}
+
+	.stat em {
+		margin-left: 0.25rem;
+		color: var(--sl-color-accent-high);
+		font-style: normal;
+		font-weight: 600;
+	}
+
+	.bars {
+		display: flex;
+		align-items: flex-end;
+		gap: 3px;
+		flex: 1;
+		min-height: 3rem;
+	}
+
+	.bars span {
+		flex: 1;
+		height: var(--h);
+		border-radius: 2px 2px 1px 1px;
+		background: var(--sl-color-accent);
+	}
+
+	.mail p {
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	.ranked.small li {
+		padding: 0.15rem 0;
+	}
+
+	@media (min-width: 40rem) {
+		.gallery {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (min-width: 62rem) {
+		.gallery {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+</style>
