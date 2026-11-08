@@ -123,11 +123,11 @@ assert on it:
 use CyrildeWit\EloquentViewable\Data\ViewRecord;
 use CyrildeWit\EloquentViewable\Facades\Views;
 
-Views::fake();
+$fake = Views::fake();
 
 $this->get('/posts/my-post?utm_source=newsletter');
 
-Views::assertRecorded($post, fn (ViewRecord $view) => $view->context['source'] === 'newsletter');
+$fake->assertRecorded($post, fn (ViewRecord $record): bool => $record->context['source'] === 'newsletter');
 ```
 
 While developing, the [Debugbar tab](/eloquent-viewable/recording/recording-views/#seeing-it-in-debugbar-and-telescope) shows the context of each view the
