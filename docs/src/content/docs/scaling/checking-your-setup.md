@@ -32,7 +32,7 @@ php artisan views:doctor
 | Shared cache stores | `shared-cache`    | that cooldowns, the throttle, the burst guard, the fingerprint salt and remembered counts use a shared store |
 | Scheduler           | `schedule`        | that `views:maintain` or `MaintainViewsJob`, and `views:flush`, are scheduled when something needs them      |
 | Trusted proxies     | `trusted-proxies` | that a proxy is trusted when the `fingerprint` identity, `IgnoreIpAddresses` or `IgnoreBursts` reads the IP  |
-| Redis stream        | `redis-stream`    | how long buffered views wait, and views a flush took without acknowledging                                   |
+| Redis stream        | `redis-stream`    | the server and its version, how long buffered views wait, and views a flush took without acknowledging       |
 | Refused attempts    | `crawler-share`   | the share of attempts each guard refused, once sampling is on                                                |
 | Configuration       | `configuration`   | settings that undo each other, such as queueing on the `sync` connection                                     |
 
