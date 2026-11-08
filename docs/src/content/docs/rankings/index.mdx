@@ -1,0 +1,23 @@
+---
+title: "Rankings and recommendations"
+description: "Rank content across the application: most viewed, trending, related, recommended and who is looking now."
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Everything in this section ranks content across the application: what is viewed most, what is trending, what
+goes with what, and who is looking right now. Each one reads the `views` table as it is, so start with the one you
+need and move to its "On large tables" notes when the table grows.
+
+<CardGrid>
+	<LinkCard title={"Most viewed"} href={"/eloquent-viewable/rankings/most-viewed/"} description={"Views::top() ranks the most viewed content across every model type."} />
+	<LinkCard title={"Trending"} href={"/eloquent-viewable/rankings/trending/"} description={"Rank what is getting views now, with older views counting less the older they get."} />
+	<LinkCard title={"Rising, spiking and dropping"} href={"/eloquent-viewable/rankings/rising-and-spiking/"} description={"Find what is growing, spiking or dropping against its own usual traffic, and get alerted when it happens."} />
+	<LinkCard title={"Hot"} href={"/eloquent-viewable/rankings/hot/"} description={"Give new content a head start with a hot ranking, the kind Hacker News and Reddit show."} />
+	<LinkCard title={"Also viewed"} href={"/eloquent-viewable/rankings/also-viewed/"} description={"Show related content based on what your visitors actually do, such as a \"Readers also read\" box under an article or \"Customers also viewed\" on a product page."} />
+	<LinkCard title={"Recommended for you"} href={"/eloquent-viewable/rankings/recommended/"} description={"A \"Recommended for you\" row on a home page or below an article."} />
+	<LinkCard title={"Who is looking right now"} href={"/eloquent-viewable/rankings/presence/"} description={"Show how many people are looking at a model right now, with a live counter on cached pages."} />
+</CardGrid>

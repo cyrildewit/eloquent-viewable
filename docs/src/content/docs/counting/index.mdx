@@ -1,0 +1,20 @@
+---
+title: "Counting"
+description: "Count the views of one model, or of models you already have, by period, interval and collection."
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Everything in this section reads the views of one model, or of models you already have. For rankings across the
+whole application, see [Rankings and recommendations](/eloquent-viewable/rankings/).
+
+<CardGrid>
+	<LinkCard title={"Retrieving counts"} href={"/eloquent-viewable/counting/retrieving-counts/"} description={"Count all or unique views of a model, narrow them to a period, compare with the period before and group them for a chart."} />
+	<LinkCard title={"Counts of models you already have"} href={"/eloquent-viewable/counting/counts-of-many-models/"} description={"For a page of results you already loaded, forViewables() counts them all in one query instead of one per model."} />
+	<LinkCard title={"Ordering and filtering"} href={"/eloquent-viewable/counting/ordering-and-filtering/"} description={"Order and filter Eloquent queries by view count with orderByViews() and whereViewsCount()."} />
+	<LinkCard title={"Caching"} href={"/eloquent-viewable/counting/caching/"} description={"Add remember() with a lifetime to cache a count, a series or a ranking."} />
+	<LinkCard title={"Milestones"} href={"/eloquent-viewable/counting/milestones/"} description={"Notify an author when their post passes 1,000 views, award a badge, or post to Slack."} />
+</CardGrid>

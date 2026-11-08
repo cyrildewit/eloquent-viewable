@@ -1,0 +1,19 @@
+---
+title: "Viewers and dimensions"
+description: "Link views to accounts, tell new visitors from returning ones, erase one person's views and count by dimension."
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Everything in this section is about who viewed and where a view came from. Linking a view to an account and
+counting by a dimension store more about a visitor than a plain view does, so both are off until you turn them on.
+
+<CardGrid>
+	<LinkCard title={"Who viewed what"} href={"/eloquent-viewable/viewers/who-viewed-what/"} description={"A view can be linked to the signed-in model through the polymorphic viewer_type and viewer_id columns, so any model can be a viewer."} />
+	<LinkCard title={"New and returning visitors"} href={"/eloquent-viewable/viewers/new-and-returning/"} description={"returning() counts the visitors who came back, and countByFrequency() how many visitors viewed on one day, on two, and so on."} />
+	<LinkCard title={"Erasing one person's views"} href={"/eloquent-viewable/viewers/erasing-views/"} description={"For a deleted account or a GDPR request, HasViewHistory erases or exports everything one viewer recorded."} />
+	<LinkCard title={"Dimensions"} href={"/eloquent-viewable/viewers/dimensions/"} description={"Dimensions count views by where they came from and who saw them."} />
+</CardGrid>

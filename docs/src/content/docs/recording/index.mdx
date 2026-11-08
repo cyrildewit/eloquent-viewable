@@ -1,0 +1,22 @@
+---
+title: "Recording"
+description: "Write a view from a controller, a route or the browser, and tune when one counts and what it keeps."
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Everything in this section writes a view. Start with [Recording views](/eloquent-viewable/recording/recording-views/); the rest tunes when a view
+counts and what is kept with it.
+
+<CardGrid>
+	<LinkCard title={"Recording views"} href={"/eloquent-viewable/recording/recording-views/"} description={"Record a view in the controller method that shows the model."} />
+	<LinkCard title={"Cooldowns"} href={"/eloquent-viewable/recording/cooldowns/"} description={"A cooldown ignores repeated views of the same model by the same visitor for a number of minutes, or until a given time."} />
+	<LinkCard title={"Recording without a cookie"} href={"/eloquent-viewable/recording/without-a-cookie/"} description={"Count unique visitors without a cookie, with a daily rotating fingerprint."} />
+	<LinkCard title={"Queueing"} href={"/eloquent-viewable/recording/queueing/"} description={"Move the insert to a queue worker to keep busy pages fast."} />
+	<LinkCard title={"Collections"} href={"/eloquent-viewable/recording/collections/"} description={"Store different kinds of views of the same model in their own collection, and count them the same way."} />
+	<LinkCard title={"Storing context"} href={"/eloquent-viewable/recording/context/"} description={"Keep anything else with a view, such as a referrer, a source or a tenant, in the nullable context JSON column."} />
+	<LinkCard title={"Removing views on delete"} href={"/eloquent-viewable/recording/removing-views-on-delete/"} description={"A model's views are deleted with it."} />
+</CardGrid>
