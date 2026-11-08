@@ -13,9 +13,7 @@ RUN apk add --no-cache linux-headers autoconf build-base
 RUN pecl install pcov redis
 RUN docker-php-ext-enable pcov redis
 
-COPY opcache.ini /usr/local/etc/php/conf.d/opcache-cli.ini
 COPY pcov.ini /usr/local/etc/php/conf.d/pcov.ini
-RUN mkdir -p /var/cache/opcache
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

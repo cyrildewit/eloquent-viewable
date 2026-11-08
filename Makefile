@@ -54,14 +54,13 @@ deptrac-graph: ## Draw the dependencies between layers to build/deptrac.png
 test-type-coverage: ## Run the tests with type coverage and fail below 100%
 	docker compose run --rm composer test:type-coverage $(SCRIPT_ARGS)
 
-# PCOV is off unless a target asks for it. These two need it for coverage,
-# and leave OPcache's file cache out of it.
+# PCOV is off unless a target asks for it. These two need it for coverage.
 test-coverage: ## Run the tests with coverage and fail below 100% (writes build/coverage.xml)
-	PHP_PCOV_ENABLED=1 PHP_OPCACHE_ENABLE_CLI=0 docker compose run --rm composer test:coverage $(SCRIPT_ARGS)
+	PHP_PCOV_ENABLED=1 docker compose run --rm composer test:coverage $(SCRIPT_ARGS)
 
 test-mutation: ## Run mutation testing (applies the temporary pest-plugin-mutate patch)
 	./scripts/patch-pest-mutate.sh
-	PHP_PCOV_ENABLED=1 PHP_OPCACHE_ENABLE_CLI=0 docker compose run --rm composer test:mutation $(SCRIPT_ARGS)
+	PHP_PCOV_ENABLED=1 docker compose run --rm composer test:mutation $(SCRIPT_ARGS)
 
 ##@ [Database drivers]
 # `make test` uses SQLite in memory. These targets run the same suite against a
@@ -93,7 +92,7 @@ db-stop: ## Stop the database services, the benchmark ones included
 ##@ [Benchmarks]
 # phpbench against a seeded dataset, see benchmarks/README.md. DRIVER picks the
 # database: sqlite (default) uses a file on a named volume, the others start
-# their bench-* service first. The targets turn coverage and OPcache off, so the
+# their bench-* service first. The targets turn coverage off, so the
 # timings stay comparable with earlier releases.
 #
 #   make bench-seed DRIVER=mysql SIZE=medium
@@ -114,7 +113,7 @@ BENCH_SERVICE_mariadb := bench-mariadb
 BENCH_SERVICE_pgsql   := bench-postgres
 
 BENCH_SERVICE = $(BENCH_SERVICE_$(DRIVER))
-BENCH_RUN = PHP_PCOV_ENABLED=0 PHP_OPCACHE_ENABLE_CLI=0 DB_DATABASE=benchmark $(BENCH_ENV_$(DRIVER)) docker compose run --rm composer
+BENCH_RUN = PHP_PCOV_ENABLED=0 DB_DATABASE=benchmark $(BENCH_ENV_$(DRIVER)) docker compose run --rm composer
 
 bench-db: ## Start the benchmark database for DRIVER, nothing for sqlite
 ifneq ($(BENCH_SERVICE),)

@@ -8,14 +8,10 @@ services:
     volumes:
       - .:/var/www/html
       - bench-sqlite:/var/lib/benchmarks
-      - opcache:/var/cache/opcache
     environment:
       # PCOV collects coverage only when this is 1, see docker/pcov.ini.
       # `make test-coverage` and `make test-mutation` set it.
       PHP_PCOV_ENABLED: ${PHP_PCOV_ENABLED:-0}
-      # OPcache's file cache, see docker/opcache.ini. The coverage and benchmark
-      # targets set it to 0, so coverage and the timings see freshly compiled code.
-      PHP_OPCACHE_ENABLE_CLI: ${PHP_OPCACHE_ENABLE_CLI:-1}
       # Passed through from the shell, left unset when absent. An empty value
       # would override the driver's own default port and host instead.
       DB_CONNECTION:
@@ -41,15 +37,11 @@ services:
     volumes:
       - .:/var/www/html
       - bench-sqlite:/var/lib/benchmarks
-      - opcache:/var/cache/opcache
     entrypoint: ["composer"]
     environment:
       # PCOV collects coverage only when this is 1, see docker/pcov.ini.
       # `make test-coverage` and `make test-mutation` set it.
       PHP_PCOV_ENABLED: ${PHP_PCOV_ENABLED:-0}
-      # OPcache's file cache, see docker/opcache.ini. The coverage and benchmark
-      # targets set it to 0, so coverage and the timings see freshly compiled code.
-      PHP_OPCACHE_ENABLE_CLI: ${PHP_OPCACHE_ENABLE_CLI:-1}
       # Passed through from the shell, left unset when absent. An empty value
       # would override the driver's own default port and host instead.
       DB_CONNECTION:
@@ -177,4 +169,3 @@ volumes:
   bench-mysql:
   bench-mariadb:
   bench-postgres:
-  opcache:

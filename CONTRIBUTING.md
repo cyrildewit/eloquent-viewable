@@ -138,9 +138,7 @@ when `PHP_PCOV_ENABLED=1`. `make test-coverage` and `make test-mutation` set it.
 directly, put `PHP_PCOV_ENABLED=1` in front of `docker compose`.
 
 Rector, PHPStan and Pint keep their caches in `build/cache`, so a second run only looks at what changed. Delete
-that directory if a tool ever reports something stale. OPcache keeps the compiled scripts of every run on the
-`opcache` volume, so the next one skips compiling Laravel and the dependencies again. The coverage and benchmark
-targets turn it off. After pulling a change to `docker/`, run `make build` again.
+that directory if a tool ever reports something stale. After pulling a change to `docker/`, run `make build` again.
 
 ### Dependency graph
 
