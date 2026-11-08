@@ -201,7 +201,7 @@ targets and the optional indexes.
 ### Documentation
 
 The [documentation site](https://cyrildewit.github.io/eloquent-viewable/) is built with
-[Starlight](https://starlight.astro.build/) from `docs/`, in a `node` container like everything else:
+[Starlight](https://starlight.astro.build/) from `docs/` with [pnpm](https://pnpm.io/), in a `node` container like everything else:
 
 ```bash
 make docs-install   # once, and after docs/package.json changes

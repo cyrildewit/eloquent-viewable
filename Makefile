@@ -152,8 +152,8 @@ bench-describe: bench-db ## Print the seeded dataset and the database as JSON, A
 # serves it on http://localhost:4321/eloquent-viewable/ with live reload.
 DOCS_RUN = docker compose --profile docs run --rm
 
-docs-install: ## Install the documentation site's npm dependencies
-	$(DOCS_RUN) node ci
+docs-install: ## Install the documentation site's dependencies with pnpm
+	$(DOCS_RUN) node install --frozen-lockfile
 
 docs-dev: ## Serve the documentation site with live reload on port 4321
 	$(DOCS_RUN) --service-ports node run dev

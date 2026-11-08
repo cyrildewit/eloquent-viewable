@@ -37,7 +37,7 @@ make bench-compare      # compare against the stored TAG= and fail on a regressi
 make bench-explain      # the SQL and query plan of every read benchmark, ARGS=--output=<file> writes JSON too
 make bench-indexes      # add or drop the optional indexes, INDEXES=
 make bench-describe     # the seeded dataset and database as JSON, ARGS=--output=<file>
-make docs-install       # install the documentation site's npm dependencies
+make docs-install       # install the documentation site's dependencies with pnpm
 make docs-dev           # serve the documentation site on http://localhost:4321/eloquent-viewable/
 make docs-build         # build the documentation site, fails on a broken link or anchor
 ```
@@ -112,7 +112,7 @@ public method, class path or default they mention changes, or when a new feature
 
 ## Documentation
 
-The documentation site lives in `docs/`, a Starlight site built by the `node` service; `make docs-*` runs it, never `npm`
+The documentation site lives in `docs/`, a Starlight site built by the `node` service; `make docs-*` runs it, never `pnpm`
 on the host. Pages are in `docs/src/content/docs`, one directory per sidebar group, and link to each other by their full
 path, `/eloquent-viewable/counting/caching/`. `make docs-build` fails on a broken link or anchor, so run it after
 moving or renaming a page or a heading.

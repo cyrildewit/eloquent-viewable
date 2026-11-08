@@ -21,8 +21,9 @@ updates:
       labels:
           - "dependencies"
 
-    # The documentation site. Grouped so Astro, Starlight and their plugins,
-    # which move together, arrive in one pull request.
+    # The documentation site, whose pnpm-lock.yaml the npm ecosystem reads.
+    # Grouped so Astro, Starlight and their plugins, which move together,
+    # arrive in one pull request.
     - package-ecosystem: "npm"
       directory: "/docs"
       schedule:
