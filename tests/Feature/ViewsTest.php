@@ -1774,7 +1774,18 @@ describe('returning visitors', function (): void {
         'top' => ['top()', fn (Views $views): mixed => $views->top()],
         'trending' => ['trending()', fn (Views $views): mixed => $views->trending()],
         'alsoViewed' => ['alsoViewed()', fn (Views $views): mixed => $views->alsoViewed()],
+        'countByFrequency' => ['countByFrequency()', fn (Views $views): mixed => $views->countByFrequency()],
+        'recommended' => ['recommended()', fn (Views $views): mixed => $views->recommended()],
+        'live' => ['live()', fn (Views $views): mixed => $views->live()],
+        'activeVisitors' => ['activeVisitors()', fn (Views $views): mixed => $views->activeVisitors()],
     ]);
+
+    it('points to countByFrequency() unless that is the read that refused returning()', function (): void {
+        expect(fn (): mixed => views($this->post)->returning()->top())
+            ->toThrow(InvalidReturning::class, 'Call top() without returning(), or use countByFrequency().')
+            ->and(fn (): mixed => views($this->post)->returning()->countByFrequency())
+            ->toThrow(InvalidReturning::class, 'Call countByFrequency() without returning().');
+    });
 
     it('refuses a source that cannot count the days per visitor', function (bool $remember): void {
         $this->app->bind(ViewSource::class, fn (): ViewSource => new class implements ViewSource

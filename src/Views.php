@@ -153,10 +153,13 @@ class Views
      * days and more. A day is on the clock of `timezone()`.
      *
      * @throws InvalidFrequency
+     * @throws InvalidReturning
      * @throws UnsupportedBySource
      */
     public function countByFrequency(int $upTo = 3): VisitFrequency
     {
+        $this->guardReturning('countByFrequency()');
+
         return $this->reader->countByFrequency($this->viewable(), $this->query(), $upTo, $this->cacheLifetime);
     }
 
@@ -360,18 +363,25 @@ class Views
      * The visitors who are looking now. For a saved model, it counts that
      * model. For a model class, it counts every model of that type. With no
      * viewable, as on the facade, it counts the whole site.
+     *
+     * @throws InvalidReturning
      */
     public function live(): LiveViews
     {
+        $this->guardReturning('live()');
+
         return $this->live->scoped($this->viewable, $this->viewables, $this->collection);
     }
 
     /**
      * @throws InvalidConfiguration
+     * @throws InvalidReturning
      * @throws InvalidViewable
      */
     public function activeVisitors(): int
     {
+        $this->guardReturning('activeVisitors()');
+
         return $this->live()->count();
     }
 
@@ -406,12 +416,15 @@ class Views
      * @throws InvalidConfiguration
      * @throws InvalidDecay
      * @throws InvalidLimit
+     * @throws InvalidReturning
      * @throws InvalidViewable
      * @throws InvalidViewer
      * @throws UnsupportedBySource
      */
     public function recommended(int $limit = 10, bool $includeSeen = false): Recommendations
     {
+        $this->guardReturning('recommended()');
+
         $recipient = $this->viewer instanceof Model
             ? Recipient::viewer($this->viewer)
             : Recipient::visitor($this->visitor->id());

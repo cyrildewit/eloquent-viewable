@@ -11,6 +11,8 @@ final class InvalidReturning extends LogicException implements EloquentViewableE
 {
     public static function onlyCounted(string $method): self
     {
-        return new self("returning() narrows count() and compare() to visitors who came back on another day, so {$method} cannot read it. Call {$method} without returning(), or use countByFrequency().");
+        $instead = $method === 'countByFrequency()' ? '' : ', or use countByFrequency()';
+
+        return new self("returning() narrows count() and compare() to visitors who came back on another day, so {$method} cannot read it. Call {$method} without returning(){$instead}.");
     }
 }
