@@ -132,6 +132,23 @@ describe('countBy', function (): void {
             ->and($counts->none())->toBe(2);
     });
 
+    it('counts a JSON null in context as no value', function (): void {
+        viewWith($this->post, visitor: 'one', context: ['plan' => 'pro']);
+        viewWith($this->post, visitor: 'one', context: ['plan' => null]);
+        viewWith($this->post, visitor: 'two', context: ['plan' => null]);
+        viewWith($this->post, visitor: 'two');
+
+        $counts = views($this->post)->countBy('plan');
+        $unique = views($this->post)->unique()->countBy('plan');
+
+        expect($counts->all())->toBe(['pro' => 1])
+            ->and($counts->none())->toBe(3)
+            ->and($counts->other())->toBe(0)
+            ->and($counts->total())->toBe(4)
+            ->and($unique->none())->toBe(2)
+            ->and($unique->total())->toBe(2);
+    });
+
     it('remembers the counts', function (): void {
         viewWith($this->post, ['source' => 'Google']);
 
