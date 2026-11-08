@@ -1,3 +1,25 @@
+/* Geist Serif is not on Fontsource yet, so the variable font is vendored from Vercel's geist package. */
+@font-face {
+	font-family: 'Geist Serif Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('../fonts/geist-serif/GeistSerif-Variable.woff2') format('woff2-variations');
+}
+
+:root {
+	--sl-font: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+	--sl-font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--ev-font-display: 'Geist Serif Variable', ui-serif, Georgia, serif;
+}
+
+/* Page titles in the serif; section headings stay in the sans so the body reads as one. */
+h1#_top {
+	font-family: var(--ev-font-display);
+	font-weight: 500;
+	letter-spacing: -0.02em;
+}
+
 /* The accent follows the logo's gradient, indigo through blue to cyan. */
 :root {
 	--sl-color-accent-low: #1b1f4d;
