@@ -26,7 +26,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added a Debugbar collector: with `fruitcake/laravel-debugbar` 4.4 or newer installed, a **Viewable** tab lists the views stored, queued and skipped in the request, with the guard that refused each. Turn it off with `debugbar.collectors.eloquent_viewable`
 - Added `Views::context(?array $context)` and a nullable `context` JSON column to store extra data with a view
 - Added store drivers, picked by `recording.store.driver`: `database`, the default, `redis`, `array` and `null`. Add your own `Recording\Contracts\ViewStore` with `StoreManager::extend()`
-- Added the `redis` store driver, which buffers views in a Redis stream and lands them in the views table in batches through the `views:flush` command or `Recording\Jobs\FlushBufferedViewsJob`. Needs Redis 7 or newer and phpredis or Predis 3.3 or newer
+- Added the `redis` store driver, which buffers views in a Redis stream and lands them in the views table in batches through the `views:flush` command or `Recording\Jobs\FlushBufferedViewsJob`. Needs Redis 7 or newer or any release of Valkey, and phpredis or Predis 3.3 or newer
 - Added cooldown stores, picked by `cooldown.store`: `session`, the default, and `cache`, which also works without a session. Add your own with `CooldownManager::extend()`
 
 #### Viewers and visitors
@@ -75,7 +75,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 #### Presence
 
 - Added presence, which counts who is looking right now: `views($post)->activeVisitors()`, and `live()` with `count()`, `counts()` for a set, `top()` for a ranking of what is being looked at, `viewers()` for the signed-in viewers and `within()` to narrow the window. It reads a viewable, a type or, through `Views::live()`, the whole site, within a collection when one is set. Turn it on with `presence.enabled`
-- Added the `redis` presence driver, which stores every active visitor, or with `presence.precision` set to `approximate` estimates the count with a HyperLogLog per minute. All keys share one hash tag, so on a Redis Cluster they live on the same node. Writes Redis refuses are reported, not thrown. The `array` and `null` drivers and `Presence\Contracts\PresenceStore` with `PresenceManager::extend()` cover tests and stores of your own
+- Added the `redis` presence driver, which works against Redis or Valkey and stores every active visitor, or with `presence.precision` set to `approximate` estimates the count with a HyperLogLog per minute. All keys share one hash tag, so on a Redis Cluster they live on the same node. Writes Redis refuses are reported, not thrown. The `array` and `null` drivers and `Presence\Contracts\PresenceStore` with `PresenceManager::extend()` cover tests and stores of your own
 - Added `Views::heartbeat()` and `Views::leave()`, which keep a visitor active without recording a view and stop counting them at once, and `@viewsBeacon($post, live: true)`, whose script sends a heartbeat every `presence.heartbeat` seconds while the page is visible and leaves when it closes. With `presence.expose_count` the heartbeat answers with the count, which the script writes into `[data-views-live]` elements and dispatches as a `views:live` event. `Http\Beacon::presenceUrl()` and `leaveUrl()` build the signed URLs
 - Added the `Recording\Contracts\LimitsRepeats` marker interface, implemented by `EnforceCooldown` and `ThrottleVisitors`. A view such a guard refuses is skipped only once every other guard allowed it, and still keeps its visitor active; a heartbeat never asks these guards
 - Added `RecordResult::$present`, also in its JSON and the Debugbar tab, which says whether an attempt kept the visitor active
@@ -115,10 +115,10 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 
 #### Doctor
 
-- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the backlog of the Redis stream, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
+- Added `views:doctor`, which checks the setup and says what to fix: the views table, its columns and indexes, the optional indexes the config relies on, shared cache stores for cooldowns, the throttle, the burst guard and the fingerprint salt, the scheduler running `views:maintain` or `MaintainViewsJob` and `views:flush`, trusted proxies when the visitor's IP address is read, the server behind the Redis stream, Redis or Valkey, and its backlog, and settings that undo each other. `--strict` fails on warnings, `--only` runs some checks and `--json` prints the findings
 - Added the `doctor.checks` config list and the `Doctor\Contracts\Check` contract for checks of your own
 - Added guard sampling, off by default under `doctor.sample`, which counts the attempts each guard refuses so `views:doctor` can warn when `IgnoreCrawlers` refuses more than `doctor.sample.crawler_share` of them
-- Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream
+- Added `RedisStreamStore::backlog()`, which describes the views waiting in the Redis stream, and `RedisStreamStore::server()`, which names the server and its version as a `Recording\Data\RedisServer`
 - `views:doctor` checks that the pairs table exists once `querying.pairs.enabled` is on
 - Added the `Rollups` doctor check, which warns about a rollup that starts after views it should count and names the refold that folds them
 - The `Dimensions` doctor check advises leaving out the hour tier of a dimension once it holds 100,000 rows
