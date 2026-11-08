@@ -72,6 +72,9 @@ trait InteractsWithViews
     }
 
     /**
+     * Counts every row of the query before sorting. On a list page, sort on a
+     * column in `querying.counters` instead.
+     *
      * @param  Builder<static>  $query
      * @param  'asc'|'desc'  $direction
      * @param  array<string, string|list<string>>  $dimensions
@@ -166,6 +169,9 @@ trait InteractsWithViews
     }
 
     /**
+     * Counts every row of the query before filtering. On a list page, filter
+     * on a column in `querying.counters` instead.
+     *
      * @param  Builder<static>  $query
      * @param  array<string, string|list<string>>  $dimensions
      * @return Builder<static>

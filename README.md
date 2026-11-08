@@ -651,9 +651,10 @@ Post::whereViewsCount('>=', 100)->orderByViews()->get();
 ```
 
 `whereViewsCount()` takes the same period and collection arguments, counts a model without views as zero, and accepts
-`=`, `!=`, `<>`, `<`, `<=`, `>` and `>=`. Both scopes run a subquery per row, so narrow the query where you can. To
-only check whether a model has any views, `Post::has('views')` is cheaper. For large lists, see
-[storing counts on your own table](#storing-counts-on-your-own-table).
+`=`, `!=`, `<>`, `<`, `<=`, `>` and `>=`. Both scopes run a subquery per row and count every row of the query before
+the database can sort or filter, even when you only take one page, so narrow the query where you can. On list pages,
+sort and filter on a [counter column](#storing-counts-on-your-own-table) instead, which reads one indexed column. To
+only check whether a model has any views, `Post::has('views')` is cheaper.
 
 ### Caching view counts
 
