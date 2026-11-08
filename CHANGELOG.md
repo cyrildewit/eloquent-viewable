@@ -226,11 +226,24 @@ See the [upgrade guide](UPGRADING.md#upgrading-from-v703-to-v800) for detailed m
 
 - Add support for Laravel 13
 
-## [v7.0.3]
+## [v7.0.6]
+
+### Fixed
+
+- Fixed the PHP 8.4 deprecation of an implicitly nullable parameter in `scopeOrderByUniqueViews()`
+
+## [v7.0.5]
+
+### Fixed
+
+- Fixed the PHP 8.4 deprecation of implicitly nullable parameters in `View::scopeCollection()` and `CooldownManager`
+
+## [v7.0.4]
 
 ### Changed
 
 - Add support for Laravel 12
+- Raise the minimum Laravel 8 version to 8.74
 
 ## [v7.0.3]
 
@@ -556,7 +569,10 @@ This major version contains some serious breaking changes! See the [upgrade guid
 [v8.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v8.0.0...v8.0.1
 [v8.0.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.1...v8.0.0
 [v7.1.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.1.0...v7.1.1
-[v7.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...v7.1.0
+[v7.1.0]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.6...v7.1.0
+[v7.0.6]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.5...v7.0.6
+[v7.0.5]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.4...v7.0.5
+[v7.0.4]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.3...v7.0.4
 [v7.0.3]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.2...v7.0.3
 [v7.0.2]: https://github.com/cyrildewit/eloquent-viewable/compare/v7.0.1...v7.0.2
 [v7.0.1]: https://github.com/cyrildewit/eloquent-viewable/compare/v6.1.0...v7.0.1
