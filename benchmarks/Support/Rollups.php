@@ -61,6 +61,10 @@ final class Rollups
 
         Container::getInstance()->make(FoldViews::class)->handle();
 
+        // Without fresh statistics, Postgres reads the rollups of the scopes
+        // through the fold index and scans every viewable's buckets per row.
+        Statistics::refresh($connection, 'view_rollups');
+
         $state->put(self::FoldedFrom, $marker);
     }
 
