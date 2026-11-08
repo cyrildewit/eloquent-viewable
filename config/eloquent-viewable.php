@@ -5,6 +5,7 @@ use CyrildeWit\EloquentViewable\Doctor\Checks\CrawlerShareCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\DimensionsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\IndexAdviceCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\RedisStreamCheck;
+use CyrildeWit\EloquentViewable\Doctor\Checks\RollupsCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\ScheduleCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SchemaCheck;
 use CyrildeWit\EloquentViewable\Doctor\Checks\SharedCacheCheck;
@@ -870,6 +871,7 @@ return [
             SchemaCheck::class,
             IndexAdviceCheck::class,
             DimensionsCheck::class,
+            RollupsCheck::class,
             SharedCacheCheck::class,
             ScheduleCheck::class,
             TrustedProxiesCheck::class,

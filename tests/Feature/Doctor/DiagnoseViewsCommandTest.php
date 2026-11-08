@@ -136,6 +136,7 @@ it('runs the shipped checks in order', function (): void {
         'schema: Database schema',
         'index-advice: Optional indexes',
         'dimensions: Dimensions',
+        'rollups: Rollups',
         'shared-cache: Shared cache stores',
         'schedule: Scheduler',
         'trusted-proxies: Trusted proxies',
