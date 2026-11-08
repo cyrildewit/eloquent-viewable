@@ -118,14 +118,13 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             ->pluck('aggregate', 'dimension');
 
         $counts = Rows::ints($rows);
-        $total = $this->countOf($views(), $query);
-        $none = $this->countOf($views()->whereNull($target), $query);
+        [$total, $none] = $this->totalAndNone($views(), $query, $target);
 
         if (! $query->unique) {
             return DimensionCounts::from($counts, $none, $total - $none - array_sum($counts), $total);
         }
 
-        $other = $limit === null ? 0 : $this->countOf($views()->whereNotNull($target)->whereNotIn($target, array_keys($counts)), $query);
+        $other = $limit === null ? 0 : $views()->whereNotNull($target)->whereNotIn($target, array_keys($counts))->distinct()->count($this->view->qualifyColumn('visitor'));
 
         return DimensionCounts::from($counts, $none, $other, $total);
     }
@@ -592,13 +591,28 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
         return true;
     }
 
-    private function countOf(Builder $builder, ViewsQuery $query): int
+    /**
+     * The views in total and those without a value, in one scan. The empty
+     * check is compiled by `whereNull()`, because on MySQL and MariaDB it
+     * also matches a JSON `null` in a path such as `context->plan`, which a
+     * bare `count()` of the extracted value would count as a value.
+     *
+     * @return array{int, int}
+     */
+    private function totalAndNone(Builder $builder, ViewsQuery $query, string $target): array
     {
-        if (! $query->unique) {
-            return $builder->count();
-        }
+        $grammar = $builder->getGrammar();
+        $empty = substr($grammar->compileWheres($builder->newQuery()->whereNull($target)), strlen('where '));
+        $none = $query->unique
+            ? "count(distinct case when {$empty} then {$grammar->wrap($this->view->qualifyColumn('visitor'))} end)"
+            : "count(case when {$empty} then 1 end)";
 
-        return $builder->distinct()->count($this->view->qualifyColumn('visitor'));
+        $row = $builder
+            ->selectRaw("{$this->aggregate($query, $grammar)} as total, {$none} as without_value") // @phpstan-ignore argument.type (wrapped identifiers and a JSON path the application names, not user input)
+            ->first();
+
+        /** @var stdClass&object{total: int|string, without_value: int|string} $row */
+        return [(int) $row->total, (int) $row->without_value];
     }
 
     /**
