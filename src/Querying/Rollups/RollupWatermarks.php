@@ -10,13 +10,16 @@ use CyrildeWit\EloquentViewable\Querying\Rollups\Contracts\Watermarks;
 
 /**
  * Every tier of every rollup holds the cutoff back, because every tier keeps
- * unique visitors and a custom rollup may keep a value from `context`.
+ * unique visitors and a custom rollup may keep a value from `context`. So do
+ * the views before where a rollup's rows start that it should count, until a
+ * refold has folded them.
  */
 final readonly class RollupWatermarks implements Watermarks
 {
     public function __construct(
         private RollupPolicy $policy,
         private RollupState $state,
+        private UnfoldedViews $unfolded,
         private bool $afterFolding = false,
     ) {}
 
@@ -34,6 +37,8 @@ final readonly class RollupWatermarks implements Watermarks
                     $cutoff = $folded;
                 }
             }
+
+            $cutoff = $this->beforeUnfolded($definition, $snapshot, $cutoff);
         }
 
         return $cutoff;
@@ -41,7 +46,7 @@ final readonly class RollupWatermarks implements Watermarks
 
     public function afterFolding(): self
     {
-        return new self($this->policy, $this->state, afterFolding: true);
+        return new self($this->policy, $this->state, $this->unfolded, afterFolding: true);
     }
 
     /**
@@ -63,6 +68,23 @@ final readonly class RollupWatermarks implements Watermarks
         }
 
         return $folded->max($closed);
+    }
+
+    /**
+     * The cutoff falls on the bucket of the coarsest tier that holds the
+     * oldest unfolded view, so anonymising leaves that bucket whole for the
+     * refold that fills it.
+     */
+    private function beforeUnfolded(RollupDefinition $definition, Snapshot $snapshot, CarbonInterface $cutoff): CarbonInterface
+    {
+        $unfolded = $this->unfolded->oldest($definition, $snapshot, $cutoff);
+        $coarsest = $definition->tiers()[0] ?? null;
+
+        if (! $unfolded instanceof CarbonImmutable || ! $coarsest instanceof Tier) {
+            return $cutoff;
+        }
+
+        return $coarsest->floor($unfolded, $this->policy->timezone);
     }
 
     private function nothingFolded(CarbonInterface $cutoff): CarbonImmutable

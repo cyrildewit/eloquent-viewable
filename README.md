@@ -1998,7 +1998,8 @@ Schedule::command('views:maintain')->hourly()->onOneServer();
 ```
 
 Each run takes the steps below in order and skips the ones that are not configured. The [rollups](#rollups) are folded
-first, because anonymising and pruning never go past the last bucket they have folded.
+first, because anonymising and pruning never go past the last bucket they have folded, nor reach views a rollup has
+not folded.
 
 ```mermaid
 flowchart LR
@@ -2088,8 +2089,12 @@ flowchart LR
 `views:maintain` folds closed buckets with `views:rollup` before it anonymises and prunes, so the same scheduler line
 covers it. `views:rollup` also drops the buckets of a tier past its age, and takes `--tier`, `--from` to fold again
 from a date, `--dry-run` and `--chunk`. A tier with an age never folds further back than it is kept, so a first run or
-a `--from` refold of a 35-day `hour` tier folds about 35 days of hours. Every read and scope works through the `rollup`
-source.
+a `--from` refold of a 35-day `hour` tier folds about 35 days of hours. A tier that was never folded starts at the
+first view, whatever `--from` says. Every read and scope works through the `rollup` source.
+
+A rollup that starts after views it should count holds anonymising and pruning back until a refold from their date has
+folded them, and [`views:doctor`](#checking-your-setup) names that date. Such a refold fills the months before the
+rollup's rows from anonymised views as well, and leaves the months it already holds alone.
 
 Each grouping answers one kind of count: `viewable` a model, `viewable_collection` a model within a collection, `type`
 a whole model type, and `type_collection`, off by default, a type within a collection. A read that needs a grouping

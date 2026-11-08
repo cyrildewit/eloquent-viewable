@@ -294,6 +294,55 @@ it('folds a month again no further back than both anonymising and pruning reache
         ->and(bucket('month', '2026-01-01', 'viewable', $this->post))->toBeNull();
 });
 
+it('folds a tier the first time from the first view, whatever the date to fold from', function (): void {
+    viewAt($this->post, '2025-06-10 10:00:00');
+    viewAt($this->post, '2026-02-10 10:00:00');
+
+    fold(from: '2026-02-01');
+    $snapshot = app(RollupState::class)->snapshot('views');
+
+    expect(bucket('month', '2025-06-01', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2025-06-10', 'viewable', $this->post))->toBe([1, 1])
+        ->and($snapshot->since(Tier::Month)?->toDateTimeString())->toBe('2025-06-01 00:00:00')
+        ->and($snapshot->origin?->toDateTimeString())->toBe('2025-06-01 00:00:00');
+});
+
+it('fills the months before a tier starts from anonymised views, and leaves the months it holds alone', function (): void {
+    viewAt($this->post, '2026-02-10 10:00:00');
+    fold();
+
+    $state = app(RollupState::class);
+    viewAt($this->post, '2025-06-10 10:00:00');
+    viewAt($this->post, '2026-02-11 10:00:00', 'visitor-2');
+    $state->putLastId((int) View::query()->max('id'));
+    app(StateStore::class)->put('anonymised', '2026-03-01 00:00:00');
+
+    fold(from: '2025-01-01');
+
+    expect(bucket('month', '2025-06-01', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('month', '2026-02-01', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('day', '2026-02-11', 'viewable', $this->post))->toBe([1, 1])
+        ->and($state->snapshot('views')->since(Tier::Month)?->toDateTimeString())->toBe('2025-01-01 00:00:00');
+});
+
+it('fills the months before a tier starts no further back than the views are pruned', function (): void {
+    viewAt($this->post, '2026-02-10 10:00:00');
+    fold();
+
+    viewAt($this->post, '2025-06-10 10:00:00');
+    viewAt($this->post, '2025-09-10 10:00:00');
+    app(RollupState::class)->putLastId((int) View::query()->max('id'));
+    app(StateStore::class)->put('pruned', '2025-08-15 00:00:00');
+    app(StateStore::class)->put('anonymised', '2026-03-01 00:00:00');
+    View::query()->where('viewed_at', '<', '2025-08-15')->delete();
+
+    fold(Tier::Month, from: '2025-01-01');
+
+    expect(bucket('month', '2025-09-01', 'viewable', $this->post))->toBe([1, 1])
+        ->and(bucket('month', '2025-08-01', 'viewable', $this->post))->toBeNull()
+        ->and(bucket('month', '2025-06-01', 'viewable', $this->post))->toBeNull();
+});
+
 it('folds a kept tier the first time no further back than it is kept, in whole buckets of the next coarser tier', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'hour' => '35d']);
 
