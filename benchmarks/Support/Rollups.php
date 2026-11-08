@@ -7,6 +7,9 @@ namespace CyrildeWit\EloquentViewable\Benchmarks\Support;
 use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Contracts\StateStore;
 use CyrildeWit\EloquentViewable\Querying\Rollups\Actions\FoldViews;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupPolicy;
+use CyrildeWit\EloquentViewable\Querying\Rollups\RollupState;
+use CyrildeWit\EloquentViewable\Querying\Rollups\Tier;
 use CyrildeWit\EloquentViewable\Support\State\ViewState;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository;
@@ -23,6 +26,11 @@ use Illuminate\Support\Carbon;
 final class Rollups
 {
     private const string FoldedFrom = 'bench:folded_from';
+
+    private const string FoldedUntil = 'bench:folded_until';
+
+    /** @var list<Tier> */
+    private const array Tiers = [Tier::Day, Tier::Month];
 
     public static function configure(): void
     {
@@ -53,6 +61,8 @@ final class Rollups
         $marker = "{$dataset->size->value}:{$dataset->seed}:{$dataset->seededAt}";
 
         if ($state->get(self::FoldedFrom) === $marker) {
+            self::restoreMarks($state);
+
             return;
         }
 
@@ -65,7 +75,66 @@ final class Rollups
         // through the fold index and scans every viewable's buckets per row.
         Statistics::refresh($connection, 'view_rollups');
 
+        $state->put(self::FoldedUntil, json_encode(self::marks(), JSON_THROW_ON_ERROR));
         $state->put(self::FoldedFrom, $marker);
+    }
+
+    /**
+     * Marks the rollups folded only up to the start of the last day before
+     * the anchor, as a run on that morning would have, so the rollup source
+     * reads that day from the views table. The rows of that day stay, and
+     * the next `fold()` marks them folded again, so a run that stops halfway
+     * leaves no other benchmark reading a shortened history.
+     */
+    public static function leaveLastDayUnfolded(): void
+    {
+        $rollups = Container::getInstance()->make(RollupState::class);
+        $policy = Container::getInstance()->make(RollupPolicy::class);
+        $from = Dataset::anchor()->subDay();
+
+        foreach (self::Tiers as $tier) {
+            $rollups->putFolded(RollupPolicy::BuiltIn, $tier, $tier->floor($from, $policy->timezone));
+        }
+    }
+
+    /** @return array<string, string> */
+    private static function marks(): array
+    {
+        $snapshot = Container::getInstance()->make(RollupState::class)->snapshot(RollupPolicy::BuiltIn);
+        $marks = [];
+
+        foreach (self::Tiers as $tier) {
+            $folded = $snapshot->folded($tier);
+
+            if ($folded instanceof CarbonImmutable) {
+                $marks[$tier->value] = $folded->format(StateStore::Format);
+            }
+        }
+
+        return $marks;
+    }
+
+    /**
+     * A dataset folded before the marks were saved has them saved now, while
+     * nothing can have moved them yet.
+     */
+    private static function restoreMarks(StateStore $state): void
+    {
+        $saved = $state->get(self::FoldedUntil);
+
+        if ($saved === null) {
+            $state->put(self::FoldedUntil, json_encode(self::marks(), JSON_THROW_ON_ERROR));
+
+            return;
+        }
+
+        /** @var array<string, string> $marks */
+        $marks = json_decode($saved, true, flags: JSON_THROW_ON_ERROR);
+        $rollups = Container::getInstance()->make(RollupState::class);
+
+        foreach ($marks as $tier => $until) {
+            $rollups->putFolded(RollupPolicy::BuiltIn, Tier::from($tier), CarbonImmutable::parse($until));
+        }
     }
 
     /**

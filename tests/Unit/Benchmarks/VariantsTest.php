@@ -20,6 +20,7 @@ use CyrildeWit\EloquentViewable\Benchmarks\Querying\GrowthBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\OrderByViewsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RecommendedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RememberedCountsBench;
+use CyrildeWit\EloquentViewable\Benchmarks\Querying\RollupHandOverBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\RollupReadsBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TopViewedBench;
 use CyrildeWit\EloquentViewable\Benchmarks\Querying\TrendingBench;
@@ -86,6 +87,7 @@ it('finds every benchmark class in path order', function (): void {
         OrderByViewsBench::class,
         RecommendedBench::class,
         RememberedCountsBench::class,
+        RollupHandOverBench::class,
         RollupReadsBench::class,
         TopViewedBench::class,
         TrendingBench::class,
@@ -108,7 +110,7 @@ it('filters the benchmarks on their group', function (): void {
         ->and($names('write'))->toBe(['BufferViewsBench', 'DestroyViewsBench', 'RecordViewBench'])
         ->and($names('php'))->toBe(['CooldownManagerBench', 'ViewSeriesBench'])
         ->and($names('cache'))->toBe(['RememberedCountsBench'])
-        ->and($names('rollup'))->toBe(['FoldViewsBench', 'RollupReadsBench'])
+        ->and($names('rollup'))->toBe(['FoldViewsBench', 'RollupHandOverBench', 'RollupReadsBench'])
         ->and($names('maintenance'))->toBe(['AnonymiseViewsBench', 'DetectSpikesBench', 'PruneViewsBench', 'RecountViewsBench'])
         ->and($names('dimensions'))->toBe(['DimensionsBench'])
         ->and($names('missing'))->toBeEmpty();
