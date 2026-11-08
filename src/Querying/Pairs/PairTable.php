@@ -106,9 +106,7 @@ final readonly class PairTable
      */
     public function recommendationPairs(RecommendationRequest $request, array $seeds): array
     {
-        $table = $this->config->pairsTable();
-        $type = "{$table}.paired_type";
-        $id = "{$table}.paired_id";
+        $type = "{$this->config->pairsTable()}.paired_type";
 
         $builder = $this->query()
             ->where(fn (Builder $nested): Builder => $this->matchingAny($nested, $seeds, 'viewable_type', 'viewable_id'))
@@ -118,25 +116,35 @@ final readonly class PairTable
             $builder->where($type, $request->among->getMorphClass());
         }
 
-        if (! $request->includeSeen) {
-            $builder->whereNotExists($this->coVisitation->seenBy($request->recipient, $type, $id));
-        }
-
         $rows = $builder
             ->select('viewable_type', 'viewable_id', 'paired_type', 'paired_id', 'visitors', 'viewable_visitors', 'paired_visitors')
-            ->selectSub($this->coVisitation->seenBy($request->recipient, $type, $id, withVisitors: true)->limit(1), 'seen')
             ->orderBy('viewable_type')
             ->orderBy('viewable_id')
             ->orderBy('paired_type')
             ->orderBy('paired_id')
             ->get();
 
+        $candidates = [];
+
+        /** @var stdClass&object{paired_type: string, paired_id: int|string} $row */
+        foreach ($rows as $row) {
+            $candidates[] = ['type' => $row->paired_type, 'id' => $row->paired_id];
+        }
+
+        $seen = $this->coVisitation->seenAmong($request->recipient, $candidates);
+
         $pairs = [];
         $audiences = [];
 
-        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, paired_type: string, paired_id: int|string, visitors: int|string, viewable_visitors: int|string, paired_visitors: int|string, seen: int|string|null} $row */
+        /** @var stdClass&object{viewable_type: string, viewable_id: int|string, paired_type: string, paired_id: int|string, visitors: int|string, viewable_visitors: int|string, paired_visitors: int|string} $row */
         foreach ($rows as $row) {
-            $visitors = (int) $row->visitors - ($row->seen === null ? 0 : 1);
+            $key = "{$row->paired_type}\0{$row->paired_id}";
+
+            if (! $request->includeSeen && ($seen[$key] ?? false)) {
+                continue;
+            }
+
+            $visitors = (int) $row->visitors - (isset($seen[$key]) ? 1 : 0);
 
             if ($visitors < $request->minimum) {
                 continue;

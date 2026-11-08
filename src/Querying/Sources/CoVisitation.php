@@ -283,33 +283,62 @@ final readonly class CoVisitation
     }
 
     /**
-     * The views the recipient made of the viewable the two columns of the
-     * outer query name, read under an alias of their own, over all time and
-     * every collection. With its visitors, the views of the browsers a viewer
-     * was signed in on count as well.
+     * Which of the viewables the recipient viewed, over all time and every
+     * collection, keyed by type and id: true when a viewer viewed it signed
+     * in, false when only one of its browsers did.
+     *
+     * @param  list<array{type: string, id: int|string}>  $viewables
+     * @return array<string, bool>
      */
-    public function seenBy(Recipient $recipient, string $typeColumn, string $idColumn, bool $withVisitors = false): Builder
+    public function seenAmong(Recipient $recipient, array $viewables): array
     {
-        $seen = $this->view->getConnection()
-            ->table("{$this->view->getTable()} as seen")
-            ->whereColumn('seen.viewable_type', $typeColumn)
-            ->whereColumn('seen.viewable_id', $idColumn)
-            ->selectRaw('1');
+        $keys = [];
+
+        foreach ($viewables as $viewable) {
+            $keys[$viewable['type']][(string) $viewable['id']] = $viewable['id'];
+        }
+
+        $seen = [];
+
+        foreach ($keys as $type => $ids) {
+            foreach (array_chunk(array_values($ids), self::Chunk) as $chunk) {
+                /** @var stdClass&object{viewable_type: string, viewable_id: int|string, own: int|string} $row */
+                foreach ($this->seenIn($recipient, $type, $chunk)->get() as $row) {
+                    $key = "{$row->viewable_type}\0{$row->viewable_id}";
+                    $seen[$key] = ($seen[$key] ?? false) || (int) $row->own === 1;
+                }
+            }
+        }
+
+        return $seen;
+    }
+
+    /**
+     * Each branch filters on columns one index can serve, which a single
+     * `or` across the viewer and the visitor would not.
+     *
+     * @param  non-empty-list<int|string>  $ids
+     */
+    private function seenIn(Recipient $recipient, string $type, array $ids): Builder
+    {
+        $views = fn (): Builder => $this->view->getConnection()
+            ->table($this->view->getTable())
+            ->where('viewable_type', $type)
+            ->whereIn('viewable_id', $ids)
+            ->select(['viewable_type', 'viewable_id'])
+            ->distinct();
 
         if (! $recipient->isViewer()) {
-            return $seen->where('seen.visitor', $recipient->visitor);
+            return $views()->where('visitor', $recipient->visitor)->selectRaw('1 as own');
         }
 
         $viewer = $recipient->viewer;
-        $key = $recipient->viewerKey;
 
-        if (! $withVisitors) {
-            return $seen->where('seen.viewer_type', $viewer->getMorphClass())->where('seen.viewer_id', $key);
-        }
-
-        return $seen->where(fn (Builder $nested): Builder => $nested
-            ->where(static fn (Builder $own): Builder => $own->where('seen.viewer_type', $viewer->getMorphClass())->where('seen.viewer_id', $key))
-            ->orWhereIn('seen.visitor', $this->visitorsOf($viewer)));
+        return $views()
+            ->where('viewer_type', $viewer->getMorphClass())
+            ->where('viewer_id', $recipient->viewerKey)
+            ->selectRaw('1 as own')
+            ->unionAll($views()->whereIn('visitor', $this->visitorsOf($viewer))->selectRaw('0 as own'));
     }
 
     /**
