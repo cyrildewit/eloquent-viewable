@@ -81,6 +81,20 @@ services:
       interval: 2s
       retries: 20
 
+  # The documentation site in docs/, run through `make docs-*`. node_modules
+  # lives on a named volume so the Linux builds of sharp and Rollup never land
+  # in the checkout. It sits behind the `docs` profile so nothing else starts it.
+  node:
+    image: node:22-alpine
+    profiles: [docs]
+    working_dir: /app/docs
+    entrypoint: ["npm"]
+    volumes:
+      - .:/app
+      - docs-node-modules:/app/docs/node_modules
+    ports:
+      - "4321:4321"
+
   # `make test-mysql`, `make test-mariadb` and `make test-pgsql` start these and
   # run the suite against them. By hand, for example:
   #   DB_CONNECTION=mysql DB_HOST=mysql DB_PORT=3306 docker compose run --rm composer test
@@ -179,3 +193,4 @@ volumes:
   bench-mysql:
   bench-mariadb:
   bench-postgres:
+  docs-node-modules:

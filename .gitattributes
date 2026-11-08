@@ -9,6 +9,7 @@
 /art                export-ignore
 /tests              export-ignore
 /samples            export-ignore
+/docs               export-ignore
 /benchmarks         export-ignore
 /phpbench.json      export-ignore
 /.editorconfig      export-ignore

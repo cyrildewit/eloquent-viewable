@@ -1,0 +1,12 @@
+/* The accent follows the logo's gradient, indigo through blue to cyan. */
+:root {
+	--sl-color-accent-low: #1b1f4d;
+	--sl-color-accent: #4f6bff;
+	--sl-color-accent-high: #c3cdff;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #dfe4ff;
+	--sl-color-accent: #3d4fe0;
+	--sl-color-accent-high: #1c2470;
+}
