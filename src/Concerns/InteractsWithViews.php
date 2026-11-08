@@ -54,11 +54,22 @@ trait InteractsWithViews
 {
     public static function bootInteractsWithViews(): void
     {
+        if (property_exists(static::class, 'removeViewsOnDelete')) {
+            trigger_error(
+                'The $removeViewsOnDelete property of '.static::class.' is deprecated and will no longer be read in version 10. Override shouldRemoveViewsOnDelete() instead.',
+                E_USER_DEPRECATED,
+            );
+        }
+
         static::whenBooted(fn () => static::observe(ViewableObserver::class));
     }
 
     public function shouldRemoveViewsOnDelete(): bool
     {
+        if (property_exists($this, 'removeViewsOnDelete')) {
+            return (bool) $this->removeViewsOnDelete;
+        }
+
         return true;
     }
 

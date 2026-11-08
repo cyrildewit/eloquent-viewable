@@ -6,6 +6,8 @@ use CyrildeWit\EloquentViewable\Models\View;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsPost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\KeepsViewsSoftDeletablePost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\Post;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\PropertyKeepsViewsPost;
+use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\PropertyRemovesViewsPost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletablePost;
 use CyrildeWit\EloquentViewable\Tests\Fixtures\Models\SoftDeletableView;
 use Illuminate\Database\Schema\Blueprint;
@@ -35,6 +37,58 @@ it('keeps the views when a viewable that opts out gets deleted', function (): vo
     $post->delete();
 
     expect(View::count())->toBe(3);
+});
+
+/** @return list<string> */
+function deprecationsOf(Closure $callback): array
+{
+    $messages = [];
+
+    set_error_handler(function (int $level, string $message) use (&$messages): bool {
+        $messages[] = $message;
+
+        return true;
+    }, E_USER_DEPRECATED);
+
+    try {
+        $callback();
+    } finally {
+        restore_error_handler();
+    }
+
+    return $messages;
+}
+
+it('warns that the v8 removeViewsOnDelete property is deprecated', function (): void {
+    $deprecations = deprecationsOf(fn (): PropertyKeepsViewsPost => new PropertyKeepsViewsPost);
+
+    expect($deprecations)->toBe([
+        'The $removeViewsOnDelete property of '.PropertyKeepsViewsPost::class.' is deprecated and will no longer be read in version 10. Override shouldRemoveViewsOnDelete() instead.',
+    ]);
+});
+
+it('keeps the views of a viewable that sets the v8 removeViewsOnDelete property to false', function (): void {
+    deprecationsOf(fn (): PropertyKeepsViewsPost => new PropertyKeepsViewsPost);
+
+    $post = PropertyKeepsViewsPost::create(['title' => 'Title', 'body' => 'Body']);
+
+    View::factory()->for($post, 'viewable')->count(3)->create();
+
+    $post->delete();
+
+    expect(View::count())->toBe(3);
+});
+
+it('destroys the views of a viewable that sets the v8 removeViewsOnDelete property to true', function (): void {
+    deprecationsOf(fn (): PropertyRemovesViewsPost => new PropertyRemovesViewsPost);
+
+    $post = PropertyRemovesViewsPost::create(['title' => 'Title', 'body' => 'Body']);
+
+    View::factory()->for($post, 'viewable')->count(3)->create();
+
+    $post->delete();
+
+    expect(View::count())->toBe(0);
 });
 
 describe('soft deletable viewable', function (): void {
