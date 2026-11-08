@@ -657,11 +657,12 @@ only check whether a model has any views, `Post::has('views')` is cheaper. For l
 
 ### Caching view counts
 
-Add `remember()` to cache a count, a series or a ranking. The lifetime is forever by default:
+Add `remember()` to cache a count, a series or a ranking. An integer lifetime is a number of minutes, and the lifetime is
+forever by default:
 
 ```php
 views($post)->remember()->count();
-views($post)->remember(3600)->count();                          // for an hour
+views($post)->remember(60)->count();                            // for an hour
 views($post)->remember(now()->addWeeks(2))->count();
 views($post)->period(Period::pastDays(30))->remember()->countByInterval(Granularity::Day);
 Views::period(Period::pastDays(7))->remember()->top(10);
@@ -946,7 +947,7 @@ not with Sunday night. The period can be as long as the season, a day for `Seaso
 - **Use a closed window for alerts.** `Period::subHours(1)` includes the views of the last few minutes, which aren't
   all in yet with a queue or the Redis buffer. `Period::create(now()->subHours(2)->startOfHour(), now()->subHour()->startOfHour())`
   is the last complete hour. [`views:detect-spikes`](#spike-alerts) does this for you.
-- **Give `remember()` a lifetime.** A remembered ranking keeps its windows, so `remember(600)` serves the same answer for
+- **Give `remember()` a lifetime.** A remembered ranking keeps its windows, so `remember(10)` serves the same answer for
   ten minutes.
 - **`unique()` compares visitors instead of views.**
 
