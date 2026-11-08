@@ -358,10 +358,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      * The integer score of the row of the outer query, 0 without views. With
      * `unique`, the derived table is compared with the outer key outside it,
      * because MariaDB refuses an outer reference inside a derived table.
-     *
-     * @internal
      */
-    public function weightedSubquery(Viewable $viewable, ViewsQuery $query, Decay $decay): Builder
+    private function weightedSubquery(Viewable $viewable, ViewsQuery $query, Decay $decay): Builder
     {
         $builder = $this->view->newQuery()->matching($query)->toBase();
         $grammar = $builder->getGrammar();

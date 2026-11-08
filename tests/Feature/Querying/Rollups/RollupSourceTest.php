@@ -85,6 +85,8 @@ function reads(Post $post, Post $other): array
         'many' => views(new Post)->forViewables([$post, $other])->counts()->all(),
         'ordered' => Post::query()->orderByViews()->pluck('id')->all(),
         'with count' => Post::query()->withViewsCount()->orderBy('id')->pluck('views_count')->all(),
+        'with count in a collection' => Post::query()->withViewsCount(collection: 'featured')->orderBy('id')->pluck('views_count')->all(),
+        'with count since' => Post::query()->withViewsCount(Period::since('2026-01-25'))->orderBy('id')->pluck('views_count')->all(),
         'filtered' => Post::query()->whereViewsCount('>', 5)->pluck('id')->all(),
         'top' => views(new Post)->top()->entries->map(fn ($entry): array => [$entry->viewable->getKey(), $entry->count])->all(),
     ];
@@ -270,6 +272,25 @@ it('ranks by unique visitors summed across the views table and the rollups', fun
 
     expect(views(new Post)->unique()->top()->entries->map(fn ($entry): array => [$entry->viewable->getKey(), $entry->count])->all())
         ->toBe([[$this->post->getKey(), 6], [$this->other->getKey(), 2]]);
+});
+
+it('counts the views table on both sides of the rollups in a scope', function (): void {
+    $counts = fn (): array => Post::query()->withViewsCount(Period::since('2026-01-10 10:30:00'))->orderBy('id')->pluck('views_count')->all();
+    $expected = $counts();
+
+    app(FoldViews::class)->handle();
+    readFrom('rollup');
+
+    expect($expected)->toBe([5, 1])
+        ->and($counts())->toBe($expected)
+        ->and(Post::query()->whereViewsCount('>=', 5, Period::since('2026-01-10 10:30:00'))->pluck('id')->all())->toBe([$this->post->getKey()]);
+});
+
+it('counts unique visitors in a scope across the views table and the rollups', function (): void {
+    foldAndPrune();
+    readFrom('rollup');
+
+    expect(Post::query()->withViewsCount(unique: true)->orderBy('id')->pluck('views_count')->all())->toBe([6, 2]);
 });
 
 it('counts a bucket when its start lies inside a period that cuts through it', function (): void {
