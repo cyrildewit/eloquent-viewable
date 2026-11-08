@@ -188,12 +188,21 @@ final readonly class FoldViews implements Refolder
             $buckets += $this->foldBucket($definition, $tier, $bucket, $run->dryRun);
         }
 
+        $held = $resumes ? null : $this->held($tier, $snapshot, $cursor);
+
         while (($first = $this->firstViewedAt($cursor, $until)) instanceof CarbonImmutable) {
             if ($run->deadline->passed()) {
                 return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $cursor->max($folded ?? $cursor), $buckets, stopped: true), $lowest, $origin);
             }
 
             $bucket = $tier->floor($first, $zone);
+
+            if ($held !== null && $bucket >= $held[0] && $bucket < $held[1]) {
+                $cursor = $held[1];
+
+                continue;
+            }
+
             $buckets += $this->foldBucket($definition, $tier, $bucket, $run->dryRun);
             $cursor = $tier->next($bucket, $zone);
 
@@ -205,13 +214,18 @@ final readonly class FoldViews implements Refolder
         return new TierFold(new ViewsRolledUp($definition->name, $tier, $folded, $until->max($folded ?? $until), $buckets), $lowest, $origin);
     }
 
+    /**
+     * A tier that was never folded starts at the first view whatever the
+     * run's start: a later start would leave the views before it in no tier,
+     * and a run that carries on never goes back for them.
+     */
     private function cursor(Tier $tier, Snapshot $snapshot, ?CarbonInterface $from, CarbonImmutable $until): CarbonImmutable
     {
-        if ($from instanceof CarbonInterface) {
+        $folded = $snapshot->folded($tier);
+
+        if ($folded instanceof CarbonImmutable && $from instanceof CarbonInterface) {
             return $this->refoldFrom($tier, $snapshot, $from);
         }
-
-        $folded = $snapshot->folded($tier);
 
         if ($folded instanceof CarbonImmutable) {
             return $folded;
@@ -354,13 +368,44 @@ final readonly class FoldViews implements Refolder
             return $from;
         }
 
+        $since = $snapshot->since($tier);
+        $pruned = $snapshot->pruned instanceof CarbonImmutable ? $tier->ceil($snapshot->pruned, $zone) : null;
+        $gap = $pruned instanceof CarbonImmutable ? $from->max($pruned) : $from;
+
+        if ($since instanceof CarbonImmutable && $gap < $since) {
+            return $gap;
+        }
+
         return $tier->ceil($floor, $zone);
+    }
+
+    /**
+     * The buckets a refold that fills the gap before a tier's rows passes
+     * over, from where those rows start up to the refold floor, or null when
+     * it passes over none. Those buckets keep the rows they were folded into.
+     *
+     * @return array{CarbonImmutable, CarbonImmutable}|null
+     */
+    private function held(Tier $tier, Snapshot $snapshot, CarbonImmutable $cursor): ?array
+    {
+        $since = $snapshot->since($tier);
+        $floor = $this->refoldFloor($tier, $snapshot);
+
+        if (! $since instanceof CarbonImmutable || ! $floor instanceof CarbonImmutable || $cursor >= $since) {
+            return null;
+        }
+
+        $floor = $tier->ceil($floor, $this->policy->timezone);
+
+        return $floor > $since ? [$since, $floor] : null;
     }
 
     /**
      * Pruned views are gone, and anonymised views only keep one visitor id
      * per day, so a bucket before either cannot be folded again without
-     * losing what it holds.
+     * losing what it holds. A bucket before the tier's rows start holds
+     * nothing to lose, so refoldFrom() lets a refold fill it from anonymised
+     * views.
      */
     private function refoldFloor(Tier $tier, Snapshot $snapshot): ?CarbonImmutable
     {
