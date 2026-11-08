@@ -1,0 +1,35 @@
+---
+title: "Extending"
+description: "Replace the package's classes with your own, or add guards, checks, curves and macros."
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+You can replace these classes with your own, as long as they implement the same interface:
+
+- `CyrildeWit\EloquentViewable\Models\View`
+- `CyrildeWit\EloquentViewable\Visitors\Visitor`
+- `CyrildeWit\EloquentViewable\Crawlers\Detectors\CrawlerDetectAdapter`
+- `CyrildeWit\EloquentViewable\Recording\Actions\RecordView`
+- `CyrildeWit\EloquentViewable\Recording\Stores\DatabaseStore`
+- `CyrildeWit\EloquentViewable\Recording\Stores\NullStore`
+- `CyrildeWit\EloquentViewable\Recording\Guards\IgnoreCrawlers`, `IgnoreDoNotTrack`, `IgnoreGlobalPrivacyControl`,
+  `IgnoreIpAddresses`, `IgnorePrefetch`, `IgnoreOptedOutViewers` and `EnforceCooldown`
+- `CyrildeWit\EloquentViewable\Querying\Sources\DatabaseSource`
+
+<CardGrid>
+	<LinkCard title={"Custom visitor information"} href={"/eloquent-viewable/extending/visitor/"} description={"The Visitor class reads the current visitor from the request."} />
+	<LinkCard title={"Your own View model"} href={"/eloquent-viewable/extending/view-model/"} description={"Extend the shipped model and name your class in the config."} />
+	<LinkCard title={"How views are created"} href={"/eloquent-viewable/extending/creating-views/"} description={"The RecordView action receives every ViewRecord that passed the guards, hands it to the store and dispatches ViewRecorded."} />
+	<LinkCard title={"Where views are stored"} href={"/eloquent-viewable/extending/stores/"} description={"recording.store.driver names the store for every recorded view."} />
+	<LinkCard title={"Recording guards"} href={"/eloquent-viewable/extending/guards/"} description={"A guard decides whether a call to record() becomes a view."} />
+	<LinkCard title={"Doctor checks"} href={"/eloquent-viewable/extending/doctor-checks/"} description={"doctor.checks lists the checks views:doctor runs, in order."} />
+	<LinkCard title={"How views are counted"} href={"/eloquent-viewable/extending/counting/"} description={"Every number comes from one Querying\\Contracts\\ViewSource, named by querying.source.driver."} />
+	<LinkCard title={"Trending curves"} href={"/eloquent-viewable/extending/trending-curves/"} description={"A curve decides how much a view of a given age is worth."} />
+	<LinkCard title={"Bucket grammars"} href={"/eloquent-viewable/extending/bucket-grammars/"} description={"Teach countByInterval() to group by time on another database driver."} />
+	<LinkCard title={"Crawler detector"} href={"/eloquent-viewable/extending/crawler-detector/"} description={"The IgnoreCrawlers guard asks the bound CrawlerDetector whether a user agent belongs to a crawler."} />
+	<LinkCard title={"Macros"} href={"/eloquent-viewable/extending/macros/"} description={"Add your own methods to the Views class with macros."} />
+</CardGrid>
