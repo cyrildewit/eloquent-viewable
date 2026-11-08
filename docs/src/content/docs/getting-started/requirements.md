@@ -16,5 +16,3 @@ their values with. MariaDB, Postgres and SQLite have one on every version Larave
 
 The package supports [Laravel Octane](https://laravel.com/docs/octane). Nothing about one request, such as its
 visitor, viewer, cooldowns or config, carries over to the next request a worker handles.
-
-Lumen is not supported. Its last release is built on Laravel 11, and the package needs Laravel 13.
