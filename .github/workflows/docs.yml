@@ -70,11 +70,46 @@ jobs:
         with:
           path: docs/dist
 
+  # tests/Unit/Docs checks the pages against the code, such as every public event being listed. The test suite runs
+  # it on code changes; this runs it on page changes, without the whole database matrix.
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'schedule' && '9.x' || '' }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: 8.5
+          extensions: mbstring
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: composer update --prefer-stable --no-interaction --ansi
+
+      - name: Check the pages against the code
+        run: vendor/bin/pest tests/Unit/Docs
+
   # The site follows the release branch being worked on. Move the branch above,
   # and the one the scheduled checkout uses, when a new major becomes the one to document.
   deploy:
     if: github.event_name != 'pull_request'
-    needs: build
+    needs: [build, check]
     runs-on: ubuntu-latest
 
     permissions:

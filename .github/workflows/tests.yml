@@ -11,14 +11,12 @@ on:
       - '.github/workflows/tests.yml'
       - 'phpunit.xml.dist'
       - 'composer.json'
-      - 'docs/src/content/**'
   pull_request:
     paths:
       - '**.php'
       - '.github/workflows/tests.yml'
       - 'phpunit.xml.dist'
       - 'composer.json'
-      - 'docs/src/content/**'
 
 permissions:
     contents: read
