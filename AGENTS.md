@@ -27,7 +27,8 @@ make test-mutation      # mutation testing, see below
 make test-mysql         # the suite against MySQL
 make test-mariadb       # the suite against MariaDB
 make test-pgsql         # the suite against PostgreSQL
-make test-drivers       # the suite against all four drivers
+make test-valkey        # the suite against Valkey instead of Redis
+make test-drivers       # the suite against all four drivers and Valkey
 make db-stop            # stop the database services
 make bench-seed         # seed the benchmark dataset, DRIVER= and SIZE= pick the database and size
 make bench              # run the phpbench suite in benchmarks/, see benchmarks/README.md
