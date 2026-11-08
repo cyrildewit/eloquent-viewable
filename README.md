@@ -164,7 +164,7 @@ time. None of these changes how you query.
 | Default                                                 | Views count immediately, nothing to set up                       | Nothing                                           |
 | [`remember()`](#caching-view-counts)                    | Repeated counts, series and rankings served from the cache       | Any cache store                                   |
 | [Queued recording](#queueing-view-recording)            | The insert moves out of the request                              | A queue worker                                    |
-| [Redis buffer](#buffering-views-in-redis)               | One Redis write per request, one insert per thousand views       | Redis 7+ and a scheduled `views:flush`            |
+| [Redis buffer](#buffering-views-in-redis)               | One Redis write per request, one insert per thousand views       | Redis 7+ or Valkey, and a scheduled `views:flush` |
 | [Optional indexes](#database-indexes)                   | Faster unique counts and counts over a whole model type          | A migration of your own                           |
 | [Counts on your own table](#storing-counts-on-your-own-table) | Fast sorting of large lists by views                       | A column and a scheduled `views:maintain`         |
 | [Cache cooldowns](#setting-a-cooldown)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |
@@ -1373,7 +1373,7 @@ It is off by default, because it stores who is looking instead of an anonymous i
   memory does not grow with the number of visitors, but the count is an estimate, typically off by less than 1%. It
   works in whole minutes, so it can include visitors from up to a minute before the window, and `leave()` has no
   effect.
-- **Redis.** Works with phpredis and Predis. Pick a connection with `presence.redis.connection`. All keys share one
+- **Redis.** Works with phpredis and Predis, against Redis or [Valkey](https://valkey.io). Pick a connection with `presence.redis.connection`. All keys share one
   [hash tag](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/#hash-tags), so on a Redis
   Cluster they all live on the same node. Keys expire on their own once nobody has been seen for a while. If Redis
   rejects a write, the error is reported and the view is still recorded.
@@ -1976,7 +1976,7 @@ php artisan views:doctor
 | Shared cache stores | `shared-cache`    | that cooldowns, the throttle, the burst guard, the fingerprint salt and remembered counts use a shared store |
 | Scheduler           | `schedule`        | that `views:maintain` or `MaintainViewsJob`, and `views:flush`, are scheduled when something needs them      |
 | Trusted proxies     | `trusted-proxies` | that a proxy is trusted when the `fingerprint` identity, `IgnoreIpAddresses` or `IgnoreBursts` reads the IP  |
-| Redis stream        | `redis-stream`    | how long buffered views wait, and views a flush took without acknowledging                                   |
+| Redis stream        | `redis-stream`    | the server and its version, how long buffered views wait, and views a flush took without acknowledging       |
 | Refused attempts    | `crawler-share`   | the share of attempts each guard refused, once sampling is on                                                |
 | Configuration       | `configuration`   | settings that undo each other, such as queueing on the `sync` connection                                     |
 
@@ -2428,7 +2428,9 @@ flowchart LR
 
 Setting it up takes three steps:
 
-1. Run Redis 7 or newer, with the `phpredis` extension or Predis 3.3+ (`composer require predis/predis`).
+1. Run Redis 7 or newer, or any release of [Valkey](https://valkey.io), with the `phpredis` extension or Predis 3.3+
+   (`composer require predis/predis`). Valkey speaks the Redis protocol, so it needs nothing beyond a connection in
+   `database.redis` that points at it.
 2. Switch the store:
 
    ```php

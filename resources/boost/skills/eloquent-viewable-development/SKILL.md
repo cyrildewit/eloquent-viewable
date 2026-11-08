@@ -150,7 +150,7 @@ A recommendation has `rank`, `score`, `viewable` and `because`, the viewer's vie
 
 ## Who Is Looking Right Now
 
-For "12 people are viewing this", use presence, never a count of recent rows. Enable `presence.enabled`; the `redis` driver is the one for production.
+For "12 people are viewing this", use presence, never a count of recent rows. Enable `presence.enabled`; the `redis` driver is the one for production, against Redis or Valkey.
 
 ```php
 views($product)->activeVisitors();                // visitors in the last `presence.window` seconds
