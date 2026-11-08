@@ -20,3 +20,16 @@ updates:
       versioning-strategy: "increase"
       labels:
           - "dependencies"
+
+    # The documentation site. Grouped so Astro, Starlight and their plugins,
+    # which move together, arrive in one pull request.
+    - package-ecosystem: "npm"
+      directory: "/docs"
+      schedule:
+          interval: "weekly"
+      groups:
+          docs:
+              patterns:
+                  - "*"
+      labels:
+          - "dependencies"
