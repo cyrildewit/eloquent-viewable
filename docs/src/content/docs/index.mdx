@@ -74,7 +74,7 @@ import ShowcaseOutput from '../../components/ShowcaseOutput.astro';
 
 		```php
 		$series = views($post)
-		    ->period(Period::create('2026-10-01', '2026-10-31 23:59:59'))
+		    ->period(Period::create('2026-10-01', '2026-11-01'))
 		    ->countByInterval(Granularity::Day);
 
 		$series->labels(); // ['2026-10-01', '2026-10-02', ...]
