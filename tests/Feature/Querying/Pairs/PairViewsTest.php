@@ -112,7 +112,7 @@ it('replaces the pairs of the run before and announces the run', function (): vo
 
     expect(pairRows())->toBeEmpty();
 
-    Event::assertDispatched(ViewsPaired::class, fn (ViewsPaired $event): bool => $event->since->equalTo(Carbon::parse('2025-12-01')) && $event->viewables === 2 && $event->pairs === 2);
+    Event::assertDispatched(ViewsPaired::class, fn (ViewsPaired $event): bool => $event->since->equalTo(Carbon::parse('2025-12-01')) && $event->viewables === 2 && $event->pairs === 2 && $event->period === '90d');
 });
 
 it('does nothing while the pairs table is off', function (): void {
@@ -204,6 +204,7 @@ it('counts a recipient that viewed a candidate in any way one visitor fewer', fu
     $this->artisan('views:pairs')->assertSuccessful();
 
     $pairs = fn (int $minimum, bool $includeSeen = false, ?Model $among = null): array => Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        '90d',
         new RecommendationRequest(Recipient::viewer($user), $among, 20, $minimum, null, $includeSeen),
         [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
     );
@@ -226,6 +227,7 @@ it('leaves out what a viewer viewed itself, unless it is included', function ():
     $this->artisan('views:pairs')->assertSuccessful();
 
     $pairs = fn (bool $includeSeen): array => Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        '90d',
         new RecommendationRequest(Recipient::viewer($user), null, 20, 1, null, $includeSeen),
         [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
     );
@@ -243,6 +245,7 @@ it('leaves out what a visitor viewed itself, unless it is included', function ()
     $this->artisan('views:pairs')->assertSuccessful();
 
     $pairs = fn (bool $includeSeen): array => Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        '90d',
         new RecommendationRequest(Recipient::visitor('laptop'), null, 20, 1, null, $includeSeen),
         [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
     );
@@ -271,6 +274,7 @@ it('checks every candidate against what the recipient viewed in one statement pe
     DB::enableQueryLog();
 
     $pairs = Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        '90d',
         new RecommendationRequest(Recipient::viewer($user), null, 20, 1, null, false),
         [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
     );
@@ -281,4 +285,76 @@ it('checks every candidate against what the recipient viewed in one statement pe
             [$others[1]->getKey(), 2],
             [$others[2]->getKey(), 2],
         ]);
+});
+
+it('keeps the pairs of every configured period apart', function (): void {
+    config()->set('eloquent-viewable.querying.pairs.periods', ['30d', '90d']);
+    $apartment = Apartment::factory()->create();
+    $old = Post::factory()->create();
+
+    pairedBy($this->post, ['one', 'two']);
+    pairedBy($apartment, ['one', 'two']);
+    pairedBy($old, ['one'], '2026-01-10');
+
+    $this->artisan('views:pairs')
+        ->expectsOutputToContain('Pairing the views of the last 90d...')
+        ->expectsOutputToContain('Paired 3 viewables into 6 pairs.')
+        ->expectsOutputToContain('Pairing the views of the last 30d...')
+        ->expectsOutputToContain('Paired 2 viewables into 2 pairs.')
+        ->assertSuccessful();
+
+    expect(DB::table('view_pairs')->orderBy('period')->pluck('period')->countBy()->all())->toBe(['30d' => 2, '90d' => 6]);
+});
+
+it('serves a call over a configured period from its own pairs', function (): void {
+    config()->set('eloquent-viewable.querying.pairs.periods', ['30d', '90d']);
+    $user = User::factory()->create();
+    $apartment = Apartment::factory()->create();
+    $old = Apartment::factory()->create();
+    $late = Apartment::factory()->create();
+
+    View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('laptop')->viewedAt(Carbon::parse('2026-02-25'))->create();
+    pairedBy($this->post, ['one', 'two']);
+    pairedBy($apartment, ['one', 'two']);
+    pairedBy($old, ['one'], '2026-01-10');
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    pairedBy($late, ['one', 'two']);
+
+    $alsoViewed = fn (?Period $period): array => views($this->post)->period($period)->alsoViewed()->viewables()->modelKeys();
+    $recommended = fn (?Period $period): array => $user->recommended(Apartment::class, period: $period)->viewables()->modelKeys();
+
+    expect($alsoViewed(null))->toBe([$apartment->getKey(), $old->getKey()])
+        ->and($alsoViewed(Period::pastDays(30)))->toBe([$apartment->getKey()])
+        ->and($alsoViewed(Period::subDays(30)))->toBe([$apartment->getKey()])
+        ->and($alsoViewed(Period::since('2026-01-30')))->toBe([$apartment->getKey(), $late->getKey()])
+        ->and($recommended(null))->toBe([$apartment->getKey(), $old->getKey()])
+        ->and($recommended(Period::pastDays(30)))->toBe([$apartment->getKey()])
+        ->and($recommended(Period::pastDays(45)))->toBe([$apartment->getKey(), $late->getKey()]);
+});
+
+it('pairs only the period it is given, and drops the pairs of a period no longer configured', function (): void {
+    config()->set('eloquent-viewable.querying.pairs.periods', ['30d', '90d']);
+    $apartment = Apartment::factory()->create();
+
+    pairedBy($this->post, ['one']);
+    pairedBy($apartment, ['one']);
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    config()->set('eloquent-viewable.querying.pairs.periods', ['30d', '7d']);
+
+    $this->artisan('views:pairs', ['--period' => '7d'])
+        ->expectsOutputToContain('Pairing the views of the last 7d...')
+        ->doesntExpectOutputToContain('Pairing the views of the last 30d...')
+        ->assertSuccessful();
+
+    expect(DB::table('view_pairs')->orderBy('period')->pluck('period')->countBy()->all())->toBe(['30d' => 2]);
+});
+
+it('refuses a period that is not configured', function (): void {
+    $this->artisan('views:pairs', ['--period' => '30d'])
+        ->expectsOutputToContain('The --period option must be one of `90d`.')
+        ->assertFailed();
 });

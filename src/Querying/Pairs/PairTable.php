@@ -12,6 +12,7 @@ use CyrildeWit\EloquentViewable\Querying\Contracts\RanksRecommendations;
 use CyrildeWit\EloquentViewable\Querying\Recommendations\RecommendationRequest;
 use CyrildeWit\EloquentViewable\Querying\Sources\CoVisitation;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewableKey;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
@@ -19,10 +20,10 @@ use Illuminate\Database\Query\Builder;
 use stdClass;
 
 /**
- * The pairs table holds, for every viewable, the viewables that share the
- * most visitors with it over the configured period, as `views:pairs` last
- * wrote them. Both directions of a pair are stored, so a viewable finds its
- * pairs on one side of the index.
+ * The pairs table holds, for every configured period and viewable, the
+ * viewables that share the most visitors with it over that period, as
+ * `views:pairs` last wrote them. Both directions of a pair are stored, so a
+ * viewable finds its pairs on one side of the index.
  *
  * @phpstan-import-type Seed from RanksRecommendations
  * @phpstan-import-type Pair from RanksRecommendations
@@ -39,25 +40,29 @@ final readonly class PairTable
     ) {}
 
     /**
-     * The table answers a call over all time, every collection and no filter,
-     * while `querying.pairs.enabled` is on. Any narrower call reads the views
-     * table.
+     * The period of the pairs that answer a call, while
+     * `querying.pairs.enabled` is on: the configured period as long as the
+     * relative period of the call, or the longest for a call over all time.
+     * Null when the views table answers: any other period, a collection or
+     * a filter.
+     *
+     * @throws InvalidConfiguration
      */
-    public function serves(ViewsQuery $query): bool
+    public function periodFor(ViewsQuery $query): ?string
     {
-        if (! $this->config->pairsEnabled()) {
-            return false;
+        if (! $this->config->pairsEnabled() || $query->collection !== null || $query->filter instanceof FiltersViews) {
+            return null;
         }
 
-        if ($query->period instanceof Period) {
-            return false;
+        $periods = array_map(static fn (Duration $period): string => $period->shorthand(), $this->config->pairsPeriods());
+
+        if (! $query->period instanceof Period) {
+            return $periods[0];
         }
 
-        if ($query->collection !== null) {
-            return false;
-        }
+        $length = $query->period->length()?->shorthand();
 
-        return ! $query->filter instanceof FiltersViews;
+        return in_array($length, $periods, true) ? $length : null;
     }
 
     /**
@@ -65,9 +70,10 @@ final readonly class PairTable
      *
      * @throws InvalidConfiguration
      */
-    public function alsoViewed(Viewable $viewable, ?Viewable $among, int $limit, int $minimum): array
+    public function alsoViewed(string $period, Viewable $viewable, ?Viewable $among, int $limit, int $minimum): array
     {
         $builder = $this->query()
+            ->where('period', $period)
             ->where('viewable_type', $viewable->getMorphClass())
             ->where('viewable_id', ViewableKey::of($viewable))
             ->where('visitors', '>=', $minimum);
@@ -104,11 +110,12 @@ final readonly class PairTable
      *
      * @throws InvalidConfiguration
      */
-    public function recommendationPairs(RecommendationRequest $request, array $seeds): array
+    public function recommendationPairs(string $period, RecommendationRequest $request, array $seeds): array
     {
         $type = "{$this->config->pairsTable()}.paired_type";
 
         $builder = $this->query()
+            ->where('period', $period)
             ->where(fn (Builder $nested): Builder => $this->matchingAny($nested, $seeds, 'viewable_type', 'viewable_id'))
             ->whereNot(fn (Builder $nested): Builder => $this->matchingAny($nested, $seeds, 'paired_type', 'paired_id'));
 

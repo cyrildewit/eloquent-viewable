@@ -13,16 +13,17 @@ use CyrildeWit\EloquentViewable\Querying\Pairs\Events\ViewsPaired;
 use CyrildeWit\EloquentViewable\Querying\Pairs\PairTable;
 use CyrildeWit\EloquentViewable\Querying\Sources\CoVisitation;
 use CyrildeWit\EloquentViewable\Support\Config;
+use CyrildeWit\EloquentViewable\Support\Duration;
 use CyrildeWit\EloquentViewable\Support\Period;
 use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 use Illuminate\Contracts\Events\Dispatcher;
 use stdClass;
 
 /**
- * It rewrites the pairs table from the views of the configured period, in
- * one transaction, so a reader sees either the old pairs or the new ones.
- * Only a viewable with at least the minimum of visitors can be in a pair, so
- * only those are read, a chunk at a time.
+ * It rewrites the pairs of one period from the views within it, in one
+ * transaction, so a reader sees either the old pairs or the new ones. Only a
+ * viewable with at least the minimum of visitors can be in a pair, so only
+ * those are read, a chunk at a time.
  *
  * @phpstan-import-type Pair from RanksRecommendations
  */
@@ -41,25 +42,31 @@ final readonly class PairViews
     ) {}
 
     /**
+     * The pairs of a period no longer configured go in the same transaction.
+     *
      * @throws InvalidConfiguration
      * @throws InvalidPeriod
      */
-    public function handle(): ViewsPaired
+    public function handle(Duration $period): ViewsPaired
     {
-        $since = CarbonImmutable::instance($this->config->pairsPeriod()->before(CarbonImmutable::now()));
+        $since = CarbonImmutable::instance($period->before(CarbonImmutable::now()));
         $query = new ViewsQuery(Period::since($since));
         $minimum = $this->config->alsoViewedMinimumVisitors();
         $maxVisitors = $this->config->alsoViewedMaxVisitors();
         $maxPairs = $this->config->pairsMaxPairs();
+        $configured = array_map(static fn (Duration $period): string => $period->shorthand(), $this->config->pairsPeriods());
 
         $audiences = $this->audiences($query, $minimum);
         $written = 0;
 
-        $this->view->getConnection()->transaction(function () use ($query, $audiences, $minimum, $maxVisitors, $maxPairs, &$written): void {
-            $this->table->query()->delete();
+        $this->view->getConnection()->transaction(function () use ($period, $configured, $query, $audiences, $minimum, $maxVisitors, $maxPairs, &$written): void {
+            $this->table->query()
+                ->where('period', $period->shorthand())
+                ->orWhereNotIn('period', $configured)
+                ->delete();
 
             foreach (array_chunk(array_values($audiences), self::Chunk) as $chunk) {
-                $rows = $this->rows($this->coVisitation->pairs($chunk, $query, $minimum, $maxVisitors), $audiences, $maxPairs);
+                $rows = $this->rows($period, $this->coVisitation->pairs($chunk, $query, $minimum, $maxVisitors), $audiences, $maxPairs);
 
                 foreach (array_chunk($rows, self::InsertChunk) as $insert) {
                     $this->table->query()->insert($insert);
@@ -69,7 +76,7 @@ final readonly class PairViews
             }
         });
 
-        $event = new ViewsPaired($since, count($audiences), $written);
+        $event = new ViewsPaired($since, count($audiences), $written, $period->shorthand());
 
         $this->events->dispatch($event);
 
@@ -117,9 +124,9 @@ final readonly class PairViews
      *
      * @param  list<Pair>  $pairs
      * @param  array<string, array{type: string, id: int|string, visitors: int}>  $audiences
-     * @return list<array{viewable_type: string, viewable_id: int|string, paired_type: string, paired_id: int|string, visitors: int, viewable_visitors: int, paired_visitors: int}>
+     * @return list<array{period: string, viewable_type: string, viewable_id: int|string, paired_type: string, paired_id: int|string, visitors: int, viewable_visitors: int, paired_visitors: int}>
      */
-    private function rows(array $pairs, array $audiences, int $maxPairs): array
+    private function rows(Duration $period, array $pairs, array $audiences, int $maxPairs): array
     {
         $grouped = [];
 
@@ -134,6 +141,7 @@ final readonly class PairViews
 
             foreach (array_slice($group, 0, $maxPairs) as $pair) {
                 $rows[] = [
+                    'period' => $period->shorthand(),
                     'viewable_type' => $pair['seed_type'],
                     'viewable_id' => $pair['seed_id'],
                     'paired_type' => $pair['type'],

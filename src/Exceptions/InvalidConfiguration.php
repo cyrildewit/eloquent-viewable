@@ -71,6 +71,11 @@ final class InvalidConfiguration extends Exception implements EloquentViewableEx
         return self::must($key, 'be a duration such as `30d` or `2y`'.($nullable ? ', or null' : ''), $value);
     }
 
+    public static function mustBeDurations(string $key, mixed $value): self
+    {
+        return self::must($key, 'be a duration such as `30d`, or a list of them', $value);
+    }
+
     /** @param  list<string>  $allowed */
     public static function mustBeSubsetOf(string $key, array $allowed, mixed $value): self
     {

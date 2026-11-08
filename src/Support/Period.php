@@ -195,6 +195,18 @@ final readonly class Period implements UrlRoutable
     }
 
     /**
+     * How far a relative period counts back, such as `30d` for
+     * `pastDays(30)` and `subDays(30)` alike. Null for a period between two
+     * dates, or one moved back by `previous()`.
+     *
+     * @internal
+     */
+    public function length(): ?Duration
+    {
+        return $this->relative?->length();
+    }
+
+    /**
      * What `parse()` reads back. It leaves out the timezone a relative period
      * was built in, so pass that timezone to `parse()` again.
      */

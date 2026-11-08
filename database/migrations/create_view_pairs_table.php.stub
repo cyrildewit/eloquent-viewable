@@ -26,6 +26,7 @@ return new class extends Migration
     {
         $this->schema->create($this->table, function (Blueprint $table) {
             $table->id();
+            $table->string('period', 16);
             $table->string('viewable_type');
             $this->key($table, 'viewable_id');
             $table->string('paired_type');
@@ -34,7 +35,7 @@ return new class extends Migration
             $table->unsignedBigInteger('viewable_visitors');
             $table->unsignedBigInteger('paired_visitors');
 
-            $table->index(['viewable_type', 'viewable_id', 'visitors'], "{$this->table}_viewable_index");
+            $table->index(['period', 'viewable_type', 'viewable_id', 'visitors'], "{$this->table}_viewable_index");
         });
     }
 

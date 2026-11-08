@@ -41,6 +41,16 @@ final readonly class RelativePeriod
         return $this->interval->subtract($this->anchor->dateTime($this->timezone), $this->value * $this->shift);
     }
 
+    /** Null once the period is shifted back, which no length says. */
+    public function length(): ?Duration
+    {
+        if ($this->shift !== 0) {
+            return null;
+        }
+
+        return new Duration($this->interval, $this->value);
+    }
+
     public function previous(): self
     {
         return new self($this->anchor, $this->interval, $this->value, $this->timezone, $this->shift + 1);

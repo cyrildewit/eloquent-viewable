@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Support;
 
+use Carbon\CarbonImmutable;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidConfiguration;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
@@ -351,10 +352,37 @@ final readonly class Config extends ConfigReader
         return $this->nonEmptyString('querying.pairs.table');
     }
 
-    /** @throws InvalidConfiguration */
-    public function pairsPeriod(): Duration
+    /**
+     * Every period the pairs are kept for, longest first, each once. A single
+     * string is read as a list of one.
+     *
+     * @return non-empty-list<Duration>
+     *
+     * @throws InvalidConfiguration
+     */
+    public function pairsPeriods(): array
     {
-        return $this->requiredDuration('querying.pairs.period');
+        $periods = [];
+
+        foreach ((array) $this->get('querying.pairs.periods') as $value) {
+            $period = is_string($value) ? Duration::tryParse($value) : null;
+
+            if (! $period instanceof Duration) {
+                throw InvalidConfiguration::mustBeDurations('querying.pairs.periods', $value);
+            }
+
+            $periods[$period->shorthand()] = $period;
+        }
+
+        if ($periods === []) {
+            throw InvalidConfiguration::mustBeDurations('querying.pairs.periods', []);
+        }
+
+        $now = CarbonImmutable::now();
+
+        usort($periods, static fn (Duration $a, Duration $b): int => $a->before($now) <=> $b->before($now));
+
+        return $periods;
     }
 
     /** @throws InvalidConfiguration */

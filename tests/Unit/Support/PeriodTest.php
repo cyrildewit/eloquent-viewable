@@ -439,3 +439,11 @@ describe('previous', function (): void {
         'any bound' => [new Period, '..'],
     ]);
 });
+
+it('measures a relative period by what it was asked for', function (): void {
+    expect(Period::pastDays(30)->length()?->shorthand())->toBe('30d')
+        ->and(Period::subDays(30, 'Australia/Sydney')->length()?->shorthand())->toBe('30d')
+        ->and(Period::parse('12h')->length()?->shorthand())->toBe('12h')
+        ->and(Period::pastDays(30)->previous()->length())->toBeNull()
+        ->and(Period::create('2026-01-01', '2026-01-31')->length())->toBeNull();
+});

@@ -395,8 +395,8 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      * Joins the views table to the visitors of the viewable, read as a
      * derived table so the cap on the visitors works on every driver: MySQL
      * refuses a limit inside `in (...)`. Views without a visitor never pair.
-     * The pairs table answers instead when `PairTable::serves()` accepts the
-     * query.
+     * The pairs table answers instead when `PairTable::periodFor()` finds pairs
+     * for the query.
      *
      * @return list<array{type: string, id: int|string, count: int}>
      *
@@ -404,8 +404,10 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      */
     public function alsoViewed(Viewable $viewable, ?Viewable $among, ViewsQuery $query, int $limit, int $minimum, ?int $maxVisitors): array
     {
-        if ($this->pairs->serves($query)) {
-            return $this->pairs->alsoViewed($viewable, $among, $limit, $minimum);
+        $period = $this->pairs->periodFor($query);
+
+        if ($period !== null) {
+            return $this->pairs->alsoViewed($period, $viewable, $among, $limit, $minimum);
         }
 
         $visitor = $this->view->qualifyColumn('visitor');
@@ -460,7 +462,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
 
     /**
      * The seeds always come from the views table. The pairs come from the
-     * pairs table when `PairTable::serves()` accepts the query.
+     * pairs table when `PairTable::periodFor()` finds pairs for the query.
      *
      * @return RecommendationPairs
      *
@@ -468,7 +470,9 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
      */
     public function recommendationPairs(RecommendationRequest $request, ViewsQuery $query): array
     {
-        if (! $this->pairs->serves($query)) {
+        $period = $this->pairs->periodFor($query);
+
+        if ($period === null) {
             return $this->coVisitation->recommendationPairs($request, $query);
         }
 
@@ -478,7 +482,7 @@ final readonly class DatabaseSource implements CountsBy, CountsByDimension, Coun
             return ['seeds' => [], 'pairs' => [], 'audiences' => []];
         }
 
-        return ['seeds' => $seeds, ...$this->pairs->recommendationPairs($request, $seeds)];
+        return ['seeds' => $seeds, ...$this->pairs->recommendationPairs($period, $request, $seeds)];
     }
 
     private function countOne(Viewable $viewable, int|string $key, ViewsQuery $query): Builder
