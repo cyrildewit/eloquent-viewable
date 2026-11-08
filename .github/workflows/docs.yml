@@ -2,6 +2,10 @@ name: Docs
 
 on:
   workflow_dispatch:
+  # Rebuilds the site monthly so the star count in the header stays current. GitHub only runs schedules from the
+  # default branch, so this fires once the workflow is on main; the checkout below then builds the documented branch.
+  schedule:
+    - cron: '0 6 1 * *'
   push:
     branches:
       - '9.x'
@@ -35,6 +39,7 @@ jobs:
         with:
           # lastUpdated reads each page's date from the git history.
           fetch-depth: 0
+          ref: ${{ github.event_name == 'schedule' && '9.x' || '' }}
 
       # Installs the version pinned by packageManager in docs/package.json.
       - name: Setup pnpm
@@ -55,6 +60,9 @@ jobs:
       # Fails on a broken internal link or anchor, see starlight-links-validator.
       - name: Build the site
         run: pnpm run build
+        env:
+          # Runners share their IP addresses, so the star count needs an authenticated request.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload the site
         if: github.event_name != 'pull_request'
@@ -62,8 +70,8 @@ jobs:
         with:
           path: docs/dist
 
-  # The site follows the release branch being worked on. Move the branch above
-  # when a new major becomes the one to document.
+  # The site follows the release branch being worked on. Move the branch above,
+  # and the one the scheduled checkout uses, when a new major becomes the one to document.
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
