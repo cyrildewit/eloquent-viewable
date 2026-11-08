@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { branch } from '../src/branch.mjs';
 
 const docs = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const root = path.dirname(docs);
@@ -12,8 +13,6 @@ const content = path.join(docs, 'src/content/docs');
 const base = '/eloquent-viewable';
 const site = `https://cyrildewit.github.io${base}`;
 const repository = 'https://github.com/cyrildewit/eloquent-viewable';
-// The branch the site is deployed from, see .github/workflows/docs.yml.
-const branch = '9.x';
 
 const kebab = (name) => name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
