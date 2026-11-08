@@ -90,7 +90,7 @@ make bench-seed SIZE=medium ARGS="--seed=7"
 
 ## Optional indexes
 
-The README suggests three indexes for apps that need them, and the migration creates a fourth on `viewed_at` that the
+The [documentation](https://cyrildewit.github.io/eloquent-viewable/scaling/indexes/) suggests three indexes for apps that need them, and the migration creates a fourth on `viewed_at` that the
 seeder drops so the read benchmarks keep their plans. A seeded dataset starts without all four. `make bench-indexes` adds or drops them in place, which is far quicker than seeding again, and the same
 benchmarks measure the difference.
 

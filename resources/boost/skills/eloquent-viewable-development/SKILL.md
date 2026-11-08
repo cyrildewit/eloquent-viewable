@@ -15,7 +15,7 @@ metadata:
 - A test asserts on recorded views.
 - A user is deleted, or a GDPR request asks to erase or export someone's data.
 
-Everything lives under `CyrildeWit\EloquentViewable\`. Read the package README in `vendor/cyrildewit/eloquent-viewable` for the trade-offs behind each config key.
+Everything lives under `CyrildeWit\EloquentViewable\`. Read the documentation at https://cyrildewit.github.io/eloquent-viewable/ for the trade-offs behind each config key.
 
 ## Model Setup
 
@@ -236,7 +236,7 @@ Suggest these only once the problem shows up. Each is a config change, and query
 - Sorting long lists by views is slow: `querying.counters` columns on the model's own table, kept current by `views:maintain`.
 - A `unique` counter column counts all-time visitors only until `retention.anonymise` runs: from then on it covers the views that are not anonymised yet, and can drop.
 - A copy of a counter column elsewhere goes stale, such as a search index: listen for `Querying\Counters\Events\CountersRecounted` and resync `$event->keys` of `$event->class`. A recount fires no model events.
-- `unique()`, whole-type, `alsoViewed()` or `recommended()` queries are slow: the optional indexes under "Database indexes" in the README.
+- `unique()`, whole-type, `alsoViewed()` or `recommended()` queries are slow: the optional indexes at https://cyrildewit.github.io/eloquent-viewable/scaling/indexes/, which `php artisan views:doctor` recommends.
 - `alsoViewed()` or `recommended()` stay slow under heavy traffic: `querying.pairs.enabled` and `views:pairs` scheduled. A call with a period reads the table only when that period is in `querying.pairs.periods`, such as `'30d'` for `Period::pastDays(30)`.
 - The views table keeps growing: `retention.anonymise` and `retention.prune` with `views:maintain` scheduled, plus `retention.rollups` and `querying.source.driver` set to `rollup` to keep history.
 - A `views:maintain` run outlasts its schedule, such as the first run on a large table: add `--max-seconds`, and the next run carries on. On a host that cuts commands off, schedule `Maintenance\Jobs\MaintainViewsJob` instead.
