@@ -3,12 +3,12 @@ name: Docs
 on:
   workflow_dispatch:
   # Rebuilds the site monthly so the star count in the header stays current. GitHub only runs schedules from the
-  # default branch, so this fires once the workflow is on main; the checkout below then builds the documented branch.
+  # default branch, which is the one the site is deployed from.
   schedule:
     - cron: '0 6 1 * *'
   push:
     branches:
-      - '9.x'
+      - main
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
@@ -39,7 +39,6 @@ jobs:
         with:
           # lastUpdated reads each page's date from the git history.
           fetch-depth: 0
-          ref: ${{ github.event_name == 'schedule' && '9.x' || '' }}
 
       # Installs the version pinned by packageManager in docs/package.json.
       - name: Setup pnpm
@@ -65,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload the site
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: docs/dist
@@ -78,8 +77,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event_name == 'schedule' && '9.x' || '' }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -105,10 +102,10 @@ jobs:
       - name: Check the pages against the code
         run: vendor/bin/pest tests/Unit/Docs
 
-  # The site follows the release branch being worked on. Move the branch above,
-  # and the one the scheduled checkout uses, when a new major becomes the one to document.
+  # The github-pages environment only accepts deployments from main, so a manual run on another branch builds and
+  # checks the site without deploying it.
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [build, check]
     runs-on: ubuntu-latest
 
