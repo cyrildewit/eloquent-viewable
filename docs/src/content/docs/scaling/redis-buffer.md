@@ -18,7 +18,9 @@ flowchart LR
 
 Setting it up takes three steps:
 
-1. Run Redis 7 or newer, with the `phpredis` extension or Predis 3.3+ (`composer require predis/predis`).
+1. Run Redis 7 or newer, or any release of [Valkey](https://valkey.io), with the `phpredis` extension or Predis 3.3+
+   (`composer require predis/predis`). Valkey speaks the Redis protocol, so it needs nothing beyond a connection in
+   `database.redis` that points at it.
 2. Switch the store:
 
    ```php

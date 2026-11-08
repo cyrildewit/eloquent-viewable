@@ -57,7 +57,7 @@ time. None of these changes how you query.
 | Default                                                 | Views count immediately, nothing to set up                       | Nothing                                           |
 | [`remember()`](/eloquent-viewable/counting/caching/)                    | Repeated counts, series and rankings served from the cache       | Any cache store                                   |
 | [Queued recording](/eloquent-viewable/recording/queueing/)            | The insert moves out of the request                              | A queue worker                                    |
-| [Redis buffer](/eloquent-viewable/scaling/redis-buffer/)               | One Redis write per request, one insert per thousand views       | Redis 7+ and a scheduled `views:flush`            |
+| [Redis buffer](/eloquent-viewable/scaling/redis-buffer/)               | One Redis write per request, one insert per thousand views       | Redis 7+ or Valkey, and a scheduled `views:flush` |
 | [Optional indexes](/eloquent-viewable/scaling/indexes/)                   | Faster unique counts and counts over a whole model type          | A migration of your own                           |
 | [Counts on your own table](/eloquent-viewable/scaling/counts-table/) | Fast sorting of large lists by views                       | A column and a scheduled `views:maintain`         |
 | [Cache cooldowns](/eloquent-viewable/recording/cooldowns/)                  | Cooldowns on stateless API routes                                | Any shared cache store                            |

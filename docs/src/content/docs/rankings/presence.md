@@ -101,7 +101,7 @@ It is off by default, because it stores who is looking instead of an anonymous i
   memory does not grow with the number of visitors, but the count is an estimate, typically off by less than 1%. It
   works in whole minutes, so it can include visitors from up to a minute before the window, and `leave()` has no
   effect.
-- **Redis.** Works with phpredis and Predis. Pick a connection with `presence.redis.connection`. All keys share one
+- **Redis.** Works with phpredis and Predis, against Redis or [Valkey](https://valkey.io). Pick a connection with `presence.redis.connection`. All keys share one
   [hash tag](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/#hash-tags), so on a Redis
   Cluster they all live on the same node. Keys expire on their own once nobody has been seen for a while. If Redis
   rejects a write, the error is reported and the view is still recorded.
