@@ -88,7 +88,13 @@ services:
     image: node:22-alpine
     profiles: [docs]
     working_dir: /app/docs
-    entrypoint: ["npm"]
+    entrypoint: ["corepack", "pnpm"]
+    environment:
+      # Corepack fetches the pnpm of docs/package.json once, and pnpm keeps its
+      # store next to node_modules, so both survive between runs.
+      COREPACK_HOME: /app/docs/node_modules/.corepack
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      pnpm_config_store_dir: /app/docs/node_modules/.pnpm-store
     volumes:
       - .:/app
       - docs-node-modules:/app/docs/node_modules

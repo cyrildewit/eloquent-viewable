@@ -2,12 +2,11 @@
   "name": "eloquent-viewable-docs",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@12.15.0",
   "scripts": {
     "sync": "node scripts/sync.mjs",
-    "predev": "npm run sync",
-    "dev": "astro dev --host",
-    "prebuild": "npm run sync",
-    "build": "astro build",
+    "dev": "node scripts/sync.mjs && astro dev --host",
+    "build": "node scripts/sync.mjs && astro build",
     "preview": "astro preview --host",
     "astro": "astro"
   },
