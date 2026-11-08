@@ -1,11 +1,124 @@
 ---
 title: Eloquent Viewable
-description: Analytics for your Eloquent models, stored in your own database.
+description: Analytics for your Eloquent models, stored in your own database. Record views, count them by period, rank what is trending and recommend what to read next.
 template: splash
 hero:
-  tagline: Analytics for your Eloquent models, stored in your own database.
+  tagline: Analytics for your Eloquent models, stored in your own database. Record views, count them by period, rank what is trending and recommend what to read next, without an external service.
+  image:
+    file: ../../assets/logo.svg
   actions:
     - text: Get started
-      link: /eloquent-viewable/getting-started/introduction/
+      link: /eloquent-viewable/getting-started/quick-start/
       icon: right-arrow
+    - text: Read the docs
+      link: /eloquent-viewable/getting-started/introduction/
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/cyrildewit/eloquent-viewable
+      icon: github
+      variant: minimal
 ---
+
+import { Card, CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+import ScaleLadder from '../../components/ScaleLadder.astro';
+
+```bash
+composer require cyrildewit/eloquent-viewable
+```
+
+## From one line to a ranking
+
+<Tabs>
+	<TabItem label="Record">
+		```php
+		// In the controller that shows the post
+		views($post)->record();
+
+		// Or on the route, with a 30 minute cooldown per visitor
+		Route::get('/posts/{post}', ShowPost::class)
+		    ->middleware(RecordViews::using('post', cooldown: 30));
+		```
+	</TabItem>
+	<TabItem label="Count">
+		```php
+		views($post)->count();
+		views($post)->unique()->period(Period::pastDays(7))->count();
+
+		$trend = views($post)->period(Period::pastDays(7))->compare();
+		$trend->percent; // 17.2, against the week before
+		```
+	</TabItem>
+	<TabItem label="Chart">
+		```php
+		$series = views($post)
+		    ->period(Period::pastDays(30))
+		    ->countByInterval(Granularity::Day);
+
+		$series->labels(); // ['2026-09-01', '2026-09-02', ...]
+		$series->values(); // [14, 22, ...]
+		```
+	</TabItem>
+	<TabItem label="Rank">
+		```php
+		Post::orderByViews()->paginate();      // most viewed first
+		views(Post::class)->trending(10);      // taking off right now
+		Views::top(10);                        // across every model type
+		views($post)->alsoViewed(5);           // readers also read
+		```
+	</TabItem>
+</Tabs>
+
+## Everything in your own database
+
+<CardGrid>
+	<Card title="Recording" icon="pencil">
+		Record from a controller, a route middleware or the browser when the page comes from a full-page cache. Crawlers,
+		prefetches and repeat views are dropped for you. [Recording views](/eloquent-viewable/recording/)
+	</Card>
+	<Card title="Counting" icon="analytics">
+		Total and unique views for any period, compared with the period before and grouped per hour, day, week, month or
+		year. [Counting](/eloquent-viewable/counting/)
+	</Card>
+	<Card title="Rankings" icon="star">
+		The most viewed content, what is trending, rising or spiking, and what people who viewed this also viewed.
+		[Rankings](/eloquent-viewable/rankings/)
+	</Card>
+	<Card title="Live presence" icon="laptop">
+		"12 people are viewing this", with a live counter that works on cached pages.
+		[Who is looking right now](/eloquent-viewable/rankings/presence/)
+	</Card>
+	<Card title="Privacy" icon="padlock">
+		Unique visitors without a cookie, opt-in support for Do Not Track and Global Privacy Control, and one person's views erased
+		on request. [Viewers](/eloquent-viewable/viewers/)
+	</Card>
+	<Card title="Testing" icon="approve-check">
+		`Views::fake()` records in memory and asserts what was recorded, so a test needs no `views` table.
+		[Testing](/eloquent-viewable/testing/)
+	</Card>
+</CardGrid>
+
+## Start simple, scale when you need to
+
+Out of the box every view is one insert and every count is one query. When traffic grows, switch on the next step, one
+config key at a time. None of them changes how you query.
+
+<ScaleLadder />
+
+## Recipes
+
+Complete features built from several parts of the package, each with its code and a test that runs with the suite.
+
+<CardGrid>
+	<LinkCard title="Trending articles" href="/eloquent-viewable/recipes/trending-articles/" description="A trending this week sidebar, ranked by views weighed by their age." />
+	<LinkCard title="Listing stats" href="/eloquent-viewable/recipes/listing-stats/" description="A seller's stats page with a daily chart and unique visitors." />
+	<LinkCard title="Breaking news" href="/eloquent-viewable/recipes/breaking-news/" description="Story pages under a traffic spike, buffered in Redis." />
+	<LinkCard title="Privacy-first analytics" href="/eloquent-viewable/recipes/privacy-first-analytics/" description="Counting readers without cookies or a cookie banner." />
+</CardGrid>
+
+[All recipes](/eloquent-viewable/recipes/)
+
+## Requirements
+
+Version 9 needs PHP 8.5 and Laravel 13, and runs on MySQL 8.0+, MariaDB, PostgreSQL and SQLite. See
+[Requirements](/eloquent-viewable/getting-started/requirements/) for older versions, and the
+[upgrade guide](/eloquent-viewable/project/upgrading/) when coming from version 8.
