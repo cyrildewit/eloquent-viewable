@@ -7,13 +7,7 @@ namespace CyrildeWit\EloquentViewable\Querying\Cache;
 use Carbon\CarbonInterface;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLifetime;
 
-/**
- * How long a remembered read is served. It is fresh until `$freshUntil`.
- * With `$staleUntil`, the entry is kept until then, and a read past
- * `$freshUntil` returns it at once and refreshes it after the response.
- *
- * @internal
- */
+/** @internal */
 final readonly class Lifetime
 {
     /** @throws InvalidLifetime */

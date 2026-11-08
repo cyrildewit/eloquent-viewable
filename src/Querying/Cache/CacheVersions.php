@@ -47,10 +47,9 @@ final readonly class CacheVersions
     }
 
     /**
-     * The version every entry is also stamped with, apart from the others.
-     * Bumping it through markStale() leaves entries readable but stale: a read
-     * with a stale window serves them while it refreshes them, and any other
-     * read counts again.
+     * Every entry is also stamped with this version. Unlike the other versions,
+     * a bump through markStale() does not forget an entry: a read with a stale
+     * window still serves it while it refreshes it.
      */
     public function refreshKey(): string
     {
@@ -116,9 +115,9 @@ final readonly class CacheVersions
     }
 
     /**
-     * For a change that adds to what entries counted without taking from it,
-     * such as a fold or a rebuild of the pairs, so an entry is as good as one
-     * that missed the views recorded since.
+     * Only for a change that adds views without taking any away, such as a
+     * fold. A stale entry then only misses recent views, as it does after a
+     * view is recorded.
      */
     public function markStale(): void
     {
