@@ -68,12 +68,22 @@ final readonly class ForgetChangedCounts
     }
 
     /**
-     * A scheduled run changes counts across the table, so every remembered
-     * count is forgotten.
+     * A scheduled run that took views away or changed them changes counts
+     * across the table, so every remembered count is forgotten.
      */
     public function viewsChanged(): void
     {
         $this->versions->flushCache();
+    }
+
+    /**
+     * A fold or a rebuild of the pairs only adds to what a remembered count
+     * read, so every entry is marked stale rather than forgotten. A read with
+     * a stale window keeps serving it while it counts again.
+     */
+    public function viewsSummarised(): void
+    {
+        $this->versions->markStale();
     }
 
     /**

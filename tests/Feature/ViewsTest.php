@@ -16,6 +16,7 @@ use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\ViewSource;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidFrequency;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidInterval;
+use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLifetime;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidLimit;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\InvalidReturning;
 use CyrildeWit\EloquentViewable\Querying\Exceptions\UnsupportedBySource;
@@ -1879,6 +1880,41 @@ describe('remembering', function (): void {
         'DateTime interface' => new DateTime('2050-01-01'),
         'Carbon interface' => Carbon::now()->addHours(2),
     ]);
+
+    it('serves a stale count at once and counts again after the response', function (): void {
+        views($this->post)->record();
+
+        expect(views($this->post)->remember(10, stale: 60)->count())->toBe(1);
+
+        views($this->post)->record();
+        $this->travel(11)->minutes();
+
+        expect(views($this->post)->remember(10, stale: 60)->count())->toBe(1);
+
+        defer()->invoke();
+
+        expect(views($this->post)->remember(10, stale: 60)->count())->toBe(2);
+    });
+
+    it('never serves a forgotten count stale', function (): void {
+        views($this->post)->record();
+
+        expect(views($this->post)->remember(10, stale: 60)->count())->toBe(1);
+
+        views($this->post)->record();
+        $this->travel(11)->minutes();
+        views($this->post)->forgetCache();
+
+        expect(views($this->post)->remember(10, stale: 60)->count())->toBe(2);
+    });
+
+    it('throws for a stale window without a lifetime', function (): void {
+        views($this->post)->remember(stale: 60);
+    })->throws(InvalidLifetime::class, 'remember() needs a lifetime to serve an entry stale after it.');
+
+    it('throws for a stale window that does not end after the lifetime', function (): void {
+        views($this->post)->remember(60, stale: 10);
+    })->throws(InvalidLifetime::class, 'must end after the lifetime');
 
     it('throws an exception when remember lifetime is of incorrect type', function (): void {
         expect(fn (): int => views($this->post)->remember('not good')->count())

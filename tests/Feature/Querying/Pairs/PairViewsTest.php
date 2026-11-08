@@ -168,6 +168,29 @@ it('serves alsoViewed() from the table unless the call names a period or collect
         ->and(views($this->post)->period(Period::since('2026-01-01'))->alsoViewed()->entries->map(fn ($entry): int => $entry->count)->all())->toBe([2, 2]);
 });
 
+it('serves a remembered ranking stale once it rebuilt the pairs, with a stale window', function (): void {
+    $apartment = Apartment::factory()->create();
+
+    pairedBy($this->post, ['one', 'two']);
+    pairedBy($apartment, ['one']);
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    $alsoViewed = fn (): array => views($this->post)->remember(60, stale: 3600)->alsoViewed()->entries->map(fn ($entry): int => $entry->count)->all();
+
+    expect($alsoViewed())->toBe([1]);
+
+    pairedBy($apartment, ['two']);
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    expect($alsoViewed())->toBe([1]);
+
+    defer()->invoke();
+
+    expect($alsoViewed())->toBe([2]);
+});
+
 it('counts a recipient that viewed a candidate in any way one visitor fewer', function (): void {
     $user = User::factory()->create();
     $other = Post::factory()->create();

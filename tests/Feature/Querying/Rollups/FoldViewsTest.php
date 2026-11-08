@@ -448,6 +448,21 @@ it('forgets the remembered counts once it folded', function (): void {
     expect(views($this->post)->remember(3600)->count())->toBe(2);
 });
 
+it('serves the remembered counts stale once it folded, with a stale window', function (): void {
+    viewAt($this->post, '2026-03-30 10:00:00');
+    expect(views($this->post)->remember(60, stale: 3600)->count())->toBe(1);
+
+    viewAt($this->post, '2026-03-30 11:00:00');
+
+    fold();
+
+    expect(views($this->post)->remember(60, stale: 3600)->count())->toBe(1);
+
+    defer()->invoke();
+
+    expect(views($this->post)->remember(60, stale: 3600)->count())->toBe(2);
+});
+
 it('throws when the rollup table is missing', function (): void {
     config()->set('eloquent-viewable.retention.rollups.table', 'missing_rollups');
 

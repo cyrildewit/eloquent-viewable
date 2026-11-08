@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CyrildeWit\EloquentViewable\Querying\Cache;
 
-use Carbon\CarbonInterface;
 use Closure;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Dimensions\DimensionDefinition;
@@ -27,7 +26,8 @@ use CyrildeWit\EloquentViewable\Support\ViewsQuery;
 
 /**
  * This source sits in front of another and serves what it read before from
- * the cache, until the moment `remember()` names. It keeps what the source
+ * the cache, until the moment `remember()` names, or until the end of its
+ * stale window while the entry is refreshed. It keeps what the source
  * returns as it is, so the reader shapes cached and fresh results alike.
  * Entries are stored under the `querying.cache.key` prefix, and the identity
  * of the source keeps the entries of two sources apart.
@@ -41,7 +41,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
     public function __construct(
         private ViewSource $source,
         private VersionedCache $cache,
-        private CarbonInterface $until,
+        private Lifetime $lifetime,
         private string $prefix,
         private string $identity,
     ) {}
@@ -139,7 +139,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
             $cacheKeys[$key] = new CacheKey($type, $key, $this->prefix, $this->identity)->make($query);
         }
 
-        return $this->cache->rememberMany($type, $cacheKeys, $this->until, function (array $missing) use ($viewable, $query): array {
+        return $this->cache->rememberMany($type, $cacheKeys, $this->lifetime, function (array $missing) use ($viewable, $query): array {
             $fetched = $this->source->countMany($viewable, $missing, $query);
             $counts = [];
 
@@ -226,8 +226,9 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
 
     /**
      * Remembered with no viewable, so only `flushCache()` forgets it before
-     * the moment `remember()` names. The request is part of the key, so two
-     * recipients never share an entry.
+     * the moment `remember()` names, and a fold or a rebuild of the pairs
+     * marks it stale. The request is part of the key, so two recipients never
+     * share an entry.
      *
      * @return RecommendationPairs
      *
@@ -256,7 +257,7 @@ final readonly class RememberingSource implements CountsBy, CountsByDimension, C
             $key,
             $viewable?->getMorphClass(),
             $viewable instanceof Viewable ? ViewableKey::of($viewable) : null,
-            $this->until,
+            $this->lifetime,
             $resolve,
         );
     }

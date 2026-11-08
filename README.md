@@ -678,6 +678,32 @@ Views::flushCache();               // everything
 
 This works on every cache store, including those without tags. For fresher counts, use a shorter lifetime.
 
+#### Serving a stale answer while it refreshes
+
+Once a remembered answer expires, the next read counts it again and waits for the database. On a busy page with an
+expensive read, such as a ranking or recommendations, pass `stale` to keep serving the old answer while it is counted
+again, as Laravel's `Cache::flexible()` does:
+
+```php
+Views::period(Period::pastDays(7))->remember(10, stale: 60)->trending(10); // fresh for 10 minutes, kept for an hour
+```
+
+For ten minutes, reads come from the cache. After that, until the hour is up, a read returns the old answer at once and
+counts it again once the response is sent. One process counts at a time, and the others keep serving the old answer.
+An answer nobody read for the whole hour is counted again before the response, as without `stale`.
+
+- **`stale` is measured from now, like the lifetime**, so it must end after it. It takes minutes or a
+  `DateTimeInterface`.
+- **The refresh runs after the response**, through Laravel's `defer()`. In a queued job or an Artisan command it runs
+  when the job or command ends, also when it failed. On the `sync` queue it runs with the request that dispatched the
+  job. A refresh that throws is reported, and the old answer stays until the hour is up.
+- **A forgotten answer is never served stale.** `forgetCache()`, `flushCache()`, deleting views, erasure, anonymising
+  and pruning make the next read count again before it answers.
+- **A fold or a rebuild of the pairs marks answers stale instead.** They only add views, as recording does, so with
+  `stale` an hourly `views:maintain` no longer makes the first read after it wait. Without `stale`, that read counts
+  again before it answers.
+- **`counts()` refreshes its stale models together**, in one query.
+
 ### Milestones
 
 Notify an author when their post passes 1,000 views, award a badge, or post to Slack. Milestones are thresholds on a
@@ -1226,7 +1252,8 @@ recommended because of itself.
   [`forgetViewHistory()`](#erasing-one-persons-views) also ends their recommendations, and so does anonymising old
   views with `retention.anonymise`.
 - **A cached list is forgotten by `flushCache()` only**, or when the moment `remember()` names passes. Keep that moment
-  short.
+  short, and add [a stale window](#serving-a-stale-answer-while-it-refreshes) so a page never waits for the next one:
+  `remember(10, stale: 60)`.
 
 #### On large tables
 

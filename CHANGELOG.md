@@ -51,6 +51,7 @@ package into modules. See the [upgrade guide](UPGRADING.md#upgrading-from-v800-t
 - Added the `whereViewsCount()` and `whereUniqueViewsCount()` scopes
 - Added `Period::parse()`, route model binding for `Period`, and an optional timezone argument on the relative `Period` constructors
 - Added `Views::forgetCache()` and `Views::flushCache()` to forget remembered counts, on every cache store
+- Added a stale window to `remember()`: `remember(10, stale: 60)` serves an expired answer at once and counts it again after the response, one process at a time, as `Cache::flexible()` does. Folds and rebuilds of the pairs mark remembered answers stale instead of forgetting them, so with a stale window a read after `views:maintain` does not wait. Forgetting, deleting, erasing, anonymising and pruning are never served stale
 - Added count sources, picked by `querying.source.driver`. Add your own `Querying\Contracts\ViewSource` with `SourceManager::extend()`, and a bucket grammar for another database driver with `Querying\Grammars\GrammarRegistry`
 - Added the `Querying\Contracts\SubquerySource` contract, which a source implements so the scopes can read from it. A source that does not throws `Querying\Exceptions\UnsupportedBySource` from a scope
 - Added the `Querying\Contracts\IdentifiesSource` contract, whose `cacheIdentity()` keeps the remembered counts of a source apart per setting

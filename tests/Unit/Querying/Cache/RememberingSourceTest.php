@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use CyrildeWit\EloquentViewable\Contracts\Viewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\Lifetime;
 use CyrildeWit\EloquentViewable\Querying\Cache\RememberingSource;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsByDimension;
@@ -40,7 +41,7 @@ beforeEach(function (): void {
     $this->remembering = fn (ViewSource $source, string $identity = 'database'): RememberingSource => new RememberingSource(
         $source,
         $this->versioned,
-        Carbon::now()->addMinutes(10),
+        new Lifetime(Carbon::now()->addMinutes(10)),
         'views',
         $identity,
     );

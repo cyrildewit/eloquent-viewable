@@ -10,6 +10,7 @@ use CyrildeWit\EloquentViewable\Exceptions\InvalidPeriod;
 use CyrildeWit\EloquentViewable\Exceptions\InvalidViewable;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheKey;
 use CyrildeWit\EloquentViewable\Querying\Cache\CacheVersions;
+use CyrildeWit\EloquentViewable\Querying\Cache\Lifetime;
 use CyrildeWit\EloquentViewable\Querying\Cache\VersionedCache;
 use CyrildeWit\EloquentViewable\Querying\Comparison\ViewComparison;
 use CyrildeWit\EloquentViewable\Querying\Contracts\CountsBy;
@@ -151,7 +152,7 @@ describe('count', function (): void {
         $source->expects('count')->once()->andReturn(3);
 
         $reader = reader($source);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(3)
             ->and($reader->count($this->viewable, $this->query, $until))->toBe(3);
@@ -160,7 +161,7 @@ describe('count', function (): void {
 
         $source->expects('count')->once()->andReturn(4);
 
-        expect($reader->count($this->viewable, $this->query, Carbon::now()->addMinutes(10)))->toBe(4);
+        expect($reader->count($this->viewable, $this->query, new Lifetime(Carbon::now()->addMinutes(10))))->toBe(4);
     });
 
     it('reads the entry and its versions in one round trip', function (): void {
@@ -169,7 +170,7 @@ describe('count', function (): void {
 
         $store = countingStore();
         $reader = reader($source, new CacheRepository($store));
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $reader->count($this->viewable, $this->query, $until);
         $store->reads = 0;
@@ -184,7 +185,7 @@ describe('count', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(3);
 
@@ -202,7 +203,7 @@ describe('count', function (): void {
         $cache = new CacheRepository(new ArrayStore);
         $cache->put(new CacheKey('posts', 7, 'views', 'database')->make($this->query), $stale, 600);
 
-        expect(reader($source, $cache)->count($this->viewable, $this->query, Carbon::now()->addMinutes(10)))->toBe(3);
+        expect(reader($source, $cache)->count($this->viewable, $this->query, new Lifetime(Carbon::now()->addMinutes(10))))->toBe(3);
     })->with([
         'a bare count, as stored before versions' => [7],
         'another version' => [['version' => 'stale', 'value' => 7]],
@@ -214,7 +215,7 @@ describe('count', function (): void {
         $source->expects('count')->twice()->andReturn(3, 5);
 
         $reader = reader($source);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(3)
             ->and($reader->count($this->viewable, new ViewsQuery, $until))->toBe(5)
@@ -225,7 +226,7 @@ describe('count', function (): void {
 describe('source identity', function (): void {
     it('keeps the entries of a source apart by the identity it reports', function (): void {
         $cache = new CacheRepository(new ArrayStore);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $identified = fn (string $identity, int $count): ViewSource => tap(Mockery::mock(ViewSource::class, IdentifiesSource::class), function ($source) use ($identity, $count): void {
             $source->allows('cacheIdentity')->andReturn($identity);
@@ -262,7 +263,7 @@ describe('compare', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
             ->and($reader->compare($this->viewable, $this->query, $until)->toArray())->toBe(['current' => 3, 'previous' => 2, 'delta' => 1, 'percent' => 50.0])
@@ -325,7 +326,7 @@ describe('visit frequency', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->countByFrequency($this->viewable, $this->query, 3, $until)->toArray())->toBe([1 => 6, 2 => 3, '3+' => 1])
             ->and($reader->countByFrequency($this->viewable, $this->query, 2, $until)->toArray())->toBe([1 => 6, '2+' => 4])
@@ -417,7 +418,7 @@ describe('count by interval', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $reader->countByInterval($this->viewable, $this->query, Granularity::Day, $until);
         $again = $reader->countByInterval($this->viewable, $this->query, Granularity::Day, $until);
@@ -470,7 +471,7 @@ describe('countByCollection', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $reader->countByCollection($this->viewable, $this->query, $until);
         $again = $reader->countByCollection($this->viewable, $this->query, $until);
@@ -485,7 +486,7 @@ describe('countByCollection', function (): void {
         $source->expects('countByCollection')->once()->andReturn(['sidebar' => 7]);
 
         $reader = reader($source, new CacheRepository(new ArrayStore));
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(7)
             ->and($reader->countByCollection($this->viewable, $this->query, $until))->toBe(['sidebar' => 7]);
@@ -519,10 +520,10 @@ describe('countBy', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
-        $reader->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: $until);
-        $again = $reader->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: $until);
+        $reader->countBy($this->viewable, $this->query, $this->dimension, lifetime: $until);
+        $again = $reader->countBy($this->viewable, $this->query, $this->dimension, lifetime: $until);
         $limited = $reader->countBy($this->viewable, $this->query, $this->dimension, 1, $until);
 
         expect(cachedEntries($cache))->toHaveCount(2)
@@ -532,7 +533,7 @@ describe('countBy', function (): void {
 
     it('refuses a source behind the cache that cannot count by a dimension', function (): void {
         reader(Mockery::mock(ViewSource::class), new CacheRepository(new ArrayStore))
-            ->countBy($this->viewable, $this->query, $this->dimension, rememberUntil: Carbon::now()->addMinute());
+            ->countBy($this->viewable, $this->query, $this->dimension, lifetime: new Lifetime(Carbon::now()->addMinute()));
     })->throws(UnsupportedBySource::class, 'cannot count by a dimension');
 });
 
@@ -554,7 +555,7 @@ describe('count many', function (): void {
         $source = Mockery::mock(ViewSource::class);
         $source->expects('countMany')->never();
 
-        expect(reader($source)->countMany(ViewableSet::of([]), $this->query, Carbon::now()->addMinutes(10)))->toBeEmpty();
+        expect(reader($source)->countMany(ViewableSet::of([]), $this->query, new Lifetime(Carbon::now()->addMinutes(10))))->toBeEmpty();
     });
 
     it('does not touch the cache without a lifetime', function (): void {
@@ -575,7 +576,7 @@ describe('count many', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
             ->and($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 2, 8 => 0])
@@ -588,7 +589,7 @@ describe('count many', function (): void {
         $source->expects('countMany')->with($this->nine, [8, 9], $this->query)->once()->andReturn([8 => 1]);
 
         $reader = reader($source);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         expect($reader->count($this->viewable, $this->query, $until))->toBe(5)
             ->and($reader->countMany($this->set, $this->query, $until))->toBe([9 => 0, 7 => 5, 8 => 1])
@@ -601,11 +602,11 @@ describe('count many', function (): void {
 
         $reader = reader($source);
 
-        expect($reader->countMany($this->set, $this->query, Carbon::now()->addMinutes(10))[7])->toBe(1);
+        expect($reader->countMany($this->set, $this->query, new Lifetime(Carbon::now()->addMinutes(10)))[7])->toBe(1);
 
         Carbon::setTestNow(Carbon::now()->addMinutes(11));
 
-        expect($reader->countMany($this->set, $this->query, Carbon::now()->addMinutes(10))[7])->toBe(2);
+        expect($reader->countMany($this->set, $this->query, new Lifetime(Carbon::now()->addMinutes(10)))[7])->toBe(2);
     });
 
     it('caches nothing for a lifetime in the past', function (): void {
@@ -614,7 +615,7 @@ describe('count many', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
 
-        expect(reader($source, $cache)->countMany($this->set, $this->query, Carbon::now()->subMinute())[7])->toBe(1)
+        expect(reader($source, $cache)->countMany($this->set, $this->query, new Lifetime(Carbon::now()->subMinute()))[7])->toBe(1)
             ->and(cachedEntries($cache))->toBeEmpty();
     });
 });
@@ -667,7 +668,7 @@ describe('top', function (): void {
 
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $reader->top(null, $this->query, 10, $until);
         $reader->top(null, $this->query, 10, $until);
@@ -686,7 +687,7 @@ describe('top', function (): void {
         $type = readerViewable(key: null);
         $cache = new CacheRepository(new ArrayStore);
         $reader = reader($source, $cache);
-        $until = Carbon::now()->addMinutes(10);
+        $until = new Lifetime(Carbon::now()->addMinutes(10));
 
         $reader->top($type, $this->query, 10, $until);
         $reader->top($type, $this->query, 5, $until);

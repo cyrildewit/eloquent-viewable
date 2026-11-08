@@ -134,6 +134,16 @@ it('forgets the remembered counts once views are deleted', function (): void {
     expect(views($this->post)->remember(3600)->count())->toBe(1);
 });
 
+it('never serves the counts it deleted stale', function (): void {
+    viewedOn($this->post, '2026-01-01', '2026-03-15');
+
+    expect(views($this->post)->remember(60, stale: 3600)->count())->toBe(2);
+
+    pruneBefore('2026-03-01');
+
+    expect(views($this->post)->remember(60, stale: 3600)->count())->toBe(1);
+});
+
 it('throws when the retention migration has not run', function (): void {
     config()->set('database.connections.bare', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
     config()->set('eloquent-viewable.models.view.connection', 'bare');
