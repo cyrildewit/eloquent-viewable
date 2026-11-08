@@ -657,15 +657,14 @@ only check whether a model has any views, `Post::has('views')` is cheaper. For l
 
 ### Caching view counts
 
-Add `remember()` to cache a count, a series or a ranking. An integer lifetime is a number of minutes, and the lifetime is
-forever by default:
+Add `remember()` with a lifetime to cache a count, a series or a ranking. An integer lifetime is a number of minutes.
+Without a lifetime, `remember()` caches nothing, so `remember()` turns off the caching an earlier call asked for:
 
 ```php
-views($post)->remember()->count();
 views($post)->remember(60)->count();                            // for an hour
 views($post)->remember(now()->addWeeks(2))->count();
-views($post)->period(Period::pastDays(30))->remember()->countByInterval(Granularity::Day);
-Views::period(Period::pastDays(7))->remember()->top(10);
+views($post)->period(Period::pastDays(30))->remember(60)->countByInterval(Granularity::Day);
+Views::period(Period::pastDays(7))->remember(10)->top(10);
 ```
 
 Relative periods such as `Period::pastDays(30)` are cached too. Recording a view leaves a remembered count alone;
@@ -876,8 +875,8 @@ the period is the "now" that ages are measured from.
 
 #### Good to know
 
-- **Give `remember()` a lifetime.** A ranking remembered forever never changes. Ten minutes is plenty for a sidebar:
-  `remember(10)`.
+- **Give `remember()` a short lifetime.** A remembered ranking does not change until it expires. Ten minutes is plenty
+  for a sidebar: `remember(10)`.
 - **The ranking moves once an hour.** Views are weighed per hour, or per day for a window too long for hours. A view
   from 10:05 and one from 10:55 weigh the same.
 - **`unique()` counts a visitor once per hour**, or once per day when views are weighed per day. A reader who comes
