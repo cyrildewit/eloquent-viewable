@@ -2,7 +2,7 @@
 title: "Preparing your model"
 description: "Implement the Viewable interface and use the InteractsWithViews trait."
 sidebar:
-  order: 4
+  order: 3
 ---
 
 Implement the `Viewable` interface and use the `InteractsWithViews` trait:

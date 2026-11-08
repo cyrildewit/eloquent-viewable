@@ -126,4 +126,152 @@ write(path.join(content, 'project/upgrading.md'), {
 	tableOfContents: { maxHeadingLevel: 3 },
 }, convert(upgrading, '', samples));
 
-console.log(`Synced ${samples.length} recipes and the upgrade guide.`);
+// The configuration reference: each top-level key of the published config, with
+// the comments that document it, under the banner it carries in the file.
+const configSections = {
+	models: 'extending/view-model',
+	recording: 'recording/recording-views',
+	dimensions: 'viewers/dimensions',
+	querying: 'counting/caching',
+	retention: 'scaling/retention',
+	milestones: 'counting/milestones',
+	spikes: 'rankings/rising-and-spiking',
+	visitor: 'recording/without-a-cookie',
+	presence: 'rankings/presence',
+	cooldown: 'recording/cooldowns',
+	doctor: 'scaling/checking-your-setup',
+};
+
+const banner = /^ {4}\/\*\n {4}\|-+\n {4}\| (.+)\n {4}\|-+\n((?: {4}\|.*\n)*) {4}\*\/\n/gm;
+const config = fs.readFileSync(path.join(root, 'config/eloquent-viewable.php'), 'utf8');
+const banners = [...config.matchAll(banner)];
+const configBody = banners.map((match, i) => {
+	const start = match.index + match[0].length;
+	const end = banners[i + 1]?.index ?? config.lastIndexOf('];');
+	const code = config.slice(start, end).replace(/^ {4}/gm, '').trim();
+	const key = code.match(/^'(\w+)'/)?.[1];
+	if (!key || !(key in configSections)) {
+		throw new Error(`config/eloquent-viewable.php: no page for the \`${key}\` section, add it to configSections.`);
+	}
+	const intro = match[2].replace(/^ {4}\| ?/gm, '').trim().replace(/\s*\n\s*/g, ' ');
+	return [
+		`## ${match[1]}`,
+		intro,
+		`See [${match[1]}](${base}/${configSections[key]}/) for how to use it.`,
+		`\`\`\`php title="config/eloquent-viewable.php"\n${code}\n\`\`\``,
+	].filter(Boolean).join('\n\n');
+});
+
+write(path.join(content, 'reference/configuration.md'), {
+	title: 'Configuration',
+	description: 'Every option of config/eloquent-viewable.php, with its default.',
+	sidebar: { order: 1 },
+	editUrl: `${repository}/edit/${branch}/config/eloquent-viewable.php`,
+}, `Publish the config file to change an option. Everything left out keeps the default shown here.
+
+\`\`\`bash
+php artisan vendor:publish --provider="CyrildeWit\\EloquentViewable\\EloquentViewableServiceProvider" --tag="config"
+\`\`\`
+
+${configBody.join('\n\n')}`);
+
+// The Artisan commands, read from the $signature and $description of every
+// command class in src/.
+const commandPages = {
+	'views:anonymise': 'scaling/retention',
+	'views:detect-spikes': 'rankings/rising-and-spiking',
+	'views:dimensions': 'viewers/dimensions',
+	'views:doctor': 'scaling/checking-your-setup',
+	'views:flush': 'scaling/redis-buffer',
+	'views:forget-viewer': 'viewers/erasing-views',
+	'views:forget-visitor': 'viewers/erasing-views',
+	'views:maintain': 'scaling/retention',
+	'views:pairs': 'scaling/pairs-table',
+	'views:prune': 'scaling/retention',
+	'views:purge-bots': 'scaling/purging-bots',
+	'views:recount': 'scaling/counts-table',
+	'views:rollup': 'scaling/rollups',
+	'views:seed-milestones': 'counting/milestones',
+};
+
+const phpString = (source, property) => {
+	const literal = source.match(new RegExp(`protected \\$${property} = '((?:[^'\\\\]|\\\\.)*)';`))?.[1];
+	return literal?.replace(/\\(['\\])/g, '$1');
+};
+
+// Splits a signature into its {…} parameters, minding the braces a
+// description may hold, such as `context->{name}`.
+function parameters(signature) {
+	const found = [];
+	let depth = 0;
+	let current = '';
+	for (const char of signature) {
+		if (char === '{' && depth++ === 0) continue;
+		if (char === '}' && --depth === 0) {
+			found.push(current.trim());
+			current = '';
+			continue;
+		}
+		if (depth > 0) current += char;
+	}
+	return found.map((parameter) => {
+		const [, name, description = ''] = parameter.match(/^([^:]+?)\s*(?::\s*([\s\S]*))?$/);
+		const option = name.startsWith('--');
+		const [flag, fallback] = name.replace(/^--/, '').split('=');
+		const optional = flag.endsWith('?');
+		return {
+			usage: option ? `--${flag}${fallback !== undefined ? '=' : ''}` : flag.replace('?', ''),
+			option,
+			optional,
+			fallback: fallback === '*' ? 'many' : fallback || undefined,
+			description: description.replace(/\s+/g, ' '),
+		};
+	});
+}
+
+const commandFiles = fs.globSync('src/**/Console/*Command.php', { cwd: root }).sort();
+const commands = commandFiles.flatMap((file) => {
+	const source = fs.readFileSync(path.join(root, file), 'utf8');
+	const signature = phpString(source, 'signature');
+	// An abstract base command has no signature of its own.
+	if (signature === undefined) return [];
+	const name = signature.match(/^[\w:-]+/)[0];
+	if (!(name in commandPages)) {
+		throw new Error(`${file}: no page for \`${name}\`, add it to commandPages.`);
+	}
+	return { file, name, description: phpString(source, 'description'), parameters: parameters(signature.slice(name.length)) };
+}).sort((a, b) => a.name.localeCompare(b.name));
+
+const cell = (text) => text.replace(/\|/g, '\\|');
+const commandBody = commands.map(({ file, name, description, parameters }) => {
+	const args = parameters.filter((p) => !p.option);
+	const usage = [name, ...args.map((a) => (a.optional ? `[${a.usage}]` : `<${a.usage}>`))].join(' ');
+	const rows = parameters.map((p) => {
+		const note = [p.fallback === 'many' ? 'Repeatable.' : p.fallback ? `Default \`${p.fallback}\`.` : '', p.optional ? 'Optional.' : '']
+			.filter(Boolean).join(' ');
+		return `| \`${p.usage}\` | ${cell(p.description)}${note ? ` ${note}` : ''} |`;
+	});
+	return [
+		`## \`${name}\``,
+		`${description}. See [the docs](${base}/${commandPages[name]}/) and [the source](${repository}/blob/${branch}/${file}).`,
+		`\`\`\`bash\nphp artisan ${usage}\n\`\`\``,
+		rows.length ? `| Argument or option | Description |\n|---|---|\n${rows.join('\n')}` : '',
+	].filter(Boolean).join('\n\n');
+});
+
+write(path.join(content, 'reference/commands.md'), {
+	title: 'Artisan commands',
+	description: 'Every views:* command, with its arguments and options.',
+	sidebar: { order: 2 },
+}, `Most applications schedule one command, \`views:maintain\`, which rolls up, anonymises and deletes old views and
+recounts counter columns as the config asks. Add \`views:flush\` with the [Redis buffer](${base}/scaling/redis-buffer/),
+\`views:pairs\` with the [pairs table](${base}/scaling/pairs-table/) and \`views:detect-spikes\` with
+[spike alerts](${base}/rankings/rising-and-spiking/#spike-alerts).
+
+\`\`\`php title="routes/console.php"
+Schedule::command('views:maintain')->hourly()->onOneServer();
+\`\`\`
+
+${commandBody.join('\n\n')}`);
+
+console.log(`Synced ${samples.length} recipes, the upgrade guide, ${banners.length} config sections and ${commands.length} commands.`);
