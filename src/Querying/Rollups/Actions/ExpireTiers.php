@@ -21,6 +21,10 @@ use Illuminate\Database\Query\Builder;
  * kept. Only whole buckets of the next coarser tier go, and only once that
  * tier has folded them, so history loses resolution but never counts.
  *
+ * A tier a rollup no longer keeps is dropped whole, together with its marks,
+ * because no read or watermark looks at it any more and a tier added back
+ * would otherwise carry on from where it was last folded, leaving a gap.
+ *
  * Once the deadline passes, the run stops before the next chunk and leaves
  * the rest of the tier for the next run.
  */
@@ -32,7 +36,7 @@ final readonly class ExpireTiers
         private RollupState $state,
     ) {}
 
-    /** @return list<array{rollup: string, tier: Tier, rows: int, stopped: bool}> */
+    /** @return list<array{rollup: string, tier: Tier, rows: int, stopped: bool, removed: bool}> */
     public function handle(int $chunk, bool $dryRun = false, ?Deadline $deadline = null): array
     {
         $deadline ??= Deadline::none();
@@ -42,6 +46,26 @@ final readonly class ExpireTiers
         foreach ($this->policy->definitions() as $definition) {
             $snapshot = $this->state->snapshot($definition->name);
 
+            foreach ($this->removedTiers($definition, $snapshot) as $tier) {
+                $rows = $this->rows($definition->name, $tier);
+
+                if ($dryRun) {
+                    $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $rows->count(), 'stopped' => false, 'removed' => true];
+
+                    continue;
+                }
+
+                $progress = $this->drop($rows, $chunk, $deadline);
+
+                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $progress->count, 'stopped' => $progress->stopped, 'removed' => true];
+
+                if ($progress->stopped) {
+                    return $dropped;
+                }
+
+                $this->state->forget($definition->name, $tier);
+            }
+
             foreach ($definition->tiers() as $tier) {
                 $cutoff = $this->expiryCutoff($definition, $tier, $snapshot, $now);
 
@@ -50,14 +74,14 @@ final readonly class ExpireTiers
                 }
 
                 if ($dryRun) {
-                    $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $this->expired($definition->name, $tier, $cutoff)->count(), 'stopped' => false];
+                    $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $this->expired($definition->name, $tier, $cutoff)->count(), 'stopped' => false, 'removed' => false];
 
                     continue;
                 }
 
-                $progress = $this->drop($definition->name, $tier, $cutoff, $chunk, $deadline);
+                $progress = $this->drop($this->expired($definition->name, $tier, $cutoff), $chunk, $deadline);
 
-                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $progress->count, 'stopped' => $progress->stopped];
+                $dropped[] = ['rollup' => $definition->name, 'tier' => $tier, 'rows' => $progress->count, 'stopped' => $progress->stopped, 'removed' => false];
 
                 if ($progress->stopped) {
                     return $dropped;
@@ -110,21 +134,41 @@ final readonly class ExpireTiers
         return $coarser->floor($kept->min($folded), $this->policy->timezone);
     }
 
-    private function drop(string $rollup, Tier $tier, CarbonImmutable $cutoff, int $chunk, Deadline $deadline): Progress
+    /**
+     * The tiers the rollup no longer keeps but has marks of. A fold marks a
+     * tier once it has written its rows, and the marks are only forgotten once
+     * every row is dropped, so a tier with rows always has a mark.
+     *
+     * @return list<Tier>
+     */
+    private function removedTiers(RollupDefinition $definition, Snapshot $snapshot): array
+    {
+        return array_values(array_filter(
+            Tier::cases(),
+            static fn (Tier $tier): bool => ! in_array($tier, $definition->tiers(), true)
+                && ($snapshot->folded($tier) instanceof CarbonImmutable || $snapshot->since($tier) instanceof CarbonImmutable),
+        ));
+    }
+
+    private function drop(Builder $rows, int $chunk, Deadline $deadline): Progress
     {
         return Chunks::run(
             $deadline,
             $chunk,
-            fn (): array => $this->expired($rollup, $tier, $cutoff)->limit($chunk)->pluck('id')->all(),
+            fn (): array => (clone $rows)->limit($chunk)->pluck('id')->all(),
             fn (array $ids): int => $this->rollup->newQuery()->toBase()->whereIn('id', $ids)->delete(),
         );
     }
 
     private function expired(string $rollup, Tier $tier, CarbonImmutable $cutoff): Builder
     {
+        return $this->rows($rollup, $tier)->where('bucket_start', '<', $cutoff);
+    }
+
+    private function rows(string $rollup, Tier $tier): Builder
+    {
         return $this->rollup->newQuery()->toBase()
             ->where('rollup', $rollup)
-            ->where('tier', $tier->value)
-            ->where('bucket_start', '<', $cutoff);
+            ->where('tier', $tier->value);
     }
 }

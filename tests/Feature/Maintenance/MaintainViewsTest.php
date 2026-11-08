@@ -91,7 +91,7 @@ it('stops while expiring tiers', function (): void {
 
     expect($run?->stopped)->toBeTrue()
         ->and($run?->folded)->toHaveCount(2)
-        ->and($run?->expired)->toBe([['rollup' => 'views', 'tier' => Tier::Day, 'rows' => 0, 'stopped' => true]]);
+        ->and($run?->expired)->toBe([['rollup' => 'views', 'tier' => Tier::Day, 'rows' => 0, 'stopped' => true, 'removed' => false]]);
 });
 
 it('stops while anonymising and leaves pruning for the next run', function (): void {

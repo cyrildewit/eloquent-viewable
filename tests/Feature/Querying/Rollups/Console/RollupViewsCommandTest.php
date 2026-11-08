@@ -50,6 +50,18 @@ it('folds every tier and expires what is past its keep', function (): void {
     expect(ViewRollup::query()->where('tier', 'day')->where('grouping', 'type')->count())->toBe(3);
 });
 
+it('drops a tier that is no longer kept', function (): void {
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => null, 'month' => null]);
+    app(FoldViews::class)->handle();
+    config()->set('eloquent-viewable.retention.rollups.tiers', ['month' => null]);
+
+    $this->artisan('views:rollup')
+        ->expectsOutputToContain('of the day tier, which is no longer kept.')
+        ->assertSuccessful();
+
+    expect(ViewRollup::query()->where('tier', 'day')->count())->toBe(0);
+});
+
 it('folds a kept tier the first time only as far back as it is kept', function (): void {
     config()->set('eloquent-viewable.retention.rollups.tiers', ['day' => '1y', 'month' => null]);
 

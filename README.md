@@ -2141,6 +2141,8 @@ What to know:
   `InvalidConfiguration` at boot.
 - **Late views are folded again.** A bucket waits `settle`, an hour by default, after it closes, and a view that lands
   later is found by its id and its bucket folded again.
+- **A tier removed from a rollup is dropped.** The next `views:rollup` deletes its rows, and `--dry-run` counts them
+  first. Added back, it is folded again from the first view still in the `views` table.
 - **Destroying views** removes the model's rollup rows, but not its share of the unique visitors of its type.
 
 #### Custom rollups
