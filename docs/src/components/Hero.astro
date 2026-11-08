@@ -24,7 +24,7 @@ const code = `$week = views($post)->period(Period::pastDays(7));
 
 $week->count();                           // ${total.toLocaleString('en')}
 $week->compare()->percent;                // 17.2
-$week->countByInterval(Granularity::Day); // [${days[0].views}, ${days[1].views}, …]
+$week->countByInterval(Granularity::Day); // ${days.length} daily counts
 
 views($post)->live()->count();            // 12`;
 ---
