@@ -47,7 +47,7 @@
         "laravel/pint": "^1.32",
         "mockery/mockery": "^1.6.15",
         "orchestra/testbench": "^11.0",
-        "pestphp/pest": "^5.0",
+        "pestphp/pest": "^5.3",
         "pestphp/pest-plugin-rector": "^5.0",
         "pestphp/pest-plugin-type-coverage": "^5.0",
         "phpbench/phpbench": "^1.7",
