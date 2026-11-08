@@ -68,7 +68,7 @@ final class RollupViewsCommand extends Command
             }
 
             foreach ($expire->handle($chunk, $dryRun, $deadline) as $expired) {
-                $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $dryRun);
+                $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $expired['removed'], $dryRun);
 
                 if ($expired['stopped']) {
                     $this->reportStopped();

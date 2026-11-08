@@ -17,7 +17,7 @@ final readonly class MaintenanceRun
 {
     /**
      * @param  list<ViewsRolledUp>  $folded
-     * @param  list<array{rollup: string, tier: Tier, rows: int, stopped: bool}>  $expired
+     * @param  list<array{rollup: string, tier: Tier, rows: int, stopped: bool, removed: bool}>  $expired
      */
     public function __construct(
         public array $folded = [],

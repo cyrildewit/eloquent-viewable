@@ -66,7 +66,7 @@ final class MaintainViewsCommand extends Command
         }
 
         foreach ($run->expired as $expired) {
-            $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $this->isDryRun());
+            $this->reportExpired($expired['rollup'], $expired['tier'], $expired['rows'], $expired['removed'], $this->isDryRun());
         }
 
         if ($run->anonymised instanceof RetentionRun) {

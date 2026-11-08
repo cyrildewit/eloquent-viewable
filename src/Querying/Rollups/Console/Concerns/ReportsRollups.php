@@ -31,10 +31,12 @@ trait ReportsRollups
         $this->components->info(ucfirst($summary));
     }
 
-    protected function reportExpired(string $rollup, Tier $tier, int $rows, bool $dryRun): void
+    protected function reportExpired(string $rollup, Tier $tier, int $rows, bool $removed, bool $dryRun): void
     {
         $noun = Str::plural('row', $rows);
-        $summary = "dropped {$rows} expired {$noun} of {$this->tierOf($rollup, $tier)}.";
+        $summary = $removed
+            ? "dropped {$rows} {$noun} of {$this->tierOf($rollup, $tier)}, which is no longer kept."
+            : "dropped {$rows} expired {$noun} of {$this->tierOf($rollup, $tier)}.";
 
         if ($dryRun) {
             $this->components->info("Would have {$summary}");

@@ -66,6 +66,16 @@ final readonly class RollupState
         $this->store->put($this->since($rollup, $tier), $since->format(StateStore::Format));
     }
 
+    /**
+     * Forgets how far a tier is folded and where its rows start, so the tier
+     * is folded as if for the first time if it is kept again.
+     */
+    public function forget(string $rollup, Tier $tier): void
+    {
+        $this->store->forget($this->folded($rollup, $tier));
+        $this->store->forget($this->since($rollup, $tier));
+    }
+
     public function putOrigin(string $rollup, CarbonInterface $origin): void
     {
         $this->store->put($this->origin($rollup), $origin->format(StateStore::Format));
