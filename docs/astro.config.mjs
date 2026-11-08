@@ -32,7 +32,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'Eloquent Viewable: view counts, trends and rankings for Eloquent models' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: socialImage } },
 			],
-			customCss: ['./src/styles/custom.css'],
+			customCss: ['@fontsource-variable/geist', '@fontsource-variable/geist-mono', './src/styles/custom.css'],
 			components: {
 				Hero: './src/components/Hero.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
