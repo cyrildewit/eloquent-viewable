@@ -33,6 +33,14 @@ These are dispatched once the row they report is written, so queue their listene
 | `Spikes\Events\ViewsDropped` | the same, below its baseline, for the types that watch drops | `type`, `key`, `baseline` |
 | `Spikes\Events\ViewsSettled` | once a spike or drop has been back to normal for the cooldown | `type`, `key`, `direction`, `peakCount`, `peakScore`, `since` |
 
+## Counters, rollups and pairs
+
+| Event | Fires | Carries |
+|-------|-------|---------|
+| `Querying\Counters\Events\CountersRecounted` | after each chunk of [counter columns](/eloquent-viewable/scaling/counts-table/) is recounted, by `views:recount`, `views:maintain` or `views($model)->destroy()` | `class`, `keys` |
+| `Querying\Rollups\Events\ViewsRolledUp` | once per rollup and tier that `views:rollup` or `views:maintain` [folded](/eloquent-viewable/scaling/rollups/) at least one bucket into; never on a dry run | `rollup`, `tier`, `from`, `until`, `buckets`, `stopped` |
+| `Querying\Pairs\Events\ViewsPaired` | once per period after `views:pairs` rewrites the [pairs table](/eloquent-viewable/scaling/pairs-table/) | `since`, `viewables`, `pairs`, `period` |
+
 ## Erasure
 
 | Event | Fires | Carries |

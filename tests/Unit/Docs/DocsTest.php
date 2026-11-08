@@ -43,9 +43,14 @@ function publicEvents(): array
 {
     $events = [];
 
-    foreach (glob(__DIR__.'/../../../src/*/Events/*.php') ?: [] as $file) {
-        if (! str_contains((string) file_get_contents($file), '@internal')) {
-            $events[] = basename(dirname($file, 2)).'\\Events\\'.basename($file, '.php');
+    $src = __DIR__.'/../../../src';
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
+
+    foreach ($files as $file) {
+        $path = (string) $file;
+
+        if (basename(dirname($path)) === 'Events' && str_ends_with($path, '.php') && ! str_contains((string) file_get_contents($path), '@internal')) {
+            $events[] = str_replace('/', '\\', substr($path, strlen($src) + 1, -4));
         }
     }
 
@@ -69,6 +74,11 @@ it('only names config keys that exist', function (string $file): void {
 
     expect(array_values(array_filter($ours, fn (string $key): bool => ! Arr::has($config, $key))))->toBeEmpty();
 })->with(fn (): array => docsPages());
+
+it('finds the public events in nested folders and leaves out the internal ones', function (): void {
+    expect(publicEvents())->toContain('Recording\\Events\\ViewRecorded', 'Querying\\Counters\\Events\\CountersRecounted')
+        ->not->toContain('Erasure\\Events\\CountsChanged');
+});
 
 it('lists every public event on the events page', function (): void {
     $page = (string) file_get_contents(DocsPath.'/reference/events.md');
