@@ -252,10 +252,12 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         $parts = [];
         $bindings = [];
 
-        foreach ($read->plan->raw() as $segment) {
-            $raw = $this->raw->countSubquery($viewable, $this->narrow($query, $segment));
+        $branches = $this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->countedPerViewable($viewable->getMorphClass(), $segment));
+
+        if ($branches !== []) {
+            $raw = $this->handedOver($viewable, $branches, 'aggregate');
             $parts[] = "({$raw->toSql()})";
-            $bindings = [...$bindings, ...$raw->getBindings()];
+            $bindings = $raw->getBindings();
         }
 
         $rollups = $this->rollups($viewable->getMorphClass(), null, $grouping, $read, $query)
@@ -446,10 +448,12 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
         $parts = [];
         $bindings = [];
 
-        foreach ($read->plan->raw() as $segment) {
-            $raw = $this->raw->weightedSubquery($viewable, $this->narrow($query, $segment), $decay);
+        $branches = $this->rawBranches($read, $query, fn (ViewsQuery $segment): Builder => $this->raw->trendingRows($viewable->getMorphClass(), $segment, $decay));
+
+        if ($branches !== []) {
+            $raw = $this->handedOver($viewable, $branches, 'score');
             $parts[] = "({$raw->toSql()})";
-            $bindings = [...$bindings, ...$raw->getBindings()];
+            $bindings = $raw->getBindings();
         }
 
         $column = $this->wrap($this->rollup->qualifyColumn($this->column($query)));
@@ -518,6 +522,22 @@ final readonly class RollupSource implements CountsBy, CountsByDimension, Counts
             ->orderBy('viewable_id')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * In a correlated subquery, MySQL and MariaDB seek only the viewable in
+     * the composite index and filter `viewed_at` row by row, so each row would
+     * read every view its viewable ever had. Grouped once in a derived table,
+     * the segments read only the views in their own period.
+     *
+     * @param  non-empty-list<Builder>  $branches
+     */
+    private function handedOver(Viewable $viewable, array $branches, string $column): Builder
+    {
+        return $this->view->getConnection()->query()
+            ->fromSub(Rows::union($branches), 'handed_over')
+            ->whereColumn('handed_over.viewable_id', $viewable->getQualifiedKeyName())
+            ->selectRaw("coalesce(sum({$column}), 0)"); // @phpstan-ignore argument.type (a package-formatted column, not user input)
     }
 
     /**
