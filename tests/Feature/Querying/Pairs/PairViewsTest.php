@@ -227,3 +227,35 @@ it('leaves out what a visitor viewed itself, unless it is included', function ()
     expect($pairs(false)['pairs'])->toBeEmpty()
         ->and(array_map(fn (array $pair): array => [$pair['id'], $pair['visitors']], $pairs(true)['pairs']))->toBe([[$other->getKey(), 2]]);
 });
+
+it('checks every candidate against what the recipient viewed in one statement per type', function (): void {
+    $user = User::factory()->create();
+    $apartment = Apartment::factory()->create();
+    $others = Post::factory()->count(3)->create();
+
+    View::factory()->for($this->post, 'viewable')->by($user)->fromVisitor('laptop')->viewedAt(Carbon::parse('2026-02-20'))->create();
+    View::factory()->for($others[0], 'viewable')->by($user)->fromVisitor('laptop')->viewedAt(Carbon::parse('2026-02-20'))->count(2)->create();
+    pairedBy($others[1], ['laptop', 'laptop']);
+    pairedBy($this->post, ['one', 'two']);
+    pairedBy($apartment, ['one', 'two']);
+
+    foreach ($others as $other) {
+        pairedBy($other, ['one', 'two']);
+    }
+
+    $this->artisan('views:pairs')->assertSuccessful();
+
+    DB::enableQueryLog();
+
+    $pairs = Container::getInstance()->make(PairTable::class)->recommendationPairs(
+        new RecommendationRequest(Recipient::viewer($user), null, 20, 1, null, false),
+        [['type' => $this->post->getMorphClass(), 'id' => $this->post->getKey(), 'viewed_at' => '2026-02-20 00:00:00']],
+    );
+
+    expect(DB::getQueryLog())->toHaveCount(3)
+        ->and(array_map(fn (array $pair): array => [$pair['id'], $pair['visitors']], $pairs['pairs']))->toBe([
+            [$apartment->getKey(), 2],
+            [$others[1]->getKey(), 2],
+            [$others[2]->getKey(), 2],
+        ]);
+});
