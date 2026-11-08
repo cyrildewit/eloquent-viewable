@@ -18,7 +18,7 @@ the URL.
 | [`ContentDashboardTest.php`](ContentDashboardTest.php)                                               | The behaviour below, as tests          |
 
 Views are recorded on the guide and episode pages, with the placement a reader came from as the
-[collection](../../README.md#view-collections), for example `views($guide)->collection('newsletter')->record()` behind
+[collection](https://cyrildewit.github.io/eloquent-viewable/recording/collections/), for example `views($guide)->collection('newsletter')->record()` behind
 the newsletter's links. Register the dashboard behind your editors' middleware:
 
 ```php

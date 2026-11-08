@@ -36,7 +36,7 @@ change if you extended the package.
 - **Testing:** `Views::fake()` with assertions, and a factory for the `View` model.
 - **Extension points:** your own recording guards, stores, count sources and cooldown stores.
 
-See the [README](README.md) for each of them.
+See the [documentation](https://cyrildewit.github.io/eloquent-viewable/) for each of them.
 
 ### 1. Update the package
 
@@ -160,8 +160,8 @@ return new class extends Migration
 On a large table, building an index locks writes while it runs. MySQL 8 and MariaDB 10.5 build it online. On
 Postgres, use `CREATE INDEX CONCURRENTLY` with `public $withinTransaction = false;` on the migration.
 
-Nothing is recorded in the new columns until you opt in to [recording the viewer](README.md#who-viewed-what) or pass a
-[context](README.md#storing-context-with-a-view).
+Nothing is recorded in the new columns until you opt in to [recording the viewer](https://cyrildewit.github.io/eloquent-viewable/viewers/who-viewed-what/) or pass a
+[context](https://cyrildewit.github.io/eloquent-viewable/recording/context/).
 
 Version 9 also adds the tables of retention, rollups, pairs, milestones and spikes. Publish the migrations again and
 run them:
@@ -174,7 +174,7 @@ php artisan migrate
 Your views migration is skipped because its file exists, and the five new ones are published. The features stay off
 until you configure them, so you can delete the migration of one you will not use before running it.
 
-[Dimensions](README.md#dimensions) add no column until you list one. After listing one under
+[Dimensions](https://cyrildewit.github.io/eloquent-viewable/viewers/dimensions/) add no column until you list one. After listing one under
 `dimensions.definitions`, run `php artisan views:dimensions`, which writes the migration that adds its column, and
 migrate. If you publish the config by hand, add `dimensions` to `retention.anonymise.columns`, so anonymising clears
 the dimensions marked personal.
@@ -265,7 +265,7 @@ $event->record->viewableId;
 $event->record->viewableType::find($event->record->viewableId);
 ```
 
-With the [Redis buffer](README.md#buffering-views-in-redis) the row does not exist yet when the event fires, so read
+With the [Redis buffer](https://cyrildewit.github.io/eloquent-viewable/scaling/redis-buffer/) the row does not exist yet when the event fires, so read
 what you need from the record.
 
 #### Custom recording action
@@ -280,7 +280,7 @@ public function handle(PendingView $pending): View
 public function handle(ViewRecord $record): void
 ```
 
-To only change where views are written, [register a store](README.md#choosing-where-views-are-stored) instead.
+To only change where views are written, [register a store](https://cyrildewit.github.io/eloquent-viewable/extending/stores/) instead.
 
 #### Custom `View` model
 
@@ -299,8 +299,8 @@ A `$table` or `$connection` property on your model now wins over `table_name` an
 #### Custom `Views` class
 
 `Contracts\Views` is gone and `Views` can no longer be replaced through the container. Type-hint `Views` instead, and
-move your changes into a macro, a [recording guard](README.md#adding-a-recording-guard), a
-[store](README.md#choosing-where-views-are-stored) or a [source](README.md#customizing-how-views-are-counted). A
+move your changes into a macro, a [recording guard](https://cyrildewit.github.io/eloquent-viewable/extending/guards/), a
+[store](https://cyrildewit.github.io/eloquent-viewable/extending/stores/) or a [source](https://cyrildewit.github.io/eloquent-viewable/extending/counting/). A
 subclass that overrides the constructor needs the new arguments: the visitor, `Recording\Recorder`, `Querying\Reader`,
 `Recording\Actions\DestroyViews`, `Querying\Cache\CacheVersions`, `Dimensions\DimensionRegistry`, `Presence\LiveViews` and
 the container.

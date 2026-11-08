@@ -54,10 +54,10 @@ product at the same time do not overwrite each other. It goes through `toBase()`
 two fewer writes. The cooldown is still checked during the request, so a shopper on cooldown never puts a job on the
 queue. The listener itself is not queued: it already runs in the worker, and a second job per view would only add load.
 It must not read the request, the session or the signed-in user, because there are none in the worker; the
-[README](../../README.md#queueing-view-recording) explains why.
+[docs on queueing](https://cyrildewit.github.io/eloquent-viewable/recording/queueing/) explain why.
 
 **Count only what the column means.** Every viewable type fires the same event, and views recorded into a
-[collection](../../README.md#view-collections) are a different kind of view. The listener checks the type and skips
+[collection](https://cyrildewit.github.io/eloquent-viewable/recording/collections/) are a different kind of view. The listener checks the type and skips
 collections, and the recount counts the same views, so the two agree.
 
 **Recount now and then.** The counter is a copy, and a copy drifts: a worker that dies between the insert and the

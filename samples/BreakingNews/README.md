@@ -49,7 +49,7 @@ $report->asOf;   // the last flush, or null before the first one
 insert per view, so the database still receives a row per reader, only later. The `redis` store appends every view to
 a stream with one `XADD`, and the flusher lands them a thousand rows per insert statement. The request does one Redis
 command instead of one database write, and the table sees a thousand times fewer statements during the spike. The
-README's [benchmarks](../../benchmarks) put the two side by side.
+repository's [benchmarks](../../benchmarks) put the two side by side.
 
 **Keep the guards in the request.** The cooldown, the crawler check and the rest run before the view reaches the
 store, whichever store it is. A reader who refreshes a developing story within the quarter hour never produces an
@@ -78,5 +78,5 @@ other stories in the same buffer land as usual at the next flush.
 - Cache the report with `remember()` for a minute, the same interval as the flush, so the dashboard's queries do not
   grow with the number of editors watching it. The cached count then lags by two minutes at most.
 - Keep an eye on the stream. If the scheduler stops, the buffer grows in Redis memory; the
-  [README](../../README.md#buffering-views-in-redis) explains which eviction policy and persistence settings keep
+  [docs on the Redis buffer](https://cyrildewit.github.io/eloquent-viewable/scaling/redis-buffer/) explain which eviction policy and persistence settings keep
   views safe until the flusher is back.
