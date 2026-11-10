@@ -54,7 +54,7 @@
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/php-code-coverage": "^14.4",
-        "predis/predis": "^3.3",
+        "predis/predis": "^3.7",
         "rector/rector": "^2.8"
     },
     "suggest": {
