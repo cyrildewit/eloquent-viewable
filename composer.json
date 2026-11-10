@@ -52,7 +52,7 @@
         "pestphp/pest-plugin-type-coverage": "^5.0",
         "phpbench/phpbench": "^1.7",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.1",
         "phpunit/php-code-coverage": "^14.4",
         "predis/predis": "^3.3",
         "rector/rector": "^2.8"
