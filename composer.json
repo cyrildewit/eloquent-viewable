@@ -43,7 +43,7 @@
         "illuminate/config": "^13.0",
         "illuminate/redis": "^13.0",
         "larastan/larastan": "^3.14",
-        "laravel/octane": "^2.20",
+        "laravel/octane": "^2.23",
         "laravel/pint": "^1.32",
         "mockery/mockery": "^1.6.15",
         "orchestra/testbench": "^11.0",
