@@ -42,7 +42,7 @@
         "fruitcake/laravel-debugbar": "^4.4",
         "illuminate/config": "^13.0",
         "illuminate/redis": "^13.0",
-        "larastan/larastan": "^3.14",
+        "larastan/larastan": "^3.15",
         "laravel/octane": "^2.23",
         "laravel/pint": "^1.32",
         "mockery/mockery": "^1.6.15",
