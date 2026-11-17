@@ -53,7 +53,7 @@
         "phpbench/phpbench": "^1.7",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.1",
-        "phpunit/php-code-coverage": "^14.4",
+        "phpunit/php-code-coverage": "^14.5",
         "predis/predis": "^3.7",
         "rector/rector": "^2.8"
     },
